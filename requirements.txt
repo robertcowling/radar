@@ -1,0 +1,6 @@
+boto3
+h5py
+numpy
+Pillow
+pyproj
+botocore

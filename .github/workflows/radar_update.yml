@@ -1,0 +1,41 @@
+name: Process Radar Images
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # Every 15 minutes
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Process latest radar data
+      run: python process_latest.py
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.name "Radar Automator"
+        git config --global user.email "radar-bot@github.com"
+        git add static/radar static/sat frames.json
+        git diff --cached --quiet && echo "No changes to commit" && exit 0
+        git commit -m "Update radar frames $(date -u +'%Y-%m-%d %H:%M UTC')"
+        git pull --rebase origin main
+        git push origin main
