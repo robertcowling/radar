@@ -253,8 +253,8 @@ def list_r2_keys(r2):
     return keys
 
 
-def upload_to_r2(r2, local_path, r2_key, content_type, existing_keys):
-    if r2_key in existing_keys:
+def upload_to_r2(r2, local_path, r2_key, content_type, existing_keys, force=False):
+    if not force and r2_key in existing_keys:
         return True  # already in R2, skip
     try:
         r2.upload_file(local_path, R2_BUCKET, r2_key, ExtraArgs={'ContentType': content_type})
@@ -390,7 +390,18 @@ def main():
         json.dump(frames, f, indent=2)
     print(f"Manifest updated with {len(frames)} frames.")
 
+    status = {
+        "last_updated": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:00.000Z"),
+        "frame_count": len(frames),
+        "latest_frame": frames[-1]["time"] if frames else None,
+    }
+    with open("status.json", "w") as f:
+        json.dump(status, f, indent=2)
+    print(f"Status written: {status}")
+
     if USE_R2:
+        upload_to_r2(r2, "frames.json", "frames.json", "application/json", r2_keys, force=True)
+        upload_to_r2(r2, "status.json", "status.json", "application/json", r2_keys, force=True)
         cleanup_r2(r2)
 
 

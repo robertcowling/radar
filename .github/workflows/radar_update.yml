@@ -69,7 +69,7 @@ jobs:
       run: |
         git config --global user.name "Radar Automator"
         git config --global user.email "radar-bot@github.com"
-        git add frames.json
+        git add frames.json status.json
         git diff --cached --quiet && echo "No changes to commit" || (
           git commit -m "Update radar frames $(date -u +'%Y-%m-%d %H:%M UTC')" &&
           git pull --rebase origin main &&
