@@ -24,8 +24,8 @@ jobs:
         path: |
           static/radar
           static/sat
-        key: radar-images-${{ github.run_id }}
-        restore-keys: radar-images-
+        key: radar-images-v2-${{ github.run_id }}
+        restore-keys: radar-images-v2-
 
     - name: Set up Python
       uses: actions/setup-python@v4

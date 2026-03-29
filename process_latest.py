@@ -11,10 +11,14 @@ from botocore import UNSIGNED
 from botocore.client import Config
 import urllib.request
 
-# Constants (from app.py)
+# Radar domain (fixed by Met Office composite coverage)
 LON_MIN, LON_MAX = -11.5, 3.5
 LAT_MIN, LAT_MAX = 49.0, 61.5
 WIDTH, HEIGHT = 2400, 2000
+
+# Satellite domain — 40% wider/taller than radar, same centre (-4.0°, 55.25°)
+SAT_LON_MIN, SAT_LON_MAX = -14.5, 6.5
+SAT_LAT_MIN, SAT_LAT_MAX = 46.5, 64.0
 
 # S3 Config
 BUCKET = "met-office-radar-obs-data"
@@ -183,13 +187,13 @@ def collect_keys_with_retry(s3):
 
 
 def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=1200, height=1000, style=""):
-    # Convert lat/lon bounds to Web Mercator (EPSG:3857) meters.
+    # Convert satellite lat/lon bounds to Web Mercator (EPSG:3857) meters.
     # We must request imagery in 3857 to match the Leaflet/OSM projection perfectly.
     # WMS 1.3.0 with EPSG:4326 would return a Plate Carree image that appears shifted
     # north when stretched linearly on a Mercator map.
     ll_to_merc = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
-    m_xmin, m_ymin = ll_to_merc.transform(LON_MIN, LAT_MIN)
-    m_xmax, m_ymax = ll_to_merc.transform(LON_MAX, LAT_MAX)
+    m_xmin, m_ymin = ll_to_merc.transform(SAT_LON_MIN, SAT_LAT_MIN)
+    m_xmax, m_ymax = ll_to_merc.transform(SAT_LON_MAX, SAT_LAT_MAX)
 
     # WMS 1.3.0 BBOX for EPSG:3857 is [xmin, ymin, xmax, ymax] (Easting, Northing)
     wms_url = (f"https://view.eumetsat.int/geoserver/ows?service=WMS&request=GetMap&version=1.3.0"

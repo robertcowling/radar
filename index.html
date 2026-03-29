@@ -655,8 +655,10 @@
             maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
         }).addTo(map);
 
-        // Radar Overlay
+        // Radar Overlay — fixed to Met Office composite extent
         var bounds = [[49.0, -11.5], [61.5, 3.5]];
+        // Satellite Overlay — 40% larger domain, same centre (-4.0°, 55.25°)
+        var satBounds = [[46.5, -14.5], [64.0, 6.5]];
         var radarOverlay = L.imageOverlay('', bounds, {
             opacity: 0.7,
             interactive: false,
@@ -709,7 +711,7 @@
             });
             if (val === 'none') return;
             if (!satOverlays[val]) {
-                satOverlays[val] = L.imageOverlay('', bounds, { opacity: 1.0, interactive: false });
+                satOverlays[val] = L.imageOverlay('', satBounds, { opacity: 1.0, interactive: false });
             }
             satOverlays[val].addTo(map);
             satOverlays[val].bringToBack();
