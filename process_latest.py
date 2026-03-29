@@ -241,10 +241,25 @@ def get_r2_client():
     )
 
 
-def upload_to_r2(r2, local_path, r2_key, content_type):
+def list_r2_keys(r2):
+    """Return a set of all existing keys in radar_gh/ and sat_gh/."""
+    keys = set()
+    paginator = r2.get_paginator('list_objects_v2')
+    for prefix in ('radar_gh/', 'sat_gh/'):
+        for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=prefix):
+            for obj in page.get('Contents', []):
+                keys.add(obj['Key'])
+    print(f"R2: {len(keys)} existing objects found.")
+    return keys
+
+
+def upload_to_r2(r2, local_path, r2_key, content_type, existing_keys):
+    if r2_key in existing_keys:
+        return True  # already in R2, skip
     try:
         r2.upload_file(local_path, R2_BUCKET, r2_key, ExtraArgs={'ContentType': content_type})
         print(f"  Uploaded to R2: {r2_key}")
+        existing_keys.add(r2_key)
         return True
     except Exception as e:
         print(f"  R2 upload failed for {r2_key}: {e}")
@@ -277,6 +292,7 @@ def main():
 
     s3 = boto3.client("s3", region_name="eu-west-2", config=Config(signature_version=UNSIGNED))
     r2 = get_r2_client() if USE_R2 else None
+    r2_keys = list_r2_keys(r2) if USE_R2 else None
 
     keys = collect_keys_with_retry(s3)
 
@@ -311,7 +327,7 @@ def main():
                 mapping = get_mapping(h5_path)
             render_png(h5_path, png_path, mapping)
         if USE_R2:
-            upload_to_r2(r2, png_path, f"radar_gh/{png_name}", "image/png")
+            upload_to_r2(r2, png_path, f"radar_gh/{png_name}", "image/png", r2_keys)
 
         sat_url_bw = None
         sat_url_vis = None
@@ -330,7 +346,7 @@ def main():
                 download_sat_image(iso_time, "mtg_fd:rgb_geocolour", sat_path_bw)
             if os.path.exists(sat_path_bw):
                 if USE_R2:
-                    upload_to_r2(r2, sat_path_bw, f"sat_gh/{sat_name_bw}", "image/jpeg")
+                    upload_to_r2(r2, sat_path_bw, f"sat_gh/{sat_name_bw}", "image/jpeg", r2_keys)
                     sat_url_bw = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_bw}"
                 else:
                     sat_url_bw = f"static/sat/{sat_name_bw}"
@@ -343,7 +359,7 @@ def main():
                                    fmt="image/png")
             if os.path.exists(sat_path_vis):
                 if USE_R2:
-                    upload_to_r2(r2, sat_path_vis, f"sat_gh/{sat_name_vis}", "image/png")
+                    upload_to_r2(r2, sat_path_vis, f"sat_gh/{sat_name_vis}", "image/png", r2_keys)
                     sat_url_vis = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_vis}"
                 else:
                     sat_url_vis = f"static/sat/{sat_name_vis}"
@@ -355,7 +371,7 @@ def main():
                                    style="mtg_fd_ir105_hrfi_style_01")
             if os.path.exists(sat_path_ir):
                 if USE_R2:
-                    upload_to_r2(r2, sat_path_ir, f"sat_gh/{sat_name_ir}", "image/jpeg")
+                    upload_to_r2(r2, sat_path_ir, f"sat_gh/{sat_name_ir}", "image/jpeg", r2_keys)
                     sat_url_ir = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir}"
                 else:
                     sat_url_ir = f"static/sat/{sat_name_ir}"
