@@ -24,8 +24,23 @@ SAT_LAT_MIN, SAT_LAT_MAX = 46.5, 64.0
 BUCKET = "met-office-radar-obs-data"
 NUM_FILES = 96
 H5_DIR = "data_h5"
-PNG_DIR = "static/radar"
-SAT_DIR = "static/sat"
+
+# R2 Config — set these as GitHub Actions secrets (never hardcode)
+R2_ACCOUNT_ID    = os.environ.get('R2_ACCOUNT_ID', '')
+R2_ACCESS_KEY_ID = os.environ.get('R2_ACCESS_KEY_ID', '')
+R2_SECRET_KEY    = os.environ.get('R2_SECRET_ACCESS_KEY', '')
+R2_BUCKET        = os.environ.get('R2_BUCKET_NAME', '')
+R2_PUBLIC_URL    = os.environ.get('R2_PUBLIC_BASE_URL', '').rstrip('/')
+
+USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, R2_BUCKET, R2_PUBLIC_URL])
+
+# Use _gh dirs when uploading to R2, keeping them separate from VM-managed dirs
+if USE_R2:
+    PNG_DIR = "static/radar_gh"
+    SAT_DIR = "static/sat_gh"
+else:
+    PNG_DIR = "static/radar"
+    SAT_DIR = "static/sat"
 
 # How long after an observation time before frames reliably appear on S3.
 # The action runs at :10/:25/:40/:55, so the target frame is always 7+ min old.
@@ -216,12 +231,33 @@ def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=1
         return False
 
 
+def get_r2_client():
+    return boto3.client(
+        's3',
+        endpoint_url=f'https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com',
+        aws_access_key_id=R2_ACCESS_KEY_ID,
+        aws_secret_access_key=R2_SECRET_KEY,
+        region_name='auto',
+    )
+
+
+def upload_to_r2(r2, local_path, r2_key, content_type):
+    try:
+        r2.upload_file(local_path, R2_BUCKET, r2_key, ExtraArgs={'ContentType': content_type})
+        print(f"  Uploaded to R2: {r2_key}")
+        return True
+    except Exception as e:
+        print(f"  R2 upload failed for {r2_key}: {e}")
+        return False
+
+
 def main():
     os.makedirs(H5_DIR, exist_ok=True)
     os.makedirs(PNG_DIR, exist_ok=True)
     os.makedirs(SAT_DIR, exist_ok=True)
 
     s3 = boto3.client("s3", region_name="eu-west-2", config=Config(signature_version=UNSIGNED))
+    r2 = get_r2_client() if USE_R2 else None
 
     keys = collect_keys_with_retry(s3)
 
@@ -255,6 +291,8 @@ def main():
             if mapping is None:
                 mapping = get_mapping(h5_path)
             render_png(h5_path, png_path, mapping)
+        if USE_R2:
+            upload_to_r2(r2, png_path, f"radar/{png_name}", "image/png")
 
         sat_url_bw = None
         sat_url_vis = None
@@ -272,7 +310,11 @@ def main():
                 print(f"Downloading GeoColour image {sat_name_bw}...")
                 download_sat_image(iso_time, "mtg_fd:rgb_geocolour", sat_path_bw)
             if os.path.exists(sat_path_bw):
-                sat_url_bw = f"static/sat/{sat_name_bw}"
+                if USE_R2:
+                    upload_to_r2(r2, sat_path_bw, f"sat/{sat_name_bw}", "image/jpeg")
+                    sat_url_bw = f"{R2_PUBLIC_URL}/sat/{sat_name_bw}"
+                else:
+                    sat_url_bw = f"static/sat/{sat_name_bw}"
 
             # HRFI VIS0.6 (MTG FCI — 0.5km B&W visible, daytime only)
             # PNG avoids JPEG compression artefacts on high-contrast greyscale data
@@ -281,7 +323,11 @@ def main():
                 download_sat_image(iso_time, "mtg_fd:vis06_hrfi", sat_path_vis,
                                    fmt="image/png")
             if os.path.exists(sat_path_vis):
-                sat_url_vis = f"static/sat/{sat_name_vis}"
+                if USE_R2:
+                    upload_to_r2(r2, sat_path_vis, f"sat/{sat_name_vis}", "image/png")
+                    sat_url_vis = f"{R2_PUBLIC_URL}/sat/{sat_name_vis}"
+                else:
+                    sat_url_vis = f"static/sat/{sat_name_vis}"
 
             # HRFI IR10.5 (MTG FCI — 1km thermal infrared, style 01)
             if not os.path.exists(sat_path_ir):
@@ -289,9 +335,14 @@ def main():
                 download_sat_image(iso_time, "mtg_fd:ir105_hrfi", sat_path_ir,
                                    style="mtg_fd_ir105_hrfi_style_01")
             if os.path.exists(sat_path_ir):
-                sat_url_ir = f"static/sat/{sat_name_ir}"
+                if USE_R2:
+                    upload_to_r2(r2, sat_path_ir, f"sat/{sat_name_ir}", "image/jpeg")
+                    sat_url_ir = f"{R2_PUBLIC_URL}/sat/{sat_name_ir}"
+                else:
+                    sat_url_ir = f"static/sat/{sat_name_ir}"
 
-        frame_data = {"time": timestamp, "url": f"static/radar/{png_name}"}
+        radar_url = f"{R2_PUBLIC_URL}/radar/{png_name}" if USE_R2 else f"static/radar/{png_name}"
+        frame_data = {"time": timestamp, "url": radar_url}
         if sat_url_bw:
             frame_data["sat_url_bw"] = sat_url_bw
         if sat_url_vis:

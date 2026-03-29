@@ -22,8 +22,8 @@ jobs:
       uses: actions/cache/restore@v4
       with:
         path: |
-          static/radar
-          static/sat
+          static/radar_gh
+          static/sat_gh
         key: radar-images-v2-${{ github.run_id }}
         restore-keys: radar-images-v2-
 
@@ -38,13 +38,18 @@ jobs:
         pip install -r requirements.txt
 
     - name: Process latest radar data
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
       run: python process_latest.py
 
-    - name: Delete files older than 7 days and legacy colour images
+    - name: Delete files older than 7 days
       run: |
         cutoff=$(date -u -d '7 days ago' +'%Y%m%d%H%M')
-        find static/sat -name '*_sat_color.jpg' -delete 2>/dev/null || true
-        for f in static/radar/*.png static/sat/*.jpg static/sat/*.png; do
+        for f in static/radar_gh/*.png static/sat_gh/*.jpg static/sat_gh/*.png; do
           [ -f "$f" ] || continue
           base=$(basename "$f")
           ts="${base:0:12}"
@@ -56,15 +61,15 @@ jobs:
       uses: actions/cache/save@v4
       with:
         path: |
-          static/radar
-          static/sat
-        key: radar-images-${{ github.run_id }}
+          static/radar_gh
+          static/sat_gh
+        key: radar-images-v2-${{ github.run_id }}
 
     - name: Commit and push changes
       run: |
         git config --global user.name "Radar Automator"
         git config --global user.email "radar-bot@github.com"
-        git add static/radar static/sat frames.json
+        git add frames.json
         git diff --cached --quiet && echo "No changes to commit" || (
           git commit -m "Update radar frames $(date -u +'%Y-%m-%d %H:%M UTC')" &&
           git pull --rebase origin main &&
