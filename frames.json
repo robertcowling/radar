@@ -1,23 +1,5 @@
 [
   {
-    "time": "Sat 28 Mar 2026 06:00 UTC",
-    "url": "static/radar/202603280600_ODIM_ng_radar_rainrate_composite_1km_UK.png",
-    "sat_url_color": "static/sat/202603280600_ODIM_ng_radar_rainrate_composite_1km_UK_sat_color.jpg",
-    "sat_url_vis": "static/sat/202603280600_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg"
-  },
-  {
-    "time": "Sat 28 Mar 2026 06:15 UTC",
-    "url": "static/radar/202603280615_ODIM_ng_radar_rainrate_composite_1km_UK.png",
-    "sat_url_color": "static/sat/202603280615_ODIM_ng_radar_rainrate_composite_1km_UK_sat_color.jpg",
-    "sat_url_vis": "static/sat/202603280615_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg"
-  },
-  {
-    "time": "Sat 28 Mar 2026 06:30 UTC",
-    "url": "static/radar/202603280630_ODIM_ng_radar_rainrate_composite_1km_UK.png",
-    "sat_url_color": "static/sat/202603280630_ODIM_ng_radar_rainrate_composite_1km_UK_sat_color.jpg",
-    "sat_url_vis": "static/sat/202603280630_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg"
-  },
-  {
     "time": "Sat 28 Mar 2026 06:45 UTC",
     "url": "static/radar/202603280645_ODIM_ng_radar_rainrate_composite_1km_UK.png",
     "sat_url_color": "static/sat/202603280645_ODIM_ng_radar_rainrate_composite_1km_UK_sat_color.jpg",
@@ -557,6 +539,25 @@
   {
     "time": "Sun 29 Mar 2026 05:45 UTC",
     "url": "static/radar/202603290545_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_color": "static/sat/202603290545_ODIM_ng_radar_rainrate_composite_1km_UK_sat_color.jpg",
     "sat_url_vis": "static/sat/202603290545_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg"
+  },
+  {
+    "time": "Sun 29 Mar 2026 06:00 UTC",
+    "url": "static/radar/202603290600_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_color": "static/sat/202603290600_ODIM_ng_radar_rainrate_composite_1km_UK_sat_color.jpg",
+    "sat_url_vis": "static/sat/202603290600_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg"
+  },
+  {
+    "time": "Sun 29 Mar 2026 06:15 UTC",
+    "url": "static/radar/202603290615_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_color": "static/sat/202603290615_ODIM_ng_radar_rainrate_composite_1km_UK_sat_color.jpg",
+    "sat_url_vis": "static/sat/202603290615_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg"
+  },
+  {
+    "time": "Sun 29 Mar 2026 06:30 UTC",
+    "url": "static/radar/202603290630_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_color": "static/sat/202603290630_ODIM_ng_radar_rainrate_composite_1km_UK_sat_color.jpg",
+    "sat_url_vis": "static/sat/202603290630_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg"
   }
 ]
