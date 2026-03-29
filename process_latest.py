@@ -22,7 +22,7 @@ SAT_LAT_MIN, SAT_LAT_MAX = 46.5, 64.0
 
 # S3 Config
 BUCKET = "met-office-radar-obs-data"
-NUM_FILES = 96
+NUM_FILES = 672  # 7 days × 96 frames/day (15-min intervals)
 H5_DIR = "data_h5"
 
 # R2 Config — set these as GitHub Actions secrets (never hardcode)
