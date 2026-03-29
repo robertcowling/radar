@@ -1,8 +1,8 @@
 name: Process Radar Images
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'  # Every 15 minutes
+  # schedule:
+  #   - cron: '*/15 * * * *'  # Every 15 minutes — replaced by Google Apps Script trigger
   workflow_dispatch:
 
 permissions:
