@@ -243,11 +243,10 @@ def main():
         except Exception:
             timestamp = "Unknown"
 
-        if not os.path.exists(h5_path):
-            print(f"Downloading {h5_name}...")
-            s3.download_file(BUCKET, key, h5_path)
-
         if not os.path.exists(png_path):
+            if not os.path.exists(h5_path):
+                print(f"Downloading {h5_name}...")
+                s3.download_file(BUCKET, key, h5_path)
             print(f"Rendering {png_name}...")
             if mapping is None:
                 mapping = get_mapping(h5_path)
