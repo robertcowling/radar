@@ -5,11 +5,14 @@ on:
     - cron: '*/15 * * * *'  # Every 15 minutes
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
-  build:
+  update:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
     - name: Checkout repository
@@ -35,7 +38,25 @@ jobs:
         git config --global user.name "Radar Automator"
         git config --global user.email "radar-bot@github.com"
         git add static/radar static/sat frames.json
-        git diff --cached --quiet && echo "No changes to commit" && exit 0
-        git commit -m "Update radar frames $(date -u +'%Y-%m-%d %H:%M UTC')"
-        git pull --rebase origin main
-        git push origin main
+        git diff --cached --quiet && echo "No changes to commit" || (
+          git commit -m "Update radar frames $(date -u +'%Y-%m-%d %H:%M UTC')" &&
+          git pull --rebase origin main &&
+          git push origin main
+        )
+
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: '.'
+
+  deploy:
+    needs: update
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

@@ -563,20 +563,26 @@
             <div class="opacity-control" style="margin-top: 12px; margin-bottom: 8px;">
                 <label class="custom-checkbox">
                     <input type="checkbox" id="satColorToggle" onchange="toggleSatColor(this.checked)">
-                    Show MSG Natural Colour Satellite
+                    Show MTG Natural Colour Satellite
                 </label>
             </div>
 
+            <div class="opacity-control" style="margin-top: 0px; margin-bottom: 8px;">
+                <label class="custom-checkbox">
+                    <input type="checkbox" id="satGeoColourToggle" onchange="toggleSatGeoColour(this.checked)">
+                    Show MTG GeoColour Satellite (day/night)
+                </label>
+            </div>
 
             <div class="opacity-control" style="margin-top: 0px; margin-bottom: 24px;">
                 <label class="custom-checkbox">
                     <input type="checkbox" id="satVisToggle" onchange="toggleSatVis(this.checked)">
-                    Show B&amp;W Visible Satellite (daytime)
+                    Show MTG HRFI B&amp;W Visible (daytime, 0.5km)
                 </label>
             </div>
 
-            <p style="font-size: 12px; margin-bottom: 2px;"><strong>Data Source:</strong> Met Office / ODIM H5<br>Satellite imagery &copy; EUMETSAT (MSG Meteosat 0 Degree)</p>
-            <p style="font-size: 10px; color: #80868b; line-height: 1.3;">Products: Natural Colour RGB (MSG) &amp; B&amp;W VIS0.6 (MSG)<br>Contains public sector information licensed under the Open Government Licence v3.0.</p>
+            <p style="font-size: 12px; margin-bottom: 2px;"><strong>Data Source:</strong> Met Office / ODIM H5<br>Satellite imagery &copy; EUMETSAT (MTG Meteosat Third Generation)</p>
+            <p style="font-size: 10px; color: #80868b; line-height: 1.3;">Products: Natural Colour RGB, GeoColour (day/night blend) &amp; HRFI B&amp;W VIS0.6 — all MTG FCI<br>Contains public sector information licensed under the Open Government Licence v3.0.</p>
         </div>
     </div>
 
@@ -675,6 +681,7 @@
         function toggleSatColor(show) {
             if (show) {
                 if (document.getElementById('satVisToggle').checked) { document.getElementById('satVisToggle').checked = false; toggleSatVis(false); }
+                if (document.getElementById('satGeoColourToggle').checked) { document.getElementById('satGeoColourToggle').checked = false; toggleSatGeoColour(false); }
             }
             if (!satColorOverlay) {
                 satColorOverlay = L.imageOverlay('', bounds, { opacity: 1.0, interactive: false });
@@ -698,6 +705,7 @@
         function toggleSatVis(show) {
             if (show) {
                 if (document.getElementById('satColorToggle').checked) { document.getElementById('satColorToggle').checked = false; toggleSatColor(false); }
+                if (document.getElementById('satGeoColourToggle').checked) { document.getElementById('satGeoColourToggle').checked = false; toggleSatGeoColour(false); }
             }
             if (!satVisOverlay) {
                 satVisOverlay = L.imageOverlay('', bounds, { opacity: 1.0, interactive: false });
@@ -711,6 +719,29 @@
                 preloadVisibleFrames();
             } else {
                 map.removeLayer(satVisOverlay);
+                radarOverlay.bringToFront();
+                if (regionLayer) regionLayer.bringToFront();
+            }
+        }
+
+        var satGeoColourOverlay;
+        function toggleSatGeoColour(show) {
+            if (show) {
+                if (document.getElementById('satColorToggle').checked) { document.getElementById('satColorToggle').checked = false; toggleSatColor(false); }
+                if (document.getElementById('satVisToggle').checked) { document.getElementById('satVisToggle').checked = false; toggleSatVis(false); }
+            }
+            if (!satGeoColourOverlay) {
+                satGeoColourOverlay = L.imageOverlay('', bounds, { opacity: 1.0, interactive: false });
+            }
+            if (show) {
+                satGeoColourOverlay.addTo(map);
+                satGeoColourOverlay.bringToBack();
+                radarOverlay.bringToFront();
+                if (regionLayer) regionLayer.bringToFront();
+                if (frames.length > 0) setFrame(currentFrameIdx);
+                preloadVisibleFrames();
+            } else {
+                map.removeLayer(satGeoColourOverlay);
                 radarOverlay.bringToFront();
                 if (regionLayer) regionLayer.bringToFront();
             }
@@ -774,11 +805,13 @@
             var urlsToLoad = [];
             var showColor = document.getElementById('satColorToggle').checked;
             var showVis = document.getElementById('satVisToggle').checked;
+            var showGeo = document.getElementById('satGeoColourToggle').checked;
 
             frames.forEach(function(f) {
                 urlsToLoad.push(f.url); // radar
                 if (showColor && f.sat_url_color) urlsToLoad.push(f.sat_url_color);
                 if (showVis && f.sat_url_vis) urlsToLoad.push(f.sat_url_vis);
+                if (showGeo && f.sat_url_bw) urlsToLoad.push(f.sat_url_bw);
             });
 
             var total = urlsToLoad.length;
@@ -920,6 +953,9 @@
             }
             if (typeof satVisOverlay !== 'undefined' && map.hasLayer(satVisOverlay)) {
                 if (frameData.sat_url_vis) satVisOverlay.setUrl(frameData.sat_url_vis);
+            }
+            if (typeof satGeoColourOverlay !== 'undefined' && map.hasLayer(satGeoColourOverlay)) {
+                if (frameData.sat_url_bw) satGeoColourOverlay.setUrl(frameData.sat_url_bw);
             }
         }
 

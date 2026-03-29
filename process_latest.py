@@ -182,10 +182,10 @@ def collect_keys_with_retry(s3):
     return keys
 
 
-def download_sat_image(iso_time, layer_name, sat_path):
+def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=1200, height=1000):
     # Convert lat/lon bounds to Web Mercator (EPSG:3857) meters.
     # We must request imagery in 3857 to match the Leaflet/OSM projection perfectly.
-    # WMS 1.3.0 with EPSG:4326 would return a Plate Carree image that appears shifted 
+    # WMS 1.3.0 with EPSG:4326 would return a Plate Carree image that appears shifted
     # north when stretched linearly on a Mercator map.
     ll_to_merc = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
     m_xmin, m_ymin = ll_to_merc.transform(LON_MIN, LAT_MIN)
@@ -193,11 +193,11 @@ def download_sat_image(iso_time, layer_name, sat_path):
 
     # WMS 1.3.0 BBOX for EPSG:3857 is [xmin, ymin, xmax, ymax] (Easting, Northing)
     wms_url = (f"https://view.eumetsat.int/geoserver/ows?service=WMS&request=GetMap&version=1.3.0"
-               f"&layers={layer_name}&styles=&format=image/jpeg&crs=EPSG:3857"
-               f"&bbox={m_xmin},{m_ymin},{m_xmax},{m_ymax}&width=1200&height=1000&time={iso_time}")
+               f"&layers={layer_name}&styles=&format={fmt}&crs=EPSG:3857"
+               f"&bbox={m_xmin},{m_ymin},{m_xmax},{m_ymax}&width={width}&height={height}&time={iso_time}")
     try:
         req = urllib.request.Request(wms_url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=30) as response:
+        with urllib.request.urlopen(req, timeout=60) as response:
             data = response.read()
             content_type = response.headers.get('Content-Type', '')
             if 'xml' in content_type or len(data) < 5000:
@@ -259,7 +259,7 @@ def main():
         if iso_time:
             sat_name_color = h5_name.replace(".h5", "_sat_color.jpg")
             sat_name_bw = h5_name.replace(".h5", "_sat_bw.jpg")
-            sat_name_vis = h5_name.replace(".h5", "_sat_vis.jpg")
+            sat_name_vis = h5_name.replace(".h5", "_sat_vis.png")
             sat_path_color = os.path.join(SAT_DIR, sat_name_color)
             sat_path_bw = os.path.join(SAT_DIR, sat_name_bw)
             sat_path_vis = os.path.join(SAT_DIR, sat_name_vis)
@@ -272,24 +272,26 @@ def main():
                 sat_url_color = f"static/sat/{sat_name_color}"
 
             # Download Day/Night GeoColour (MTG - auto VIS day / IR night)
-            # if not os.path.exists(sat_path_bw):
-            #     print(f"Downloading sat geocolour image {sat_name_bw}...")
-            #     download_sat_image(iso_time, "mtg_fd:rgb_geocolour", sat_path_bw)
-            # if os.path.exists(sat_path_bw):
-            #     sat_url_bw = f"static/sat/{sat_name_bw}"
+            if not os.path.exists(sat_path_bw):
+                print(f"Downloading sat geocolour image {sat_name_bw}...")
+                download_sat_image(iso_time, "mtg_fd:rgb_geocolour", sat_path_bw)
+            if os.path.exists(sat_path_bw):
+                sat_url_bw = f"static/sat/{sat_name_bw}"
 
-            # Download B&W Visible (MSG VIS0.6 - daytime only)
+            # Download B&W Visible (MTG FCI HRFI VIS0.6 - 0.5km, daytime only)
+            # PNG avoids JPEG compression artefacts on high-contrast greyscale data
             if not os.path.exists(sat_path_vis):
                 print(f"Downloading sat B&W visible image {sat_name_vis}...")
-                download_sat_image(iso_time, "msg_fes:vis006", sat_path_vis)
+                download_sat_image(iso_time, "mtg_fd:vis06_hrfi", sat_path_vis,
+                                   fmt="image/png")
             if os.path.exists(sat_path_vis):
                 sat_url_vis = f"static/sat/{sat_name_vis}"
 
         frame_data = {"time": timestamp, "url": f"static/radar/{png_name}"}
         if sat_url_color:
             frame_data["sat_url_color"] = sat_url_color
-        # if sat_url_bw:
-        #     frame_data["sat_url_bw"] = sat_url_bw
+        if sat_url_bw:
+            frame_data["sat_url_bw"] = sat_url_bw
         if sat_url_vis:
             frame_data["sat_url_vis"] = sat_url_vis
         frames.append(frame_data)
