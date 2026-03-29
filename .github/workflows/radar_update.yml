@@ -34,14 +34,14 @@ jobs:
     - name: Delete files older than 7 days and legacy colour images
       run: |
         cutoff=$(date -u -d '7 days ago' +'%Y%m%d%H%M')
-        # Remove legacy natural-colour sat files (no longer generated)
         find static/sat -name '*_sat_color.jpg' -delete 2>/dev/null || true
-        # Remove radar + sat files whose filename timestamp is >7 days old
         for f in static/radar/*.png static/sat/*.jpg static/sat/*.png; do
           [ -f "$f" ] || continue
-          ts=$(basename "$f" | grep -oP '^\d{12}')
-          [ -n "$ts" ] && [ "$ts" \< "$cutoff" ] && rm "$f"
+          base=$(basename "$f")
+          ts="${base:0:12}"
+          [[ "$ts" =~ ^[0-9]{12}$ ]] && [[ "$ts" < "$cutoff" ]] && rm "$f"
         done
+        exit 0
 
     - name: Commit and push changes
       run: |
