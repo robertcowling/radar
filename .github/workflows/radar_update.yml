@@ -18,6 +18,15 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Restore image cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          static/radar
+          static/sat
+        key: radar-images-${{ github.run_id }}
+        restore-keys: radar-images-
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -42,6 +51,14 @@ jobs:
           [[ "$ts" =~ ^[0-9]{12}$ ]] && [[ "$ts" < "$cutoff" ]] && rm "$f"
         done
         exit 0
+
+    - name: Save image cache
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          static/radar
+          static/sat
+        key: radar-images-${{ github.run_id }}
 
     - name: Commit and push changes
       run: |
