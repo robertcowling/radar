@@ -182,7 +182,7 @@ def collect_keys_with_retry(s3):
     return keys
 
 
-def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=1200, height=1000):
+def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=1200, height=1000, style=""):
     # Convert lat/lon bounds to Web Mercator (EPSG:3857) meters.
     # We must request imagery in 3857 to match the Leaflet/OSM projection perfectly.
     # WMS 1.3.0 with EPSG:4326 would return a Plate Carree image that appears shifted
@@ -193,7 +193,7 @@ def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=1
 
     # WMS 1.3.0 BBOX for EPSG:3857 is [xmin, ymin, xmax, ymax] (Easting, Northing)
     wms_url = (f"https://view.eumetsat.int/geoserver/ows?service=WMS&request=GetMap&version=1.3.0"
-               f"&layers={layer_name}&styles=&format={fmt}&crs=EPSG:3857"
+               f"&layers={layer_name}&styles={style}&format={fmt}&crs=EPSG:3857"
                f"&bbox={m_xmin},{m_ymin},{m_xmax},{m_ymax}&width={width}&height={height}&time={iso_time}")
     try:
         req = urllib.request.Request(wms_url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -253,47 +253,48 @@ def main():
                 mapping = get_mapping(h5_path)
             render_png(h5_path, png_path, mapping)
 
-        sat_url_color = None
         sat_url_bw = None
         sat_url_vis = None
+        sat_url_ir = None
         if iso_time:
-            sat_name_color = h5_name.replace(".h5", "_sat_color.jpg")
-            sat_name_bw = h5_name.replace(".h5", "_sat_bw.jpg")
+            sat_name_bw  = h5_name.replace(".h5", "_sat_bw.jpg")
             sat_name_vis = h5_name.replace(".h5", "_sat_vis.png")
-            sat_path_color = os.path.join(SAT_DIR, sat_name_color)
-            sat_path_bw = os.path.join(SAT_DIR, sat_name_bw)
+            sat_name_ir  = h5_name.replace(".h5", "_sat_ir.jpg")
+            sat_path_bw  = os.path.join(SAT_DIR, sat_name_bw)
             sat_path_vis = os.path.join(SAT_DIR, sat_name_vis)
+            sat_path_ir  = os.path.join(SAT_DIR, sat_name_ir)
 
-            # Download True Colour (MTG True Colour RGB)
-            if not os.path.exists(sat_path_color):
-                print(f"Downloading sat color image {sat_name_color}...")
-                download_sat_image(iso_time, "mtg_fd:rgb_truecolour", sat_path_color)
-            if os.path.exists(sat_path_color):
-                sat_url_color = f"static/sat/{sat_name_color}"
-
-            # Download Day/Night GeoColour (MTG - auto VIS day / IR night)
+            # GeoColour RGB (MTG FCI — seamless day/night colour blend)
             if not os.path.exists(sat_path_bw):
-                print(f"Downloading sat geocolour image {sat_name_bw}...")
+                print(f"Downloading GeoColour image {sat_name_bw}...")
                 download_sat_image(iso_time, "mtg_fd:rgb_geocolour", sat_path_bw)
             if os.path.exists(sat_path_bw):
                 sat_url_bw = f"static/sat/{sat_name_bw}"
 
-            # Download B&W Visible (MTG FCI HRFI VIS0.6 - 0.5km, daytime only)
+            # HRFI VIS0.6 (MTG FCI — 0.5km B&W visible, daytime only)
             # PNG avoids JPEG compression artefacts on high-contrast greyscale data
             if not os.path.exists(sat_path_vis):
-                print(f"Downloading sat B&W visible image {sat_name_vis}...")
+                print(f"Downloading HRFI VIS image {sat_name_vis}...")
                 download_sat_image(iso_time, "mtg_fd:vis06_hrfi", sat_path_vis,
                                    fmt="image/png")
             if os.path.exists(sat_path_vis):
                 sat_url_vis = f"static/sat/{sat_name_vis}"
 
+            # HRFI IR10.5 (MTG FCI — 1km thermal infrared, style 01)
+            if not os.path.exists(sat_path_ir):
+                print(f"Downloading HRFI IR image {sat_name_ir}...")
+                download_sat_image(iso_time, "mtg_fd:ir105_hrfi", sat_path_ir,
+                                   style="mtg_fd_ir105_hrfi_style_01")
+            if os.path.exists(sat_path_ir):
+                sat_url_ir = f"static/sat/{sat_name_ir}"
+
         frame_data = {"time": timestamp, "url": f"static/radar/{png_name}"}
-        if sat_url_color:
-            frame_data["sat_url_color"] = sat_url_color
         if sat_url_bw:
             frame_data["sat_url_bw"] = sat_url_bw
         if sat_url_vis:
             frame_data["sat_url_vis"] = sat_url_vis
+        if sat_url_ir:
+            frame_data["sat_url_ir"] = sat_url_ir
         frames.append(frame_data)
 
     with open("frames.json", "w") as f:
