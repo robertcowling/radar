@@ -541,7 +541,7 @@
         <div id="infoContentTop" class="hide-collapsed">
             <h3 style="margin-top:0;">Rainfall Radar</h3>
             <div class="time-box">
-                <p style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: 700; color: #1a73e8; letter-spacing: 0.5px;">Time (UTC)</p>
+                <p id="tzLabel" style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: 700; color: #1a73e8; letter-spacing: 0.5px;">Time (GMT)</p>
                 <div id="timeDisplay" style="font-size: 22px; font-weight: 700; color: #202124; margin-top: 4px;">Loading...</div>
             </div>
         </div>
@@ -842,6 +842,35 @@
         // Auto-poll every 5 minutes for new frames
         setInterval(function() { fetchFrames(false); }, 5 * 60 * 1000);
 
+        // UK time helpers — browser handles BST/GMT via Intl, zero processing cost
+        const _MONTHS = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+        function parseUTCStr(s) {
+            // "Wed 25 Mar 2026 21:30 UTC"  or  "25 Mar 2026 21:30 UTC"
+            const p = s.replace(' UTC','').split(' ');
+            const hasDay = p.length === 5;
+            const [day, mon, yr, hm] = hasDay ? p.slice(1) : p;
+            const [hr, mn] = hm.split(':');
+            return new Date(Date.UTC(+yr, _MONTHS[mon], +day, +hr, +mn));
+        }
+        const _ukFmt = new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'Europe/London',
+            weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: false
+        });
+        const _ukTzFmt = new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'Europe/London', timeZoneName: 'short'
+        });
+        function ukTzAbbr(date) {
+            // Returns "GMT" or "BST"
+            return _ukTzFmt.formatToParts(date).find(p => p.type === 'timeZoneName').value;
+        }
+        function formatUK(date) {
+            // "Wed, 25 Mar 2026, 22:30" — strip commas from Intl output
+            const parts = _ukFmt.formatToParts(date);
+            const get = t => parts.find(p => p.type === t).value;
+            return `${get('weekday')} ${get('day')} ${get('month')} ${get('year')} ${get('hour')}:${get('minute')}`;
+        }
+
         // Timeline Ticks logic
         function updateTimelineTicks() {
             const ticksContainer = document.getElementById('timelineTicks');
@@ -860,20 +889,12 @@
             frames.forEach((frame, idx) => {
                 if (!frame.time || frame.time === "Unknown Date") return;
 
-                // e.g "Fri 06 Mar 2026 15:45 UTC" or "06 Mar 2026 15:45 UTC"
-                const parts = frame.time.split(' ');
-                if (parts.length < 5) return;
-
-                let dateStr, timeStr_part;
-                if (parts.length === 6) {
-                    dateStr = `${parts[0]} ${parts[1]} ${parts[2]}`; // "Fri 06 Mar"
-                    timeStr_part = parts[4]; // "15:45"
-                } else {
-                    dateStr = `${parts[0]} ${parts[1]}`; // "06 Mar"
-                    timeStr_part = parts[3]; // "15:45"
-                }
-                const timeStr = timeStr_part;
-                const hourNum = parseInt(timeStr.split(':')[0]);
+                const ukDate = parseUTCStr(frame.time);
+                const ukParts = _ukFmt.formatToParts(ukDate);
+                const get = t => ukParts.find(p => p.type === t).value;
+                const dateStr = `${get('weekday')} ${get('day')} ${get('month')}`;
+                const timeStr = `${get('hour')}:${get('minute')}`;
+                const hourNum = parseInt(get('hour'));
 
                 const percent = (idx / max) * 100;
 
@@ -984,21 +1005,16 @@
         }
 
         function updateFrameUI(idx) {
-            const rawTime = frames[idx].time;
-            // Strip trailing ' UTC' since the label already says 'Time (UTC)'
-            const timeStr = rawTime.replace(/ UTC$/, '');
-            document.getElementById('timeDisplay').innerText = timeStr;
+            const ukDate = parseUTCStr(frames[idx].time);
+            const tz = ukTzAbbr(ukDate);
+            const formatted = formatUK(ukDate); // "Wed 25 Mar 2026 22:30"
+            document.getElementById('timeDisplay').innerText = formatted;
+            document.getElementById('tzLabel').innerText = `Time (${tz})`;
 
-            // For mini-display (e.g. "Fri 07 Mar 20:30")
-            const parts = timeStr.split(' ');
-            if (parts.length >= 5) {
-                // Format: Day DD Mon YYYY HH:MM  → show Day DD Mon HH:MM
-                document.getElementById('collapsedTime').innerText = `${parts[0]} ${parts[1]} ${parts[2]} ${parts[4]}`;
-            } else if (parts.length === 4) {
-                document.getElementById('collapsedTime').innerText = `${parts[0]} ${parts[1]} ${parts[3]}`;
-            } else {
-                document.getElementById('collapsedTime').innerText = timeStr;
-            }
+            // Mini-display: "Wed 25 Mar 22:30"
+            const parts = formatted.split(' ');
+            document.getElementById('collapsedTime').innerText =
+                `${parts[0]} ${parts[1]} ${parts[2]} ${parts[4]}`;
 
             slider.value = idx;
         }
