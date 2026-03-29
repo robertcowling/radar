@@ -251,6 +251,25 @@ def upload_to_r2(r2, local_path, r2_key, content_type):
         return False
 
 
+def cleanup_r2(r2, retention_days=14):
+    """Delete R2 objects in radar_gh/ and sat_gh/ older than retention_days."""
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+    cutoff_str = cutoff.strftime('%Y%m%d%H%M')
+    deleted = 0
+    for prefix in ('radar_gh/', 'sat_gh/'):
+        paginator = r2.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=prefix):
+            for obj in page.get('Contents', []):
+                key = obj['Key']
+                basename = os.path.basename(key)
+                ts = basename[:12]
+                if ts.isdigit() and ts < cutoff_str:
+                    r2.delete_object(Bucket=R2_BUCKET, Key=key)
+                    print(f"  Deleted from R2: {key}")
+                    deleted += 1
+    print(f"R2 cleanup: removed {deleted} objects older than {retention_days} days.")
+
+
 def main():
     os.makedirs(H5_DIR, exist_ok=True)
     os.makedirs(PNG_DIR, exist_ok=True)
@@ -292,7 +311,7 @@ def main():
                 mapping = get_mapping(h5_path)
             render_png(h5_path, png_path, mapping)
         if USE_R2:
-            upload_to_r2(r2, png_path, f"radar/{png_name}", "image/png")
+            upload_to_r2(r2, png_path, f"radar_gh/{png_name}", "image/png")
 
         sat_url_bw = None
         sat_url_vis = None
@@ -311,8 +330,8 @@ def main():
                 download_sat_image(iso_time, "mtg_fd:rgb_geocolour", sat_path_bw)
             if os.path.exists(sat_path_bw):
                 if USE_R2:
-                    upload_to_r2(r2, sat_path_bw, f"sat/{sat_name_bw}", "image/jpeg")
-                    sat_url_bw = f"{R2_PUBLIC_URL}/sat/{sat_name_bw}"
+                    upload_to_r2(r2, sat_path_bw, f"sat_gh/{sat_name_bw}", "image/jpeg")
+                    sat_url_bw = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_bw}"
                 else:
                     sat_url_bw = f"static/sat/{sat_name_bw}"
 
@@ -324,8 +343,8 @@ def main():
                                    fmt="image/png")
             if os.path.exists(sat_path_vis):
                 if USE_R2:
-                    upload_to_r2(r2, sat_path_vis, f"sat/{sat_name_vis}", "image/png")
-                    sat_url_vis = f"{R2_PUBLIC_URL}/sat/{sat_name_vis}"
+                    upload_to_r2(r2, sat_path_vis, f"sat_gh/{sat_name_vis}", "image/png")
+                    sat_url_vis = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_vis}"
                 else:
                     sat_url_vis = f"static/sat/{sat_name_vis}"
 
@@ -336,12 +355,12 @@ def main():
                                    style="mtg_fd_ir105_hrfi_style_01")
             if os.path.exists(sat_path_ir):
                 if USE_R2:
-                    upload_to_r2(r2, sat_path_ir, f"sat/{sat_name_ir}", "image/jpeg")
-                    sat_url_ir = f"{R2_PUBLIC_URL}/sat/{sat_name_ir}"
+                    upload_to_r2(r2, sat_path_ir, f"sat_gh/{sat_name_ir}", "image/jpeg")
+                    sat_url_ir = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir}"
                 else:
                     sat_url_ir = f"static/sat/{sat_name_ir}"
 
-        radar_url = f"{R2_PUBLIC_URL}/radar/{png_name}" if USE_R2 else f"static/radar/{png_name}"
+        radar_url = f"{R2_PUBLIC_URL}/radar_gh/{png_name}" if USE_R2 else f"static/radar/{png_name}"
         frame_data = {"time": timestamp, "url": radar_url}
         if sat_url_bw:
             frame_data["sat_url_bw"] = sat_url_bw
@@ -354,6 +373,9 @@ def main():
     with open("frames.json", "w") as f:
         json.dump(frames, f, indent=2)
     print(f"Manifest updated with {len(frames)} frames.")
+
+    if USE_R2:
+        cleanup_r2(r2)
 
 
 if __name__ == "__main__":

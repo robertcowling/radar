@@ -46,9 +46,9 @@ jobs:
         R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
       run: python process_latest.py
 
-    - name: Delete files older than 7 days
+    - name: Delete files older than 14 days
       run: |
-        cutoff=$(date -u -d '7 days ago' +'%Y%m%d%H%M')
+        cutoff=$(date -u -d '14 days ago' +'%Y%m%d%H%M')
         for f in static/radar_gh/*.png static/sat_gh/*.jpg static/sat_gh/*.png; do
           [ -f "$f" ] || continue
           base=$(basename "$f")
