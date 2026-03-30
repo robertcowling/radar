@@ -575,15 +575,19 @@
                 </label>
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
                     <input type="radio" name="satLayer" value="geo" onchange="onSatLayerChange('geo')">
-                    GeoColour (day/night)
+                    Visible GeoColour
                 </label>
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
                     <input type="radio" name="satLayer" value="vis" onchange="onSatLayerChange('vis')">
-                    Black &amp; White (day)
+                    Visible Greyscale (day)
+                </label>
+                <label class="custom-checkbox" style="margin-bottom: 4px;">
+                    <input type="radio" name="satLayer" value="ir_grey" onchange="onSatLayerChange('ir_grey')">
+                    IR Greyscale
                 </label>
                 <label class="custom-checkbox" style="margin-bottom: 0;">
                     <input type="radio" name="satLayer" value="ir" onchange="onSatLayerChange('ir')">
-                    Infra Red (day/night)
+                    IR False Colour
                 </label>
             </div>
 
@@ -657,8 +661,8 @@
 
         // Radar Overlay — fixed to Met Office composite extent
         var bounds = [[49.0, -11.5], [61.5, 3.5]];
-        // Satellite Overlay — 40% larger domain, same centre (-4.0°, 55.25°)
-        var satBounds = [[46.5, -14.5], [64.0, 6.5]];
+        // Satellite Overlay — 1/3 wider domain, same centre (-4.0°, 55.25°)
+        var satBounds = [[46.5, -18.0], [64.0, 10.0]];
         var radarOverlay = L.imageOverlay('', bounds, {
             opacity: 0.7,
             interactive: false,
@@ -702,7 +706,7 @@
 
         // Satellite overlays — lazily created, keyed by radio value
         var satOverlays = {};
-        var satUrlKeys = { geo: 'sat_url_bw', vis: 'sat_url_vis', ir: 'sat_url_ir' };
+        var satUrlKeys = { geo: 'sat_url_bw', vis: 'sat_url_vis', ir: 'sat_url_ir', ir_grey: 'sat_url_ir_grey' };
 
         function onSatLayerChange(val) {
             // Remove all sat overlays

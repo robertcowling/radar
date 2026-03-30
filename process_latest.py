@@ -16,8 +16,8 @@ LON_MIN, LON_MAX = -11.5, 3.5
 LAT_MIN, LAT_MAX = 49.0, 61.5
 WIDTH, HEIGHT = 2400, 2000
 
-# Satellite domain — 40% wider/taller than radar, same centre (-4.0°, 55.25°)
-SAT_LON_MIN, SAT_LON_MAX = -14.5, 6.5
+# Satellite domain — same centre (-4.0°, 55.25°); 1/3 wider than original bounds
+SAT_LON_MIN, SAT_LON_MAX = -18.0, 10.0
 SAT_LAT_MIN, SAT_LAT_MAX = 46.5, 64.0
 
 # S3 Config
@@ -201,7 +201,7 @@ def collect_keys_with_retry(s3):
     return keys
 
 
-def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=1200, height=1000, style=""):
+def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=1600, height=1000, style=""):
     # Convert satellite lat/lon bounds to Web Mercator (EPSG:3857) meters.
     # We must request imagery in 3857 to match the Leaflet/OSM projection perfectly.
     # WMS 1.3.0 with EPSG:4326 would return a Plate Carree image that appears shifted
@@ -332,13 +332,16 @@ def main():
         sat_url_bw = None
         sat_url_vis = None
         sat_url_ir = None
+        sat_url_ir_grey = None
         if iso_time:
-            sat_name_bw  = h5_name.replace(".h5", "_sat_bw.jpg")
-            sat_name_vis = h5_name.replace(".h5", "_sat_vis.png")
-            sat_name_ir  = h5_name.replace(".h5", "_sat_ir.jpg")
-            sat_path_bw  = os.path.join(SAT_DIR, sat_name_bw)
-            sat_path_vis = os.path.join(SAT_DIR, sat_name_vis)
-            sat_path_ir  = os.path.join(SAT_DIR, sat_name_ir)
+            sat_name_bw      = h5_name.replace(".h5", "_sat_bw.jpg")
+            sat_name_vis     = h5_name.replace(".h5", "_sat_vis.png")
+            sat_name_ir      = h5_name.replace(".h5", "_sat_ir.jpg")
+            sat_name_ir_grey = h5_name.replace(".h5", "_sat_ir_grey.jpg")
+            sat_path_bw      = os.path.join(SAT_DIR, sat_name_bw)
+            sat_path_vis     = os.path.join(SAT_DIR, sat_name_vis)
+            sat_path_ir      = os.path.join(SAT_DIR, sat_name_ir)
+            sat_path_ir_grey = os.path.join(SAT_DIR, sat_name_ir_grey)
 
             # GeoColour RGB (MTG FCI — seamless day/night colour blend)
             if not os.path.exists(sat_path_bw):
@@ -364,9 +367,9 @@ def main():
                 else:
                     sat_url_vis = f"static/sat/{sat_name_vis}"
 
-            # HRFI IR10.5 (MTG FCI — 1km thermal infrared, style 01)
+            # HRFI IR10.5 (MTG FCI — 1km thermal infrared, false colour style 01)
             if not os.path.exists(sat_path_ir):
-                print(f"Downloading HRFI IR image {sat_name_ir}...")
+                print(f"Downloading HRFI IR false colour image {sat_name_ir}...")
                 download_sat_image(iso_time, "mtg_fd:ir105_hrfi", sat_path_ir,
                                    style="mtg_fd_ir105_hrfi_style_01")
             if os.path.exists(sat_path_ir):
@@ -376,6 +379,17 @@ def main():
                 else:
                     sat_url_ir = f"static/sat/{sat_name_ir}"
 
+            # HRFI IR10.5 (MTG FCI — 1km thermal infrared, default greyscale)
+            if not os.path.exists(sat_path_ir_grey):
+                print(f"Downloading HRFI IR greyscale image {sat_name_ir_grey}...")
+                download_sat_image(iso_time, "mtg_fd:ir105_hrfi", sat_path_ir_grey)
+            if os.path.exists(sat_path_ir_grey):
+                if USE_R2:
+                    upload_to_r2(r2, sat_path_ir_grey, f"sat_gh/{sat_name_ir_grey}", "image/jpeg", r2_keys)
+                    sat_url_ir_grey = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir_grey}"
+                else:
+                    sat_url_ir_grey = f"static/sat/{sat_name_ir_grey}"
+
         radar_url = f"{R2_PUBLIC_URL}/radar_gh/{png_name}" if USE_R2 else f"static/radar/{png_name}"
         frame_data = {"time": timestamp, "url": radar_url}
         if sat_url_bw:
@@ -384,6 +398,8 @@ def main():
             frame_data["sat_url_vis"] = sat_url_vis
         if sat_url_ir:
             frame_data["sat_url_ir"] = sat_url_ir
+        if sat_url_ir_grey:
+            frame_data["sat_url_ir_grey"] = sat_url_ir_grey
         frames.append(frame_data)
 
     with open("frames.json", "w") as f:
