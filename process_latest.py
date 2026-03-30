@@ -267,10 +267,13 @@ def upload_to_r2(r2, local_path, r2_key, content_type, existing_keys, force=Fals
 
 
 def cleanup_r2(r2, retention_days=14):
-    """Delete R2 objects in radar_gh/ and sat_gh/ older than retention_days."""
+    """Delete R2 objects in radar_gh/ and sat_gh/ older than retention_days.
+    Also purges all objects in legacy sat/ and radar/ prefixes (no longer written to)."""
     cutoff = datetime.utcnow() - timedelta(days=retention_days)
     cutoff_str = cutoff.strftime('%Y%m%d%H%M')
     deleted = 0
+
+    # Purge current folders by retention window
     for prefix in ('radar_gh/', 'sat_gh/'):
         paginator = r2.get_paginator('list_objects_v2')
         for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=prefix):
@@ -282,7 +285,20 @@ def cleanup_r2(r2, retention_days=14):
                     r2.delete_object(Bucket=R2_BUCKET, Key=key)
                     print(f"  Deleted from R2: {key}")
                     deleted += 1
-    print(f"R2 cleanup: removed {deleted} objects older than {retention_days} days.")
+
+    # Purge legacy folders entirely (sat/ and radar/ are no longer used)
+    for prefix in ('sat/', 'radar/'):
+        paginator = r2.get_paginator('list_objects_v2')
+        keys = []
+        for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=prefix):
+            keys.extend(obj['Key'] for obj in page.get('Contents', []))
+        for i in range(0, len(keys), 1000):
+            batch = [{'Key': k} for k in keys[i:i+1000]]
+            r2.delete_objects(Bucket=R2_BUCKET, Delete={'Objects': batch})
+            deleted += len(batch)
+            print(f"  Purged {len(batch)} legacy objects from {prefix}")
+
+    print(f"R2 cleanup: removed {deleted} objects total.")
 
 
 def main():
