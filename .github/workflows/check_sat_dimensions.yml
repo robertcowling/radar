@@ -2,8 +2,6 @@ name: Check Satellite Image Dimensions
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 */6 * * *'  # Every 6 hours
 
 jobs:
   check:
@@ -48,12 +46,9 @@ jobs:
 
         print(f"Checking {len(keys)} sat images for {EXPECTED_WIDTH}x{EXPECTED_HEIGHT}...")
 
-        # Sample up to 20 images spread across the set to avoid downloading thousands
-        step = max(1, len(keys) // 20)
-        sample = keys[::step]
         bad = []
 
-        for key in sample:
+        for key in keys:
             try:
                 resp = r2.get_object(Bucket=bucket, Key=key)
                 data = resp['Body'].read()
@@ -69,10 +64,10 @@ jobs:
                 bad.append(key)
 
         if not bad:
-            print(f"\nAll {len(sample)} sampled images are {EXPECTED_WIDTH}x{EXPECTED_HEIGHT}. No action needed.")
+            print(f"\nAll {len(keys)} images are {EXPECTED_WIDTH}x{EXPECTED_HEIGHT}. No action needed.")
             raise SystemExit(0)
 
-        print(f"\n{len(bad)} of {len(sample)} sampled images have wrong dimensions. Purging ALL sat_gh/ objects...")
+        print(f"\n{len(bad)} of {len(keys)} images have wrong dimensions. Purging ALL sat_gh/ objects...")
 
         # Collect all keys for deletion
         all_keys = [{'Key': k} for k in keys]
