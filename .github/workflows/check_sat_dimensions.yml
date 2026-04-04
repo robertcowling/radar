@@ -1,0 +1,113 @@
+name: Check Satellite Image Dimensions
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install dependencies
+      run: pip install boto3 Pillow
+
+    - name: Check dimensions and purge bad images
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+      run: |
+        python - <<'EOF'
+        import boto3, os, io
+        from PIL import Image
+
+        EXPECTED_WIDTH = 3200
+        EXPECTED_HEIGHT = 1000
+
+        r2 = boto3.client(
+            's3',
+            endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
+            aws_access_key_id=os.environ['R2_ACCESS_KEY_ID'],
+            aws_secret_access_key=os.environ['R2_SECRET_ACCESS_KEY'],
+            region_name='auto',
+        )
+        bucket = os.environ['R2_BUCKET_NAME']
+
+        # List all sat images
+        paginator = r2.get_paginator('list_objects_v2')
+        keys = []
+        for page in paginator.paginate(Bucket=bucket, Prefix='sat_gh/'):
+            for obj in page.get('Contents', []):
+                keys.append(obj['Key'])
+
+        if not keys:
+            print("No sat_gh objects found.")
+            raise SystemExit(0)
+
+        print(f"Checking {len(keys)} sat images for {EXPECTED_WIDTH}x{EXPECTED_HEIGHT}...")
+
+        # Sample up to 20 images spread across the set to avoid downloading thousands
+        step = max(1, len(keys) // 20)
+        sample = keys[::step]
+        bad = []
+
+        for key in sample:
+            try:
+                resp = r2.get_object(Bucket=bucket, Key=key)
+                data = resp['Body'].read()
+                img = Image.open(io.BytesIO(data))
+                w, h = img.size
+                if w != EXPECTED_WIDTH or h != EXPECTED_HEIGHT:
+                    print(f"  BAD: {key} — {w}x{h}")
+                    bad.append(key)
+                else:
+                    print(f"  OK:  {key} — {w}x{h}")
+            except Exception as e:
+                print(f"  ERROR reading {key}: {e}")
+                bad.append(key)
+
+        if not bad:
+            print(f"\nAll {len(sample)} sampled images are {EXPECTED_WIDTH}x{EXPECTED_HEIGHT}. No action needed.")
+            raise SystemExit(0)
+
+        print(f"\n{len(bad)} of {len(sample)} sampled images have wrong dimensions. Purging ALL sat_gh/ objects...")
+
+        # Collect all keys for deletion
+        all_keys = [{'Key': k} for k in keys]
+        failed = []
+        for i in range(0, len(all_keys), 1000):
+            batch = all_keys[i:i+1000]
+            resp = r2.delete_objects(Bucket=bucket, Delete={'Objects': batch})
+            errors = resp.get('Errors', [])
+            if errors:
+                for e in errors:
+                    print(f"  Delete failed: {e['Key']} — {e['Code']}: {e['Message']}")
+                    failed.append({'Key': e['Key']})
+            deleted_count = len(batch) - len(errors)
+            print(f"  Deleted {deleted_count} objects (batch {i//1000 + 1})")
+
+        if failed:
+            print(f"Retrying {len(failed)} failed deletions...")
+            resp = r2.delete_objects(Bucket=bucket, Delete={'Objects': failed})
+            retry_errors = resp.get('Errors', [])
+            if retry_errors:
+                print(f"  {len(retry_errors)} objects still failed after retry:")
+                for e in retry_errors:
+                    print(f"    {e['Key']} — {e['Code']}: {e['Message']}")
+            else:
+                print("  All retries succeeded.")
+
+        # Verify
+        remaining = sum(
+            len(page.get('Contents', []))
+            for page in paginator.paginate(Bucket=bucket, Prefix='sat_gh/')
+        )
+        if remaining:
+            print(f"WARNING: {remaining} objects still remain after purge!")
+        else:
+            print("Verified: sat_gh/ is empty.")
+
+        print(f"Purge complete. Next radar update will re-download all sat images at {EXPECTED_WIDTH}x{EXPECTED_HEIGHT}.")
+        EOF
