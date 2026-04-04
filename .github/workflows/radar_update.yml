@@ -24,8 +24,8 @@ jobs:
         path: |
           static/radar_gh
           static/sat_gh
-        key: radar-images-v3-${{ github.run_id }}
-        restore-keys: radar-images-v3-
+        key: radar-images-v4-${{ github.run_id }}
+        restore-keys: radar-images-v4-
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -63,7 +63,7 @@ jobs:
         path: |
           static/radar_gh
           static/sat_gh
-        key: radar-images-v3-${{ github.run_id }}
+        key: radar-images-v4-${{ github.run_id }}
 
     - name: Commit and push changes
       run: |
