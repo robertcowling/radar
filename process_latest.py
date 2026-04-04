@@ -17,7 +17,7 @@ LAT_MIN, LAT_MAX = 49.0, 61.5
 WIDTH, HEIGHT = 2400, 2000
 
 # Satellite domain — same centre (-4.0°, 55.25°); 1/3 wider than original bounds
-SAT_LON_MIN, SAT_LON_MAX = -18.0, 10.0
+SAT_LON_MIN, SAT_LON_MAX = -32.0, 24.0
 SAT_LAT_MIN, SAT_LAT_MAX = 46.5, 64.0
 
 # S3 Config
