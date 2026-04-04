@@ -16,7 +16,7 @@ LON_MIN, LON_MAX = -11.5, 3.5
 LAT_MIN, LAT_MAX = 49.0, 61.5
 WIDTH, HEIGHT = 2400, 2000
 
-# Satellite domain — same centre (-4.0°, 55.25°); 1/3 wider than original bounds
+# Satellite domain — same centre (-4.0°, 55.25°); 2× wider than radar bounds
 SAT_LON_MIN, SAT_LON_MAX = -32.0, 24.0
 SAT_LAT_MIN, SAT_LAT_MAX = 46.5, 64.0
 
