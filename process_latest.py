@@ -201,7 +201,7 @@ def collect_keys_with_retry(s3):
     return keys
 
 
-def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=3200, height=2000, style=""):
+def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=3200, height=3200, style=""):
     # Convert satellite lat/lon bounds to Web Mercator (EPSG:3857) meters.
     # We must request imagery in 3857 to match the Leaflet/OSM projection perfectly.
     # WMS 1.3.0 with EPSG:4326 would return a Plate Carree image that appears shifted
