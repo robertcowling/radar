@@ -22,7 +22,7 @@ jobs:
         from PIL import Image
 
         EXPECTED_WIDTH = 3200
-        EXPECTED_HEIGHT = 1000
+        EXPECTED_HEIGHT = 3200
 
         r2 = boto3.client(
             's3',
