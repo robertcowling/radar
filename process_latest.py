@@ -16,9 +16,9 @@ LON_MIN, LON_MAX = -11.5, 3.5
 LAT_MIN, LAT_MAX = 49.0, 61.5
 WIDTH, HEIGHT = 2400, 2000
 
-# Satellite domain — same centre (-4.0°, 55.25°); 2× wider than radar bounds
+# Satellite domain — same centre (-4.0°, 55.25°); 2× taller than before
 SAT_LON_MIN, SAT_LON_MAX = -32.0, 24.0
-SAT_LAT_MIN, SAT_LAT_MAX = 46.5, 64.0
+SAT_LAT_MIN, SAT_LAT_MAX = 37.75, 72.75
 
 # S3 Config
 BUCKET = "met-office-radar-obs-data"
@@ -201,7 +201,7 @@ def collect_keys_with_retry(s3):
     return keys
 
 
-def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=3200, height=1000, style=""):
+def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=3200, height=2000, style=""):
     # Convert satellite lat/lon bounds to Web Mercator (EPSG:3857) meters.
     # We must request imagery in 3857 to match the Leaflet/OSM projection perfectly.
     # WMS 1.3.0 with EPSG:4326 would return a Plate Carree image that appears shifted
