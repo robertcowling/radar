@@ -351,7 +351,7 @@ def main():
         sat_url_ir_grey = None
         if iso_time:
             sat_name_bw      = h5_name.replace(".h5", "_sat_bw.jpg")
-            sat_name_vis     = h5_name.replace(".h5", "_sat_vis.png")
+            sat_name_vis     = h5_name.replace(".h5", "_sat_vis.jpg")
             sat_name_ir      = h5_name.replace(".h5", "_sat_ir.jpg")
             sat_name_ir_grey = h5_name.replace(".h5", "_sat_ir_grey.jpg")
             sat_path_bw      = os.path.join(SAT_DIR, sat_name_bw)
@@ -371,14 +371,12 @@ def main():
                     sat_url_bw = f"static/sat/{sat_name_bw}"
 
             # HRFI VIS0.6 (MTG FCI — 0.5km B&W visible, daytime only)
-            # PNG avoids JPEG compression artefacts on high-contrast greyscale data
             if not os.path.exists(sat_path_vis):
                 print(f"Downloading HRFI VIS image {sat_name_vis}...")
-                download_sat_image(iso_time, "mtg_fd:vis06_hrfi", sat_path_vis,
-                                   fmt="image/png")
+                download_sat_image(iso_time, "mtg_fd:vis06_hrfi", sat_path_vis)
             if os.path.exists(sat_path_vis):
                 if USE_R2:
-                    upload_to_r2(r2, sat_path_vis, f"sat_gh/{sat_name_vis}", "image/png", r2_keys)
+                    upload_to_r2(r2, sat_path_vis, f"sat_gh/{sat_name_vis}", "image/jpeg", r2_keys)
                     sat_url_vis = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_vis}"
                 else:
                     sat_url_vis = f"static/sat/{sat_name_vis}"
