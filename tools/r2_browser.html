@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R2 Bucket Browser</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --border: #30363d;
+    --fg: #e6edf3; --fg2: #8b949e; --accent: #58a6ff; --accent2: #1f6feb;
+    --red: #f85149; --green: #3fb950; --yellow: #d29922; --orange: #db6d28;
+    --radius: 6px; --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--fg); font-size: 14px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  button { font-family: var(--font); cursor: pointer; border: 1px solid var(--border); background: var(--bg3);
+           color: var(--fg); padding: 6px 14px; border-radius: var(--radius); font-size: 13px; }
+  button:hover { background: var(--border); }
+  button.primary { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  button.primary:hover { background: var(--accent); }
+  button.danger { background: #8b1a1a; border-color: var(--red); }
+  button.danger:hover { background: var(--red); }
+  input, select { font-family: var(--font); background: var(--bg2); color: var(--fg); border: 1px solid var(--border);
+                  padding: 6px 10px; border-radius: var(--radius); font-size: 13px; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+  /* layout */
+  .header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 20px;
+            display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .header h1 { font-size: 18px; font-weight: 600; white-space: nowrap; }
+  .header .bucket-name { color: var(--accent); font-family: var(--mono); font-size: 14px; }
+  .toolbar { display: flex; gap: 8px; padding: 12px 20px; border-bottom: 1px solid var(--border);
+             background: var(--bg2); flex-wrap: wrap; align-items: center; }
+  .toolbar .spacer { flex: 1; }
+  .search-box { width: 280px; }
+  .stats-bar { padding: 6px 20px; background: var(--bg); border-bottom: 1px solid var(--border);
+               font-size: 12px; color: var(--fg2); display: flex; gap: 20px; flex-wrap: wrap; }
+
+  /* table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { position: sticky; top: 0; background: var(--bg2); border-bottom: 2px solid var(--border);
+             padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase;
+             color: var(--fg2); cursor: pointer; user-select: none; white-space: nowrap; }
+  thead th:hover { color: var(--fg); }
+  thead th .sort-arrow { margin-left: 4px; font-size: 10px; }
+  tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 13px; white-space: nowrap; }
+  tbody tr:hover { background: var(--bg2); }
+  tbody tr.selected { background: #1c2d4a; }
+  .key-cell { max-width: 500px; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); font-size: 12px; }
+  .size-cell { text-align: right; font-family: var(--mono); }
+  .date-cell { color: var(--fg2); }
+  .type-badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 11px;
+                background: var(--bg3); color: var(--fg2); }
+  .type-badge.image { background: #1a3a2a; color: var(--green); }
+  .type-badge.json { background: #2a2a1a; color: var(--yellow); }
+
+  /* checkbox column */
+  .cb-cell { width: 32px; text-align: center; }
+  input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+
+  /* preview panel */
+  .preview-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+                     z-index: 100; justify-content: center; align-items: center; }
+  .preview-overlay.active { display: flex; }
+  .preview-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+                   max-width: 90vw; max-height: 90vh; overflow: auto; padding: 20px; min-width: 400px; }
+  .preview-panel .close-btn { float: right; font-size: 20px; background: none; border: none; color: var(--fg2);
+                               cursor: pointer; padding: 0 4px; }
+  .preview-panel .close-btn:hover { color: var(--fg); }
+  .preview-panel h3 { margin-bottom: 12px; word-break: break-all; font-size: 14px; }
+  .preview-panel img { max-width: 100%; max-height: 60vh; border-radius: 4px; }
+  .preview-panel pre { background: var(--bg); padding: 12px; border-radius: 4px; overflow: auto;
+                       max-height: 60vh; font-size: 12px; white-space: pre-wrap; }
+  .preview-meta { margin-top: 12px; font-size: 12px; color: var(--fg2); }
+  .preview-meta dt { font-weight: 600; color: var(--fg); display: inline; }
+  .preview-meta dd { display: inline; margin-left: 4px; margin-right: 16px; }
+
+  /* upload modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+                   z-index: 200; justify-content: center; align-items: center; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+           padding: 24px; min-width: 400px; max-width: 500px; }
+  .modal h3 { margin-bottom: 16px; }
+  .modal label { display: block; margin-bottom: 4px; font-size: 12px; color: var(--fg2); }
+  .modal input[type="text"], .modal input[type="file"] { width: 100%; margin-bottom: 12px; }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+  /* toast */
+  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--bg3); border: 1px solid var(--border);
+           padding: 10px 18px; border-radius: var(--radius); font-size: 13px; z-index: 300;
+           opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .toast.error { border-color: var(--red); color: var(--red); }
+  .toast.success { border-color: var(--green); color: var(--green); }
+
+  /* prefix filter pills */
+  .prefix-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+  .prefix-pill { padding: 3px 10px; border-radius: 12px; font-size: 12px; cursor: pointer;
+                 background: var(--bg3); border: 1px solid var(--border); }
+  .prefix-pill.active { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  .prefix-pill:hover { border-color: var(--accent); }
+  .prefix-pill .count { color: var(--fg2); margin-left: 4px; font-size: 11px; }
+  .prefix-pill.active .count { color: rgba(255,255,255,0.7); }
+
+  /* loading */
+  .loading { text-align: center; padding: 60px; color: var(--fg2); }
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border);
+             border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* drag & drop zone */
+  .drop-active { outline: 3px dashed var(--accent); outline-offset: -3px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>R2 Bucket Browser</h1>
+  <span class="bucket-name" id="bucketName">loading...</span>
+  <div style="flex:1"></div>
+  <button onclick="loadStats()" title="Bucket statistics">Stats</button>
+  <button onclick="refreshList()">Refresh</button>
+</div>
+
+<div class="toolbar">
+  <input type="text" class="search-box" id="searchBox" placeholder="Filter by key name..." oninput="applyFilters()">
+  <select id="typeFilter" onchange="applyFilters()">
+    <option value="">All types</option>
+    <option value="image">Images</option>
+    <option value="json">JSON</option>
+    <option value="other">Other</option>
+  </select>
+  <div class="prefix-pills" id="prefixPills"></div>
+  <div class="spacer"></div>
+  <span id="selectionInfo" style="font-size:12px;color:var(--fg2)"></span>
+  <button class="danger" id="bulkDeleteBtn" style="display:none" onclick="bulkDelete()">Delete Selected</button>
+  <button class="primary" onclick="showUpload()">Upload</button>
+</div>
+
+<div class="stats-bar" id="statsBar">
+  <span id="totalInfo">Loading...</span>
+</div>
+
+<div class="table-wrap" id="tableWrap">
+  <table>
+    <thead>
+      <tr>
+        <th class="cb-cell"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)"></th>
+        <th data-sort="key" onclick="setSort('key')">Key <span class="sort-arrow" id="sort-key"></span></th>
+        <th data-sort="prefix" onclick="setSort('prefix')">Prefix <span class="sort-arrow" id="sort-prefix"></span></th>
+        <th data-sort="type" onclick="setSort('type')">Type <span class="sort-arrow" id="sort-type"></span></th>
+        <th data-sort="size" onclick="setSort('size')">Size <span class="sort-arrow" id="sort-size"></span></th>
+        <th data-sort="modified" onclick="setSort('modified')">Modified <span class="sort-arrow" id="sort-modified"></span></th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="fileTableBody">
+      <tr><td colspan="7" class="loading"><div class="spinner"></div> Loading objects...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Preview overlay -->
+<div class="preview-overlay" id="previewOverlay" onclick="if(event.target===this)closePreview()">
+  <div class="preview-panel">
+    <button class="close-btn" onclick="closePreview()">&times;</button>
+    <h3 id="previewTitle"></h3>
+    <div id="previewContent"></div>
+    <dl class="preview-meta" id="previewMeta"></dl>
+  </div>
+</div>
+
+<!-- Upload modal -->
+<div class="modal-overlay" id="uploadOverlay" onclick="if(event.target===this)closeUpload()">
+  <div class="modal">
+    <h3>Upload File</h3>
+    <label>Destination prefix (e.g. <code>radar_gh/</code>)</label>
+    <input type="text" id="uploadPrefix" placeholder="e.g. radar_gh/">
+    <label>File</label>
+    <input type="file" id="uploadFile" multiple>
+    <div class="actions">
+      <button onclick="closeUpload()">Cancel</button>
+      <button class="primary" onclick="doUpload()">Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stats modal -->
+<div class="modal-overlay" id="statsOverlay" onclick="if(event.target===this)this.classList.remove('active')">
+  <div class="modal" style="min-width:450px">
+    <h3>Bucket Statistics</h3>
+    <div id="statsContent"><div class="spinner"></div> Loading...</div>
+    <div class="actions"><button onclick="document.getElementById('statsOverlay').classList.remove('active')">Close</button></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ---- state ----
+let allObjects = [];
+let filtered = [];
+let sortCol = 'modified';
+let sortAsc = false;
+let selected = new Set();
+let publicUrl = '';
+
+// ---- helpers ----
+function fmtSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024, units = ['B','KB','MB','GB','TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return (bytes / Math.pow(k, i)).toFixed(i ? 1 : 0) + ' ' + units[i];
+}
+function fmtDate(iso) {
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function getPrefix(key) { return key.includes('/') ? key.split('/')[0] : '(root)'; }
+function getExt(key) { const p = key.split('.'); return p.length > 1 ? p.pop().toLowerCase() : ''; }
+function getType(key) {
+  const ext = getExt(key);
+  if (['png','jpg','jpeg','gif','webp','svg','bmp','ico'].includes(ext)) return 'image';
+  if (['json'].includes(ext)) return 'json';
+  return 'other';
+}
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+}
+
+// ---- data loading ----
+async function refreshList() {
+  document.getElementById('fileTableBody').innerHTML =
+    '<tr><td colspan="7" class="loading"><div class="spinner"></div> Loading objects...</td></tr>';
+  try {
+    const data = await api('/api/list');
+    allObjects = data.objects.map(o => ({
+      ...o, prefix: getPrefix(o.key), type: getType(o.key), ext: getExt(o.key),
+      filename: o.key.split('/').pop(),
+    }));
+    publicUrl = data.public_url || '';
+    document.getElementById('bucketName').textContent = data.bucket;
+    selected.clear();
+    buildPrefixPills();
+    applyFilters();
+  } catch (e) {
+    document.getElementById('fileTableBody').innerHTML =
+      `<tr><td colspan="7" class="loading" style="color:var(--red)">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function buildPrefixPills() {
+  const counts = {};
+  allObjects.forEach(o => { counts[o.prefix] = (counts[o.prefix]||0) + 1; });
+  const el = document.getElementById('prefixPills');
+  el.innerHTML = `<span class="prefix-pill active" onclick="setPrefixFilter('')">All <span class="count">${allObjects.length}</span></span>`;
+  Object.keys(counts).sort().forEach(p => {
+    el.innerHTML += `<span class="prefix-pill" data-prefix="${p}" onclick="setPrefixFilter('${p}')">${p} <span class="count">${counts[p]}</span></span>`;
+  });
+}
+
+let activePrefix = '';
+function setPrefixFilter(prefix) {
+  activePrefix = prefix;
+  document.querySelectorAll('.prefix-pill').forEach(el => {
+    el.classList.toggle('active', (prefix === '' && !el.dataset.prefix) || el.dataset.prefix === prefix);
+  });
+  applyFilters();
+}
+
+// ---- filter & sort ----
+function applyFilters() {
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  const typeF = document.getElementById('typeFilter').value;
+  filtered = allObjects.filter(o => {
+    if (q && !o.key.toLowerCase().includes(q)) return false;
+    if (typeF && o.type !== typeF) return false;
+    if (activePrefix && o.prefix !== activePrefix) return false;
+    return true;
+  });
+  sortData();
+  renderTable();
+  updateStats();
+}
+
+function setSort(col) {
+  if (sortCol === col) { sortAsc = !sortAsc; }
+  else { sortCol = col; sortAsc = col === 'key' || col === 'prefix'; }
+  document.querySelectorAll('.sort-arrow').forEach(el => el.textContent = '');
+  const arrow = document.getElementById('sort-' + col);
+  if (arrow) arrow.textContent = sortAsc ? '▲' : '▼';
+  sortData();
+  renderTable();
+}
+
+function sortData() {
+  filtered.sort((a, b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (sortCol === 'size') { va = Number(va); vb = Number(vb); }
+    else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ? 1 : -1;
+    return 0;
+  });
+}
+
+function updateStats() {
+  const totalSize = filtered.reduce((s, o) => s + o.size, 0);
+  document.getElementById('totalInfo').textContent =
+    `Showing ${filtered.length} of ${allObjects.length} objects | ${fmtSize(totalSize)} total`;
+}
+
+// ---- rendering ----
+function renderTable() {
+  const tbody = document.getElementById('fileTableBody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">No objects found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(o => {
+    const typeClass = o.type === 'image' ? 'image' : o.type === 'json' ? 'json' : '';
+    const checked = selected.has(o.key) ? 'checked' : '';
+    const rowClass = selected.has(o.key) ? 'selected' : '';
+    return `<tr class="${rowClass}" data-key="${esc(o.key)}">
+      <td class="cb-cell"><input type="checkbox" ${checked} onchange="toggleSelect('${esc(o.key)}', this.checked)"></td>
+      <td class="key-cell" title="${esc(o.key)}"><a href="#" onclick="preview('${esc(o.key)}');return false">${esc(o.filename)}</a></td>
+      <td>${esc(o.prefix)}</td>
+      <td><span class="type-badge ${typeClass}">${o.ext || '—'}</span></td>
+      <td class="size-cell">${fmtSize(o.size)}</td>
+      <td class="date-cell">${fmtDate(o.modified)}</td>
+      <td>
+        <button onclick="downloadFile('${esc(o.key)}')" title="Download" style="padding:3px 8px">⬇</button>
+        <button onclick="renameFile('${esc(o.key)}')" title="Rename/Move" style="padding:3px 8px">✏️</button>
+        <button class="danger" onclick="deleteFile('${esc(o.key)}')" title="Delete" style="padding:3px 8px">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+  updateSelectionUI();
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ---- selection ----
+function toggleSelect(key, checked) {
+  if (checked) selected.add(key); else selected.delete(key);
+  const row = document.querySelector(`tr[data-key="${CSS.escape(key)}"]`);
+  if (row) row.classList.toggle('selected', checked);
+  updateSelectionUI();
+}
+function toggleSelectAll(checked) {
+  filtered.forEach(o => { if (checked) selected.add(o.key); else selected.delete(o.key); });
+  renderTable();
+}
+function updateSelectionUI() {
+  const n = selected.size;
+  document.getElementById('selectionInfo').textContent = n ? `${n} selected` : '';
+  document.getElementById('bulkDeleteBtn').style.display = n ? '' : 'none';
+}
+
+// ---- preview ----
+async function preview(key) {
+  const overlay = document.getElementById('previewOverlay');
+  const title = document.getElementById('previewTitle');
+  const content = document.getElementById('previewContent');
+  const meta = document.getElementById('previewMeta');
+  title.textContent = key;
+  content.innerHTML = '<div class="spinner"></div>';
+  meta.innerHTML = '';
+  overlay.classList.add('active');
+
+  try {
+    const info = await api(`/api/info?key=${encodeURIComponent(key)}`);
+    const type = getType(key);
+
+    // Build public/presigned URL for preview
+    const urlData = await api(`/api/presign?key=${encodeURIComponent(key)}`);
+
+    if (type === 'image') {
+      content.innerHTML = `<img src="${urlData.url}" alt="${esc(key)}">`;
+    } else if (type === 'json' || getExt(key) === 'json') {
+      try {
+        const resp = await fetch(`/api/download?key=${encodeURIComponent(key)}`);
+        const text = await resp.text();
+        try {
+          const pretty = JSON.stringify(JSON.parse(text), null, 2);
+          content.innerHTML = `<pre>${esc(pretty)}</pre>`;
+        } catch { content.innerHTML = `<pre>${esc(text)}</pre>`; }
+      } catch { content.innerHTML = '<em>Could not load content</em>'; }
+    } else {
+      content.innerHTML = `<p>Binary file — <a href="/api/download?key=${encodeURIComponent(key)}">Download</a></p>`;
+    }
+
+    meta.innerHTML = `
+      <dt>Size:</dt><dd>${fmtSize(info.size)}</dd>
+      <dt>Type:</dt><dd>${info.content_type}</dd>
+      <dt>Modified:</dt><dd>${fmtDate(info.modified)}</dd>
+      <dt>ETag:</dt><dd style="font-family:var(--mono);font-size:11px">${info.etag}</dd>
+      ${publicUrl ? `<br><dt>Public URL:</dt><dd><a href="${publicUrl}/${key}" target="_blank">${publicUrl}/${key}</a></dd>` : ''}
+    `;
+  } catch (e) {
+    content.innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+  }
+}
+function closePreview() { document.getElementById('previewOverlay').classList.remove('active'); }
+
+// ---- actions ----
+function downloadFile(key) {
+  window.open(`/api/download?key=${encodeURIComponent(key)}`, '_blank');
+}
+
+async function deleteFile(key) {
+  if (!confirm(`Delete "${key}"?`)) return;
+  try {
+    await api('/api/delete', { method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({key}) });
+    toast(`Deleted: ${key}`);
+    allObjects = allObjects.filter(o => o.key !== key);
+    selected.delete(key);
+    buildPrefixPills();
+    applyFilters();
+  } catch (e) { toast('Delete failed: ' + e.message, 'error'); }
+}
+
+async function bulkDelete() {
+  const keys = [...selected];
+  if (!confirm(`Delete ${keys.length} objects?`)) return;
+  try {
+    await api('/api/delete-bulk', { method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({keys}) });
+    toast(`Deleted ${keys.length} objects`);
+    allObjects = allObjects.filter(o => !selected.has(o.key));
+    selected.clear();
+    buildPrefixPills();
+    applyFilters();
+  } catch (e) { toast('Bulk delete failed: ' + e.message, 'error'); }
+}
+
+async function renameFile(key) {
+  const newKey = prompt('New key (path):', key);
+  if (!newKey || newKey === key) return;
+  try {
+    await api('/api/rename', { method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({old_key: key, new_key: newKey}) });
+    toast(`Renamed: ${key} → ${newKey}`);
+    refreshList();
+  } catch (e) { toast('Rename failed: ' + e.message, 'error'); }
+}
+
+// ---- upload ----
+function showUpload() {
+  document.getElementById('uploadPrefix').value = activePrefix ? activePrefix + '/' : '';
+  document.getElementById('uploadFile').value = '';
+  document.getElementById('uploadOverlay').classList.add('active');
+}
+function closeUpload() { document.getElementById('uploadOverlay').classList.remove('active'); }
+
+async function doUpload() {
+  const prefix = document.getElementById('uploadPrefix').value;
+  const files = document.getElementById('uploadFile').files;
+  if (!files.length) return toast('No file selected', 'error');
+
+  let uploaded = 0;
+  for (const file of files) {
+    const fd = new FormData();
+    fd.append('prefix', prefix);
+    fd.append('file', file);
+    try {
+      await fetch('/api/upload', { method: 'POST', body: fd });
+      uploaded++;
+    } catch (e) { toast(`Failed to upload ${file.name}: ${e.message}`, 'error'); }
+  }
+  toast(`Uploaded ${uploaded} file(s)`);
+  closeUpload();
+  refreshList();
+}
+
+// ---- stats ----
+async function loadStats() {
+  document.getElementById('statsOverlay').classList.add('active');
+  document.getElementById('statsContent').innerHTML = '<div class="spinner"></div> Loading...';
+  try {
+    const data = await api('/api/stats');
+    let html = `<p style="margin-bottom:12px"><strong>Total:</strong> ${data.total_count} objects, ${fmtSize(data.total_size)}</p>`;
+    html += '<table style="width:100%"><thead><tr><th>Prefix</th><th style="text-align:right">Count</th><th style="text-align:right">Size</th></tr></thead><tbody>';
+    Object.keys(data.prefixes).sort().forEach(p => {
+      const d = data.prefixes[p];
+      html += `<tr><td>${esc(p)}</td><td class="size-cell">${d.count}</td><td class="size-cell">${fmtSize(d.size)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('statsContent').innerHTML = html;
+  } catch (e) {
+    document.getElementById('statsContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+  }
+}
+
+// ---- drag & drop ----
+document.addEventListener('DOMContentLoaded', () => {
+  const wrap = document.getElementById('tableWrap');
+  ['dragenter','dragover'].forEach(evt => wrap.addEventListener(evt, e => { e.preventDefault(); wrap.classList.add('drop-active'); }));
+  ['dragleave','drop'].forEach(evt => wrap.addEventListener(evt, () => wrap.classList.remove('drop-active')));
+  wrap.addEventListener('drop', async e => {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (!files.length) return;
+    const prefix = activePrefix ? activePrefix + '/' : '';
+    let uploaded = 0;
+    for (const file of files) {
+      const fd = new FormData();
+      fd.append('prefix', prefix);
+      fd.append('file', file);
+      try { await fetch('/api/upload', { method: 'POST', body: fd }); uploaded++; }
+      catch (err) { toast(`Upload failed: ${file.name}`, 'error'); }
+    }
+    toast(`Uploaded ${uploaded} file(s) to ${prefix || '(root)'}`);
+    refreshList();
+  });
+});
+
+// ---- keyboard ----
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closePreview(); closeUpload();
+    document.getElementById('statsOverlay').classList.remove('active'); }
+});
+
+// ---- set default sort indicator ----
+document.getElementById('sort-modified').textContent = '▼';
+
+// ---- init ----
+refreshList();
+</script>
+</body>
+</html>

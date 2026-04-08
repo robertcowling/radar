@@ -10,6 +10,7 @@ import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
 import urllib.request
+import io
 
 # Radar domain (fixed by Met Office composite coverage)
 LON_MIN, LON_MAX = -11.5, 3.5
@@ -222,6 +223,14 @@ def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=3
             if 'xml' in content_type or len(data) < 5000:
                 print(f"  [{layer_name}] Sat image for {iso_time}: got error or tiny response ({len(data)} bytes, {content_type})")
                 return False
+            # If we requested JPEG but got PNG back, convert to JPEG to save space
+            if fmt == "image/jpeg" and data[:4] == b'\x89PNG':
+                from PIL import Image
+                img = Image.open(io.BytesIO(data)).convert("RGB")
+                buf = io.BytesIO()
+                img.save(buf, format="JPEG", quality=80)
+                data = buf.getvalue()
+                print(f"  [{layer_name}] Converted PNG→JPEG ({len(data)} bytes)")
             with open(sat_path, 'wb') as out_file:
                 out_file.write(data)
         print(f"  [{layer_name}] Sat image saved in 3857: {sat_path} ({len(data)} bytes)")
