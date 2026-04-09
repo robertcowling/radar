@@ -202,7 +202,7 @@ def collect_keys_with_retry(s3):
     return keys
 
 
-def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=3200, height=3200, style=""):
+def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=3200, height=3200, style="", grayscale=False):
     # Convert satellite lat/lon bounds to Web Mercator (EPSG:3857) meters.
     # We must request imagery in 3857 to match the Leaflet/OSM projection perfectly.
     # WMS 1.3.0 with EPSG:4326 would return a Plate Carree image that appears shifted
@@ -223,14 +223,21 @@ def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=3
             if 'xml' in content_type or len(data) < 5000:
                 print(f"  [{layer_name}] Sat image for {iso_time}: got error or tiny response ({len(data)} bytes, {content_type})")
                 return False
-            # If we requested JPEG but got PNG back, convert to JPEG to save space
-            if fmt == "image/jpeg" and data[:4] == b'\x89PNG':
+            # Re-encode to optimised JPEG when source is PNG, or for
+            # grayscale layers where dropping to single-channel saves space
+            is_png = data[:4] == b'\x89PNG'
+            if is_png or grayscale:
                 from PIL import Image
-                img = Image.open(io.BytesIO(data)).convert("RGB")
+                mode = "L" if grayscale else "RGB"
+                img = Image.open(io.BytesIO(data)).convert(mode)
                 buf = io.BytesIO()
-                img.save(buf, format="JPEG", quality=80)
-                data = buf.getvalue()
-                print(f"  [{layer_name}] Converted PNG→JPEG ({len(data)} bytes)")
+                img.save(buf, format="JPEG", quality=75, optimize=True)
+                reencoded = buf.getvalue()
+                # Always use re-encoded for PNG sources; for JPEG only if smaller
+                if is_png or len(reencoded) < len(data):
+                    tag = "PNG→" if is_png else ""
+                    print(f"  [{layer_name}] {tag}Optimised JPEG ({len(data)} → {len(reencoded)} bytes)")
+                    data = reencoded
             with open(sat_path, 'wb') as out_file:
                 out_file.write(data)
         print(f"  [{layer_name}] Sat image saved in 3857: {sat_path} ({len(data)} bytes)")
@@ -382,7 +389,7 @@ def main():
             # HRFI VIS0.6 (MTG FCI — 0.5km B&W visible, daytime only)
             if not os.path.exists(sat_path_vis):
                 print(f"Downloading HRFI VIS image {sat_name_vis}...")
-                download_sat_image(iso_time, "mtg_fd:vis06_hrfi", sat_path_vis)
+                download_sat_image(iso_time, "mtg_fd:vis06_hrfi", sat_path_vis, grayscale=True)
             if os.path.exists(sat_path_vis):
                 if USE_R2:
                     upload_to_r2(r2, sat_path_vis, f"sat_gh/{sat_name_vis}", "image/jpeg", r2_keys)
@@ -405,7 +412,7 @@ def main():
             # HRFI IR10.5 (MTG FCI — 1km thermal infrared, default greyscale)
             if not os.path.exists(sat_path_ir_grey):
                 print(f"Downloading HRFI IR greyscale image {sat_name_ir_grey}...")
-                download_sat_image(iso_time, "mtg_fd:ir105_hrfi", sat_path_ir_grey)
+                download_sat_image(iso_time, "mtg_fd:ir105_hrfi", sat_path_ir_grey, grayscale=True)
             if os.path.exists(sat_path_ir_grey):
                 if USE_R2:
                     upload_to_r2(r2, sat_path_ir_grey, f"sat_gh/{sat_name_ir_grey}", "image/jpeg", r2_keys)
