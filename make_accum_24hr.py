@@ -134,9 +134,7 @@ def read_rain_rate(h5_file, mapping):
 
     rate = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
     good = valid & (out_raw != nodata) & (out_raw != undetect)
-    # Cap at 128 mm/hr — filters radar clutter/calibration artefacts while
-    # preserving any plausible extreme convective rates
-    rate[good] = (out_raw[good].astype(np.float32) * gain + offset).clip(min=0, max=128)
+    rate[good] = (out_raw[good].astype(np.float32) * gain + offset).clip(min=0)
     return rate
 
 
