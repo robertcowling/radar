@@ -243,7 +243,7 @@
             setStatus('loading', 'Loading\u2026');
             document.getElementById('periodText').textContent = 'Loading\u2026';
 
-            fetch('accum_24hr_meta.json?_cb=' + Date.now())
+            fetch('../accum_24hr_meta.json?_cb=' + Date.now())
                 .then(function(r) {
                     if (!r.ok) throw new Error('HTTP ' + r.status);
                     return r.json();
