@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>UK 24hr Rainfall Accumulation</title>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            background: #f8f9fa;
+            color: #3c4043;
+        }
+
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .surface {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .surface:hover {
+            box-shadow: 0 12px 32px rgba(0,0,0,0.16), 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 24px;
+            z-index: 1000;
+            width: 270px;
+        }
+
+        .info-panel h3 {
+            margin: 0 0 4px 0;
+            font-size: 15px;
+            font-weight: 500;
+            color: #202124;
+        }
+
+        .period {
+            font-size: 12px;
+            color: #5f6368;
+            margin: 0 0 16px 0;
+            line-height: 1.4;
+        }
+
+        .cbar-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: #5f6368;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 0 6px 0;
+        }
+
+        .cbar {
+            height: 12px;
+            border-radius: 6px;
+            background: linear-gradient(to right,
+                #e0f3ff 0%,
+                #81d4fa 13%,
+                #03a9f4 25%,
+                #01579b 37%,
+                #2e7d32 50%,
+                #fbc02d 62%,
+                #ef6c00 74%,
+                #c62828 87%,
+                #6a1b9a 100%
+            );
+            margin-bottom: 4px;
+        }
+
+        .cbar-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #5f6368;
+            margin-bottom: 16px;
+        }
+
+        .meta-row {
+            font-size: 11px;
+            color: #80868b;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .meta-row a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .meta-row a:hover {
+            text-decoration: underline;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #34a853;
+            flex-shrink: 0;
+        }
+
+        .status-dot.loading {
+            background: #fbbc04;
+        }
+
+        .status-dot.error {
+            background: #ea4335;
+        }
+
+        #statusText {
+            flex: 1;
+        }
+
+        .btn-refresh {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            font-family: 'Roboto', sans-serif;
+            font-size: 12px;
+            margin-top: 12px;
+            width: 100%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+
+        .btn-refresh:hover {
+            background: #1557b0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+            transform: translateY(-1px);
+        }
+
+        .btn-refresh:active {
+            transform: translateY(0);
+        }
+
+        .no-image-msg {
+            font-size: 13px;
+            color: #80868b;
+            text-align: center;
+            padding: 20px 0 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <div class="info-panel surface">
+        <h3>24hr Rainfall Accumulation</h3>
+        <p class="period" id="periodText">Loading&hellip;</p>
+
+        <p class="cbar-label">Total rainfall (mm)</p>
+        <div class="cbar"></div>
+        <div class="cbar-labels">
+            <span>0.5</span>
+            <span>1</span>
+            <span>2</span>
+            <span>5</span>
+            <span>10</span>
+            <span>20</span>
+            <span>40</span>
+            <span>80</span>
+            <span>160+</span>
+        </div>
+
+        <div class="meta-row">
+            <div class="status-dot loading" id="statusDot"></div>
+            <span id="statusText">Loading&hellip;</span>
+        </div>
+        <div class="meta-row" style="margin-top: 8px;">
+            <a href="/">&#8592; Live radar</a>
+        </div>
+        <button class="btn-refresh" onclick="loadAccum()">Refresh</button>
+    </div>
+
+    <script>
+        var bounds = [[49.0, -11.5], [61.5, 3.5]];
+
+        var map = L.map('map', {
+            center: [54.5, -3.5],
+            zoom: 6,
+            zoomControl: true,
+        });
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19,
+        }).addTo(map);
+
+        var accumOverlay = null;
+
+        function setStatus(state, text) {
+            var dot = document.getElementById('statusDot');
+            dot.className = 'status-dot' + (state !== 'ok' ? ' ' + state : '');
+            document.getElementById('statusText').textContent = text;
+        }
+
+        function setPeriod(meta) {
+            var el = document.getElementById('periodText');
+            if (meta.period_start && meta.period_end) {
+                el.textContent = meta.period_start + ' \u2013 ' + meta.period_end;
+            } else {
+                el.textContent = '';
+            }
+        }
+
+        function fmtGenerated(isoStr) {
+            try {
+                var d = new Date(isoStr);
+                return 'Generated ' + d.toUTCString().replace(' GMT', ' UTC').replace(/:\d\d UTC$/, ' UTC');
+            } catch (e) {
+                return 'Generated ' + isoStr;
+            }
+        }
+
+        function loadAccum() {
+            setStatus('loading', 'Loading\u2026');
+            document.getElementById('periodText').textContent = 'Loading\u2026';
+
+            fetch('accum_24hr_meta.json?_cb=' + Date.now())
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(function(meta) {
+                    if (!meta.url) {
+                        setStatus('error', 'No image URL in metadata');
+                        return;
+                    }
+
+                    setPeriod(meta);
+
+                    // Remove old overlay
+                    if (accumOverlay) {
+                        map.removeLayer(accumOverlay);
+                        accumOverlay = null;
+                    }
+
+                    var img = new Image();
+                    img.onload = function() {
+                        accumOverlay = L.imageOverlay(meta.url, bounds, { opacity: 0.85 });
+                        accumOverlay.addTo(map);
+                        setStatus('ok', fmtGenerated(meta.generated_at));
+                    };
+                    img.onerror = function() {
+                        setStatus('error', 'Image failed to load');
+                    };
+                    // Cache-bust the image too so a re-run always shows the latest
+                    img.src = meta.url + '?_cb=' + Date.now();
+                })
+                .catch(function(err) {
+                    setStatus('error', 'Not yet generated — run the workflow first');
+                    document.getElementById('periodText').textContent = '';
+                    console.error(err);
+                });
+        }
+
+        loadAccum();
+    </script>
+</body>
+
+</html>
