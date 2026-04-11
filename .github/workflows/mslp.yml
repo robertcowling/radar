@@ -1,0 +1,63 @@
+name: Fetch GFS MSLP
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-mslp:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install eccodes system library
+      run: sudo apt-get install -y libeccodes-dev
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install eccodes cfgrib xarray scipy matplotlib pyproj boto3
+
+    - name: Restore GRIB cache
+      uses: actions/cache/restore@v4
+      with:
+        path: data_mslp
+        key: mslp-gribs-v1-${{ github.run_id }}
+        restore-keys: mslp-gribs-v1-
+
+    - name: Fetch and render MSLP overlays
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+      run: python fetch_mslp.py
+
+    - name: Save GRIB cache
+      uses: actions/cache/save@v4
+      with:
+        path: data_mslp
+        key: mslp-gribs-v1-${{ github.run_id }}
+
+    - name: Commit metadata
+      run: |
+        git config --global user.name "Radar Automator"
+        git config --global user.email "radar-bot@github.com"
+        git add mslp_meta.json
+        git diff --cached --quiet && echo "No changes to commit" || (
+          git commit -m "Update GFS MSLP meta $(date -u +'%Y-%m-%d %H:%M UTC')" &&
+          git pull --rebase origin main &&
+          git push origin main
+        )

@@ -567,6 +567,13 @@
                 </label>
             </div>
 
+            <div class="opacity-control" style="margin-top: 8px;">
+                <label class="custom-checkbox">
+                    <input type="checkbox" id="mslpToggle" onchange="toggleMslp(this.checked)">
+                    MSLP isobars (GFS)
+                </label>
+            </div>
+
             <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Satellite</p>
             <div style="margin-bottom: 24px;">
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
@@ -593,6 +600,7 @@
 
             <p style="font-size: 11px; margin-bottom: 4px; line-height: 1.5;">
                 <strong>Radar:</strong> <a href="https://www.metoffice.gov.uk/services/data/share-your-data" target="_blank" style="color:#1a73e8;">Met Office</a> ODIM H5 composite (1km) — Open Government Licence v3.0<br>
+                <strong>MSLP:</strong> <a href="https://www.ncep.noaa.gov" target="_blank" style="color:#1a73e8;">NOAA</a> GFS via NOMADS — public domain<br>
                 <strong>Satellite:</strong> &copy; <a href="https://www.eumetsat.int" target="_blank" style="color:#1a73e8;">EUMETSAT</a> MTG FCI<br>
                 &nbsp;&nbsp;<a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:rgb_geocolour" target="_blank" style="color:#1a73e8;">GeoColour RGB</a> &middot;
                 <a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:vis06_hrfi" target="_blank" style="color:#1a73e8;">HRFI VIS0.6</a> &middot;
@@ -697,8 +705,7 @@
         function toggleRadar(show) {
             if (show) {
                 radarOverlay.addTo(map);
-                radarOverlay.bringToFront();
-                if (regionLayer) regionLayer.bringToFront();
+                enforceZOrder();
             } else {
                 map.removeLayer(radarOverlay);
             }
@@ -718,12 +725,82 @@
                 satOverlays[val] = L.imageOverlay('', satBounds, { opacity: 1.0, interactive: false });
             }
             satOverlays[val].addTo(map);
-            satOverlays[val].bringToBack();
-            if (map.hasLayer(radarOverlay)) radarOverlay.bringToFront();
-            if (regionLayer) regionLayer.bringToFront();
+            enforceZOrder();
             if (frames.length > 0) setFrame(currentFrameIdx);
             preloadVisibleFrames();
         }
+
+        // ---- MSLP isobar overlay ----
+        var mslpOverlay = null;
+        var mslpEnabled = false;
+        var mslpFrames = [];   // [{ms: epochMs, url: '...'}]
+
+        function parseMslpMeta(data) {
+            if (!data || !Array.isArray(data.frames)) return;
+            mslpFrames = data.frames.map(function(f) {
+                return { ms: parseUTCStr(f.valid_time).getTime(), url: f.url };
+            }).sort(function(a, b) { return a.ms - b.ms; });
+            console.log('MSLP: loaded ' + mslpFrames.length + ' frames');
+            // Refresh overlay if it is currently visible
+            if (mslpEnabled && frames.length > 0) updateMslpFrame();
+        }
+
+        function fetchMslpMeta() {
+            fetch('mslp_meta.json?_cb=' + Date.now())
+                .then(function(r) { return r.json(); })
+                .then(function(data) { parseMslpMeta(data); })
+                .catch(function(err) { console.log('MSLP meta not available:', err); });
+        }
+
+        function nearestMslpUrl(frameMs) {
+            if (!mslpFrames.length) return null;
+            var best = mslpFrames[0], bestDiff = Math.abs(mslpFrames[0].ms - frameMs);
+            for (var i = 1; i < mslpFrames.length; i++) {
+                var diff = Math.abs(mslpFrames[i].ms - frameMs);
+                if (diff < bestDiff) { bestDiff = diff; best = mslpFrames[i]; }
+            }
+            // Only show if within 40 minutes of an available MSLP frame
+            return bestDiff <= 40 * 60000 ? best.url : null;
+        }
+
+        function updateMslpFrame() {
+            if (!mslpEnabled || !mslpOverlay || !frames.length) return;
+            var frameMs = parseUTCStr(frames[currentFrameIdx].time).getTime();
+            var url = nearestMslpUrl(frameMs);
+            if (url) mslpOverlay.setUrl(url);
+        }
+
+        function toggleMslp(show) {
+            mslpEnabled = show;
+            if (show) {
+                if (!mslpOverlay) {
+                    mslpOverlay = L.imageOverlay('', satBounds, { opacity: 1.0, interactive: false });
+                }
+                mslpOverlay.addTo(map);
+                enforceZOrder();
+                if (frames.length > 0) updateMslpFrame();
+                // Fetch meta if not yet loaded
+                if (!mslpFrames.length) fetchMslpMeta();
+            } else {
+                if (mslpOverlay && map.hasLayer(mslpOverlay)) map.removeLayer(mslpOverlay);
+            }
+        }
+
+        // Z-order: sat (back) → radar → mslp → regions (front)
+        // MSLP sits above radar so isobars are always readable
+        function enforceZOrder() {
+            Object.keys(satOverlays).forEach(function(k) {
+                if (map.hasLayer(satOverlays[k])) satOverlays[k].bringToBack();
+            });
+            if (map.hasLayer(radarOverlay)) radarOverlay.bringToFront();
+            if (mslpOverlay && map.hasLayer(mslpOverlay)) mslpOverlay.bringToFront();
+            if (regionLayer && map.hasLayer(regionLayer)) regionLayer.bringToFront();
+        }
+
+        // Load MSLP meta at startup (quietly — no overlay created until checkbox ticked)
+        fetchMslpMeta();
+        // Refresh MSLP meta every 30 minutes
+        setInterval(fetchMslpMeta, 30 * 60 * 1000);
 
         // Setup slider
         var slider = document.getElementById('timeSlider');
@@ -949,6 +1026,8 @@
             if (satKey && satOverlays[satVal] && map.hasLayer(satOverlays[satVal])) {
                 if (frameData[satKey]) satOverlays[satVal].setUrl(frameData[satKey]);
             }
+
+            updateMslpFrame();
         }
 
         function updateDuration(hours) {
@@ -1070,6 +1149,15 @@
         var radar_labels = [0.1, 0.5, 1, 2, 4, 8, 16, 32, 64];
         var labelsDiv = document.getElementById('radarLabels');
         labelsDiv.innerHTML = radar_labels.map((l, i) => `<span class="cbar-label" style="left: ${(i) * 11.11}%">${l}</span>`).join('');
+
+        // Auto-enable layers from URL params, e.g. ?mslp=1
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('mslp') === '1') {
+                document.getElementById('mslpToggle').checked = true;
+                toggleMslp(true);
+            }
+        })();
 
     </script>
 </body>
