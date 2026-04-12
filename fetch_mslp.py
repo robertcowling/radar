@@ -27,7 +27,16 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
+import matplotlib.font_manager as _fm
 from scipy.interpolate import RegularGridInterpolator
+
+# Register Roboto if installed (fonts-roboto on Ubuntu, or present on Windows)
+for _fp in _fm.findSystemFonts():
+    if 'roboto' in _fp.lower():
+        try:
+            _fm.fontManager.addfont(_fp)
+        except Exception:
+            pass
 from scipy.ndimage import minimum_filter, maximum_filter
 from pyproj import Transformer
 
@@ -335,13 +344,15 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
         plt.close(fig)
         return False
 
-    # Thin black lines every 4 hPa — white halo via path effect
+    # Thin black lines every 4 hPa — antialiased=False for crisp hard edges
+    # (avoids semi-transparent AA pixels that bloat the palette-quantized PNG)
     n = len(ax.collections)
     cs = ax.contour(
         MERC_X, MERC_Y, msl_grid,
         levels=levels_4,
         colors='black',
         linewidths=0.25,
+        antialiased=False,
     )
     for coll in ax.collections[n:]:
         coll.set_path_effects([
@@ -349,7 +360,7 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
             pe.Normal(),
         ])
 
-    # Thick lines at multiples of 20 hPa — wider halo
+    # Thick lines at multiples of 20 hPa
     thick_lvls = [l for l in levels_4 if l % 20 == 0]
     if thick_lvls:
         n = len(ax.collections)
@@ -358,6 +369,7 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
             levels=thick_lvls,
             colors='black',
             linewidths=0.55,
+            antialiased=False,
         )
         for coll in ax.collections[n:]:
             coll.set_path_effects([
@@ -367,15 +379,16 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
 
     # H / L pressure centre markers
     highs, lows = find_pressure_centers(lat_1d, lon_1d, msl_2d)
-    # Vertical offset for pressure value below the letter (~0.18 inch in Mercator m)
-    yoff = -0.18 * (MERC_YMAX - MERC_YMIN) / (OUT_HEIGHT / DPI)
+    yoff = -0.10 * (MERC_YMAX - MERC_YMIN) / (OUT_HEIGHT / DPI)
     stroke = [pe.withStroke(linewidth=1.5, foreground='white')]
-    for colour, letter, centres in [('#c00000', 'H', highs), ('#0044bb', 'L', lows)]:
+    for colour, letter, centres in [('#8c3232', 'H', highs), ('#2b5285', 'L', lows)]:
         for mx, my, pres in centres:
             ax.text(mx, my, letter, color=colour, fontsize=9, fontweight='bold',
-                    ha='center', va='center', path_effects=stroke)
+                    ha='center', va='center', path_effects=stroke,
+                    fontfamily='Roboto')
             ax.text(mx, my + yoff, f'{round(pres)}', color=colour, fontsize=6,
-                    ha='center', va='top', path_effects=stroke)
+                    ha='center', va='top', path_effects=stroke,
+                    fontfamily='Roboto')
 
     fig.savefig(str(out_path), format='png', transparent=True, dpi=DPI)
     plt.close(fig)
