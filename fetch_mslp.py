@@ -41,11 +41,11 @@ MERC_XMIN, MERC_YMIN = _ll2m.transform(SAT_LON_MIN, SAT_LAT_MIN)
 MERC_XMAX, MERC_YMAX = _ll2m.transform(SAT_LON_MAX, SAT_LAT_MAX)
 
 # Output image size in pixels (width × height in Mercator aspect ratio)
-# 3600px wide at DPI=150 → ~960px over the UK at full domain width, giving
-# sharp lines at UK zoom scale without upsampling artefacts.
+# 3600px wide at DPI=200 → lines rendered at ~1.5px width (clean, above the
+# sub-pixel antialiasing threshold) while output pixel count stays the same.
 OUT_WIDTH = 3600
 OUT_HEIGHT = int(round(OUT_WIDTH * (MERC_YMAX - MERC_YMIN) / (MERC_XMAX - MERC_XMIN)))
-DPI = 150
+DPI = 200
 
 # ---- Storage paths ----
 GRIB_CACHE_DIR = "data_mslp"
@@ -304,21 +304,22 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
         return False
 
     # Thin black lines every 4 hPa — white halo via path effect
+    # At DPI=200: 0.55pt = 1.53px — clean, above antialiasing threshold
     n = len(ax.collections)
     cs = ax.contour(
         MERC_X, MERC_Y, msl_grid,
         levels=levels_4,
         colors='black',
-        linewidths=0.45,
-        alpha=0.85,
+        linewidths=0.55,
     )
     for coll in ax.collections[n:]:
         coll.set_path_effects([
-            pe.withStroke(linewidth=2.5, foreground=(1, 1, 1, 0.60)),
+            pe.withStroke(linewidth=3.2, foreground=(1, 1, 1, 0.72)),
             pe.Normal(),
         ])
 
     # Thick lines at multiples of 20 hPa — wider halo
+    # At DPI=200: 1.2pt = 3.33px
     thick_lvls = [l for l in levels_4 if l % 20 == 0]
     if thick_lvls:
         n = len(ax.collections)
@@ -326,12 +327,11 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
             MERC_X, MERC_Y, msl_grid,
             levels=thick_lvls,
             colors='black',
-            linewidths=1.05,
-            alpha=0.90,
+            linewidths=1.2,
         )
         for coll in ax.collections[n:]:
             coll.set_path_effects([
-                pe.withStroke(linewidth=4.0, foreground=(1, 1, 1, 0.60)),
+                pe.withStroke(linewidth=5.0, foreground=(1, 1, 1, 0.72)),
                 pe.Normal(),
             ])
 
