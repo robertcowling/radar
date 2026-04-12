@@ -41,11 +41,11 @@ MERC_XMIN, MERC_YMIN = _ll2m.transform(SAT_LON_MIN, SAT_LAT_MIN)
 MERC_XMAX, MERC_YMAX = _ll2m.transform(SAT_LON_MAX, SAT_LAT_MAX)
 
 # Output image size in pixels (width × height in Mercator aspect ratio)
-# 3600px wide at DPI=200 → lines rendered at ~1.5px width (clean, above the
-# sub-pixel antialiasing threshold) while output pixel count stays the same.
+# 3600px wide at DPI=300 → thin lines render at ~1.83px (well above the
+# antialiasing blur zone), output pixel count unchanged vs DPI=200.
 OUT_WIDTH = 3600
 OUT_HEIGHT = int(round(OUT_WIDTH * (MERC_YMAX - MERC_YMIN) / (MERC_XMAX - MERC_XMIN)))
-DPI = 200
+DPI = 300
 
 # ---- Storage paths ----
 GRIB_CACHE_DIR = "data_mslp"
@@ -304,7 +304,7 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
         return False
 
     # Thin black lines every 4 hPa — white halo via path effect
-    # At DPI=200: 0.44pt = 1.22px — clean, above antialiasing threshold
+    # At DPI=300: 0.44pt = 1.83px — sharp, well above antialiasing blur zone
     n = len(ax.collections)
     cs = ax.contour(
         MERC_X, MERC_Y, msl_grid,
@@ -319,7 +319,7 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
         ])
 
     # Thick lines at multiples of 20 hPa — wider halo
-    # At DPI=200: 0.96pt = 2.67px
+    # At DPI=300: 0.96pt = 4.0px
     thick_lvls = [l for l in levels_4 if l % 20 == 0]
     if thick_lvls:
         n = len(ax.collections)

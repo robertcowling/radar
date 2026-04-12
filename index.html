@@ -513,6 +513,11 @@
             }
         }
 
+        /* Soft white shadow on region boundaries so they read on dark backgrounds */
+        .region-boundary {
+            filter: drop-shadow(0 0 2.5px rgba(255, 255, 255, 0.75));
+        }
+
         /* Prevent browser from blurring upscaled radar images */
         .sharp-radar {
             image-rendering: -webkit-optimize-contrast;
