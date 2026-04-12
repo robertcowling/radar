@@ -396,7 +396,7 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
     # SVG: infinitely sharp at any zoom, no pixelation when Leaflet upscales.
     # path.simplify removes redundant collinear points → keeps file size small.
     matplotlib.rcParams['path.simplify'] = True
-    matplotlib.rcParams['path.simplify_threshold'] = 2.0
+    matplotlib.rcParams['path.simplify_threshold'] = 1.0
     fig.savefig(str(out_path), format='svg', transparent=True)
     plt.close(fig)
 
