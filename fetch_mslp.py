@@ -23,12 +23,16 @@ from pathlib import Path
 import numpy as np
 import boto3
 
+import logging
 import matplotlib
 matplotlib.use('Agg')
+logging.getLogger('matplotlib.font_manager').setLevel(logging.ERROR)
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
 import matplotlib.font_manager as _fm
 from scipy.interpolate import RegularGridInterpolator
+from scipy.ndimage import minimum_filter, maximum_filter
+from pyproj import Transformer
 
 # Register Roboto if installed (fonts-roboto on Ubuntu, or present on Windows)
 for _fp in _fm.findSystemFonts():
@@ -37,8 +41,7 @@ for _fp in _fm.findSystemFonts():
             _fm.fontManager.addfont(_fp)
         except Exception:
             pass
-from scipy.ndimage import minimum_filter, maximum_filter
-from pyproj import Transformer
+_LABEL_FONT = 'Roboto' if any('Roboto' in f.name for f in _fm.fontManager.ttflist) else 'sans-serif'
 
 # ---- Geographic bounds (same as satellite domain in index.html) ----
 SAT_LON_MIN, SAT_LON_MAX = -32.0, 24.0
@@ -385,10 +388,10 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
         for mx, my, pres in centres:
             ax.text(mx, my, letter, color=colour, fontsize=9, fontweight='bold',
                     ha='center', va='center', path_effects=stroke,
-                    fontfamily='Roboto')
+                    fontfamily=_LABEL_FONT)
             ax.text(mx, my + yoff, f'{round(pres)}', color=colour, fontsize=6,
                     ha='center', va='top', path_effects=stroke,
-                    fontfamily='Roboto')
+                    fontfamily=_LABEL_FONT)
 
     fig.savefig(str(out_path), format='png', transparent=True, dpi=DPI)
     plt.close(fig)
