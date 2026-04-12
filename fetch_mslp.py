@@ -345,7 +345,16 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
 
     fig.savefig(str(out_path), format='png', transparent=True, dpi=DPI)
     plt.close(fig)
-    print(f"  Rendered: {out_path.name}")
+
+    # Post-process: quantize 32-bit RGBA → 8-bit palette PNG.
+    # Semi-transparent pixels are zlib's worst enemy; palette mode cuts
+    # file size by ~60-70% with no perceptible quality loss on line art.
+    from PIL import Image
+    img = Image.open(str(out_path)).convert('RGBA')
+    img.quantize(colors=256).save(str(out_path), optimize=True)
+
+    kb = out_path.stat().st_size // 1024
+    print(f"  Rendered: {out_path.name} ({kb} KB)")
     return True
 
 
