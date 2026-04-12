@@ -28,6 +28,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
 from scipy.interpolate import RegularGridInterpolator
+from scipy.ndimage import minimum_filter, maximum_filter
 from pyproj import Transformer
 
 # ---- Geographic bounds (same as satellite domain in index.html) ----
@@ -257,6 +258,37 @@ def read_mslp_from_grib(grib_path):
 # PNG rendering
 # ---------------------------------------------------------------------------
 
+def find_pressure_centers(lat_1d, lon_1d, msl_2d, size=18, min_sep_m=450_000):
+    """
+    Find synoptic H and L pressure centres using local min/max filtering.
+    size: neighbourhood in grid points (18 × 0.25° = 4.5° ≈ 500 km).
+    min_sep_m: minimum Mercator distance between returned centres (metres).
+    Returns (highs, lows) each a list of (merc_x, merc_y, pressure_hPa).
+    """
+    lmin = msl_2d == minimum_filter(msl_2d, size=size, mode='nearest')
+    lmax = msl_2d == maximum_filter(msl_2d, size=size, mode='nearest')
+
+    def collect(mask):
+        pts = []
+        for r, c in zip(*np.where(mask)):
+            lat, lon = lat_1d[r], lon_1d[c]
+            if not (SAT_LAT_MIN - 1 <= lat <= SAT_LAT_MAX + 1 and
+                    SAT_LON_MIN - 1 <= lon <= SAT_LON_MAX + 1):
+                continue
+            mx, my = _ll2m.transform(lon, lat)
+            pts.append((mx, my, msl_2d[r, c]))
+        # De-duplicate: drop any centre within min_sep_m of an already-kept one
+        kept = []
+        for p in pts:
+            if not any((p[0]-q[0])**2 + (p[1]-q[1])**2 < min_sep_m**2 for q in kept):
+                kept.append(p)
+        return kept
+
+    return collect(lmax), collect(lmin)   # highs, lows
+
+
+# ---------------------------------------------------------------------------
+
 def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
     """
     Render MSLP isobar contours as a transparent PNG in Web Mercator projection,
@@ -333,13 +365,17 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
                 pe.Normal(),
             ])
 
-    # Labels on every 8 hPa (less clutter)
-    label_lvls = [l for l in levels_4 if l % 8 == 0]
-    clabels = ax.clabel(cs, levels=label_lvls, inline=True, fontsize=5,
-                        fmt='%d', use_clabeltext=True)
-    for txt in clabels:
-        txt.set_path_effects([pe.withStroke(linewidth=1.2, foreground='white')])
-        txt.set_color('black')
+    # H / L pressure centre markers
+    highs, lows = find_pressure_centers(lat_1d, lon_1d, msl_2d)
+    # Vertical offset for pressure value below the letter (~0.18 inch in Mercator m)
+    yoff = -0.18 * (MERC_YMAX - MERC_YMIN) / (OUT_HEIGHT / DPI)
+    stroke = [pe.withStroke(linewidth=1.5, foreground='white')]
+    for colour, letter, centres in [('#c00000', 'H', highs), ('#0044bb', 'L', lows)]:
+        for mx, my, pres in centres:
+            ax.text(mx, my, letter, color=colour, fontsize=9, fontweight='bold',
+                    ha='center', va='center', path_effects=stroke)
+            ax.text(mx, my + yoff, f'{round(pres)}', color=colour, fontsize=6,
+                    ha='center', va='top', path_effects=stroke)
 
     fig.savefig(str(out_path), format='png', transparent=True, dpi=DPI)
     plt.close(fig)
