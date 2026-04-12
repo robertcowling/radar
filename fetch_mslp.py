@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
 import matplotlib.font_manager as _fm
 from scipy.interpolate import RegularGridInterpolator
-from scipy.ndimage import minimum_filter, maximum_filter
+from scipy.ndimage import minimum_filter, maximum_filter, gaussian_filter
 from pyproj import Transformer
 
 # Register Roboto if installed (fonts-roboto on Ubuntu, or present on Windows)
@@ -53,12 +53,19 @@ _m2ll = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
 MERC_XMIN, MERC_YMIN = _ll2m.transform(SAT_LON_MIN, SAT_LAT_MIN)
 MERC_XMAX, MERC_YMAX = _ll2m.transform(SAT_LON_MAX, SAT_LAT_MAX)
 
-# Output image size in pixels (width × height in Mercator aspect ratio)
-# 2400px wide at DPI=300 → thin lines at 1.83px (sharp), ~643px over the UK.
-# Pixel count kept low (vs 3600) so PNGs stay well under 1 MB.
+# Figure size for SVG output (physical inches × DPI sets font/line scale).
+# The contour grid uses SVG_WIDTH — lower res = fewer path points in the SVG.
+# 600px contour grid on 0.25° GFS data is still ~4× finer than the source,
+# so isobar shape accuracy is identical. Leaflet renders SVG at full sharpness.
 OUT_WIDTH = 2400
 OUT_HEIGHT = int(round(OUT_WIDTH * (MERC_YMAX - MERC_YMIN) / (MERC_XMAX - MERC_XMIN)))
 DPI = 300
+
+# Contour grid resolution for SVG — governs point count, not visual sharpness.
+# 300px → ~1.3 px per 0.25° GFS cell; Gaussian pre-smooth keeps curves clean.
+# Leaflet renders SVG losslessly at any zoom.
+SVG_GRID_W = 300
+SVG_GRID_H = int(round(SVG_GRID_W * (MERC_YMAX - MERC_YMIN) / (MERC_XMAX - MERC_XMIN)))
 
 # ---- Storage paths ----
 GRIB_CACHE_DIR = "data_mslp"
@@ -303,12 +310,15 @@ def find_pressure_centers(lat_1d, lon_1d, msl_2d, size=18, min_sep_m=450_000):
 
 def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
     """
-    Render MSLP isobar contours as a transparent PNG in Web Mercator projection,
+    Render MSLP isobar contours as a transparent SVG in Web Mercator projection,
     matching the satellite domain bounds used in index.html.
+    Contours are computed on a low-res grid (SVG_GRID_W) to keep path point
+    counts low; SVG scales losslessly so visual sharpness is unaffected.
     """
-    # Build the Mercator output grid (top-row = north = highest Mercator Y)
-    merc_xs = np.linspace(MERC_XMIN, MERC_XMAX, OUT_WIDTH)
-    merc_ys = np.linspace(MERC_YMAX, MERC_YMIN, OUT_HEIGHT)  # north → south
+    # Build the Mercator contour grid — low resolution keeps SVG path points down.
+    # Visual sharpness is unaffected: SVG vectors scale to any zoom losslessly.
+    merc_xs = np.linspace(MERC_XMIN, MERC_XMAX, SVG_GRID_W)
+    merc_ys = np.linspace(MERC_YMAX, MERC_YMIN, SVG_GRID_H)  # north → south
     MERC_X, MERC_Y = np.meshgrid(merc_xs, merc_ys)
 
     # Convert Mercator grid to lat/lon for MSLP lookup
@@ -324,10 +334,14 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
         method='linear', bounds_error=False, fill_value=None,
     )
     pts = np.column_stack([GRID_LAT.ravel(), GRID_LON.ravel()])
-    msl_grid = interp(pts).reshape(OUT_HEIGHT, OUT_WIDTH)
+    msl_grid = interp(pts).reshape(SVG_GRID_H, SVG_GRID_W)
+
+    # Light Gaussian smooth (σ=1 grid cell) — rounds off sub-grid jaggedness
+    # at 300px resolution without shifting isobar positions meaningfully.
+    msl_grid = gaussian_filter(msl_grid, sigma=1.0)
 
     # ---- Matplotlib rendering on transparent canvas ----
-    fig = plt.figure(figsize=(OUT_WIDTH / DPI, OUT_HEIGHT / DPI), dpi=DPI)
+    fig = plt.figure(figsize=(OUT_WIDTH / DPI, OUT_HEIGHT / DPI))
     ax = fig.add_axes([0, 0, 1, 1])   # axes fills entire figure
 
     # Map data coordinates to Mercator space.
@@ -347,15 +361,13 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
         plt.close(fig)
         return False
 
-    # Thin black lines every 4 hPa — antialiased=False for crisp hard edges
-    # (avoids semi-transparent AA pixels that bloat the palette-quantized PNG)
+    # Thin black lines every 4 hPa
     n = len(ax.collections)
     cs = ax.contour(
         MERC_X, MERC_Y, msl_grid,
         levels=levels_4,
         colors='black',
         linewidths=0.25,
-        antialiased=False,
     )
     for coll in ax.collections[n:]:
         coll.set_path_effects([
@@ -372,7 +384,6 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
             levels=thick_lvls,
             colors='black',
             linewidths=0.55,
-            antialiased=False,
         )
         for coll in ax.collections[n:]:
             coll.set_path_effects([
@@ -393,8 +404,8 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
                     ha='center', va='top', path_effects=stroke,
                     fontfamily=_LABEL_FONT)
 
-    # SVG: infinitely sharp at any zoom, no pixelation when Leaflet upscales.
-    # path.simplify removes redundant collinear points → keeps file size small.
+    # Simplify collinear path points before writing — effective on smooth
+    # contour curves and cuts SVG file size significantly without visual loss.
     matplotlib.rcParams['path.simplify'] = True
     matplotlib.rcParams['path.simplify_threshold'] = 1.0
     fig.savefig(str(out_path), format='svg', transparent=True)
