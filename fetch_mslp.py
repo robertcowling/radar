@@ -14,6 +14,8 @@ Dependencies (install in CI with apt-get + pip — not in requirements.txt):
     pip install eccodes cfgrib xarray scipy matplotlib pyproj boto3
 """
 
+import gzip
+import io
 import os
 import json
 import datetime
@@ -110,11 +112,15 @@ def list_r2_mslp_keys(r2):
     return keys
 
 
-def upload_to_r2(r2, local_path, r2_key, existing_keys, content_type='image/png', force=False):
+def upload_to_r2(r2, local_path, r2_key, existing_keys, content_type='image/png',
+                 content_encoding=None, force=False):
     if not force and r2_key in existing_keys:
         return True
     try:
-        r2.upload_file(local_path, R2_BUCKET, r2_key, ExtraArgs={'ContentType': content_type})
+        extra = {'ContentType': content_type}
+        if content_encoding:
+            extra['ContentEncoding'] = content_encoding
+        r2.upload_file(local_path, R2_BUCKET, r2_key, ExtraArgs=extra)
         print(f"  Uploaded: {r2_key}")
         existing_keys.add(r2_key)
         return True
@@ -404,12 +410,18 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
                     ha='center', va='top', path_effects=stroke,
                     fontfamily=_LABEL_FONT)
 
-    # Simplify collinear path points before writing — effective on smooth
-    # contour curves and cuts SVG file size significantly without visual loss.
+    # Simplify collinear path points before writing.
     matplotlib.rcParams['path.simplify'] = True
     matplotlib.rcParams['path.simplify_threshold'] = 1.0
-    fig.savefig(str(out_path), format='svg', transparent=True)
+
+    # Render SVG into memory then gzip to disk — browsers decompress
+    # Content-Encoding:gzip transparently; typically 5-8× smaller on the wire.
+    buf = io.BytesIO()
+    fig.savefig(buf, format='svg', transparent=True)
     plt.close(fig)
+    buf.seek(0)
+    with gzip.open(str(out_path), 'wb', compresslevel=9) as gz:
+        gz.write(buf.read())
 
     kb = out_path.stat().st_size // 1024
     print(f"  Rendered: {out_path.name} ({kb} KB)")
@@ -485,7 +497,8 @@ def main():
 
         # Upload & record
         if USE_R2:
-            upload_to_r2(r2, str(png_path), r2_key, r2_keys, content_type='image/svg+xml')
+            upload_to_r2(r2, str(png_path), r2_key, r2_keys,
+                         content_type='image/svg+xml', content_encoding='gzip')
             url = f"{R2_PUBLIC_URL}/{r2_key}"
         else:
             url = f"static/mslp/{png_name}"
