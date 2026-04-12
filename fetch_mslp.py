@@ -41,9 +41,9 @@ MERC_XMIN, MERC_YMIN = _ll2m.transform(SAT_LON_MIN, SAT_LAT_MIN)
 MERC_XMAX, MERC_YMAX = _ll2m.transform(SAT_LON_MAX, SAT_LAT_MAX)
 
 # Output image size in pixels (width × height in Mercator aspect ratio)
-# 3600px wide at DPI=300 → thin lines render at ~1.83px (well above the
-# antialiasing blur zone), output pixel count unchanged vs DPI=200.
-OUT_WIDTH = 3600
+# 2400px wide at DPI=300 → thin lines at 1.83px (sharp), ~643px over the UK.
+# Pixel count kept low (vs 3600) so PNGs stay well under 1 MB.
+OUT_WIDTH = 2400
 OUT_HEIGHT = int(round(OUT_WIDTH * (MERC_YMAX - MERC_YMIN) / (MERC_XMAX - MERC_XMIN)))
 DPI = 300
 
@@ -314,7 +314,7 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
     )
     for coll in ax.collections[n:]:
         coll.set_path_effects([
-            pe.withStroke(linewidth=2.6, foreground=(1, 1, 1, 0.72)),
+            pe.withStroke(linewidth=1.5, foreground=(1, 1, 1, 0.72)),
             pe.Normal(),
         ])
 
@@ -331,7 +331,7 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
         )
         for coll in ax.collections[n:]:
             coll.set_path_effects([
-                pe.withStroke(linewidth=4.0, foreground=(1, 1, 1, 0.72)),
+                pe.withStroke(linewidth=2.5, foreground=(1, 1, 1, 0.72)),
                 pe.Normal(),
             ])
 
