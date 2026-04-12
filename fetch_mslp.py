@@ -393,15 +393,12 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
                     ha='center', va='top', path_effects=stroke,
                     fontfamily=_LABEL_FONT)
 
-    fig.savefig(str(out_path), format='png', transparent=True, dpi=DPI)
+    # SVG: infinitely sharp at any zoom, no pixelation when Leaflet upscales.
+    # path.simplify removes redundant collinear points → keeps file size small.
+    matplotlib.rcParams['path.simplify'] = True
+    matplotlib.rcParams['path.simplify_threshold'] = 2.0
+    fig.savefig(str(out_path), format='svg', transparent=True)
     plt.close(fig)
-
-    # Post-process: quantize 32-bit RGBA → 8-bit palette PNG.
-    # Semi-transparent pixels are zlib's worst enemy; palette mode cuts
-    # file size by ~60-70% with no perceptible quality loss on line art.
-    from PIL import Image
-    img = Image.open(str(out_path)).convert('RGBA')
-    img.quantize(colors=256).save(str(out_path), optimize=True)
 
     kb = out_path.stat().st_size // 1024
     print(f"  Rendered: {out_path.name} ({kb} KB)")
@@ -439,7 +436,7 @@ def main():
 
     for vt in valid_times:
         ts = vt.strftime('%Y%m%d%H%M')
-        png_name = f"{ts}_mslp.png"
+        png_name = f"{ts}_mslp.svg"
         png_path = Path(PNG_DIR) / png_name
         r2_key = f"{R2_PREFIX}/{png_name}"
 
@@ -477,7 +474,7 @@ def main():
 
         # Upload & record
         if USE_R2:
-            upload_to_r2(r2, str(png_path), r2_key, r2_keys)
+            upload_to_r2(r2, str(png_path), r2_key, r2_keys, content_type='image/svg+xml')
             url = f"{R2_PUBLIC_URL}/{r2_key}"
         else:
             url = f"static/mslp/{png_name}"
