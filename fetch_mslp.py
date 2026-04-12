@@ -304,22 +304,20 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
         return False
 
     # Thin black lines every 4 hPa — white halo via path effect
-    # At DPI=300: 0.44pt = 1.83px — sharp, well above antialiasing blur zone
     n = len(ax.collections)
     cs = ax.contour(
         MERC_X, MERC_Y, msl_grid,
         levels=levels_4,
         colors='black',
-        linewidths=0.44,
+        linewidths=0.25,
     )
     for coll in ax.collections[n:]:
         coll.set_path_effects([
-            pe.withStroke(linewidth=1.5, foreground=(1, 1, 1, 0.72)),
+            pe.withStroke(linewidth=0.9, foreground=(1, 1, 1, 0.72)),
             pe.Normal(),
         ])
 
     # Thick lines at multiples of 20 hPa — wider halo
-    # At DPI=300: 0.96pt = 4.0px
     thick_lvls = [l for l in levels_4 if l % 20 == 0]
     if thick_lvls:
         n = len(ax.collections)
@@ -327,20 +325,20 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
             MERC_X, MERC_Y, msl_grid,
             levels=thick_lvls,
             colors='black',
-            linewidths=0.96,
+            linewidths=0.55,
         )
         for coll in ax.collections[n:]:
             coll.set_path_effects([
-                pe.withStroke(linewidth=2.5, foreground=(1, 1, 1, 0.72)),
+                pe.withStroke(linewidth=1.5, foreground=(1, 1, 1, 0.72)),
                 pe.Normal(),
             ])
 
     # Labels on every 8 hPa (less clutter)
     label_lvls = [l for l in levels_4 if l % 8 == 0]
-    clabels = ax.clabel(cs, levels=label_lvls, inline=True, fontsize=8,
+    clabels = ax.clabel(cs, levels=label_lvls, inline=True, fontsize=5,
                         fmt='%d', use_clabeltext=True)
     for txt in clabels:
-        txt.set_path_effects([pe.withStroke(linewidth=2.0, foreground='white')])
+        txt.set_path_effects([pe.withStroke(linewidth=1.2, foreground='white')])
         txt.set_color('black')
 
     fig.savefig(str(out_path), format='png', transparent=True, dpi=DPI)
