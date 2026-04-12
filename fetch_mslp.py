@@ -117,10 +117,18 @@ def upload_to_r2(r2, local_path, r2_key, existing_keys, content_type='image/png'
     if not force and r2_key in existing_keys:
         return True
     try:
-        extra = {'ContentType': content_type}
         if content_encoding:
-            extra['ContentEncoding'] = content_encoding
-        r2.upload_file(local_path, R2_BUCKET, r2_key, ExtraArgs=extra)
+            # put_object avoids boto3 transfer-manager ContentLength confusion
+            # when ContentEncoding is set (e.g. gzip-compressed SVG).
+            with open(local_path, 'rb') as f:
+                data = f.read()
+            r2.put_object(
+                Bucket=R2_BUCKET, Key=r2_key, Body=data,
+                ContentType=content_type, ContentEncoding=content_encoding,
+            )
+        else:
+            r2.upload_file(local_path, R2_BUCKET, r2_key,
+                           ExtraArgs={'ContentType': content_type})
         print(f"  Uploaded: {r2_key}")
         existing_keys.add(r2_key)
         return True
