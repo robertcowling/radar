@@ -686,8 +686,9 @@
                 regionLayer = L.geoJSON(data, {
                     style: {
                         color: '#5f6368',
-                        weight: 1,
-                        fillOpacity: 0
+                        weight: 1.5,
+                        fillOpacity: 0,
+                        className: 'region-boundary'
                     },
                     interactive: false
                 }).addTo(map);
