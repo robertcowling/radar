@@ -375,50 +375,67 @@ def main():
             sat_path_ir      = os.path.join(SAT_DIR, sat_name_ir)
             sat_path_ir_grey = os.path.join(SAT_DIR, sat_name_ir_grey)
 
+            r2_key_bw      = f"sat_gh/{sat_name_bw}"
+            r2_key_vis     = f"sat_gh/{sat_name_vis}"
+            r2_key_ir      = f"sat_gh/{sat_name_ir}"
+            r2_key_ir_grey = f"sat_gh/{sat_name_ir_grey}"
+
             # GeoColour RGB (MTG FCI — seamless day/night colour blend)
-            if not os.path.exists(sat_path_bw):
-                print(f"Downloading GeoColour image {sat_name_bw}...")
-                download_sat_image(iso_time, "mtg_fd:rgb_geocolour", sat_path_bw)
-            if os.path.exists(sat_path_bw):
-                if USE_R2:
-                    upload_to_r2(r2, sat_path_bw, f"sat_gh/{sat_name_bw}", "image/jpeg", r2_keys)
-                    sat_url_bw = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_bw}"
-                else:
-                    sat_url_bw = f"static/sat/{sat_name_bw}"
+            if USE_R2 and r2_key_bw in r2_keys:
+                sat_url_bw = f"{R2_PUBLIC_URL}/{r2_key_bw}"
+            else:
+                if not os.path.exists(sat_path_bw):
+                    print(f"Downloading GeoColour image {sat_name_bw}...")
+                    download_sat_image(iso_time, "mtg_fd:rgb_geocolour", sat_path_bw)
+                if os.path.exists(sat_path_bw):
+                    if USE_R2:
+                        upload_to_r2(r2, sat_path_bw, r2_key_bw, "image/jpeg", r2_keys)
+                        sat_url_bw = f"{R2_PUBLIC_URL}/{r2_key_bw}"
+                    else:
+                        sat_url_bw = f"static/sat/{sat_name_bw}"
 
             # HRFI VIS0.6 (MTG FCI — 0.5km B&W visible, daytime only)
-            if not os.path.exists(sat_path_vis):
-                print(f"Downloading HRFI VIS image {sat_name_vis}...")
-                download_sat_image(iso_time, "mtg_fd:vis06_hrfi", sat_path_vis, grayscale=True)
-            if os.path.exists(sat_path_vis):
-                if USE_R2:
-                    upload_to_r2(r2, sat_path_vis, f"sat_gh/{sat_name_vis}", "image/jpeg", r2_keys)
-                    sat_url_vis = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_vis}"
-                else:
-                    sat_url_vis = f"static/sat/{sat_name_vis}"
+            if USE_R2 and r2_key_vis in r2_keys:
+                sat_url_vis = f"{R2_PUBLIC_URL}/{r2_key_vis}"
+            else:
+                if not os.path.exists(sat_path_vis):
+                    print(f"Downloading HRFI VIS image {sat_name_vis}...")
+                    download_sat_image(iso_time, "mtg_fd:vis06_hrfi", sat_path_vis, grayscale=True)
+                if os.path.exists(sat_path_vis):
+                    if USE_R2:
+                        upload_to_r2(r2, sat_path_vis, r2_key_vis, "image/jpeg", r2_keys)
+                        sat_url_vis = f"{R2_PUBLIC_URL}/{r2_key_vis}"
+                    else:
+                        sat_url_vis = f"static/sat/{sat_name_vis}"
 
             # HRFI IR10.5 (MTG FCI — 1km thermal infrared, false colour style 01)
-            if not os.path.exists(sat_path_ir):
-                print(f"Downloading HRFI IR false colour image {sat_name_ir}...")
-                download_sat_image(iso_time, "mtg_fd:ir105_hrfi", sat_path_ir,
-                                   style="mtg_fd_ir105_hrfi_style_01")
-            if os.path.exists(sat_path_ir):
-                if USE_R2:
-                    upload_to_r2(r2, sat_path_ir, f"sat_gh/{sat_name_ir}", "image/jpeg", r2_keys)
-                    sat_url_ir = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir}"
-                else:
-                    sat_url_ir = f"static/sat/{sat_name_ir}"
+            if USE_R2 and r2_key_ir in r2_keys:
+                sat_url_ir = f"{R2_PUBLIC_URL}/{r2_key_ir}"
+            else:
+                if not os.path.exists(sat_path_ir):
+                    print(f"Downloading HRFI IR false colour image {sat_name_ir}...")
+                    download_sat_image(iso_time, "mtg_fd:ir105_hrfi", sat_path_ir,
+                                       style="mtg_fd_ir105_hrfi_style_01")
+                if os.path.exists(sat_path_ir):
+                    if USE_R2:
+                        upload_to_r2(r2, sat_path_ir, r2_key_ir, "image/jpeg", r2_keys)
+                        sat_url_ir = f"{R2_PUBLIC_URL}/{r2_key_ir}"
+                    else:
+                        sat_url_ir = f"static/sat/{sat_name_ir}"
 
             # HRFI IR10.5 (MTG FCI — 1km thermal infrared, default greyscale)
-            if not os.path.exists(sat_path_ir_grey):
-                print(f"Downloading HRFI IR greyscale image {sat_name_ir_grey}...")
-                download_sat_image(iso_time, "mtg_fd:ir105_hrfi", sat_path_ir_grey, grayscale=True)
-            if os.path.exists(sat_path_ir_grey):
-                if USE_R2:
-                    upload_to_r2(r2, sat_path_ir_grey, f"sat_gh/{sat_name_ir_grey}", "image/jpeg", r2_keys)
-                    sat_url_ir_grey = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir_grey}"
-                else:
-                    sat_url_ir_grey = f"static/sat/{sat_name_ir_grey}"
+            if USE_R2 and r2_key_ir_grey in r2_keys:
+                sat_url_ir_grey = f"{R2_PUBLIC_URL}/{r2_key_ir_grey}"
+            else:
+                if not os.path.exists(sat_path_ir_grey):
+                    print(f"Downloading HRFI IR greyscale image {sat_name_ir_grey}...")
+                    download_sat_image(iso_time, "mtg_fd:ir105_hrfi", sat_path_ir_grey, grayscale=True)
+                if os.path.exists(sat_path_ir_grey):
+                    if USE_R2:
+                        upload_to_r2(r2, sat_path_ir_grey, r2_key_ir_grey, "image/jpeg", r2_keys)
+                        sat_url_ir_grey = f"{R2_PUBLIC_URL}/{r2_key_ir_grey}"
+                    else:
+                        sat_url_ir_grey = f"static/sat/{sat_name_ir_grey}"
 
         radar_url = f"{R2_PUBLIC_URL}/radar_gh/{png_name}" if USE_R2 else f"static/radar/{png_name}"
         frame_data = {"time": timestamp, "url": radar_url}
