@@ -1112,6 +1112,7 @@
   {
     "time": "Wed 15 Apr 2026 04:30 UTC",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_gh/202604150430_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_bw": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604150430_ODIM_ng_radar_rainrate_composite_1km_UK_sat_bw.jpg",
     "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604150430_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg",
     "sat_url_ir": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604150430_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg",
     "sat_url_ir_grey": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604150430_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir_grey.jpg"
@@ -1276,6 +1277,7 @@
   {
     "time": "Wed 15 Apr 2026 10:00 UTC",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_gh/202604151000_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_bw": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151000_ODIM_ng_radar_rainrate_composite_1km_UK_sat_bw.jpg",
     "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151000_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg",
     "sat_url_ir": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151000_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg",
     "sat_url_ir_grey": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151000_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir_grey.jpg"
@@ -1283,6 +1285,7 @@
   {
     "time": "Wed 15 Apr 2026 10:15 UTC",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_gh/202604151015_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_bw": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151015_ODIM_ng_radar_rainrate_composite_1km_UK_sat_bw.jpg",
     "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151015_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg",
     "sat_url_ir": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151015_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg",
     "sat_url_ir_grey": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151015_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir_grey.jpg"
@@ -1347,7 +1350,9 @@
   {
     "time": "Wed 15 Apr 2026 12:45 UTC",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_gh/202604151245_ODIM_ng_radar_rainrate_composite_1km_UK.png",
-    "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151245_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg"
+    "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151245_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg",
+    "sat_url_ir": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151245_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg",
+    "sat_url_ir_grey": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151245_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir_grey.jpg"
   },
   {
     "time": "Wed 15 Apr 2026 13:00 UTC",
@@ -1357,7 +1362,9 @@
   {
     "time": "Wed 15 Apr 2026 13:15 UTC",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_gh/202604151315_ODIM_ng_radar_rainrate_composite_1km_UK.png",
-    "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151315_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg"
+    "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151315_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg",
+    "sat_url_ir": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151315_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg",
+    "sat_url_ir_grey": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151315_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir_grey.jpg"
   },
   {
     "time": "Wed 15 Apr 2026 13:30 UTC",
@@ -1376,15 +1383,18 @@
   },
   {
     "time": "Wed 15 Apr 2026 14:15 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_gh/202604151415_ODIM_ng_radar_rainrate_composite_1km_UK.png"
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_gh/202604151415_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151415_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg"
   },
   {
     "time": "Wed 15 Apr 2026 14:30 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_gh/202604151430_ODIM_ng_radar_rainrate_composite_1km_UK.png"
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_gh/202604151430_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151430_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg"
   },
   {
     "time": "Wed 15 Apr 2026 14:45 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_gh/202604151445_ODIM_ng_radar_rainrate_composite_1km_UK.png"
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_gh/202604151445_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202604151445_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg"
   },
   {
     "time": "Wed 15 Apr 2026 15:00 UTC",
