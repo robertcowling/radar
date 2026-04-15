@@ -24,7 +24,7 @@ SAT_LAT_MIN, SAT_LAT_MAX = 37.75, 72.75
 # S3 Config
 BUCKET = "met-office-radar-obs-data"
 NUM_FILES = 192  # 2 days × 96 frames/day (15-min intervals)
-SAT_MAX_AGE_HOURS = 6  # give up retrying sat downloads after this long
+SAT_MAX_AGE_HOURS = 24  # give up retrying sat downloads after this long
 H5_DIR = "data_h5"
 
 # R2 Config — set these as GitHub Actions secrets (never hardcode)
