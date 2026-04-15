@@ -40,6 +40,6 @@ jobs:
         git add accum_24hr_meta.json
         git diff --cached --quiet && echo "No changes to commit" || (
           git commit -m "Update 24hr accumulation $(date -u +'%Y-%m-%d %H:%M UTC')" &&
-          git pull --rebase origin main &&
+          git pull --rebase -X theirs origin main &&
           git push origin main
         )
