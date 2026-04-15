@@ -350,16 +350,20 @@ def main():
         except Exception:
             timestamp = "Unknown"
 
-        if not os.path.exists(png_path):
-            if not os.path.exists(h5_path):
-                print(f"Downloading {h5_name}...")
-                s3.download_file(BUCKET, key, h5_path)
-            print(f"Rendering {png_name}...")
-            if mapping is None:
-                mapping = get_mapping(h5_path)
-            render_png(h5_path, png_path, mapping)
-        if USE_R2:
-            upload_to_r2(r2, png_path, f"radar_gh/{png_name}", "image/png", r2_keys)
+        r2_key_radar = f"radar_gh/{png_name}"
+        if USE_R2 and r2_key_radar in r2_keys:
+            print(f"Skip (already in R2): {png_name}")
+        else:
+            if not os.path.exists(png_path):
+                if not os.path.exists(h5_path):
+                    print(f"Downloading {h5_name}...")
+                    s3.download_file(BUCKET, key, h5_path)
+                print(f"Rendering {png_name}...")
+                if mapping is None:
+                    mapping = get_mapping(h5_path)
+                render_png(h5_path, png_path, mapping)
+            if USE_R2:
+                upload_to_r2(r2, png_path, r2_key_radar, "image/png", r2_keys)
 
         sat_url_bw = None
         sat_url_vis = None
