@@ -24,6 +24,7 @@ SAT_LAT_MIN, SAT_LAT_MAX = 37.75, 72.75
 # S3 Config
 BUCKET = "met-office-radar-obs-data"
 NUM_FILES = 192  # 2 days × 96 frames/day (15-min intervals)
+SAT_MAX_AGE_HOURS = 6  # give up retrying sat downloads after this long
 H5_DIR = "data_h5"
 
 # R2 Config — set these as GitHub Actions secrets (never hardcode)
@@ -378,6 +379,7 @@ def main():
             sat_path_vis     = os.path.join(SAT_DIR, sat_name_vis)
             sat_path_ir      = os.path.join(SAT_DIR, sat_name_ir)
             sat_path_ir_grey = os.path.join(SAT_DIR, sat_name_ir_grey)
+            sat_too_old      = dt < datetime.utcnow() - timedelta(hours=SAT_MAX_AGE_HOURS)
 
             r2_key_bw      = f"sat_gh/{sat_name_bw}"
             r2_key_vis     = f"sat_gh/{sat_name_vis}"
@@ -387,7 +389,7 @@ def main():
             # GeoColour RGB (MTG FCI — seamless day/night colour blend)
             if USE_R2 and r2_key_bw in r2_keys:
                 sat_url_bw = f"{R2_PUBLIC_URL}/{r2_key_bw}"
-            else:
+            elif not sat_too_old:
                 if not os.path.exists(sat_path_bw):
                     print(f"Downloading GeoColour image {sat_name_bw}...")
                     download_sat_image(iso_time, "mtg_fd:rgb_geocolour", sat_path_bw)
@@ -401,7 +403,7 @@ def main():
             # HRFI VIS0.6 (MTG FCI — 0.5km B&W visible, daytime only)
             if USE_R2 and r2_key_vis in r2_keys:
                 sat_url_vis = f"{R2_PUBLIC_URL}/{r2_key_vis}"
-            else:
+            elif not sat_too_old:
                 if not os.path.exists(sat_path_vis):
                     print(f"Downloading HRFI VIS image {sat_name_vis}...")
                     download_sat_image(iso_time, "mtg_fd:vis06_hrfi", sat_path_vis, grayscale=True)
@@ -415,7 +417,7 @@ def main():
             # HRFI IR10.5 (MTG FCI — 1km thermal infrared, false colour style 01)
             if USE_R2 and r2_key_ir in r2_keys:
                 sat_url_ir = f"{R2_PUBLIC_URL}/{r2_key_ir}"
-            else:
+            elif not sat_too_old:
                 if not os.path.exists(sat_path_ir):
                     print(f"Downloading HRFI IR false colour image {sat_name_ir}...")
                     download_sat_image(iso_time, "mtg_fd:ir105_hrfi", sat_path_ir,
@@ -430,7 +432,7 @@ def main():
             # HRFI IR10.5 (MTG FCI — 1km thermal infrared, default greyscale)
             if USE_R2 and r2_key_ir_grey in r2_keys:
                 sat_url_ir_grey = f"{R2_PUBLIC_URL}/{r2_key_ir_grey}"
-            else:
+            elif not sat_too_old:
                 if not os.path.exists(sat_path_ir_grey):
                     print(f"Downloading HRFI IR greyscale image {sat_name_ir_grey}...")
                     download_sat_image(iso_time, "mtg_fd:ir105_hrfi", sat_path_ir_grey, grayscale=True)
