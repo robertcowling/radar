@@ -44,8 +44,8 @@ for _fp in _fm.findSystemFonts():
 _LABEL_FONT = 'Roboto' if any('Roboto' in f.name for f in _fm.fontManager.ttflist) else 'sans-serif'
 
 # ---- Geographic bounds (same as satellite domain in index.html) ----
-SAT_LON_MIN, SAT_LON_MAX = -32.0, 24.0
-SAT_LAT_MIN, SAT_LAT_MAX = 37.75, 72.75
+SAT_LON_MIN, SAT_LON_MAX = -40.4, 32.4
+SAT_LAT_MIN, SAT_LAT_MAX = 37.75, 67.5
 
 # Pre-compute Mercator corners once
 _ll2m = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)

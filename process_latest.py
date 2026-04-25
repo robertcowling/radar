@@ -18,8 +18,8 @@ LAT_MIN, LAT_MAX = 49.0, 61.5
 WIDTH, HEIGHT = 2400, 2000
 
 # Satellite domain — same centre (-4.0°, 55.25°); 2× taller than before
-SAT_LON_MIN, SAT_LON_MAX = -32.0, 24.0
-SAT_LAT_MIN, SAT_LAT_MAX = 37.75, 72.75
+SAT_LON_MIN, SAT_LON_MAX = -40.4, 32.4
+SAT_LAT_MIN, SAT_LAT_MAX = 37.75, 67.5
 
 # S3 Config
 BUCKET = "met-office-radar-obs-data"
