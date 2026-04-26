@@ -1,10 +1,6 @@
 {
-  "generated_at": "2026-04-26T05:50:00.000Z",
+  "generated_at": "2026-04-26T06:05:00.000Z",
   "frames": [
-    {
-      "valid_time": "Fri 24 Apr 2026 05:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202604240500_mslp.svg"
-    },
     {
       "valid_time": "Fri 24 Apr 2026 06:00 UTC",
       "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202604240600_mslp.svg"
@@ -196,6 +192,10 @@
     {
       "valid_time": "Sun 26 Apr 2026 05:00 UTC",
       "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202604260500_mslp.svg"
+    },
+    {
+      "valid_time": "Sun 26 Apr 2026 06:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202604260600_mslp.svg"
     }
   ]
 }
