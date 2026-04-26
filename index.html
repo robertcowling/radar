@@ -683,6 +683,15 @@
             className: 'sharp-radar'
         }).addTo(map);
 
+        // Radar coverage boundary
+        fetch('radar_boundary.geojson')
+            .then(res => res.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: { color: '#ffffff', weight: 0.8, fill: false, opacity: 0.35 }
+                }).addTo(map);
+            });
+
         // Boundaries overlay
         var regionLayer;
         fetch('uk_regions.geojson')
