@@ -21,11 +21,15 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-LON_MIN, LON_MAX = -11.5, 3.5
-LAT_MIN, LAT_MAX = 49.0, 61.5
-WIDTH, HEIGHT = 2400, 2000
 BUCKET = "met-office-radar-obs-data"
 H5_DIR = "data_h5"
+
+# Larger extraction window so coverage never touches the edges — gives a closed contour.
+# The actual radar image uses [[49.0, -11.5], [61.5, 3.5]] but the composite coverage
+# extends south of 49°N (Jersey) and west of -11.5°W (Irish radars).
+LON_MIN, LON_MAX = -15.0, 5.5
+LAT_MIN, LAT_MAX = 46.5, 63.0
+WIDTH, HEIGHT = 2400, 2000
 
 
 def get_mapping(h5_path):
