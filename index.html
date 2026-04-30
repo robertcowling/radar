@@ -749,12 +749,13 @@
         // ---- MSLP isobar overlay ----
         var mslpOverlay = null;
         var mslpEnabled = false;
-        var mslpFrames = [];   // [{ms: epochMs, url: '...'}]
+        var mslpFrames = [];   // [{ms: epochMs, url: '...', urlDetail: '...'}]
+        var MSLP_DETAIL_ZOOM = 8;  // switch to narrow-stroke variant at this zoom and above
 
         function parseMslpMeta(data) {
             if (!data || !Array.isArray(data.frames)) return;
             mslpFrames = data.frames.map(function(f) {
-                return { ms: parseUTCStr(f.valid_time).getTime(), url: f.url };
+                return { ms: parseUTCStr(f.valid_time).getTime(), url: f.url, urlDetail: f.url_detail || f.url };
             }).sort(function(a, b) { return a.ms - b.ms; });
             console.log('MSLP: loaded ' + mslpFrames.length + ' frames');
             // Refresh overlay if it is currently visible
@@ -768,7 +769,7 @@
                 .catch(function(err) { console.log('MSLP meta not available:', err); });
         }
 
-        function nearestMslpUrl(frameMs) {
+        function nearestMslpFrame(frameMs) {
             if (!mslpFrames.length) return null;
             var best = mslpFrames[0], bestDiff = Math.abs(mslpFrames[0].ms - frameMs);
             for (var i = 1; i < mslpFrames.length; i++) {
@@ -776,14 +777,16 @@
                 if (diff < bestDiff) { bestDiff = diff; best = mslpFrames[i]; }
             }
             // Only show if within 40 minutes of an available MSLP frame
-            return bestDiff <= 40 * 60000 ? best.url : null;
+            return bestDiff <= 40 * 60000 ? best : null;
         }
 
         function updateMslpFrame() {
             if (!mslpEnabled || !mslpOverlay || !frames.length) return;
             var frameMs = parseUTCStr(frames[currentFrameIdx].time).getTime();
-            var url = nearestMslpUrl(frameMs);
-            if (url) mslpOverlay.setUrl(url);
+            var frame = nearestMslpFrame(frameMs);
+            if (!frame) return;
+            var url = map.getZoom() >= MSLP_DETAIL_ZOOM ? frame.urlDetail : frame.url;
+            mslpOverlay.setUrl(url);
         }
 
         function toggleMslp(show) {
@@ -801,6 +804,8 @@
                 if (mslpOverlay && map.hasLayer(mslpOverlay)) map.removeLayer(mslpOverlay);
             }
         }
+
+        map.on('zoomend', function() { if (mslpEnabled) updateMslpFrame(); });
 
         // Z-order: sat (back) → radar → mslp → regions (front)
         // MSLP sits above radar so isobars are always readable

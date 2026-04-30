@@ -308,12 +308,13 @@ def find_pressure_centers(lat_1d, lon_1d, msl_2d, size=18, min_sep_m=450_000):
 
 # ---------------------------------------------------------------------------
 
-def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
+def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path, detail=False):
     """
     Render MSLP isobar contours as a transparent SVG in Web Mercator projection,
     matching the satellite domain bounds used in index.html.
     Contours are computed on a low-res grid (SVG_GRID_W) to keep path point
     counts low; SVG scales losslessly so visual sharpness is unaffected.
+    detail=True uses narrower strokes for use when zoomed in.
     """
     # Build the Mercator contour grid — low resolution keeps SVG path points down.
     # Visual sharpness is unaffected: SVG vectors scale to any zoom losslessly.
@@ -361,17 +362,21 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
         plt.close(fig)
         return False
 
+    # Stroke widths: detail variant uses narrower lines for zoomed-in view
+    thin_lw,  thin_stroke  = (0.15, 0.55) if detail else (0.25, 0.9)
+    thick_lw, thick_stroke = (0.35, 1.0)  if detail else (0.55, 1.5)
+
     # Thin black lines every 4 hPa
     n = len(ax.collections)
     cs = ax.contour(
         MERC_X, MERC_Y, msl_grid,
         levels=levels_4,
         colors='black',
-        linewidths=0.25,
+        linewidths=thin_lw,
     )
     for coll in ax.collections[n:]:
         coll.set_path_effects([
-            pe.withStroke(linewidth=0.9, foreground=(1, 1, 1, 0.72)),
+            pe.withStroke(linewidth=thin_stroke, foreground=(1, 1, 1, 0.72)),
             pe.Normal(),
         ])
 
@@ -383,11 +388,11 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path):
             MERC_X, MERC_Y, msl_grid,
             levels=thick_lvls,
             colors='black',
-            linewidths=0.55,
+            linewidths=thick_lw,
         )
         for coll in ax.collections[n:]:
             coll.set_path_effects([
-                pe.withStroke(linewidth=1.5, foreground=(1, 1, 1, 0.72)),
+                pe.withStroke(linewidth=thick_stroke, foreground=(1, 1, 1, 0.72)),
                 pe.Normal(),
             ])
 
@@ -447,16 +452,20 @@ def main():
 
     for vt in valid_times:
         ts = vt.strftime('%Y%m%d%H%M')
-        png_name = f"{ts}_mslp.svg"
-        png_path = Path(PNG_DIR) / png_name
-        r2_key = f"{R2_PREFIX}/{png_name}"
+        png_name        = f"{ts}_mslp.svg"
+        png_name_detail = f"{ts}_mslp_detail.svg"
+        png_path        = Path(PNG_DIR) / png_name
+        png_path_detail = Path(PNG_DIR) / png_name_detail
+        r2_key          = f"{R2_PREFIX}/{png_name}"
+        r2_key_detail   = f"{R2_PREFIX}/{png_name_detail}"
 
         # Already in R2 — just record in meta
-        if USE_R2 and r2_key in r2_keys:
+        if USE_R2 and r2_key in r2_keys and r2_key_detail in r2_keys:
             print(f"Skip (already in R2): {png_name}")
             meta_frames.append({
                 'valid_time': vt.strftime('%a %d %b %Y %H:%M UTC'),
-                'url': f"{R2_PUBLIC_URL}/{r2_key}",
+                'url':        f"{R2_PUBLIC_URL}/{r2_key}",
+                'url_detail': f"{R2_PUBLIC_URL}/{r2_key_detail}",
             })
             continue
 
@@ -468,14 +477,18 @@ def main():
             print(f"  No GRIB available for {vt}, skipping")
             continue
 
-        # Render PNG
-        if not png_path.exists():
+        # Render both variants (read GRIB once)
+        need_render = not png_path.exists() or not png_path_detail.exists()
+        if need_render:
             try:
                 lat_1d, lon_1d, msl_2d = read_mslp_from_grib(grib_path)
-                ok = render_mslp_png(lat_1d, lon_1d, msl_2d, png_path)
-                if not ok:
-                    print(f"  Render produced no levels, skipping")
-                    continue
+                if not png_path.exists():
+                    ok = render_mslp_png(lat_1d, lon_1d, msl_2d, png_path)
+                    if not ok:
+                        print(f"  Render produced no levels, skipping")
+                        continue
+                if not png_path_detail.exists():
+                    render_mslp_png(lat_1d, lon_1d, msl_2d, png_path_detail, detail=True)
             except Exception as e:
                 print(f"  Render error: {e}")
                 import traceback; traceback.print_exc()
@@ -485,15 +498,18 @@ def main():
 
         # Upload & record
         if USE_R2:
-            upload_to_r2(r2, str(png_path), r2_key, r2_keys,
-                         content_type='image/svg+xml')
-            url = f"{R2_PUBLIC_URL}/{r2_key}"
+            upload_to_r2(r2, str(png_path),        r2_key,        r2_keys, content_type='image/svg+xml')
+            upload_to_r2(r2, str(png_path_detail),  r2_key_detail, r2_keys, content_type='image/svg+xml')
+            url        = f"{R2_PUBLIC_URL}/{r2_key}"
+            url_detail = f"{R2_PUBLIC_URL}/{r2_key_detail}"
         else:
-            url = f"static/mslp/{png_name}"
+            url        = f"static/mslp/{png_name}"
+            url_detail = f"static/mslp/{png_name_detail}"
 
         meta_frames.append({
             'valid_time': vt.strftime('%a %d %b %Y %H:%M UTC'),
-            'url': url,
+            'url':        url,
+            'url_detail': url_detail,
         })
 
     # Write metadata JSON
