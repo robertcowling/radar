@@ -97,14 +97,30 @@ def get_mapping(h5_sample):
         if isinstance(proj_str, bytes):
             proj_str = proj_str.decode()
         ul_lon, ul_lat = float(where['UL_lon']), float(where['UL_lat'])
-        lat_min = min(float(where['LL_lat']), float(where['LR_lat']))
-        lat_max = max(float(where['UL_lat']), float(where['UR_lat']))
-        lon_min = min(float(where['LL_lon']), float(where['UL_lon']))
-        lon_max = max(float(where['LR_lon']), float(where['UR_lon']))
 
+    # Sample the H5 grid boundary in tmerc space to get the true lat/lon extent.
+    # Corner-only bounds under-estimate it: tmerc top/bottom edges bow north
+    # at the central meridian (~100 km cropped off the top of the composite).
+    ll_to_radar   = Transformer.from_crs("EPSG:4326", proj_str, always_xy=True)
+    radar_to_ll   = Transformer.from_crs(proj_str, "EPSG:4326", always_xy=True)
     ll_to_merc    = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
     merc_to_radar = Transformer.from_crs("EPSG:3857", proj_str, always_xy=True)
-    ll_to_radar   = Transformer.from_crs("EPSG:4326", proj_str, always_xy=True)
+
+    ul_x, ul_y = ll_to_radar.transform(ul_lon, ul_lat)
+    lr_x = ul_x + xsize * xscale
+    lr_y = ul_y - ysize * yscale
+    N = 200
+    edge_x = np.concatenate([
+        np.linspace(ul_x, lr_x, N), np.linspace(ul_x, lr_x, N),
+        np.full(N, ul_x),           np.full(N, lr_x),
+    ])
+    edge_y = np.concatenate([
+        np.full(N, ul_y),           np.full(N, lr_y),
+        np.linspace(ul_y, lr_y, N), np.linspace(ul_y, lr_y, N),
+    ])
+    edge_lon, edge_lat = radar_to_ll.transform(edge_x, edge_y)
+    lat_min, lat_max = float(edge_lat.min()), float(edge_lat.max())
+    lon_min, lon_max = float(edge_lon.min()), float(edge_lon.max())
 
     merc_xmin, merc_ymin = ll_to_merc.transform(lon_min, lat_min)
     merc_xmax, merc_ymax = ll_to_merc.transform(lon_max, lat_max)
@@ -115,7 +131,6 @@ def get_mapping(h5_sample):
     MERC_X, MERC_Y = np.meshgrid(merc_xs, merc_ys)
 
     X_radar, Y_radar = merc_to_radar.transform(MERC_X, MERC_Y)
-    ul_x, ul_y = ll_to_radar.transform(ul_lon, ul_lat)
 
     cols = np.round((X_radar - ul_x) / xscale).astype(np.int32)
     rows = np.round((ul_y - Y_radar) / yscale).astype(np.int32)

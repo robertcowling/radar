@@ -59,11 +59,28 @@ def get_mapping(h5_sample):
         proj_str = where['projdef']
         if isinstance(proj_str, bytes): proj_str = proj_str.decode()
         ul_lon, ul_lat = float(where['UL_lon']), float(where['UL_lat'])
-        # Derive output extent from H5 grid corners so the PNG covers the full data
-        lat_min = min(float(where['LL_lat']), float(where['LR_lat']))
-        lat_max = max(float(where['UL_lat']), float(where['UR_lat']))
-        lon_min = min(float(where['LL_lon']), float(where['UL_lon']))
-        lon_max = max(float(where['LR_lon']), float(where['UR_lon']))
+
+    # Derive the true lat/lon extent by sampling the H5 grid boundary in tmerc
+    # space. The 4 corner lat/lons under-estimate the extent because the top/bottom
+    # edges of a tmerc grid bow north at the central meridian — using just the
+    # corners would crop ~100 km of data off the top of the composite.
+    ll_to_radar = Transformer.from_crs("EPSG:4326", proj_str, always_xy=True)
+    radar_to_ll = Transformer.from_crs(proj_str, "EPSG:4326", always_xy=True)
+    ul_x, ul_y = ll_to_radar.transform(ul_lon, ul_lat)
+    lr_x = ul_x + xsize * xscale
+    lr_y = ul_y - ysize * yscale
+    N = 200
+    edge_x = np.concatenate([
+        np.linspace(ul_x, lr_x, N), np.linspace(ul_x, lr_x, N),
+        np.full(N, ul_x),           np.full(N, lr_x),
+    ])
+    edge_y = np.concatenate([
+        np.full(N, ul_y),           np.full(N, lr_y),
+        np.linspace(ul_y, lr_y, N), np.linspace(ul_y, lr_y, N),
+    ])
+    edge_lon, edge_lat = radar_to_ll.transform(edge_x, edge_y)
+    lat_min, lat_max = float(edge_lat.min()), float(edge_lat.max())
+    lon_min, lon_max = float(edge_lon.min()), float(edge_lon.max())
 
     # Build the pixel grid in Web Mercator (EPSG:3857) space so that
     # pixel spacing matches Leaflet's internal Mercator projection.
@@ -82,9 +99,6 @@ def get_mapping(h5_sample):
     MERC_X, MERC_Y = np.meshgrid(merc_xs, merc_ys)
 
     X_radar, Y_radar = merc_to_radar.transform(MERC_X, MERC_Y)
-
-    ll_to_radar = Transformer.from_crs("EPSG:4326", proj_str, always_xy=True)
-    ul_x, ul_y = ll_to_radar.transform(ul_lon, ul_lat)
 
     cols = np.round((X_radar - ul_x) / xscale).astype(np.int32)
     rows = np.round((ul_y - Y_radar) / yscale).astype(np.int32)
