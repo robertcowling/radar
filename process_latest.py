@@ -12,10 +12,10 @@ from botocore.client import Config
 import urllib.request
 import io
 
-# Radar domain — full Met Office H5 composite extent
-LON_MIN, LON_MAX = -17.97, 16.13
-LAT_MIN, LAT_MAX = 43.70, 63.83
-WIDTH, HEIGHT = 2400, 2458
+# Radar domain (fixed by Met Office composite coverage)
+LON_MIN, LON_MAX = -11.5, 3.5
+LAT_MIN, LAT_MAX = 49.0, 61.5
+WIDTH, HEIGHT = 2400, 2000
 
 # Satellite domain — same centre (-4.0°, 55.25°); 2× taller than before
 SAT_LON_MIN, SAT_LON_MAX = -40.4, 32.4

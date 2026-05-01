@@ -363,8 +363,8 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path, detail=False):
         return False
 
     # Stroke widths: detail variant uses narrower lines for zoomed-in view
-    thin_lw,  thin_stroke  = (0.12, 0.44) if detail else (0.25, 0.9)
-    thick_lw, thick_stroke = (0.28, 0.80) if detail else (0.55, 1.5)
+    thin_lw,  thin_stroke  = (0.15, 0.55) if detail else (0.25, 0.9)
+    thick_lw, thick_stroke = (0.35, 1.0)  if detail else (0.55, 1.5)
 
     # Thin black lines every 4 hPa
     n = len(ax.collections)

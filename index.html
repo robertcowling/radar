@@ -673,8 +673,8 @@
             maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
         }).addTo(map);
 
-        // Radar Overlay — full Met Office H5 composite extent
-        var bounds = [[43.70, -17.97], [63.83, 16.13]];
+        // Radar Overlay — fixed to Met Office composite extent
+        var bounds = [[49.0, -11.5], [61.5, 3.5]];
         // Satellite Overlay — 2× taller domain, same centre (-4.0°, 55.25°)
         var satBounds = [[37.75, -40.4], [67.5, 32.4]];
         var radarOverlay = L.imageOverlay('', bounds, {

@@ -10,9 +10,9 @@ from botocore import UNSIGNED
 from botocore.client import Config
 
 # Radar domain — same as process_latest.py
-LON_MIN, LON_MAX = -17.97, 16.13
-LAT_MIN, LAT_MAX = 43.70, 63.83
-WIDTH, HEIGHT = 2400, 2458
+LON_MIN, LON_MAX = -11.5, 3.5
+LAT_MIN, LAT_MAX = 49.0, 61.5
+WIDTH, HEIGHT = 2400, 2000
 
 BUCKET = "met-office-radar-obs-data"
 H5_DIR = "data_h5"
