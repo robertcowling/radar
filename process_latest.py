@@ -12,10 +12,8 @@ from botocore.client import Config
 import urllib.request
 import io
 
-# Radar domain (fixed by Met Office composite coverage)
-LON_MIN, LON_MAX = -11.5, 3.5
-LAT_MIN, LAT_MAX = 49.0, 61.5
-WIDTH, HEIGHT = 2400, 2000
+# Output width in pixels — height is derived from the H5 Mercator aspect ratio
+WIDTH = 2400
 
 # Satellite domain — same centre (-4.0°, 55.25°); 2× taller than before
 SAT_LON_MIN, SAT_LON_MAX = -40.4, 32.4
@@ -61,6 +59,11 @@ def get_mapping(h5_sample):
         proj_str = where['projdef']
         if isinstance(proj_str, bytes): proj_str = proj_str.decode()
         ul_lon, ul_lat = float(where['UL_lon']), float(where['UL_lat'])
+        # Derive output extent from H5 grid corners so the PNG covers the full data
+        lat_min = min(float(where['LL_lat']), float(where['LR_lat']))
+        lat_max = max(float(where['UL_lat']), float(where['UR_lat']))
+        lon_min = min(float(where['LL_lon']), float(where['UL_lon']))
+        lon_max = max(float(where['LR_lon']), float(where['UR_lon']))
 
     # Build the pixel grid in Web Mercator (EPSG:3857) space so that
     # pixel spacing matches Leaflet's internal Mercator projection.
@@ -69,37 +72,35 @@ def get_mapping(h5_sample):
     ll_to_merc = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
     merc_to_radar = Transformer.from_crs("EPSG:3857", proj_str, always_xy=True)
 
-    # Convert our overlay corners to Mercator
-    merc_xmin, merc_ymin = ll_to_merc.transform(LON_MIN, LAT_MIN)
-    merc_xmax, merc_ymax = ll_to_merc.transform(LON_MAX, LAT_MAX)
+    merc_xmin, merc_ymin = ll_to_merc.transform(lon_min, lat_min)
+    merc_xmax, merc_ymax = ll_to_merc.transform(lon_max, lat_max)
+    # Height derived from Mercator aspect ratio so pixels are square in map space
+    height = round(WIDTH * (merc_ymax - merc_ymin) / (merc_xmax - merc_xmin))
 
-    # Build a uniform grid in Mercator space (top to bottom = ymax to ymin)
     merc_xs = np.linspace(merc_xmin, merc_xmax, WIDTH)
-    merc_ys = np.linspace(merc_ymax, merc_ymin, HEIGHT)
+    merc_ys = np.linspace(merc_ymax, merc_ymin, height)
     MERC_X, MERC_Y = np.meshgrid(merc_xs, merc_ys)
 
-    # Transform Mercator coords directly into the radar's native projection
     X_radar, Y_radar = merc_to_radar.transform(MERC_X, MERC_Y)
 
-    # Convert UL corner to the radar projection for pixel indexing
     ll_to_radar = Transformer.from_crs("EPSG:4326", proj_str, always_xy=True)
     ul_x, ul_y = ll_to_radar.transform(ul_lon, ul_lat)
 
     cols = np.round((X_radar - ul_x) / xscale).astype(np.int32)
     rows = np.round((ul_y - Y_radar) / yscale).astype(np.int32)
     valid = (cols >= 0) & (cols < xsize) & (rows >= 0) & (rows < ysize)
-    return rows, cols, valid
+    return rows, cols, valid, height, (lat_min, lat_max, lon_min, lon_max)
 
 
 def render_png(h5_file, png_path, mapping):
-    rows, cols, valid = mapping
+    rows, cols, valid, height, _ = mapping
     with h5py.File(h5_file, "r") as f:
         raw = f['dataset1/data1/data'][:]
         dwhat = f['dataset1/data1/what'].attrs
         gain, offset = float(dwhat['gain']), float(dwhat['offset'])
         nodata, undetect = float(dwhat['nodata']), float(dwhat['undetect'])
 
-    out_raw = np.full((HEIGHT, WIDTH), nodata, dtype=raw.dtype)
+    out_raw = np.full((height, WIDTH), nodata, dtype=raw.dtype)
     out_raw[valid] = raw[rows[valid], cols[valid]]
     data = out_raw * gain + offset
 
