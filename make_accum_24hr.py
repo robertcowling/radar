@@ -9,8 +9,10 @@ import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
 
-# Output width in pixels — height is derived from the H5 Mercator aspect ratio
-WIDTH = 2400
+# Radar domain — same as process_latest.py
+LON_MIN, LON_MAX = -17.97, 16.13
+LAT_MIN, LAT_MAX = 43.70, 63.83
+WIDTH, HEIGHT = 2400, 2458
 
 BUCKET = "met-office-radar-obs-data"
 H5_DIR = "data_h5"
@@ -98,60 +100,39 @@ def get_mapping(h5_sample):
             proj_str = proj_str.decode()
         ul_lon, ul_lat = float(where['UL_lon']), float(where['UL_lat'])
 
-    # Sample the H5 grid boundary in tmerc space to get the true lat/lon extent.
-    # Corner-only bounds under-estimate it: tmerc top/bottom edges bow north
-    # at the central meridian (~100 km cropped off the top of the composite).
-    ll_to_radar   = Transformer.from_crs("EPSG:4326", proj_str, always_xy=True)
-    radar_to_ll   = Transformer.from_crs(proj_str, "EPSG:4326", always_xy=True)
-    ll_to_merc    = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
+    ll_to_merc   = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
     merc_to_radar = Transformer.from_crs("EPSG:3857", proj_str, always_xy=True)
+    ll_to_radar   = Transformer.from_crs("EPSG:4326", proj_str, always_xy=True)
 
-    ul_x, ul_y = ll_to_radar.transform(ul_lon, ul_lat)
-    lr_x = ul_x + xsize * xscale
-    lr_y = ul_y - ysize * yscale
-    N = 200
-    edge_x = np.concatenate([
-        np.linspace(ul_x, lr_x, N), np.linspace(ul_x, lr_x, N),
-        np.full(N, ul_x),           np.full(N, lr_x),
-    ])
-    edge_y = np.concatenate([
-        np.full(N, ul_y),           np.full(N, lr_y),
-        np.linspace(ul_y, lr_y, N), np.linspace(ul_y, lr_y, N),
-    ])
-    edge_lon, edge_lat = radar_to_ll.transform(edge_x, edge_y)
-    lat_min, lat_max = float(edge_lat.min()), float(edge_lat.max())
-    lon_min, lon_max = float(edge_lon.min()), float(edge_lon.max())
-
-    merc_xmin, merc_ymin = ll_to_merc.transform(lon_min, lat_min)
-    merc_xmax, merc_ymax = ll_to_merc.transform(lon_max, lat_max)
-    height = round(WIDTH * (merc_ymax - merc_ymin) / (merc_xmax - merc_xmin))
-
+    merc_xmin, merc_ymin = ll_to_merc.transform(LON_MIN, LAT_MIN)
+    merc_xmax, merc_ymax = ll_to_merc.transform(LON_MAX, LAT_MAX)
     merc_xs = np.linspace(merc_xmin, merc_xmax, WIDTH)
-    merc_ys = np.linspace(merc_ymax, merc_ymin, height)
+    merc_ys = np.linspace(merc_ymax, merc_ymin, HEIGHT)
     MERC_X, MERC_Y = np.meshgrid(merc_xs, merc_ys)
 
     X_radar, Y_radar = merc_to_radar.transform(MERC_X, MERC_Y)
+    ul_x, ul_y = ll_to_radar.transform(ul_lon, ul_lat)
 
     cols = np.round((X_radar - ul_x) / xscale).astype(np.int32)
     rows = np.round((ul_y - Y_radar) / yscale).astype(np.int32)
     valid = (cols >= 0) & (cols < xsize) & (rows >= 0) & (rows < ysize)
-    return rows, cols, valid, height, (lat_min, lat_max, lon_min, lon_max)
+    return rows, cols, valid
 
 
 def read_rain_rate(h5_file, mapping):
     """Return a float32 rain-rate array (mm/hr) projected onto the overlay grid.
     Pixels with no data or undetected echoes are returned as 0.0."""
-    rows, cols, valid, height, _ = mapping
+    rows, cols, valid = mapping
     with h5py.File(h5_file, "r") as f:
         raw = f['dataset1/data1/data'][:]
         dwhat = f['dataset1/data1/what'].attrs
         gain, offset = float(dwhat['gain']), float(dwhat['offset'])
         nodata, undetect = float(dwhat['nodata']), float(dwhat['undetect'])
 
-    out_raw = np.full((height, WIDTH), nodata, dtype=raw.dtype)
+    out_raw = np.full((HEIGHT, WIDTH), nodata, dtype=raw.dtype)
     out_raw[valid] = raw[rows[valid], cols[valid]]
 
-    rate = np.zeros((height, WIDTH), dtype=np.float32)
+    rate = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
     good = valid & (out_raw != nodata) & (out_raw != undetect)
     rate[good] = (out_raw[good].astype(np.float32) * gain + offset).clip(min=0)
     return rate
@@ -180,7 +161,7 @@ def main():
 
     print(f"Accumulating {len(keys)} frames ({keys[0].split('/')[-1][:12]} to {keys[-1].split('/')[-1][:12]})")
 
-    accum = None
+    accum = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
     mapping = None
     downloaded = []
 
@@ -196,8 +177,6 @@ def main():
 
         if mapping is None:
             mapping = get_mapping(h5_path)
-            _, _, _, height, _ = mapping
-            accum = np.zeros((height, WIDTH), dtype=np.float32)
 
         rate = read_rain_rate(h5_path, mapping)
         accum += rate * INTERVAL_HRS
