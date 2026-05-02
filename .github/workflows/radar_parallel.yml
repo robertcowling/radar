@@ -1,0 +1,75 @@
+name: Process Radar Images (Parallel)
+
+on:
+  # schedule:
+  #   - cron: '5,20,35,50 * * * *'  # Trigger offset from the main workflow
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Restore image cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          static/radar_parallel_gh
+        key: radar-parallel-images-v1-${{ github.run_id }}
+        restore-keys: radar-parallel-images-v1-
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Process latest radar data (Parallel)
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+      run: python process_parallel.py
+
+    - name: Delete files older than 14 days
+      run: |
+        cutoff=$(date -u -d '14 days ago' +'%Y%m%d%H%M')
+        for f in static/radar_parallel_gh/*.png; do
+          [ -f "$f" ] || continue
+          base=$(basename "$f")
+          ts="${base:0:12}"
+          [[ "$ts" =~ ^[0-9]{12}$ ]] && [[ "$ts" < "$cutoff" ]] && rm "$f"
+        done
+        exit 0
+
+    - name: Save image cache
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          static/radar_parallel_gh
+        key: radar-parallel-images-v1-${{ github.run_id }}
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.name "Radar Automator"
+        git config --global user.email "radar-bot@github.com"
+        git add frames_parallel.json
+        git diff --cached --quiet && echo "No changes to commit" || (
+          git commit -m "Update radar parallel frames $(date -u +'%Y-%m-%d %H:%M UTC')" &&
+          git pull --rebase -X theirs origin main &&
+          git push origin main
+        )
