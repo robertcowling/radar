@@ -262,10 +262,40 @@ def main():
             if USE_R2:
                 upload_to_r2(r2, png_path, r2_key_radar, "image/png", r2_keys)
 
+        sat_url_bw = None
+        sat_url_vis = None
+        sat_url_ir = None
+        sat_url_ir_grey = None
+
+        if timestamp != "Unknown":
+            sat_name_bw      = h5_name.replace(".h5", "_sat_bw.jpg")
+            sat_name_vis     = h5_name.replace(".h5", "_sat_vis.jpg")
+            sat_name_ir      = h5_name.replace(".h5", "_sat_ir.jpg")
+            sat_name_ir_grey = h5_name.replace(".h5", "_sat_ir_grey.jpg")
+            
+            if USE_R2:
+                sat_url_bw      = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_bw}"
+                sat_url_vis     = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_vis}"
+                sat_url_ir      = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir}"
+                sat_url_ir_grey = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir_grey}"
+            else:
+                sat_url_bw      = f"static/sat/{sat_name_bw}"
+                sat_url_vis     = f"static/sat/{sat_name_vis}"
+                sat_url_ir      = f"static/sat/{sat_name_ir}"
+                sat_url_ir_grey = f"static/sat/{sat_name_ir_grey}"
+
         radar_url = f"{R2_PUBLIC_URL}/radar_parallel/{png_name}" if USE_R2 else f"static/radar_parallel/{png_name}"
         
-        # Parallel frames ONLY output radar and time. Sat images remain mapped via standard frames.json on the frontend if needed.
         frame_data = {"time": timestamp, "url": radar_url}
+        if sat_url_bw:
+            frame_data["sat_url_bw"] = sat_url_bw
+        if sat_url_vis:
+            frame_data["sat_url_vis"] = sat_url_vis
+        if sat_url_ir:
+            frame_data["sat_url_ir"] = sat_url_ir
+        if sat_url_ir_grey:
+            frame_data["sat_url_ir_grey"] = sat_url_ir_grey
+            
         frames.append(frame_data)
 
     with open("frames_parallel.json", "w") as f:
