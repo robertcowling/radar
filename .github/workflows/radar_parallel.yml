@@ -1,9 +1,12 @@
 name: Process Radar Images (Parallel)
 
 on:
-  # schedule:
-  #   - cron: '5,20,35,50 * * * *'  # Trigger offset from the main workflow
+  push:
+    paths:
+      - 'process_parallel.py'
+      - '.github/workflows/radar_parallel.yml'
   workflow_dispatch:
+
 
 permissions:
   contents: write
