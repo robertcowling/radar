@@ -1,9 +1,5 @@
 [
   {
-    "time": "Thu 30 Apr 2026 14:30 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202604301430_ODIM_ng_radar_rainrate_composite_1km_UK.png"
-  },
-  {
     "time": "Thu 30 Apr 2026 14:45 UTC",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202604301445_ODIM_ng_radar_rainrate_composite_1km_UK.png"
   },
@@ -766,5 +762,9 @@
   {
     "time": "Sat 02 May 2026 14:15 UTC",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202605021415_ODIM_ng_radar_rainrate_composite_1km_UK.png"
+  },
+  {
+    "time": "Sat 02 May 2026 14:30 UTC",
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202605021430_ODIM_ng_radar_rainrate_composite_1km_UK.png"
   }
 ]
