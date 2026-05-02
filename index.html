@@ -776,8 +776,7 @@
                 var diff = Math.abs(mslpFrames[i].ms - frameMs);
                 if (diff < bestDiff) { bestDiff = diff; best = mslpFrames[i]; }
             }
-            // Only show if within 40 minutes of an available MSLP frame
-            return bestDiff <= 40 * 60000 ? best : null;
+            return best;  // always return nearest — stale isobars beat none
         }
 
         function updateMslpFrame() {

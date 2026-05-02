@@ -83,6 +83,8 @@ R2_PUBLIC_URL    = os.environ.get('R2_PUBLIC_BASE_URL', '').rstrip('/')
 USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, R2_BUCKET, R2_PUBLIC_URL])
 
 HOURS_BACK    = 48          # cover last 48 hours (hourly)
+HOURS_FORWARD = 6           # pre-render N hours ahead using GFS forecast steps
+RERENDER_HOURS = 12         # re-render recent N hours to pick up shorter-lead GFS runs
 GFS_RUN_HOURS = [0, 6, 12, 18]  # GFS runs per day
 
 
@@ -144,10 +146,13 @@ def cleanup_r2_mslp(r2, retention_days=14):
 # ---------------------------------------------------------------------------
 
 def get_valid_times():
-    """Return sorted list of hourly UTC datetimes for the last HOURS_BACK hours."""
+    """Return sorted list of hourly UTC datetimes from HOURS_BACK ago to HOURS_FORWARD ahead."""
     now = datetime.datetime.now(timezone.utc).replace(tzinfo=None)
     base = now.replace(minute=0, second=0, microsecond=0)
-    return sorted(base - datetime.timedelta(hours=i) for i in range(HOURS_BACK + 1))
+    return sorted(
+        base + datetime.timedelta(hours=i)
+        for i in range(-HOURS_BACK, HOURS_FORWARD + 1)
+    )
 
 
 def candidates_for_valid_time(vt):
@@ -221,16 +226,20 @@ def download_mslp_grib(run_dt, step, out_path):
         return False
 
 
-def get_grib(vt):
+def get_grib(vt, download_if_missing=True):
     """
     Ensure a GRIB file exists for valid_time vt.
-    Tries candidates in preference order. Returns Path or None.
+    Tries candidates in preference order (shortest lead first). Returns Path or None.
+    If download_if_missing=False, only returns a path if the GRIB is already cached
+    locally — used for re-render checks on recent hours to avoid extra NOMADS hits.
     """
     for run_dt, step in candidates_for_valid_time(vt):
         grib_name = f"gfs_{run_dt.strftime('%Y%m%d')}_{run_dt.hour:02d}z_f{step:03d}.grib2"
         grib_path = Path(GRIB_CACHE_DIR) / grib_name
         if grib_path.exists() and grib_path.stat().st_size > 100:
             return grib_path
+        if not download_if_missing:
+            continue
         print(f"  Trying GFS {run_dt.strftime('%Y-%m-%d %HZ')} f{step:03d} ...")
         if download_mslp_grib(run_dt, step, grib_path):
             return grib_path
@@ -450,6 +459,10 @@ def main():
 
     meta_frames = []
 
+    now = datetime.datetime.now(timezone.utc).replace(tzinfo=None)
+    base = now.replace(minute=0, second=0, microsecond=0)
+    rerender_cutoff = base - datetime.timedelta(hours=RERENDER_HOURS)
+
     for vt in valid_times:
         ts = vt.strftime('%Y%m%d%H%M')
         png_name        = f"{ts}_mslp.svg"
@@ -459,8 +472,10 @@ def main():
         r2_key          = f"{R2_PREFIX}/{png_name}"
         r2_key_detail   = f"{R2_PREFIX}/{png_name_detail}"
 
-        # Already in R2 — just record in meta
-        if USE_R2 and r2_key in r2_keys and r2_key_detail in r2_keys:
+        already_in_r2 = USE_R2 and r2_key in r2_keys and r2_key_detail in r2_keys
+
+        if already_in_r2 and vt <= rerender_cutoff:
+            # Old enough to be stable — skip re-render, just record
             print(f"Skip (already in R2): {png_name}")
             meta_frames.append({
                 'valid_time': vt.strftime('%a %d %b %Y %H:%M UTC'),
@@ -469,26 +484,45 @@ def main():
             })
             continue
 
+        # Recent hour or future slot: attempt render.
+        # For already-in-R2 recent hours: only use a locally-cached GRIB (no NOMADS hit)
+        # so we can upgrade to a shorter-lead run without extra downloads.
+        # For not-yet-in-R2 hours: allow download as normal.
         print(f"\nValid time: {vt.strftime('%Y-%m-%d %HZ')}")
+        grib_path = get_grib(vt, download_if_missing=not already_in_r2)
 
-        # Get GRIB (download if necessary)
-        grib_path = get_grib(vt)
         if grib_path is None:
-            print(f"  No GRIB available for {vt}, skipping")
+            if already_in_r2:
+                # No better cached GRIB — keep existing R2 file as-is
+                print(f"  No cached upgrade available — keeping existing R2 file")
+                meta_frames.append({
+                    'valid_time': vt.strftime('%a %d %b %Y %H:%M UTC'),
+                    'url':        f"{R2_PUBLIC_URL}/{r2_key}",
+                    'url_detail': f"{R2_PUBLIC_URL}/{r2_key_detail}",
+                })
+            elif meta_frames:
+                # Download failed entirely — reuse last good frame as placeholder
+                print(f"  No GRIB available — using previous frame as placeholder")
+                prev = meta_frames[-1]
+                meta_frames.append({
+                    'valid_time': vt.strftime('%a %d %b %Y %H:%M UTC'),
+                    'url':        prev['url'],
+                    'url_detail': prev['url_detail'],
+                })
+            else:
+                print(f"  No GRIB and no previous frame — skipping")
             continue
 
         # Render both variants (read GRIB once)
-        need_render = not png_path.exists() or not png_path_detail.exists()
+        need_render = not png_path.exists() or not png_path_detail.exists() or already_in_r2
         if need_render:
             try:
                 lat_1d, lon_1d, msl_2d = read_mslp_from_grib(grib_path)
-                if not png_path.exists():
-                    ok = render_mslp_png(lat_1d, lon_1d, msl_2d, png_path)
-                    if not ok:
-                        print(f"  Render produced no levels, skipping")
-                        continue
-                if not png_path_detail.exists():
-                    render_mslp_png(lat_1d, lon_1d, msl_2d, png_path_detail, detail=True)
+                ok = render_mslp_png(lat_1d, lon_1d, msl_2d, png_path)
+                if not ok:
+                    print(f"  Render produced no levels, skipping")
+                    continue
+                render_mslp_png(lat_1d, lon_1d, msl_2d, png_path_detail, detail=True)
             except Exception as e:
                 print(f"  Render error: {e}")
                 import traceback; traceback.print_exc()
@@ -498,8 +532,10 @@ def main():
 
         # Upload & record
         if USE_R2:
-            upload_to_r2(r2, str(png_path),        r2_key,        r2_keys, content_type='image/svg+xml')
-            upload_to_r2(r2, str(png_path_detail),  r2_key_detail, r2_keys, content_type='image/svg+xml')
+            upload_to_r2(r2, str(png_path),        r2_key,        r2_keys,
+                         content_type='image/svg+xml', force=already_in_r2)
+            upload_to_r2(r2, str(png_path_detail),  r2_key_detail, r2_keys,
+                         content_type='image/svg+xml', force=already_in_r2)
             url        = f"{R2_PUBLIC_URL}/{r2_key}"
             url_detail = f"{R2_PUBLIC_URL}/{r2_key_detail}"
         else:
