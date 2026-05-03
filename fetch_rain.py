@@ -93,26 +93,18 @@ def fetch_stations():
     return stations
 
 
-def fetch_readings_since(since_str):
-    """Fetch all readings since a UTC datetime string, handling pagination."""
-    url = f"{EA_BASE}/data/readings?parameter=rainfall&since={since_str}&_limit=10000"
-    all_items = []
-    for page in range(10):  # guard against infinite loop
-        print(f"  Fetching page {page + 1} since {since_str}...")
-        r = requests.get(url, timeout=60)
-        r.raise_for_status()
-        items = r.json().get("items", [])
-        all_items.extend(items)
-        if len(items) < 10000:
-            break
-        # Advance since to the latest dateTime seen to get the next page
-        latest = max((i["dateTime"] for i in items if "dateTime" in i), default=None)
-        if not latest or latest == since_str:
-            break
-        since_str = latest
-        url = f"{EA_BASE}/data/readings?parameter=rainfall&since={since_str}&_limit=10000"
-    print(f"  Total readings: {len(all_items)}")
-    return all_items
+def fetch_readings_for_date(date_str):
+    """Fetch all readings for a YYYY-MM-DD date.
+    The ?date= filter has no default limit on the EA API, so all readings for
+    the day are returned in one response. No pagination needed.
+    """
+    url = f"{EA_BASE}/data/readings?parameter=rainfall&date={date_str}"
+    print(f"  Fetching readings for {date_str}...")
+    r = requests.get(url, timeout=120)
+    r.raise_for_status()
+    items = r.json().get("items", [])
+    print(f"    {len(items)} readings")
+    return items
 
 
 def parse_readings(items):
@@ -191,27 +183,21 @@ def main():
         "generated_at": "", "latest_time": "", "available_days": [], "r2_base_url": ""
     })
 
-    # ── Determine incremental fetch window ────────────────────────────────────
-    last_time = meta.get("latest_time", "")
-    if last_time:
-        try:
-            last_dt = datetime.strptime(last_time, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-            since_dt = last_dt - timedelta(minutes=30)  # 30-min overlap for late-arriving data
-        except ValueError:
-            since_dt = now - timedelta(hours=24)
-    else:
-        since_dt = now - timedelta(hours=24)
-    since_str = since_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    # ── Fetch new readings ─────────────────────────────────────────────────────
+    # ── Fetch today's readings (and yesterday's in the first 30 min of the day) ─
+    # The EA API only supports ?since= at the station/measure level, not globally.
+    # Using ?date= returns all readings for that day with no default limit.
+    today_str     = now.strftime("%Y-%m-%d")
+    yesterday_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
     try:
-        items = fetch_readings_since(since_str)
+        items = fetch_readings_for_date(today_str)
+        if now.hour == 0 and now.minute < 30:
+            items += fetch_readings_for_date(yesterday_str)
     except Exception as e:
         print(f"Error fetching readings: {e}")
         sys.exit(1)
 
     if not items:
-        print("No new readings — updating generated_at only")
+        print("No readings returned — updating generated_at only")
         meta["generated_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
         meta["r2_base_url"] = R2_PUBLIC_URL
         write_local_json(META_PATH, meta)
