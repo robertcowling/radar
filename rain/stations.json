@@ -1,0 +1,5145 @@
+{
+  "generated_at": "2026-05-03T20:28:12Z",
+  "stations": {
+    "E7050": {
+      "lat": 52.18628,
+      "lon": -1.17133,
+      "name": "Rainfall station"
+    },
+    "4163": {
+      "lat": 52.98624,
+      "lon": -1.1637,
+      "name": "Day Brook"
+    },
+    "0890TH": {
+      "lat": 51.69289,
+      "lon": -1.67298,
+      "name": "Lechlade"
+    },
+    "E1310": {
+      "lat": 52.49389,
+      "lon": -0.64929,
+      "name": "Weldon Flood Storage Reservoir"
+    },
+    "3680": {
+      "lat": 52.73152,
+      "lon": -0.99517,
+      "name": "Rainfall station"
+    },
+    "3275": {
+      "lat": 52.63508,
+      "lon": -1.94454,
+      "name": "Rainfall station"
+    },
+    "3167": {
+      "lat": 52.41933,
+      "lon": -1.99039,
+      "name": "Rainfall station"
+    },
+    "3307": {
+      "lat": 53.19688,
+      "lon": -1.90191,
+      "name": "Rainfall station"
+    },
+    "3404": {
+      "lat": 53.28786,
+      "lon": -1.57919,
+      "name": "Rainfall station"
+    },
+    "3014": {
+      "lat": 52.88666,
+      "lon": -2.182,
+      "name": "Rainfall station"
+    },
+    "3901": {
+      "lat": 53.3058,
+      "lon": -1.08829,
+      "name": "Rainfall station"
+    },
+    "3999": {
+      "lat": 52.56406,
+      "lon": -1.19963,
+      "name": "Rainfall station"
+    },
+    "1412": {
+      "lat": 52.47914,
+      "lon": -2.97541,
+      "name": "Rainfall station"
+    },
+    "Not_Specified": {
+      "lat": 50.77803,
+      "lon": -2.84881,
+      "name": "Rainfall station"
+    },
+    "E13600": {
+      "lat": 50.88011,
+      "lon": -1.55859,
+      "name": "Rainfall station"
+    },
+    "242534TP": {
+      "lat": 51.80783,
+      "lon": -0.03963,
+      "name": "Rainfall station"
+    },
+    "E8520": {
+      "lat": 51.03991,
+      "lon": -0.0979,
+      "name": "Rainfall station"
+    },
+    "276316TP": {
+      "lat": 51.71804,
+      "lon": -0.21724,
+      "name": "Rainfall station"
+    },
+    "E10130": {
+      "lat": 51.18574,
+      "lon": -0.40814,
+      "name": "Rainfall station"
+    },
+    "E24238": {
+      "lat": 52.32301,
+      "lon": -0.20623,
+      "name": "Rainfall station"
+    },
+    "E10510": {
+      "lat": 51.0538,
+      "lon": -0.64238,
+      "name": "Rainfall station"
+    },
+    "000181TP": {
+      "lat": 51.73002,
+      "lon": 0.04099,
+      "name": "Rainfall station"
+    },
+    "238605TP": {
+      "lat": 51.72293,
+      "lon": 0.13623,
+      "name": "Rainfall station"
+    },
+    "52210": {
+      "lat": 51.11662,
+      "lon": -2.43497,
+      "name": "Rainfall station"
+    },
+    "47161": {
+      "lat": 50.51645,
+      "lon": -4.20954,
+      "name": "Rainfall station"
+    },
+    "E1039": {
+      "lat": 53.10245,
+      "lon": 0.31751,
+      "name": "Rainfall station"
+    },
+    "E8770": {
+      "lat": 50.89387,
+      "lon": 0.08101,
+      "name": "Rainfall station"
+    },
+    "244569TP": {
+      "lat": 51.72708,
+      "lon": -0.10539,
+      "name": "Rainfall station"
+    },
+    "595273": {
+      "lat": 54.76008,
+      "lon": -3.21441,
+      "name": "Rainfall station"
+    },
+    "46104": {
+      "lat": 50.53756,
+      "lon": -3.70248,
+      "name": "Rainfall station"
+    },
+    "077066": {
+      "lat": 53.70469,
+      "lon": -2.13553,
+      "name": "Rainfall station"
+    },
+    "E24195": {
+      "lat": 52.10362,
+      "lon": 0.80715,
+      "name": "Rainfall station"
+    },
+    "000900": {
+      "lat": 55.59188,
+      "lon": -1.85478,
+      "name": "Rainfall station"
+    },
+    "038179": {
+      "lat": 54.10516,
+      "lon": -0.6426,
+      "name": "Rainfall station"
+    },
+    "242819TP": {
+      "lat": 51.82781,
+      "lon": 0.05412,
+      "name": "Rainfall station"
+    },
+    "1113": {
+      "lat": 51.7998,
+      "lon": -2.14859,
+      "name": "Rainfall station"
+    },
+    "43202": {
+      "lat": 50.89647,
+      "lon": -2.39026,
+      "name": "Rainfall station"
+    },
+    "48148": {
+      "lat": 50.17177,
+      "lon": -5.43733,
+      "name": "Rainfall station"
+    },
+    "037292": {
+      "lat": 54.20423,
+      "lon": -0.30358,
+      "name": "Rainfall station"
+    },
+    "086575": {
+      "lat": 53.5911,
+      "lon": -1.27101,
+      "name": "Rainfall station"
+    },
+    "E1179": {
+      "lat": 52.4569,
+      "lon": -1.05294,
+      "name": "Rainfall station"
+    },
+    "E4753": {
+      "lat": 51.16035,
+      "lon": 1.11996,
+      "name": "Rainfall station"
+    },
+    "E24847": {
+      "lat": 51.88929,
+      "lon": 0.58447,
+      "name": "Rainfall station"
+    },
+    "3173": {
+      "lat": 53.01714,
+      "lon": -1.98132,
+      "name": "Rainfall station"
+    },
+    "082732": {
+      "lat": 53.35246,
+      "lon": -1.54551,
+      "name": "Rainfall station"
+    },
+    "E4500": {
+      "lat": 51.15458,
+      "lon": 0.8893,
+      "name": "Rainfall station"
+    },
+    "VCHURCH-T_TG_341": {
+      "lat": 52.02375,
+      "lon": -2.92175,
+      "name": "Rainfall station"
+    },
+    "52100": {
+      "lat": 51.05404,
+      "lon": -3.3361,
+      "name": "Rainfall station"
+    },
+    "E46612": {
+      "lat": 53.3462,
+      "lon": 0.01521,
+      "name": "Rainfall station"
+    },
+    "040752": {
+      "lat": 53.9838,
+      "lon": -0.22714,
+      "name": "Rainfall station"
+    },
+    "267661TP": {
+      "lat": 51.38805,
+      "lon": -1.53073,
+      "name": "Rainfall station"
+    },
+    "074108": {
+      "lat": 53.91145,
+      "lon": -2.09814,
+      "name": "Rainfall station"
+    },
+    "241961TP": {
+      "lat": 51.97304,
+      "lon": -0.02515,
+      "name": "Rainfall station"
+    },
+    "1117": {
+      "lat": 51.75873,
+      "lon": -2.61208,
+      "name": "Rainfall station"
+    },
+    "45232": {
+      "lat": 50.88212,
+      "lon": -3.09236,
+      "name": "Rainfall station"
+    },
+    "48199": {
+      "lat": 50.35696,
+      "lon": -4.73077,
+      "name": "Rainfall station"
+    },
+    "E7055": {
+      "lat": 52.32701,
+      "lon": -1.00142,
+      "name": "Rainfall station"
+    },
+    "E7045": {
+      "lat": 52.18555,
+      "lon": -0.86709,
+      "name": "Rainfall station"
+    },
+    "44200": {
+      "lat": 50.83713,
+      "lon": -2.59994,
+      "name": "Rainfall station"
+    },
+    "058461": {
+      "lat": 53.97928,
+      "lon": -1.64697,
+      "name": "Rainfall station"
+    },
+    "E4530": {
+      "lat": 51.15695,
+      "lon": 1.00959,
+      "name": "Rainfall station"
+    },
+    "1339": {
+      "lat": 52.71822,
+      "lon": -2.57065,
+      "name": "Rainfall station"
+    },
+    "564769": {
+      "lat": 53.30019,
+      "lon": -2.15525,
+      "name": "Rainfall station"
+    },
+    "43228": {
+      "lat": 50.96806,
+      "lon": -2.15873,
+      "name": "Rainfall station"
+    },
+    "E22255": {
+      "lat": 52.17016,
+      "lon": 0.40036,
+      "name": "Rainfall station"
+    },
+    "E23717": {
+      "lat": 52.13273,
+      "lon": -0.41844,
+      "name": "Rainfall station"
+    },
+    "921083": {
+      "lat": 55.50293,
+      "lon": -2.13849,
+      "name": "Rainfall station"
+    },
+    "47101": {
+      "lat": 50.80408,
+      "lon": -4.3565,
+      "name": "Rainfall station"
+    },
+    "300874": {
+      "lat": 51.37389,
+      "lon": 1.17326,
+      "name": "Rainfall station"
+    },
+    "3602": {
+      "lat": 52.81335,
+      "lon": -0.80336,
+      "name": "Rainfall station"
+    },
+    "49171": {
+      "lat": 50.41984,
+      "lon": -4.40917,
+      "name": "Rainfall station"
+    },
+    "45101": {
+      "lat": 51.13838,
+      "lon": -3.7588,
+      "name": "Rainfall station"
+    },
+    "E9340": {
+      "lat": 50.98503,
+      "lon": -0.26969,
+      "name": "Rainfall station"
+    },
+    "E45871": {
+      "lat": 53.67681,
+      "lon": -0.52469,
+      "name": "Rainfall station"
+    },
+    "43102": {
+      "lat": 51.06796,
+      "lon": -2.06345,
+      "name": "Rainfall station"
+    },
+    "3015": {
+      "lat": 52.80831,
+      "lon": -1.74405,
+      "name": "Rainfall station"
+    },
+    "47167": {
+      "lat": 50.37737,
+      "lon": -3.99209,
+      "name": "Rainfall station"
+    },
+    "277407TP": {
+      "lat": 51.68659,
+      "lon": -0.34144,
+      "name": "Rainfall station"
+    },
+    "E1815": {
+      "lat": 53.0411,
+      "lon": -0.37495,
+      "name": "Rainfall station"
+    },
+    "270400TP": {
+      "lat": 51.44172,
+      "lon": -0.93739,
+      "name": "Rainfall station"
+    },
+    "E44121": {
+      "lat": 51.93138,
+      "lon": 0.712,
+      "name": "Rainfall station"
+    },
+    "47105": {
+      "lat": 50.68686,
+      "lon": -4.23453,
+      "name": "Rainfall station"
+    },
+    "E44111": {
+      "lat": 51.87405,
+      "lon": 0.36857,
+      "name": "Rainfall station"
+    },
+    "E24289": {
+      "lat": 52.1722,
+      "lon": 0.25129,
+      "name": "Rainfall station"
+    },
+    "49149": {
+      "lat": 50.6798,
+      "lon": -4.69568,
+      "name": "Rainfall station"
+    },
+    "E871": {
+      "lat": 51.27448,
+      "lon": 0.21716,
+      "name": "Rainfall station"
+    },
+    "1201": {
+      "lat": 52.34381,
+      "lon": -1.95518,
+      "name": "Rainfall station"
+    },
+    "E7155": {
+      "lat": 52.64525,
+      "lon": -0.4207,
+      "name": "Rainfall station"
+    },
+    "E12560": {
+      "lat": 51.00617,
+      "lon": -1.11413,
+      "name": "Rainfall station"
+    },
+    "082672": {
+      "lat": 53.32457,
+      "lon": -1.5398,
+      "name": "Rainfall station"
+    },
+    "52224": {
+      "lat": 51.17388,
+      "lon": -2.50846,
+      "name": "Rainfall station"
+    },
+    "E24935": {
+      "lat": 51.70264,
+      "lon": 0.87633,
+      "name": "Rainfall station"
+    },
+    "E45881": {
+      "lat": 53.21994,
+      "lon": -0.50749,
+      "name": "Rainfall station"
+    },
+    "51127": {
+      "lat": 51.16389,
+      "lon": -3.61102,
+      "name": "Rainfall station"
+    },
+    "1814": {
+      "lat": 52.48144,
+      "lon": -1.55895,
+      "name": "Rainfall station"
+    },
+    "264845TP": {
+      "lat": 51.53237,
+      "lon": -1.13568,
+      "name": "Rainfall station"
+    },
+    "063518": {
+      "lat": 53.87642,
+      "lon": -1.53224,
+      "name": "Rainfall station"
+    },
+    "48100": {
+      "lat": 50.12733,
+      "lon": -5.56849,
+      "name": "Rainfall station"
+    },
+    "282781TP": {
+      "lat": 51.25612,
+      "lon": -0.56621,
+      "name": "Rainfall station"
+    },
+    "E1971": {
+      "lat": 52.45247,
+      "lon": -0.60567,
+      "name": "Rainfall station"
+    },
+    "274918TP": {
+      "lat": 51.44004,
+      "lon": -0.76621,
+      "name": "Rainfall station"
+    },
+    "531178": {
+      "lat": 51.5966,
+      "lon": -2.14648,
+      "name": "Rainfall station"
+    },
+    "52228": {
+      "lat": 51.44095,
+      "lon": -2.8222,
+      "name": "Rainfall station"
+    },
+    "48106": {
+      "lat": 50.39063,
+      "lon": -4.75241,
+      "name": "Rainfall station"
+    },
+    "48192": {
+      "lat": 50.23839,
+      "lon": -5.24856,
+      "name": "Rainfall station"
+    },
+    "1331": {
+      "lat": 52.59639,
+      "lon": -2.47163,
+      "name": "Rainfall station"
+    },
+    "055223": {
+      "lat": 54.36421,
+      "lon": -1.29741,
+      "name": "Rainfall station"
+    },
+    "551706": {
+      "lat": 53.05571,
+      "lon": -2.6691,
+      "name": "Rainfall station"
+    },
+    "45230": {
+      "lat": 50.75277,
+      "lon": -3.25663,
+      "name": "Rainfall station"
+    },
+    "3687": {
+      "lat": 52.72306,
+      "lon": -0.76586,
+      "name": "Rainfall station"
+    },
+    "051250": {
+      "lat": 54.37969,
+      "lon": -2.10542,
+      "name": "Rainfall station"
+    },
+    "3165": {
+      "lat": 52.39955,
+      "lon": -2.05065,
+      "name": "Rainfall station"
+    },
+    "260221TP": {
+      "lat": 51.63431,
+      "lon": -1.50508,
+      "name": "Rainfall station"
+    },
+    "E15720": {
+      "lat": 51.29199,
+      "lon": 0.19506,
+      "name": "Rainfall station"
+    },
+    "52102": {
+      "lat": 51.06475,
+      "lon": -2.73703,
+      "name": "Rainfall station"
+    },
+    "074329": {
+      "lat": 53.98609,
+      "lon": -1.99919,
+      "name": "Rainfall station"
+    },
+    "E15520": {
+      "lat": 51.39527,
+      "lon": 0.29632,
+      "name": "Rainfall station"
+    },
+    "E1965": {
+      "lat": 52.5771,
+      "lon": -0.12504,
+      "name": "Rainfall station"
+    },
+    "E15510": {
+      "lat": 51.30718,
+      "lon": 0.10252,
+      "name": "Rainfall station"
+    },
+    "598928": {
+      "lat": 54.52426,
+      "lon": -2.50595,
+      "name": "Rainfall station"
+    },
+    "43200": {
+      "lat": 51.04477,
+      "lon": -2.4129,
+      "name": "Rainfall station"
+    },
+    "1712": {
+      "lat": 52.63914,
+      "lon": -2.32579,
+      "name": "Rainfall station"
+    },
+    "287283TP": {
+      "lat": 51.44928,
+      "lon": -0.22485,
+      "name": "Rainfall station"
+    },
+    "3782": {
+      "lat": 52.73667,
+      "lon": -1.99328,
+      "name": "Rainfall station"
+    },
+    "3588": {
+      "lat": 52.95886,
+      "lon": -1.57793,
+      "name": "Rainfall station"
+    },
+    "551440": {
+      "lat": 53.27656,
+      "lon": -2.85401,
+      "name": "Rainfall station"
+    },
+    "564154": {
+      "lat": 53.49789,
+      "lon": -2.49967,
+      "name": "Rainfall station"
+    },
+    "3572": {
+      "lat": 53.31193,
+      "lon": -1.89864,
+      "name": "Rainfall station"
+    },
+    "251530TP": {
+      "lat": 51.68976,
+      "lon": -1.67952,
+      "name": "Rainfall station"
+    },
+    "E10450": {
+      "lat": 50.93336,
+      "lon": -0.64732,
+      "name": "Rainfall station"
+    },
+    "E3240": {
+      "lat": 51.38959,
+      "lon": 0.84227,
+      "name": "Rainfall station"
+    },
+    "591642": {
+      "lat": 54.5251,
+      "lon": -3.41757,
+      "name": "Rainfall station"
+    },
+    "E7295": {
+      "lat": 50.81484,
+      "lon": 0.35858,
+      "name": "Rainfall station"
+    },
+    "49102": {
+      "lat": 50.38242,
+      "lon": -4.56061,
+      "name": "Rainfall station"
+    },
+    "E1613": {
+      "lat": 53.39742,
+      "lon": -0.26966,
+      "name": "Rainfall station"
+    },
+    "E7095": {
+      "lat": 53.3267,
+      "lon": -0.11185,
+      "name": "Rainfall station"
+    },
+    "E24874": {
+      "lat": 51.90685,
+      "lon": 1.08712,
+      "name": "Rainfall station"
+    },
+    "268851TP": {
+      "lat": 51.46259,
+      "lon": -1.327,
+      "name": "Rainfall station"
+    },
+    "247281TP": {
+      "lat": 51.67255,
+      "lon": -0.36654,
+      "name": "Rainfall station"
+    },
+    "006403": {
+      "lat": 55.23791,
+      "lon": -1.91898,
+      "name": "Rainfall station"
+    },
+    "1773": {
+      "lat": 52.22232,
+      "lon": -2.17488,
+      "name": "Rainfall station"
+    },
+    "008850": {
+      "lat": 55.25561,
+      "lon": -2.54037,
+      "name": "Rainfall station"
+    },
+    "013045": {
+      "lat": 54.74221,
+      "lon": -2.37819,
+      "name": "Rainfall station"
+    },
+    "E14930": {
+      "lat": 50.6235,
+      "lon": -1.30795,
+      "name": "Rainfall station"
+    },
+    "1748": {
+      "lat": 52.48174,
+      "lon": -2.57937,
+      "name": "Rainfall station"
+    },
+    "035302": {
+      "lat": 54.51709,
+      "lon": -0.75256,
+      "name": "Rainfall station"
+    },
+    "E11120": {
+      "lat": 50.78281,
+      "lon": -0.69422,
+      "name": "Rainfall station"
+    },
+    "1387": {
+      "lat": 52.4243,
+      "lon": -3.17274,
+      "name": "Rainfall station"
+    },
+    "077952": {
+      "lat": 53.77214,
+      "lon": -1.90361,
+      "name": "Rainfall station"
+    },
+    "3998": {
+      "lat": 53.39618,
+      "lon": -0.93146,
+      "name": "Rainfall station"
+    },
+    "E24894": {
+      "lat": 51.8909,
+      "lon": 1.21249,
+      "name": "Rainfall station"
+    },
+    "554472": {
+      "lat": 53.16991,
+      "lon": -2.10392,
+      "name": "Rainfall station"
+    },
+    "026297": {
+      "lat": 54.70151,
+      "lon": -1.19849,
+      "name": "Rainfall station"
+    },
+    "591878": {
+      "lat": 54.52982,
+      "lon": -3.546,
+      "name": "Rainfall station"
+    },
+    "1812": {
+      "lat": 51.89986,
+      "lon": -2.41343,
+      "name": "Rainfall station"
+    },
+    "552376": {
+      "lat": 52.96591,
+      "lon": -2.45927,
+      "name": "Rainfall station"
+    },
+    "077800": {
+      "lat": 53.63646,
+      "lon": -2.00525,
+      "name": "Rainfall station"
+    },
+    "013336": {
+      "lat": 54.77495,
+      "lon": -2.51684,
+      "name": "Rainfall station"
+    },
+    "47113": {
+      "lat": 50.41839,
+      "lon": -3.96003,
+      "name": "Rainfall station"
+    },
+    "45108": {
+      "lat": 50.88495,
+      "lon": -3.48764,
+      "name": "Rainfall station"
+    },
+    "E6270": {
+      "lat": 51.03235,
+      "lon": 0.57786,
+      "name": "Rainfall station"
+    },
+    "3610": {
+      "lat": 52.65552,
+      "lon": -1.30293,
+      "name": "Rainfall station"
+    },
+    "E11060": {
+      "lat": 50.85354,
+      "lon": -0.66668,
+      "name": "Rainfall station"
+    },
+    "E24763": {
+      "lat": 51.94987,
+      "lon": -0.76682,
+      "name": "Rainfall station"
+    },
+    "583948": {
+      "lat": 54.06477,
+      "lon": -2.86399,
+      "name": "Rainfall station"
+    },
+    "47168": {
+      "lat": 50.66012,
+      "lon": -4.35919,
+      "name": "Rainfall station"
+    },
+    "47158": {
+      "lat": 50.77151,
+      "lon": -4.22863,
+      "name": "Rainfall station"
+    },
+    "51125": {
+      "lat": 51.19355,
+      "lon": -3.61205,
+      "name": "Rainfall station"
+    },
+    "E7780": {
+      "lat": 50.80213,
+      "lon": 0.08119,
+      "name": "Rainfall station"
+    },
+    "43104": {
+      "lat": 51.22038,
+      "lon": -1.6699,
+      "name": "Rainfall station"
+    },
+    "248332TP": {
+      "lat": 51.67221,
+      "lon": -1.95295,
+      "name": "Rainfall station"
+    },
+    "3816": {
+      "lat": 53.13067,
+      "lon": -1.23847,
+      "name": "Rainfall station"
+    },
+    "031555": {
+      "lat": 54.46985,
+      "lon": -1.09964,
+      "name": "Rainfall station"
+    },
+    "E1320": {
+      "lat": 51.2024,
+      "lon": 0.0777,
+      "name": "Rainfall station"
+    },
+    "46100": {
+      "lat": 50.39098,
+      "lon": -3.70144,
+      "name": "Rainfall station"
+    },
+    "3686": {
+      "lat": 52.54483,
+      "lon": -1.03188,
+      "name": "Rainfall station"
+    },
+    "553564": {
+      "lat": 53.11317,
+      "lon": -2.50117,
+      "name": "Rainfall station"
+    },
+    "45164": {
+      "lat": 50.61467,
+      "lon": -3.38015,
+      "name": "Rainfall station"
+    },
+    "53159": {
+      "lat": 51.36666,
+      "lon": -2.6212,
+      "name": "Rainfall station"
+    },
+    "057426": {
+      "lat": 54.18467,
+      "lon": -1.90112,
+      "name": "Rainfall station"
+    },
+    "E2493": {
+      "lat": 52.814,
+      "lon": 0.01276,
+      "name": "Rainfall station"
+    },
+    "239374TP": {
+      "lat": 51.57534,
+      "lon": 0.04127,
+      "name": "Rainfall station"
+    },
+    "3099": {
+      "lat": 52.80764,
+      "lon": -1.88943,
+      "name": "Rainfall station"
+    },
+    "077836": {
+      "lat": 53.65711,
+      "lon": -1.92506,
+      "name": "Rainfall station"
+    },
+    "078530": {
+      "lat": 53.59239,
+      "lon": -1.9297,
+      "name": "Rainfall station"
+    },
+    "600683": {
+      "lat": 54.59258,
+      "lon": -2.95096,
+      "name": "Rainfall station"
+    },
+    "E11480": {
+      "lat": 51.25355,
+      "lon": -1.25555,
+      "name": "Rainfall station"
+    },
+    "074924": {
+      "lat": 53.8297,
+      "lon": -1.97641,
+      "name": "Rainfall station"
+    },
+    "E11470": {
+      "lat": 50.8523,
+      "lon": -0.99062,
+      "name": "Rainfall station"
+    },
+    "000008": {
+      "lat": 53.48056,
+      "lon": -1.44167,
+      "name": "Rainfall station"
+    },
+    "E21018": {
+      "lat": 51.58791,
+      "lon": 0.50669,
+      "name": "Rainfall station"
+    },
+    "48180": {
+      "lat": 50.38262,
+      "lon": -4.89684,
+      "name": "Rainfall station"
+    },
+    "570099": {
+      "lat": 53.51114,
+      "lon": -2.72149,
+      "name": "Rainfall station"
+    },
+    "E5640": {
+      "lat": 51.05909,
+      "lon": 0.82197,
+      "name": "Rainfall station"
+    },
+    "E24863": {
+      "lat": 51.85794,
+      "lon": 0.69887,
+      "name": "Rainfall station"
+    },
+    "254829TP": {
+      "lat": 51.93847,
+      "lon": -1.57302,
+      "name": "Rainfall station"
+    },
+    "3580": {
+      "lat": 53.04716,
+      "lon": -1.64121,
+      "name": "Rainfall station"
+    },
+    "E27594": {
+      "lat": 52.73517,
+      "lon": -0.4219,
+      "name": "Rainfall station"
+    },
+    "50112": {
+      "lat": 51.21941,
+      "lon": -3.75186,
+      "name": "Rainfall station"
+    },
+    "564595": {
+      "lat": 53.24004,
+      "lon": -2.07712,
+      "name": "Rainfall station"
+    },
+    "049902": {
+      "lat": 54.1303,
+      "lon": -1.6564,
+      "name": "Rainfall station"
+    },
+    "E1290": {
+      "lat": 51.23692,
+      "lon": -0.04681,
+      "name": "Rainfall station"
+    },
+    "3570": {
+      "lat": 53.02969,
+      "lon": -1.91421,
+      "name": "Rainfall station"
+    },
+    "1792": {
+      "lat": 52.30741,
+      "lon": -2.72816,
+      "name": "Rainfall station"
+    },
+    "008632": {
+      "lat": 55.04708,
+      "lon": -1.44671,
+      "name": "Rainfall station"
+    },
+    "E14893": {
+      "lat": 50.75477,
+      "lon": -1.3046,
+      "name": "Rainfall station"
+    },
+    "E4510": {
+      "lat": 51.10556,
+      "lon": 0.9791,
+      "name": "Rainfall station"
+    },
+    "E4520": {
+      "lat": 51.22596,
+      "lon": 0.72617,
+      "name": "Rainfall station"
+    },
+    "005782": {
+      "lat": 55.15435,
+      "lon": -1.94425,
+      "name": "Rainfall station"
+    },
+    "E41311": {
+      "lat": 51.52075,
+      "lon": 0.61689,
+      "name": "Rainfall station"
+    },
+    "E2331": {
+      "lat": 52.4732,
+      "lon": -0.86267,
+      "name": "Rainfall station"
+    },
+    "920359": {
+      "lat": 55.55333,
+      "lon": -1.99759,
+      "name": "Rainfall station"
+    },
+    "1119": {
+      "lat": 52.03195,
+      "lon": -2.43506,
+      "name": "Rainfall station"
+    },
+    "030377": {
+      "lat": 54.52611,
+      "lon": -1.50631,
+      "name": "Rainfall station"
+    },
+    "E27601": {
+      "lat": 51.53098,
+      "lon": 0.51942,
+      "name": "Rainfall station"
+    },
+    "3179": {
+      "lat": 52.69041,
+      "lon": -0.92065,
+      "name": "Rainfall station"
+    },
+    "49151": {
+      "lat": 50.48078,
+      "lon": -4.46302,
+      "name": "Rainfall station"
+    },
+    "238777TP": {
+      "lat": 51.7366,
+      "lon": 0.22378,
+      "name": "Rainfall station"
+    },
+    "083534": {
+      "lat": 53.2507,
+      "lon": -1.49862,
+      "name": "Rainfall station"
+    },
+    "3996": {
+      "lat": 52.89799,
+      "lon": -0.91104,
+      "name": "Rainfall station"
+    },
+    "47157": {
+      "lat": 50.43163,
+      "lon": -4.27036,
+      "name": "Rainfall station"
+    },
+    "559586": {
+      "lat": 53.53489,
+      "lon": -2.01278,
+      "name": "Rainfall station"
+    },
+    "E25041": {
+      "lat": 52.78691,
+      "lon": -0.26432,
+      "name": "Rainfall station"
+    },
+    "037973": {
+      "lat": 54.29778,
+      "lon": -1.16793,
+      "name": "Rainfall station"
+    },
+    "E9360": {
+      "lat": 50.92911,
+      "lon": -0.38418,
+      "name": "Rainfall station"
+    },
+    "E9350": {
+      "lat": 50.99928,
+      "lon": -0.14374,
+      "name": "Rainfall station"
+    },
+    "248965TP": {
+      "lat": 51.7927,
+      "lon": -2.00792,
+      "name": "Rainfall station"
+    },
+    "3860": {
+      "lat": 53.40722,
+      "lon": -1.19142,
+      "name": "Rainfall station"
+    },
+    "000032": {
+      "lat": 54.50543,
+      "lon": -0.84558,
+      "name": "Rainfall station"
+    },
+    "587552": {
+      "lat": 54.31311,
+      "lon": -2.94604,
+      "name": "Rainfall station"
+    },
+    "E7135": {
+      "lat": 53.57223,
+      "lon": -0.23685,
+      "name": "Rainfall station"
+    },
+    "E2420": {
+      "lat": 51.13008,
+      "lon": 0.74911,
+      "name": "Rainfall station"
+    },
+    "E11820": {
+      "lat": 50.82871,
+      "lon": -1.19559,
+      "name": "Rainfall station"
+    },
+    "062046": {
+      "lat": 54.07144,
+      "lon": -1.91362,
+      "name": "Rainfall station"
+    },
+    "44215": {
+      "lat": 50.7434,
+      "lon": -2.63842,
+      "name": "Rainfall station"
+    },
+    "E24925": {
+      "lat": 51.64403,
+      "lon": 0.48955,
+      "name": "Rainfall station"
+    },
+    "3057": {
+      "lat": 52.73051,
+      "lon": -1.57125,
+      "name": "Rainfall station"
+    },
+    "E23633": {
+      "lat": 51.99627,
+      "lon": -0.24263,
+      "name": "Rainfall station"
+    },
+    "1413": {
+      "lat": 52.32562,
+      "lon": -2.22664,
+      "name": "Rainfall station"
+    },
+    "559100R": {
+      "lat": 53.45937,
+      "lon": -1.93444,
+      "name": "Rainfall station"
+    },
+    "531172": {
+      "lat": 51.27771,
+      "lon": -2.60853,
+      "name": "Rainfall station"
+    },
+    "E2416": {
+      "lat": 52.80824,
+      "lon": -0.12994,
+      "name": "Rainfall station"
+    },
+    "E24957": {
+      "lat": 52.10122,
+      "lon": 0.9063,
+      "name": "Rainfall station"
+    },
+    "E24947": {
+      "lat": 52.16598,
+      "lon": 0.55661,
+      "name": "Rainfall station"
+    },
+    "261602TP": {
+      "lat": 51.7728,
+      "lon": -0.68904,
+      "name": "Rainfall station"
+    },
+    "E24790": {
+      "lat": 52.40907,
+      "lon": 1.30592,
+      "name": "Rainfall station"
+    },
+    "E7165": {
+      "lat": 52.76645,
+      "lon": -0.62383,
+      "name": "Rainfall station"
+    },
+    "53115": {
+      "lat": 51.21008,
+      "lon": -2.45017,
+      "name": "Rainfall station"
+    },
+    "E9290": {
+      "lat": 51.04624,
+      "lon": -0.40008,
+      "name": "Rainfall station"
+    },
+    "48182": {
+      "lat": 50.24943,
+      "lon": -5.04027,
+      "name": "Rainfall station"
+    },
+    "570231": {
+      "lat": 53.5961,
+      "lon": -2.78942,
+      "name": "Rainfall station"
+    },
+    "1082": {
+      "lat": 52.18686,
+      "lon": -1.41852,
+      "name": "Rainfall station"
+    },
+    "1121": {
+      "lat": 52.71832,
+      "lon": -2.71722,
+      "name": "Rainfall station"
+    },
+    "261021TP": {
+      "lat": 51.65388,
+      "lon": -1.28804,
+      "name": "Rainfall station"
+    },
+    "1770": {
+      "lat": 52.28822,
+      "lon": -1.22221,
+      "name": "Rainfall station"
+    },
+    "602253": {
+      "lat": 54.77901,
+      "lon": -2.60862,
+      "name": "Rainfall station"
+    },
+    "288504TP": {
+      "lat": 51.34927,
+      "lon": 0.00967,
+      "name": "Rainfall station"
+    },
+    "269627TP": {
+      "lat": 51.34516,
+      "lon": -1.23971,
+      "name": "Rainfall station"
+    },
+    "596791": {
+      "lat": 54.84327,
+      "lon": -3.0643,
+      "name": "Rainfall station"
+    },
+    "259110TP": {
+      "lat": 51.88678,
+      "lon": -1.1565,
+      "name": "Rainfall station"
+    },
+    "E15500": {
+      "lat": 51.43517,
+      "lon": 0.13573,
+      "name": "Rainfall station"
+    },
+    "564160": {
+      "lat": 53.38162,
+      "lon": -2.57047,
+      "name": "Rainfall station"
+    },
+    "1760": {
+      "lat": 52.14063,
+      "lon": -1.97438,
+      "name": "Rainfall station"
+    },
+    "E7420": {
+      "lat": 50.7881,
+      "lon": 0.0607,
+      "name": "Rainfall station"
+    },
+    "569848": {
+      "lat": 53.58714,
+      "lon": -2.63366,
+      "name": "Rainfall station"
+    },
+    "E5451": {
+      "lat": 51.00753,
+      "lon": 0.97852,
+      "name": "Rainfall station"
+    },
+    "E13980": {
+      "lat": 51.21876,
+      "lon": -1.47375,
+      "name": "Rainfall station"
+    },
+    "003232": {
+      "lat": 55.31248,
+      "lon": -1.90937,
+      "name": "Rainfall station"
+    },
+    "2321SO": {
+      "lat": 50.83729,
+      "lon": -0.37742,
+      "name": "Rainfall station"
+    },
+    "3185": {
+      "lat": 52.40745,
+      "lon": -1.78459,
+      "name": "Rainfall station"
+    },
+    "E2510": {
+      "lat": 52.53542,
+      "lon": -0.98196,
+      "name": "Rainfall station"
+    },
+    "023839": {
+      "lat": 54.82982,
+      "lon": -1.80772,
+      "name": "Rainfall station"
+    },
+    "3774": {
+      "lat": 53.57988,
+      "lon": -0.86943,
+      "name": "Rainfall station"
+    },
+    "E23535": {
+      "lat": 51.74719,
+      "lon": 0.62561,
+      "name": "Rainfall station"
+    },
+    "239258TP": {
+      "lat": 51.66438,
+      "lon": 0.04093,
+      "name": "Rainfall station"
+    },
+    "E12821": {
+      "lat": 51.08548,
+      "lon": -1.13689,
+      "name": "Rainfall station"
+    },
+    "490001TP": {
+      "lat": 51.90391,
+      "lon": 0.02124,
+      "name": "Rainfall station"
+    },
+    "593893": {
+      "lat": 54.70374,
+      "lon": -3.27481,
+      "name": "Rainfall station"
+    },
+    "E14900": {
+      "lat": 50.67756,
+      "lon": -1.5053,
+      "name": "Rainfall station"
+    },
+    "43206": {
+      "lat": 50.7558,
+      "lon": -1.81494,
+      "name": "Rainfall station"
+    },
+    "019356": {
+      "lat": 54.99917,
+      "lon": -1.60526,
+      "name": "Rainfall station"
+    },
+    "E22283": {
+      "lat": 52.40276,
+      "lon": 0.27919,
+      "name": "Rainfall station"
+    },
+    "026644": {
+      "lat": 54.65619,
+      "lon": -2.28593,
+      "name": "Rainfall station"
+    },
+    "3778": {
+      "lat": 52.68796,
+      "lon": -1.79653,
+      "name": "Rainfall station"
+    },
+    "E24884": {
+      "lat": 51.68398,
+      "lon": 0.71599,
+      "name": "Rainfall station"
+    },
+    "1793": {
+      "lat": 52.51853,
+      "lon": -2.88197,
+      "name": "Rainfall station"
+    },
+    "53110": {
+      "lat": 51.34193,
+      "lon": -2.26626,
+      "name": "Rainfall station"
+    },
+    "53100": {
+      "lat": 51.63345,
+      "lon": -2.15382,
+      "name": "Rainfall station"
+    },
+    "E24703": {
+      "lat": 52.02325,
+      "lon": -1.13062,
+      "name": "Rainfall station"
+    },
+    "015347": {
+      "lat": 54.8046,
+      "lon": -2.22164,
+      "name": "Rainfall station"
+    },
+    "036225": {
+      "lat": 54.34455,
+      "lon": -0.75472,
+      "name": "Rainfall station"
+    },
+    "52148": {
+      "lat": 50.85338,
+      "lon": -2.74505,
+      "name": "Rainfall station"
+    },
+    "571479": {
+      "lat": 54.2175,
+      "lon": -2.3335,
+      "name": "Rainfall station"
+    },
+    "52203": {
+      "lat": 51.40867,
+      "lon": -2.66634,
+      "name": "Rainfall station"
+    },
+    "531101": {
+      "lat": 51.63386,
+      "lon": -2.372,
+      "name": "Rainfall station"
+    },
+    "1602": {
+      "lat": 52.05292,
+      "lon": -2.73714,
+      "name": "Rainfall station"
+    },
+    "E25033": {
+      "lat": 53.4493,
+      "lon": 0.03213,
+      "name": "Rainfall station"
+    },
+    "008062": {
+      "lat": 55.13282,
+      "lon": -1.53807,
+      "name": "Rainfall station"
+    },
+    "47155": {
+      "lat": 50.41637,
+      "lon": -4.12605,
+      "name": "Rainfall station"
+    },
+    "E37241": {
+      "lat": 51.94816,
+      "lon": 0.48162,
+      "name": "Rainfall station"
+    },
+    "E37051": {
+      "lat": 51.7325,
+      "lon": 0.51613,
+      "name": "Rainfall station"
+    },
+    "249744TP": {
+      "lat": 51.56867,
+      "lon": -1.81166,
+      "name": "Rainfall station"
+    },
+    "E43041": {
+      "lat": 51.59932,
+      "lon": 0.30082,
+      "name": "Rainfall station"
+    },
+    "53114": {
+      "lat": 51.23062,
+      "lon": -2.48617,
+      "name": "Rainfall station"
+    },
+    "033108NE": {
+      "lat": 54.54336,
+      "lon": -1.20159,
+      "name": "Rainfall station"
+    },
+    "53104": {
+      "lat": 51.53816,
+      "lon": -2.48079,
+      "name": "Rainfall station"
+    },
+    "E13261": {
+      "lat": 50.78881,
+      "lon": -1.03312,
+      "name": "Rainfall station"
+    },
+    "50199": {
+      "lat": 50.87337,
+      "lon": -3.79854,
+      "name": "Rainfall station"
+    },
+    "47159": {
+      "lat": 50.64485,
+      "lon": -4.52959,
+      "name": "Rainfall station"
+    },
+    "036487": {
+      "lat": 54.40836,
+      "lon": -0.75432,
+      "name": "Rainfall station"
+    },
+    "E24913": {
+      "lat": 51.81501,
+      "lon": 0.76595,
+      "name": "Rainfall station"
+    },
+    "E11080": {
+      "lat": 50.82806,
+      "lon": -0.80513,
+      "name": "Rainfall station"
+    },
+    "592860": {
+      "lat": 54.56648,
+      "lon": -3.06326,
+      "name": "Rainfall station"
+    },
+    "586056": {
+      "lat": 54.26286,
+      "lon": -2.81132,
+      "name": "Rainfall station"
+    },
+    "3688": {
+      "lat": 52.6315,
+      "lon": -1.07725,
+      "name": "Rainfall station"
+    },
+    "53109": {
+      "lat": 51.36013,
+      "lon": -2.13854,
+      "name": "Rainfall station"
+    },
+    "E21234": {
+      "lat": 52.63385,
+      "lon": 1.55642,
+      "name": "Rainfall station"
+    },
+    "E24506": {
+      "lat": 52.89869,
+      "lon": 0.4791,
+      "name": "Rainfall station"
+    },
+    "266474TP": {
+      "lat": 51.41295,
+      "lon": -1.72603,
+      "name": "Rainfall station"
+    },
+    "48170": {
+      "lat": 50.13126,
+      "lon": -5.25109,
+      "name": "Rainfall station"
+    },
+    "E37151": {
+      "lat": 51.90478,
+      "lon": 0.84852,
+      "name": "Rainfall station"
+    },
+    "028185": {
+      "lat": 54.56037,
+      "lon": -1.98372,
+      "name": "Rainfall station"
+    },
+    "46106": {
+      "lat": 50.54823,
+      "lon": -3.94,
+      "name": "Rainfall station"
+    },
+    "246424TP": {
+      "lat": 51.50115,
+      "lon": -0.20555,
+      "name": "Rainfall station"
+    },
+    "44101": {
+      "lat": 50.80037,
+      "lon": -2.73853,
+      "name": "Rainfall station"
+    },
+    "003066": {
+      "lat": 55.35014,
+      "lon": -2.17107,
+      "name": "Rainfall station"
+    },
+    "1687": {
+      "lat": 52.01655,
+      "lon": -2.65348,
+      "name": "Rainfall station"
+    },
+    "43204": {
+      "lat": 50.86467,
+      "lon": -2.13991,
+      "name": "Rainfall station"
+    },
+    "3766": {
+      "lat": 53.00579,
+      "lon": -1.2511,
+      "name": "Rainfall station"
+    },
+    "3576": {
+      "lat": 53.09396,
+      "lon": -1.65874,
+      "name": "Rainfall station"
+    },
+    "E5670": {
+      "lat": 50.9436,
+      "lon": 0.94595,
+      "name": "Rainfall station"
+    },
+    "281186TP": {
+      "lat": 51.11989,
+      "lon": -0.85192,
+      "name": "Rainfall station"
+    },
+    "E5660": {
+      "lat": 51.08306,
+      "lon": 0.87198,
+      "name": "Rainfall station"
+    },
+    "577805": {
+      "lat": 53.97967,
+      "lon": -2.67925,
+      "name": "Rainfall station"
+    },
+    "581159": {
+      "lat": 54.31472,
+      "lon": -2.53873,
+      "name": "Rainfall station"
+    },
+    "1335": {
+      "lat": 52.8635,
+      "lon": -3.12364,
+      "name": "Rainfall station"
+    },
+    "251556TP": {
+      "lat": 51.82678,
+      "lon": -1.86282,
+      "name": "Rainfall station"
+    },
+    "041238": {
+      "lat": 53.86713,
+      "lon": -0.36744,
+      "name": "Rainfall station"
+    },
+    "E22205": {
+      "lat": 52.12175,
+      "lon": -0.21578,
+      "name": "Rainfall station"
+    },
+    "060947": {
+      "lat": 54.2187,
+      "lon": -2.19549,
+      "name": "Rainfall station"
+    },
+    "50106": {
+      "lat": 50.73747,
+      "lon": -3.91805,
+      "name": "Rainfall station"
+    },
+    "E160": {
+      "lat": 51.38473,
+      "lon": 0.62636,
+      "name": "Rainfall station"
+    },
+    "000075TP": {
+      "lat": 51.08402,
+      "lon": -0.2146,
+      "name": "Rainfall station"
+    },
+    "598691": {
+      "lat": 54.56948,
+      "lon": -2.43227,
+      "name": "Rainfall station"
+    },
+    "085322": {
+      "lat": 53.57193,
+      "lon": -1.58846,
+      "name": "Rainfall station"
+    },
+    "52201": {
+      "lat": 51.2701,
+      "lon": -2.68297,
+      "name": "Rainfall station"
+    },
+    "253861TP": {
+      "lat": 51.79458,
+      "lon": -1.56278,
+      "name": "Rainfall station"
+    },
+    "E45811": {
+      "lat": 53.49791,
+      "lon": -0.19622,
+      "name": "Rainfall station"
+    },
+    "E37291": {
+      "lat": 52.01333,
+      "lon": 0.7461,
+      "name": "Rainfall station"
+    },
+    "E6280": {
+      "lat": 50.93155,
+      "lon": 0.58082,
+      "name": "Rainfall station"
+    },
+    "E24751": {
+      "lat": 52.46533,
+      "lon": 0.05423,
+      "name": "Rainfall station"
+    },
+    "578009": {
+      "lat": 53.92731,
+      "lon": -2.71952,
+      "name": "Rainfall station"
+    },
+    "E44101": {
+      "lat": 51.79344,
+      "lon": 0.6486,
+      "name": "Rainfall station"
+    },
+    "50187": {
+      "lat": 50.90972,
+      "lon": -4.38033,
+      "name": "Rainfall station"
+    },
+    "E46161": {
+      "lat": 51.5116,
+      "lon": 0.58321,
+      "name": "Rainfall station"
+    },
+    "036704": {
+      "lat": 54.43484,
+      "lon": -0.55001,
+      "name": "Rainfall station"
+    },
+    "45168": {
+      "lat": 50.97346,
+      "lon": -3.38364,
+      "name": "Rainfall station"
+    },
+    "265415TP": {
+      "lat": 51.46537,
+      "lon": -1.1974,
+      "name": "Rainfall station"
+    },
+    "44100": {
+      "lat": 50.77803,
+      "lon": -2.84881,
+      "name": "Rainfall station"
+    },
+    "E42971": {
+      "lat": 52.18101,
+      "lon": 0.95246,
+      "name": "Rainfall station"
+    },
+    "46160": {
+      "lat": 50.47348,
+      "lon": -3.89184,
+      "name": "Rainfall station"
+    },
+    "567866": {
+      "lat": 53.46037,
+      "lon": -2.91643,
+      "name": "Rainfall station"
+    },
+    "531108": {
+      "lat": 51.23747,
+      "lon": -2.32581,
+      "name": "Rainfall station"
+    },
+    "018777": {
+      "lat": 54.86097,
+      "lon": -1.67048,
+      "name": "Rainfall station"
+    },
+    "077256": {
+      "lat": 53.79823,
+      "lon": -2.05689,
+      "name": "Rainfall station"
+    },
+    "E21288": {
+      "lat": 52.44706,
+      "lon": 1.60611,
+      "name": "Rainfall station"
+    },
+    "577417": {
+      "lat": 53.90806,
+      "lon": -3.01906,
+      "name": "Rainfall station"
+    },
+    "276956TP": {
+      "lat": 51.82829,
+      "lon": -0.44654,
+      "name": "Rainfall station"
+    },
+    "035488": {
+      "lat": 54.43831,
+      "lon": -0.97698,
+      "name": "Rainfall station"
+    },
+    "45236": {
+      "lat": 50.77699,
+      "lon": -3.17643,
+      "name": "Rainfall station"
+    },
+    "E7065": {
+      "lat": 52.56456,
+      "lon": -0.5077,
+      "name": "Rainfall station"
+    },
+    "E4540": {
+      "lat": 51.20299,
+      "lon": 0.78495,
+      "name": "Rainfall station"
+    },
+    "46108": {
+      "lat": 50.6419,
+      "lon": -3.87738,
+      "name": "Rainfall station"
+    },
+    "E22876": {
+      "lat": 51.73686,
+      "lon": 0.48017,
+      "name": "Rainfall station"
+    },
+    "44103": {
+      "lat": 50.70709,
+      "lon": -2.69883,
+      "name": "Rainfall station"
+    },
+    "256230TP": {
+      "lat": 51.74909,
+      "lon": -1.27206,
+      "name": "Rainfall station"
+    },
+    "274178TP": {
+      "lat": 51.66728,
+      "lon": -0.92345,
+      "name": "Rainfall station"
+    },
+    "E2365": {
+      "lat": 52.63208,
+      "lon": -0.31331,
+      "name": "Rainfall station"
+    },
+    "3652": {
+      "lat": 52.83679,
+      "lon": -1.25104,
+      "name": "Rainfall station"
+    },
+    "596026": {
+      "lat": 54.84985,
+      "lon": -3.31056,
+      "name": "Rainfall station"
+    },
+    "E11040": {
+      "lat": 50.88907,
+      "lon": -0.88177,
+      "name": "Rainfall station"
+    },
+    "E14910": {
+      "lat": 50.72222,
+      "lon": -1.14216,
+      "name": "Rainfall station"
+    },
+    "E12580": {
+      "lat": 51.08943,
+      "lon": -1.32815,
+      "name": "Rainfall station"
+    },
+    "000102TP": {
+      "lat": 51.91415,
+      "lon": 0.24999,
+      "name": "Rainfall station"
+    },
+    "041917": {
+      "lat": 53.8052,
+      "lon": -0.3091,
+      "name": "Rainfall station"
+    },
+    "3616": {
+      "lat": 53.22531,
+      "lon": -1.70113,
+      "name": "Rainfall station"
+    },
+    "52222": {
+      "lat": 51.13386,
+      "lon": -2.39226,
+      "name": "Rainfall station"
+    },
+    "056505": {
+      "lat": 54.07324,
+      "lon": -1.33748,
+      "name": "Rainfall station"
+    },
+    "240350TP": {
+      "lat": 51.8135,
+      "lon": -0.28747,
+      "name": "Rainfall station"
+    },
+    "278744TP": {
+      "lat": 51.69001,
+      "lon": -0.53085,
+      "name": "Rainfall station"
+    },
+    "E2463": {
+      "lat": 52.66573,
+      "lon": -0.15821,
+      "name": "Rainfall station"
+    },
+    "E5727": {
+      "lat": 52.87293,
+      "lon": 0.13882,
+      "name": "Rainfall station"
+    },
+    "601304": {
+      "lat": 54.5364,
+      "lon": -2.76265,
+      "name": "Rainfall station"
+    },
+    "E22231": {
+      "lat": 51.99961,
+      "lon": -0.62999,
+      "name": "Rainfall station"
+    },
+    "026958": {
+      "lat": 54.68323,
+      "lon": -2.252,
+      "name": "Rainfall station"
+    },
+    "E24879": {
+      "lat": 51.6166,
+      "lon": 0.5935,
+      "name": "Rainfall station"
+    },
+    "240201TP": {
+      "lat": 51.88415,
+      "lon": -0.45478,
+      "name": "Rainfall station"
+    },
+    "47163": {
+      "lat": 50.36674,
+      "lon": -4.2307,
+      "name": "Rainfall station"
+    },
+    "1165": {
+      "lat": 52.20561,
+      "lon": -1.60558,
+      "name": "Rainfall station"
+    },
+    "1155": {
+      "lat": 52.417,
+      "lon": -1.12584,
+      "name": "Rainfall station"
+    },
+    "49106": {
+      "lat": 50.6398,
+      "lon": -4.675,
+      "name": "Rainfall station"
+    },
+    "280826TP": {
+      "lat": 51.22612,
+      "lon": -0.7748,
+      "name": "Rainfall station"
+    },
+    "561299": {
+      "lat": 53.65712,
+      "lon": -2.04913,
+      "name": "Rainfall station"
+    },
+    "560943": {
+      "lat": 53.69795,
+      "lon": -2.35361,
+      "name": "Rainfall station"
+    },
+    "E37081": {
+      "lat": 52.84066,
+      "lon": 1.07575,
+      "name": "Rainfall station"
+    },
+    "45102": {
+      "lat": 51.12985,
+      "lon": -3.53409,
+      "name": "Rainfall station"
+    },
+    "023164": {
+      "lat": 54.61042,
+      "lon": -1.74063,
+      "name": "Rainfall station"
+    },
+    "49105": {
+      "lat": 50.55879,
+      "lon": -4.63794,
+      "name": "Rainfall station"
+    },
+    "016140": {
+      "lat": 54.96016,
+      "lon": -2.16003,
+      "name": "Rainfall station"
+    },
+    "E25051": {
+      "lat": 53.235,
+      "lon": 0.10289,
+      "name": "Rainfall station"
+    },
+    "287864TP": {
+      "lat": 51.38045,
+      "lon": -0.13555,
+      "name": "Rainfall station"
+    },
+    "45158": {
+      "lat": 51.06991,
+      "lon": -3.64344,
+      "name": "Rainfall station"
+    },
+    "E802": {
+      "lat": 51.19495,
+      "lon": 0.23768,
+      "name": "Rainfall station"
+    },
+    "E24901": {
+      "lat": 51.79312,
+      "lon": 0.96331,
+      "name": "Rainfall station"
+    },
+    "025394": {
+      "lat": 54.89449,
+      "lon": -1.48934,
+      "name": "Rainfall station"
+    },
+    "603111": {
+      "lat": 55.09321,
+      "lon": -2.48177,
+      "name": "Rainfall station"
+    },
+    "592848": {
+      "lat": 54.53234,
+      "lon": -3.06237,
+      "name": "Rainfall station"
+    },
+    "E8530": {
+      "lat": 50.91339,
+      "lon": 0.04489,
+      "name": "Rainfall station"
+    },
+    "E42961": {
+      "lat": 52.94588,
+      "lon": 0.74528,
+      "name": "Rainfall station"
+    },
+    "47166": {
+      "lat": 50.54993,
+      "lon": -3.99936,
+      "name": "Rainfall station"
+    },
+    "264254TP": {
+      "lat": 51.61763,
+      "lon": -1.11528,
+      "name": "Rainfall station"
+    },
+    "E24746": {
+      "lat": 52.08956,
+      "lon": -0.0565,
+      "name": "Rainfall station"
+    },
+    "282290TP": {
+      "lat": 51.14395,
+      "lon": -0.51251,
+      "name": "Rainfall station"
+    },
+    "E270": {
+      "lat": 51.32115,
+      "lon": 0.44762,
+      "name": "Rainfall station"
+    },
+    "E42991": {
+      "lat": 52.55843,
+      "lon": 1.36732,
+      "name": "Rainfall station"
+    },
+    "E42981": {
+      "lat": 52.55401,
+      "lon": 1.03205,
+      "name": "Rainfall station"
+    },
+    "282947TP": {
+      "lat": 51.28034,
+      "lon": -0.63572,
+      "name": "Rainfall station"
+    },
+    "E7200": {
+      "lat": 52.55558,
+      "lon": -0.82809,
+      "name": "Rainfall station"
+    },
+    "287722TP": {
+      "lat": 51.34487,
+      "lon": -0.10396,
+      "name": "Rainfall station"
+    },
+    "E14080": {
+      "lat": 51.25265,
+      "lon": -1.25699,
+      "name": "Rainfall station"
+    },
+    "E46061": {
+      "lat": 53.5468,
+      "lon": -0.15942,
+      "name": "Rainfall station"
+    },
+    "1740": {
+      "lat": 52.39223,
+      "lon": -1.32472,
+      "name": "Rainfall station"
+    },
+    "E1681": {
+      "lat": 51.06766,
+      "lon": 0.21583,
+      "name": "Rainfall station"
+    },
+    "E27621": {
+      "lat": 51.54252,
+      "lon": 0.56766,
+      "name": "Rainfall station"
+    },
+    "50110": {
+      "lat": 51.01689,
+      "lon": -3.82263,
+      "name": "Rainfall station"
+    },
+    "3574": {
+      "lat": 52.89766,
+      "lon": -1.36,
+      "name": "Rainfall station"
+    },
+    "E7075": {
+      "lat": 52.49003,
+      "lon": -0.66635,
+      "name": "Rainfall station"
+    },
+    "49104": {
+      "lat": 50.50997,
+      "lon": -4.56892,
+      "name": "Rainfall station"
+    },
+    "586820": {
+      "lat": 54.44479,
+      "lon": -3.10328,
+      "name": "Rainfall station"
+    },
+    "4103": {
+      "lat": 53.11491,
+      "lon": -2.22331,
+      "name": "Rainfall station"
+    },
+    "550148": {
+      "lat": 53.41019,
+      "lon": -3.10942,
+      "name": "Rainfall station"
+    },
+    "594202": {
+      "lat": 54.58826,
+      "lon": -3.31608,
+      "name": "Rainfall station"
+    },
+    "3025": {
+      "lat": 52.70155,
+      "lon": -2.11908,
+      "name": "Rainfall station"
+    },
+    "575384": {
+      "lat": 53.79031,
+      "lon": -2.42269,
+      "name": "Rainfall station"
+    },
+    "E2410": {
+      "lat": 51.20479,
+      "lon": 0.58891,
+      "name": "Rainfall station"
+    },
+    "263541TP": {
+      "lat": 51.74175,
+      "lon": -1.1201,
+      "name": "Rainfall station"
+    },
+    "052287": {
+      "lat": 54.4091,
+      "lon": -1.73574,
+      "name": "Rainfall station"
+    },
+    "E10500": {
+      "lat": 51.0008,
+      "lon": -0.90474,
+      "name": "Rainfall station"
+    },
+    "3100": {
+      "lat": 52.83041,
+      "lon": -1.60737,
+      "name": "Rainfall station"
+    },
+    "007292": {
+      "lat": 55.03395,
+      "lon": -1.96945,
+      "name": "Rainfall station"
+    },
+    "E12570": {
+      "lat": 51.00854,
+      "lon": -1.33502,
+      "name": "Rainfall station"
+    },
+    "244027TP": {
+      "lat": 51.76911,
+      "lon": 0.01667,
+      "name": "Rainfall station"
+    },
+    "E21637": {
+      "lat": 52.2693,
+      "lon": 0.00265,
+      "name": "Rainfall station"
+    },
+    "257039TP": {
+      "lat": 52.07223,
+      "lon": -1.33393,
+      "name": "Rainfall station"
+    },
+    "055R0521E_TG_326": {
+      "lat": 52.22104,
+      "lon": -2.98439,
+      "name": "Rainfall station"
+    },
+    "261923TP": {
+      "lat": 51.82577,
+      "lon": -0.85293,
+      "name": "Rainfall station"
+    },
+    "555207": {
+      "lat": 53.11491,
+      "lon": -2.22181,
+      "name": "Rainfall station"
+    },
+    "3611": {
+      "lat": 53.48548,
+      "lon": -0.77549,
+      "name": "Rainfall station"
+    },
+    "3601": {
+      "lat": 53.2314,
+      "lon": -0.80672,
+      "name": "Rainfall station"
+    },
+    "E24889": {
+      "lat": 52.35513,
+      "lon": 1.43115,
+      "name": "Rainfall station"
+    },
+    "E37271": {
+      "lat": 52.04949,
+      "lon": 0.45223,
+      "name": "Rainfall station"
+    },
+    "589359": {
+      "lat": 54.34213,
+      "lon": -3.21744,
+      "name": "Rainfall station"
+    },
+    "E2544": {
+      "lat": 52.49575,
+      "lon": -0.47026,
+      "name": "Rainfall station"
+    },
+    "239579TP": {
+      "lat": 51.52781,
+      "lon": 0.08528,
+      "name": "Rainfall station"
+    },
+    "586493": {
+      "lat": 54.24678,
+      "lon": -2.92304,
+      "name": "Rainfall station"
+    },
+    "E21179": {
+      "lat": 51.63631,
+      "lon": 0.38507,
+      "name": "Rainfall station"
+    },
+    "243045TP": {
+      "lat": 51.96552,
+      "lon": 0.14775,
+      "name": "Rainfall station"
+    },
+    "558016": {
+      "lat": 53.24456,
+      "lon": -1.99771,
+      "name": "Rainfall station"
+    },
+    "1045": {
+      "lat": 52.36258,
+      "lon": -1.50873,
+      "name": "Rainfall station"
+    },
+    "E7105": {
+      "lat": 53.35933,
+      "lon": -0.01723,
+      "name": "Rainfall station"
+    },
+    "051729": {
+      "lat": 54.41388,
+      "lon": -1.9884,
+      "name": "Rainfall station"
+    },
+    "E24756": {
+      "lat": 52.49407,
+      "lon": 1.15758,
+      "name": "Rainfall station"
+    },
+    "52101": {
+      "lat": 50.97176,
+      "lon": -3.12295,
+      "name": "Rainfall station"
+    },
+    "E22309": {
+      "lat": 52.42623,
+      "lon": 0.74082,
+      "name": "Rainfall station"
+    },
+    "E14440": {
+      "lat": 50.74438,
+      "lon": -1.57404,
+      "name": "Rainfall station"
+    },
+    "52105": {
+      "lat": 51.13474,
+      "lon": -2.99969,
+      "name": "Rainfall station"
+    },
+    "571894": {
+      "lat": 54.10351,
+      "lon": -2.27294,
+      "name": "Rainfall station"
+    },
+    "E22400": {
+      "lat": 52.1771,
+      "lon": 0.45632,
+      "name": "Rainfall station"
+    },
+    "49172": {
+      "lat": 50.58935,
+      "lon": -4.8304,
+      "name": "Rainfall station"
+    },
+    "579167": {
+      "lat": 53.89732,
+      "lon": -2.90162,
+      "name": "Rainfall station"
+    },
+    "E23392": {
+      "lat": 52.8353,
+      "lon": 0.85857,
+      "name": "Rainfall station"
+    },
+    "E1700": {
+      "lat": 51.04645,
+      "lon": 0.19627,
+      "name": "Rainfall station"
+    },
+    "1795": {
+      "lat": 52.41637,
+      "lon": -2.83729,
+      "name": "Rainfall station"
+    },
+    "1769": {
+      "lat": 52.19993,
+      "lon": -2.09725,
+      "name": "Rainfall station"
+    },
+    "585512": {
+      "lat": 54.37577,
+      "lon": -2.72272,
+      "name": "Rainfall station"
+    },
+    "603315": {
+      "lat": 55.02637,
+      "lon": -2.56075,
+      "name": "Rainfall station"
+    },
+    "600735": {
+      "lat": 54.63079,
+      "lon": -2.88989,
+      "name": "Rainfall station"
+    },
+    "E23657": {
+      "lat": 52.0156,
+      "lon": -0.9632,
+      "name": "Rainfall station"
+    },
+    "44213": {
+      "lat": 50.82586,
+      "lon": -2.6864,
+      "name": "Rainfall station"
+    },
+    "276651TP": {
+      "lat": 51.75502,
+      "lon": -0.28533,
+      "name": "Rainfall station"
+    },
+    "575935": {
+      "lat": 53.69479,
+      "lon": -2.48686,
+      "name": "Rainfall station"
+    },
+    "582837": {
+      "lat": 54.09049,
+      "lon": -2.42574,
+      "name": "Rainfall station"
+    },
+    "E23205": {
+      "lat": 52.51858,
+      "lon": 1.73583,
+      "name": "Rainfall station"
+    },
+    "562417": {
+      "lat": 53.60958,
+      "lon": -2.44053,
+      "name": "Rainfall station"
+    },
+    "073422": {
+      "lat": 54.10012,
+      "lon": -2.16434,
+      "name": "Rainfall station"
+    },
+    "E23487": {
+      "lat": 52.15304,
+      "lon": 1.06173,
+      "name": "Rainfall station"
+    },
+    "047439": {
+      "lat": 54.31489,
+      "lon": -2.18057,
+      "name": "Rainfall station"
+    },
+    "3110": {
+      "lat": 53.12231,
+      "lon": -2.01116,
+      "name": "Rainfall station"
+    },
+    "1332": {
+      "lat": 52.58932,
+      "lon": -2.78744,
+      "name": "Rainfall station"
+    },
+    "E24865": {
+      "lat": 51.73387,
+      "lon": 0.73637,
+      "name": "Rainfall station"
+    },
+    "E7270": {
+      "lat": 50.89076,
+      "lon": 0.55439,
+      "name": "Rainfall station"
+    },
+    "3346": {
+      "lat": 52.95331,
+      "lon": -2.04088,
+      "name": "Rainfall station"
+    },
+    "E3281": {
+      "lat": 51.3241,
+      "lon": 0.90856,
+      "name": "Rainfall station"
+    },
+    "1141": {
+      "lat": 51.77737,
+      "lon": -2.09343,
+      "name": "Rainfall station"
+    },
+    "573674": {
+      "lat": 53.97144,
+      "lon": -2.52971,
+      "name": "Rainfall station"
+    },
+    "E19017": {
+      "lat": 52.05893,
+      "lon": 0.29665,
+      "name": "Rainfall station"
+    },
+    "240662TP": {
+      "lat": 51.93716,
+      "lon": -0.38459,
+      "name": "Rainfall station"
+    },
+    "558491": {
+      "lat": 53.38925,
+      "lon": -1.91951,
+      "name": "Rainfall station"
+    },
+    "059793": {
+      "lat": 53.96665,
+      "lon": -1.11509,
+      "name": "Rainfall station"
+    },
+    "013553": {
+      "lat": 54.82016,
+      "lon": -2.44583,
+      "name": "Rainfall station"
+    },
+    "50108": {
+      "lat": 50.92501,
+      "lon": -3.71374,
+      "name": "Rainfall station"
+    },
+    "E14920": {
+      "lat": 50.69185,
+      "lon": -1.30836,
+      "name": "Rainfall station"
+    },
+    "038476": {
+      "lat": 54.10725,
+      "lon": -0.12857,
+      "name": "Rainfall station"
+    },
+    "E11461": {
+      "lat": 50.90269,
+      "lon": -1.10472,
+      "name": "Rainfall station"
+    },
+    "E24727": {
+      "lat": 52.7599,
+      "lon": 0.53643,
+      "name": "Rainfall station"
+    },
+    "576925": {
+      "lat": 53.74866,
+      "lon": -2.82564,
+      "name": "Rainfall station"
+    },
+    "300001TP": {
+      "lat": 51.13979,
+      "lon": -0.96006,
+      "name": "Rainfall station"
+    },
+    "53107": {
+      "lat": 51.41676,
+      "lon": -2.48527,
+      "name": "Rainfall station"
+    },
+    "1409": {
+      "lat": 52.59735,
+      "lon": -3.02971,
+      "name": "Rainfall station"
+    },
+    "E8500": {
+      "lat": 51.06608,
+      "lon": -0.15962,
+      "name": "Rainfall station"
+    },
+    "283596TP": {
+      "lat": 51.34105,
+      "lon": -0.59946,
+      "name": "Rainfall station"
+    },
+    "241243TP": {
+      "lat": 51.95072,
+      "lon": -0.14546,
+      "name": "Rainfall station"
+    },
+    "47102": {
+      "lat": 50.76668,
+      "lon": -4.42553,
+      "name": "Rainfall station"
+    },
+    "49162": {
+      "lat": 50.43801,
+      "lon": -4.94811,
+      "name": "Rainfall station"
+    },
+    "076204": {
+      "lat": 53.78778,
+      "lon": -1.62733,
+      "name": "Rainfall station"
+    },
+    "53102": {
+      "lat": 51.54902,
+      "lon": -2.05258,
+      "name": "Rainfall station"
+    },
+    "E7120": {
+      "lat": 53.38716,
+      "lon": -0.18436,
+      "name": "Rainfall station"
+    },
+    "E4080": {
+      "lat": 51.25887,
+      "lon": 1.03345,
+      "name": "Rainfall station"
+    },
+    "287451TP": {
+      "lat": 51.30802,
+      "lon": -0.16144,
+      "name": "Rainfall station"
+    },
+    "E12160": {
+      "lat": 50.94223,
+      "lon": -1.22779,
+      "name": "Rainfall station"
+    },
+    "53106": {
+      "lat": 51.47434,
+      "lon": -2.12737,
+      "name": "Rainfall station"
+    },
+    "52225": {
+      "lat": 51.26033,
+      "lon": -2.80607,
+      "name": "Rainfall station"
+    },
+    "265038TP": {
+      "lat": 51.5436,
+      "lon": -1.34311,
+      "name": "Rainfall station"
+    },
+    "598147": {
+      "lat": 54.50441,
+      "lon": -2.24163,
+      "name": "Rainfall station"
+    },
+    "417417TP": {
+      "lat": 51.4666,
+      "lon": -0.57114,
+      "name": "Rainfall station"
+    },
+    "45231": {
+      "lat": 50.76725,
+      "lon": -2.96348,
+      "name": "Rainfall station"
+    },
+    "247540TP": {
+      "lat": 51.47947,
+      "lon": -0.45122,
+      "name": "Rainfall station"
+    },
+    "074385": {
+      "lat": 53.94744,
+      "lon": -2.02053,
+      "name": "Rainfall station"
+    },
+    "035305": {
+      "lat": 54.48624,
+      "lon": -0.72417,
+      "name": "Rainfall station"
+    },
+    "1774": {
+      "lat": 52.33898,
+      "lon": -2.54227,
+      "name": "Rainfall station"
+    },
+    "E9720": {
+      "lat": 50.8603,
+      "lon": -0.48319,
+      "name": "Rainfall station"
+    },
+    "1548": {
+      "lat": 52.40807,
+      "lon": -2.33585,
+      "name": "Rainfall station"
+    },
+    "49108": {
+      "lat": 50.73345,
+      "lon": -4.54995,
+      "name": "Rainfall station"
+    },
+    "44214": {
+      "lat": 50.84209,
+      "lon": -2.50201,
+      "name": "Rainfall station"
+    },
+    "559969": {
+      "lat": 53.45931,
+      "lon": -2.13475,
+      "name": "Rainfall station"
+    },
+    "570788": {
+      "lat": 53.65354,
+      "lon": -2.65432,
+      "name": "Rainfall station"
+    },
+    "E14940": {
+      "lat": 50.68125,
+      "lon": -1.19811,
+      "name": "Rainfall station"
+    },
+    "E22735": {
+      "lat": 51.99822,
+      "lon": 0.57909,
+      "name": "Rainfall station"
+    },
+    "E22322": {
+      "lat": 52.22747,
+      "lon": 0.74173,
+      "name": "Rainfall station"
+    },
+    "604040": {
+      "lat": 54.87668,
+      "lon": -2.66309,
+      "name": "Rainfall station"
+    },
+    "E1300": {
+      "lat": 51.14186,
+      "lon": -0.00936,
+      "name": "Rainfall station"
+    },
+    "E1908": {
+      "lat": 53.31668,
+      "lon": -0.34499,
+      "name": "Rainfall station"
+    },
+    "1552": {
+      "lat": 52.54144,
+      "lon": -2.19384,
+      "name": "Rainfall station"
+    },
+    "3380": {
+      "lat": 53.40517,
+      "lon": -1.73898,
+      "name": "Rainfall station"
+    },
+    "E5728": {
+      "lat": 52.65137,
+      "lon": 0.56562,
+      "name": "Rainfall station"
+    },
+    "E2578": {
+      "lat": 52.89097,
+      "lon": -0.51287,
+      "name": "Rainfall station"
+    },
+    "E4090": {
+      "lat": 51.29793,
+      "lon": 1.05324,
+      "name": "Rainfall station"
+    },
+    "068762": {
+      "lat": 54.36819,
+      "lon": -0.97411,
+      "name": "Rainfall station"
+    },
+    "E24767": {
+      "lat": 52.32348,
+      "lon": 1.27898,
+      "name": "Rainfall station"
+    },
+    "53108": {
+      "lat": 51.38314,
+      "lon": -2.32541,
+      "name": "Rainfall station"
+    },
+    "240470TP": {
+      "lat": 51.77526,
+      "lon": -0.19614,
+      "name": "Rainfall station"
+    },
+    "243679TP": {
+      "lat": 51.8052,
+      "lon": 0.20975,
+      "name": "Rainfall station"
+    },
+    "238097TP": {
+      "lat": 51.5561,
+      "lon": 0.16159,
+      "name": "Rainfall station"
+    },
+    "E13590": {
+      "lat": 50.95375,
+      "lon": -1.53369,
+      "name": "Rainfall station"
+    },
+    "287141TP": {
+      "lat": 51.36272,
+      "lon": -0.20953,
+      "name": "Rainfall station"
+    },
+    "039163": {
+      "lat": 54.10038,
+      "lon": -0.20841,
+      "name": "Rainfall station"
+    },
+    "E22218": {
+      "lat": 52.29579,
+      "lon": -0.51235,
+      "name": "Rainfall station"
+    },
+    "E7160": {
+      "lat": 52.6493,
+      "lon": -0.76202,
+      "name": "Rainfall station"
+    },
+    "E10140": {
+      "lat": 51.02394,
+      "lon": -0.552,
+      "name": "Rainfall station"
+    },
+    "593321": {
+      "lat": 54.60513,
+      "lon": -3.16025,
+      "name": "Rainfall station"
+    },
+    "034459": {
+      "lat": 54.51819,
+      "lon": -0.96418,
+      "name": "Rainfall station"
+    },
+    "45115": {
+      "lat": 50.602,
+      "lon": -3.53098,
+      "name": "Rainfall station"
+    },
+    "E2450": {
+      "lat": 52.5483,
+      "lon": -0.12331,
+      "name": "Rainfall station"
+    },
+    "1087": {
+      "lat": 52.06717,
+      "lon": -1.61118,
+      "name": "Rainfall station"
+    },
+    "E42135": {
+      "lat": 53.23247,
+      "lon": -0.36622,
+      "name": "Rainfall station"
+    },
+    "290007TP": {
+      "lat": 51.50713,
+      "lon": 0.13477,
+      "name": "Rainfall station"
+    },
+    "605936": {
+      "lat": 54.71625,
+      "lon": -2.87779,
+      "name": "Rainfall station"
+    },
+    "45166": {
+      "lat": 50.85997,
+      "lon": -3.23961,
+      "name": "Rainfall station"
+    },
+    "3641": {
+      "lat": 52.73833,
+      "lon": -1.32086,
+      "name": "Rainfall station"
+    },
+    "3349": {
+      "lat": 52.902,
+      "lon": -1.86095,
+      "name": "Rainfall station"
+    },
+    "3861": {
+      "lat": 53.5212,
+      "lon": -1.04596,
+      "name": "Rainfall station"
+    },
+    "45113": {
+      "lat": 50.79965,
+      "lon": -3.73753,
+      "name": "Rainfall station"
+    },
+    "E24737": {
+      "lat": 52.32454,
+      "lon": 0.8945,
+      "name": "Rainfall station"
+    },
+    "52227": {
+      "lat": 51.18316,
+      "lon": -2.90631,
+      "name": "Rainfall station"
+    },
+    "3781": {
+      "lat": 52.49028,
+      "lon": -1.86667,
+      "name": "Rainfall station"
+    },
+    "247344TP": {
+      "lat": 51.55003,
+      "lon": -0.41565,
+      "name": "Rainfall station"
+    },
+    "E13580": {
+      "lat": 51.10313,
+      "lon": -1.56218,
+      "name": "Rainfall station"
+    },
+    "574718": {
+      "lat": 53.85111,
+      "lon": -2.19681,
+      "name": "Rainfall station"
+    },
+    "43203": {
+      "lat": 51.03167,
+      "lon": -2.28159,
+      "name": "Rainfall station"
+    },
+    "562992": {
+      "lat": 53.5355,
+      "lon": -2.26323,
+      "name": "Rainfall station"
+    },
+    "289102TP": {
+      "lat": 51.47654,
+      "lon": -0.01787,
+      "name": "Rainfall station"
+    },
+    "E1691": {
+      "lat": 51.10021,
+      "lon": 0.00742,
+      "name": "Rainfall station"
+    },
+    "032822": {
+      "lat": 54.63385,
+      "lon": -1.48022,
+      "name": "Rainfall station"
+    },
+    "613467": {
+      "lat": 55.00558,
+      "lon": -2.9998,
+      "name": "Rainfall station"
+    },
+    "E1645": {
+      "lat": 53.66455,
+      "lon": -0.34349,
+      "name": "Rainfall station"
+    },
+    "E7130": {
+      "lat": 53.53447,
+      "lon": -0.49947,
+      "name": "Rainfall station"
+    },
+    "3603": {
+      "lat": 53.07917,
+      "lon": -0.86767,
+      "name": "Rainfall station"
+    },
+    "51102": {
+      "lat": 51.11774,
+      "lon": -3.34937,
+      "name": "Rainfall station"
+    },
+    "E7180": {
+      "lat": 50.90317,
+      "lon": 0.47968,
+      "name": "Rainfall station"
+    },
+    "E7170": {
+      "lat": 53.07749,
+      "lon": -0.62289,
+      "name": "Rainfall station"
+    },
+    "E2476": {
+      "lat": 52.25263,
+      "lon": -1.14665,
+      "name": "Rainfall station"
+    },
+    "245176TP": {
+      "lat": 51.58871,
+      "lon": -0.1126,
+      "name": "Rainfall station"
+    },
+    "577271": {
+      "lat": 53.78335,
+      "lon": -2.99175,
+      "name": "Rainfall station"
+    },
+    "3773": {
+      "lat": 53.03223,
+      "lon": -1.05082,
+      "name": "Rainfall station"
+    },
+    "1794": {
+      "lat": 51.87509,
+      "lon": -2.27521,
+      "name": "Rainfall station"
+    },
+    "290200TP": {
+      "lat": 51.28052,
+      "lon": 0.13428,
+      "name": "Rainfall station"
+    },
+    "600986": {
+      "lat": 54.49728,
+      "lon": -2.69089,
+      "name": "Rainfall station"
+    },
+    "005588": {
+      "lat": 55.175,
+      "lon": -1.52188,
+      "name": "Rainfall station"
+    },
+    "560631": {
+      "lat": 53.71899,
+      "lon": -2.19468,
+      "name": "Rainfall station"
+    },
+    "E8510": {
+      "lat": 50.90639,
+      "lon": -0.07205,
+      "name": "Rainfall station"
+    },
+    "E13560": {
+      "lat": 50.99314,
+      "lon": -1.49198,
+      "name": "Rainfall station"
+    },
+    "45157": {
+      "lat": 51.03262,
+      "lon": -3.39967,
+      "name": "Rainfall station"
+    },
+    "285630TP": {
+      "lat": 51.28817,
+      "lon": -0.3372,
+      "name": "Rainfall station"
+    },
+    "E7070": {
+      "lat": 52.20756,
+      "lon": -0.73336,
+      "name": "Rainfall station"
+    },
+    "037239": {
+      "lat": 54.27325,
+      "lon": -0.42207,
+      "name": "Rainfall station"
+    },
+    "E6770": {
+      "lat": 50.96579,
+      "lon": 0.4531,
+      "name": "Rainfall station"
+    },
+    "007533": {
+      "lat": 55.03554,
+      "lon": -1.77231,
+      "name": "Rainfall station"
+    },
+    "082509": {
+      "lat": 53.36703,
+      "lon": -1.59795,
+      "name": "Rainfall station"
+    },
+    "924203": {
+      "lat": 55.76537,
+      "lon": -2.03104,
+      "name": "Rainfall station"
+    },
+    "3441": {
+      "lat": 53.13444,
+      "lon": -1.43272,
+      "name": "Rainfall station"
+    },
+    "E10370": {
+      "lat": 50.99963,
+      "lon": -0.78648,
+      "name": "Rainfall station"
+    },
+    "E10360": {
+      "lat": 51.03762,
+      "lon": -0.89959,
+      "name": "Rainfall station"
+    },
+    "004942": {
+      "lat": 55.347,
+      "lon": -1.63019,
+      "name": "Rainfall station"
+    },
+    "584098": {
+      "lat": 54.12868,
+      "lon": -2.71229,
+      "name": "Rainfall station"
+    },
+    "48105": {
+      "lat": 50.30366,
+      "lon": -5.09851,
+      "name": "Rainfall station"
+    },
+    "084532": {
+      "lat": 53.36684,
+      "lon": -1.35149,
+      "name": "Rainfall station"
+    },
+    "48155": {
+      "lat": 50.59324,
+      "lon": -4.74302,
+      "name": "Rainfall station"
+    },
+    "E14880": {
+      "lat": 50.67166,
+      "lon": -1.39922,
+      "name": "Rainfall station"
+    },
+    "43205": {
+      "lat": 50.75503,
+      "lon": -1.93686,
+      "name": "Rainfall station"
+    },
+    "561613": {
+      "lat": 53.66329,
+      "lon": -2.1808,
+      "name": "Rainfall station"
+    },
+    "243131TP": {
+      "lat": 51.89744,
+      "lon": 0.1823,
+      "name": "Rainfall station"
+    },
+    "576578": {
+      "lat": 53.81177,
+      "lon": -2.64768,
+      "name": "Rainfall station"
+    },
+    "E2316": {
+      "lat": 52.81026,
+      "lon": -0.52897,
+      "name": "Rainfall station"
+    },
+    "E5729": {
+      "lat": 52.94916,
+      "lon": 1.12216,
+      "name": "Rainfall station"
+    },
+    "080282": {
+      "lat": 53.67936,
+      "lon": -1.47841,
+      "name": "Rainfall station"
+    },
+    "3629": {
+      "lat": 52.78808,
+      "lon": -1.09766,
+      "name": "Rainfall station"
+    },
+    "E6760": {
+      "lat": 51.02875,
+      "lon": 0.2753,
+      "name": "Rainfall station"
+    },
+    "E44081": {
+      "lat": 52.06031,
+      "lon": 0.49367,
+      "name": "Rainfall station"
+    },
+    "E901": {
+      "lat": 51.15203,
+      "lon": 0.17697,
+      "name": "Rainfall station"
+    },
+    "054507": {
+      "lat": 54.38271,
+      "lon": -1.39409,
+      "name": "Rainfall station"
+    },
+    "021228": {
+      "lat": 54.74796,
+      "lon": -2.23532,
+      "name": "Rainfall station"
+    },
+    "022994": {
+      "lat": 54.62411,
+      "lon": -1.87064,
+      "name": "Rainfall station"
+    },
+    "52103": {
+      "lat": 50.90261,
+      "lon": -2.63207,
+      "name": "Rainfall station"
+    },
+    "E22244": {
+      "lat": 52.20267,
+      "lon": -0.04571,
+      "name": "Rainfall station"
+    },
+    "E24920": {
+      "lat": 51.53236,
+      "lon": 0.73868,
+      "name": "Rainfall station"
+    },
+    "1603": {
+      "lat": 52.22468,
+      "lon": -2.7312,
+      "name": "Rainfall station"
+    },
+    "E7190": {
+      "lat": 53.37292,
+      "lon": -0.44953,
+      "name": "Rainfall station"
+    },
+    "573342": {
+      "lat": 53.98622,
+      "lon": -2.42925,
+      "name": "Rainfall station"
+    },
+    "1819": {
+      "lat": 52.17858,
+      "lon": -2.41162,
+      "name": "Rainfall station"
+    },
+    "46101": {
+      "lat": 50.39324,
+      "lon": -3.73107,
+      "name": "Rainfall station"
+    },
+    "48171": {
+      "lat": 50.0353,
+      "lon": -5.20828,
+      "name": "Rainfall station"
+    },
+    "3767": {
+      "lat": 53.02201,
+      "lon": -1.41779,
+      "name": "Rainfall station"
+    },
+    "E11191": {
+      "lat": 50.92346,
+      "lon": -0.81265,
+      "name": "Rainfall station"
+    },
+    "078922": {
+      "lat": 53.60567,
+      "lon": -1.76646,
+      "name": "Rainfall station"
+    },
+    "45169": {
+      "lat": 50.80015,
+      "lon": -3.4367,
+      "name": "Rainfall station"
+    },
+    "268103TP": {
+      "lat": 51.53833,
+      "lon": -1.56235,
+      "name": "Rainfall station"
+    },
+    "075233": {
+      "lat": 53.79732,
+      "lon": -1.92481,
+      "name": "Rainfall station"
+    },
+    "254336TP": {
+      "lat": 51.77476,
+      "lon": -1.35716,
+      "name": "Rainfall station"
+    },
+    "E2859": {
+      "lat": 52.8905,
+      "lon": -0.62287,
+      "name": "Rainfall station"
+    },
+    "606299": {
+      "lat": 54.89901,
+      "lon": -2.95349,
+      "name": "Rainfall station"
+    },
+    "E5734": {
+      "lat": 51.55455,
+      "lon": 0.82658,
+      "name": "Rainfall station"
+    },
+    "E10000": {
+      "lat": 50.95081,
+      "lon": -0.52865,
+      "name": "Rainfall station"
+    },
+    "44104": {
+      "lat": 50.67127,
+      "lon": -2.49169,
+      "name": "Rainfall station"
+    },
+    "E44091": {
+      "lat": 51.96432,
+      "lon": 0.60771,
+      "name": "Rainfall station"
+    },
+    "476898_TG_333": {
+      "lat": 51.95223,
+      "lon": -2.73549,
+      "name": "Rainfall station"
+    },
+    "246847TP": {
+      "lat": 51.56937,
+      "lon": -0.25769,
+      "name": "Rainfall station"
+    },
+    "52129": {
+      "lat": 50.87591,
+      "lon": -2.98135,
+      "name": "Rainfall station"
+    },
+    "E21589": {
+      "lat": 52.08016,
+      "lon": 1.29614,
+      "name": "Rainfall station"
+    },
+    "079621": {
+      "lat": 53.69801,
+      "lon": -1.66751,
+      "name": "Rainfall station"
+    },
+    "3683": {
+      "lat": 52.69743,
+      "lon": -1.11729,
+      "name": "Rainfall station"
+    },
+    "028502": {
+      "lat": 54.50457,
+      "lon": -2.14126,
+      "name": "Rainfall station"
+    },
+    "3026": {
+      "lat": 52.79928,
+      "lon": -2.27508,
+      "name": "Rainfall station"
+    },
+    "52223": {
+      "lat": 51.39348,
+      "lon": -2.91765,
+      "name": "Rainfall station"
+    },
+    "E24775": {
+      "lat": 52.40222,
+      "lon": 1.54216,
+      "name": "Rainfall station"
+    },
+    "E21096": {
+      "lat": 52.58398,
+      "lon": 0.34615,
+      "name": "Rainfall station"
+    },
+    "E14850": {
+      "lat": 50.62658,
+      "lon": -1.2259,
+      "name": "Rainfall station"
+    },
+    "1713": {
+      "lat": 52.84224,
+      "lon": -2.87218,
+      "name": "Rainfall station"
+    },
+    "022163": {
+      "lat": 54.76163,
+      "lon": -1.90283,
+      "name": "Rainfall station"
+    },
+    "52147": {
+      "lat": 51.05378,
+      "lon": -2.89237,
+      "name": "Rainfall station"
+    },
+    "E23470": {
+      "lat": 52.19167,
+      "lon": 1.4844,
+      "name": "Rainfall station"
+    },
+    "E1457": {
+      "lat": 53.27543,
+      "lon": -0.63753,
+      "name": "Rainfall station"
+    },
+    "560557": {
+      "lat": 53.431,
+      "lon": -2.35289,
+      "name": "Rainfall station"
+    },
+    "047281": {
+      "lat": 54.27519,
+      "lon": -2.26333,
+      "name": "Rainfall station"
+    },
+    "52150": {
+      "lat": 51.00596,
+      "lon": -2.64345,
+      "name": "Rainfall station"
+    },
+    "E7040": {
+      "lat": 53.37124,
+      "lon": -0.68408,
+      "name": "Rainfall station"
+    },
+    "061431": {
+      "lat": 54.16394,
+      "lon": -2.15235,
+      "name": "Rainfall station"
+    },
+    "013878": {
+      "lat": 54.87108,
+      "lon": -2.52275,
+      "name": "Rainfall station"
+    },
+    "291477TP": {
+      "lat": 51.45898,
+      "lon": 0.11237,
+      "name": "Rainfall station"
+    },
+    "E23518": {
+      "lat": 52.60346,
+      "lon": 1.16988,
+      "name": "Rainfall station"
+    },
+    "021028": {
+      "lat": 54.93899,
+      "lon": -1.39357,
+      "name": "Rainfall station"
+    },
+    "276036TP": {
+      "lat": 51.54306,
+      "lon": -0.50097,
+      "name": "Rainfall station"
+    },
+    "E2382": {
+      "lat": 52.33221,
+      "lon": -0.78851,
+      "name": "Rainfall station"
+    },
+    "E5721": {
+      "lat": 53.17519,
+      "lon": -0.524,
+      "name": "Rainfall station"
+    },
+    "E10120": {
+      "lat": 51.12094,
+      "lon": -0.61613,
+      "name": "Rainfall station"
+    },
+    "E24187": {
+      "lat": 52.21855,
+      "lon": 1.26831,
+      "name": "Rainfall station"
+    },
+    "E6780": {
+      "lat": 50.88543,
+      "lon": 0.67211,
+      "name": "Rainfall station"
+    },
+    "E5726": {
+      "lat": 52.61162,
+      "lon": -0.46179,
+      "name": "Rainfall station"
+    },
+    "240816TP": {
+      "lat": 51.87347,
+      "lon": -0.26921,
+      "name": "Rainfall station"
+    },
+    "50103": {
+      "lat": 50.88086,
+      "lon": -4.15282,
+      "name": "Rainfall station"
+    },
+    "47170": {
+      "lat": 50.54668,
+      "lon": -4.31965,
+      "name": "Rainfall station"
+    },
+    "531184": {
+      "lat": 51.23683,
+      "lon": -2.21695,
+      "name": "Rainfall station"
+    },
+    "E21335": {
+      "lat": 52.1324,
+      "lon": -0.95318,
+      "name": "Rainfall station"
+    },
+    "597519": {
+      "lat": 54.36217,
+      "lon": -2.34237,
+      "name": "Rainfall station"
+    },
+    "E23420": {
+      "lat": 52.77483,
+      "lon": 1.15118,
+      "name": "Rainfall station"
+    },
+    "43105": {
+      "lat": 51.35839,
+      "lon": -1.92742,
+      "name": "Rainfall station"
+    },
+    "50194": {
+      "lat": 51.02409,
+      "lon": -4.23645,
+      "name": "Rainfall station"
+    },
+    "017651": {
+      "lat": 55.0003,
+      "lon": -1.68497,
+      "name": "Rainfall station"
+    },
+    "47108": {
+      "lat": 50.58671,
+      "lon": -4.10687,
+      "name": "Rainfall station"
+    },
+    "1813": {
+      "lat": 51.74996,
+      "lon": -2.33673,
+      "name": "Rainfall station"
+    },
+    "284703TP": {
+      "lat": 51.17809,
+      "lon": -0.13371,
+      "name": "Rainfall station"
+    },
+    "291241TP": {
+      "lat": 51.36756,
+      "lon": 0.09523,
+      "name": "Rainfall station"
+    },
+    "E23646": {
+      "lat": 52.57199,
+      "lon": 0.12414,
+      "name": "Rainfall station"
+    },
+    "48181": {
+      "lat": 50.33914,
+      "lon": -4.83657,
+      "name": "Rainfall station"
+    },
+    "568363": {
+      "lat": 53.57191,
+      "lon": -3.017,
+      "name": "Rainfall station"
+    },
+    "1817": {
+      "lat": 52.70835,
+      "lon": -2.98052,
+      "name": "Rainfall station"
+    },
+    "531175": {
+      "lat": 51.54603,
+      "lon": -2.26745,
+      "name": "Rainfall station"
+    },
+    "592448": {
+      "lat": 54.49887,
+      "lon": -3.18195,
+      "name": "Rainfall station"
+    },
+    "083280": {
+      "lat": 53.19468,
+      "lon": -1.43491,
+      "name": "Rainfall station"
+    },
+    "E1928": {
+      "lat": 53.13532,
+      "lon": -0.00813,
+      "name": "Rainfall station"
+    },
+    "241790TP": {
+      "lat": 51.87118,
+      "lon": -0.06448,
+      "name": "Rainfall station"
+    },
+    "253340TP": {
+      "lat": 51.87872,
+      "lon": -1.73774,
+      "name": "Rainfall station"
+    },
+    "585022": {
+      "lat": 54.44072,
+      "lon": -2.82563,
+      "name": "Rainfall station"
+    },
+    "256345TP": {
+      "lat": 52.16873,
+      "lon": -1.23599,
+      "name": "Rainfall station"
+    },
+    "026090": {
+      "lat": 54.76078,
+      "lon": -1.34029,
+      "name": "Rainfall station"
+    },
+    "3178": {
+      "lat": 52.99911,
+      "lon": -1.06794,
+      "name": "Rainfall station"
+    },
+    "053532": {
+      "lat": 54.31898,
+      "lon": -1.63793,
+      "name": "Rainfall station"
+    },
+    "E8480": {
+      "lat": 50.9915,
+      "lon": 0.15235,
+      "name": "Rainfall station"
+    },
+    "E22486": {
+      "lat": 51.99042,
+      "lon": 0.3951,
+      "name": "Rainfall station"
+    },
+    "E24952": {
+      "lat": 51.74365,
+      "lon": 0.32408,
+      "name": "Rainfall station"
+    },
+    "010660": {
+      "lat": 55.32086,
+      "lon": -2.39628,
+      "name": "Rainfall station"
+    },
+    "E24591": {
+      "lat": 52.34556,
+      "lon": 0.48474,
+      "name": "Rainfall station"
+    },
+    "43103": {
+      "lat": 51.16415,
+      "lon": -1.89483,
+      "name": "Rainfall station"
+    },
+    "287946TP": {
+      "lat": 51.41595,
+      "lon": -0.16287,
+      "name": "Rainfall station"
+    },
+    "E2050": {
+      "lat": 51.09828,
+      "lon": 0.39584,
+      "name": "Rainfall station"
+    },
+    "E2040": {
+      "lat": 51.13834,
+      "lon": 0.45938,
+      "name": "Rainfall station"
+    },
+    "45167": {
+      "lat": 50.90866,
+      "lon": -3.22668,
+      "name": "Rainfall station"
+    },
+    "E24585": {
+      "lat": 52.16499,
+      "lon": -0.70386,
+      "name": "Rainfall station"
+    },
+    "010312": {
+      "lat": 55.143,
+      "lon": -2.37569,
+      "name": "Rainfall station"
+    },
+    "E14420": {
+      "lat": 50.82435,
+      "lon": -1.55912,
+      "name": "Rainfall station"
+    },
+    "E1976": {
+      "lat": 52.61511,
+      "lon": -0.67584,
+      "name": "Rainfall station"
+    },
+    "43201": {
+      "lat": 51.08543,
+      "lon": -2.3533,
+      "name": "Rainfall station"
+    },
+    "3779": {
+      "lat": 53.59117,
+      "lon": -0.7392,
+      "name": "Rainfall station"
+    },
+    "E43545": {
+      "lat": 53.2518,
+      "lon": -0.15113,
+      "name": "Rainfall station"
+    },
+    "E5731": {
+      "lat": 52.22685,
+      "lon": -0.46487,
+      "name": "Rainfall station"
+    },
+    "035103": {
+      "lat": 54.54199,
+      "lon": -0.81518,
+      "name": "Rainfall station"
+    },
+    "E5170": {
+      "lat": 51.11786,
+      "lon": 1.19426,
+      "name": "Rainfall station"
+    },
+    "1040": {
+      "lat": 52.30944,
+      "lon": -1.7748,
+      "name": "Rainfall station"
+    },
+    "574656": {
+      "lat": 53.83325,
+      "lon": -2.10252,
+      "name": "Rainfall station"
+    },
+    "E23440": {
+      "lat": 52.82526,
+      "lon": 1.40872,
+      "name": "Rainfall station"
+    },
+    "E24908": {
+      "lat": 51.58413,
+      "lon": 0.63785,
+      "name": "Rainfall station"
+    },
+    "039268": {
+      "lat": 54.04064,
+      "lon": -0.24152,
+      "name": "Rainfall station"
+    },
+    "592464": {
+      "lat": 54.5113,
+      "lon": -3.19775,
+      "name": "Rainfall station"
+    },
+    "014555": {
+      "lat": 54.97002,
+      "lon": -2.5006,
+      "name": "Rainfall station"
+    },
+    "1140": {
+      "lat": 51.87541,
+      "lon": -2.01956,
+      "name": "Rainfall station"
+    },
+    "288092TP": {
+      "lat": 51.4214,
+      "lon": -0.10943,
+      "name": "Rainfall station"
+    },
+    "44132": {
+      "lat": 50.65898,
+      "lon": -2.41517,
+      "name": "Rainfall station"
+    },
+    "3771": {
+      "lat": 52.94803,
+      "lon": -1.08839,
+      "name": "Rainfall station"
+    },
+    "47112": {
+      "lat": 50.44091,
+      "lon": -4.01025,
+      "name": "Rainfall station"
+    },
+    "068416": {
+      "lat": 54.19978,
+      "lon": -0.93536,
+      "name": "Rainfall station"
+    },
+    "591419": {
+      "lat": 54.42718,
+      "lon": -3.48818,
+      "name": "Rainfall station"
+    },
+    "E24732": {
+      "lat": 52.51646,
+      "lon": 0.98818,
+      "name": "Rainfall station"
+    },
+    "569709": {
+      "lat": 53.6046,
+      "lon": -2.55685,
+      "name": "Rainfall station"
+    },
+    "50188": {
+      "lat": 51.17849,
+      "lon": -4.10656,
+      "name": "Rainfall station"
+    },
+    "45183": {
+      "lat": 51.11444,
+      "lon": -3.79503,
+      "name": "Rainfall station"
+    },
+    "3288": {
+      "lat": 52.54211,
+      "lon": -1.69694,
+      "name": "Rainfall station"
+    },
+    "46103": {
+      "lat": 50.47913,
+      "lon": -3.76098,
+      "name": "Rainfall station"
+    },
+    "E1966": {
+      "lat": 52.5771,
+      "lon": -0.12504,
+      "name": "Rainfall station"
+    },
+    "584772": {
+      "lat": 54.32831,
+      "lon": -2.69421,
+      "name": "Rainfall station"
+    },
+    "53111": {
+      "lat": 51.31511,
+      "lon": -2.49567,
+      "name": "Rainfall station"
+    },
+    "52149": {
+      "lat": 50.9373,
+      "lon": -2.52722,
+      "name": "Rainfall station"
+    },
+    "E24930": {
+      "lat": 51.82082,
+      "lon": 1.00576,
+      "name": "Rainfall station"
+    },
+    "E21602": {
+      "lat": 51.73342,
+      "lon": 0.42929,
+      "name": "Rainfall station"
+    },
+    "E8743": {
+      "lat": 50.85343,
+      "lon": -0.13391,
+      "name": "Rainfall station"
+    },
+    "3571": {
+      "lat": 53.10513,
+      "lon": -2.15455,
+      "name": "Rainfall station"
+    },
+    "E5723": {
+      "lat": 53.09391,
+      "lon": -0.17284,
+      "name": "Rainfall station"
+    },
+    "E1606": {
+      "lat": 52.93088,
+      "lon": -0.4014,
+      "name": "Rainfall station"
+    },
+    "034091": {
+      "lat": 54.5961,
+      "lon": -1.03959,
+      "name": "Rainfall station"
+    },
+    "575335": {
+      "lat": 53.86245,
+      "lon": -2.34891,
+      "name": "Rainfall station"
+    },
+    "605382": {
+      "lat": 54.68026,
+      "lon": -2.99954,
+      "name": "Rainfall station"
+    },
+    "E1716": {
+      "lat": 52.43421,
+      "lon": -0.92251,
+      "name": "Rainfall station"
+    },
+    "040492": {
+      "lat": 53.6913,
+      "lon": -0.03196,
+      "name": "Rainfall station"
+    },
+    "586898": {
+      "lat": 54.4207,
+      "lon": -2.97934,
+      "name": "Rainfall station"
+    },
+    "E14430": {
+      "lat": 50.76087,
+      "lon": -1.6703,
+      "name": "Rainfall station"
+    },
+    "45208": {
+      "lat": 50.85058,
+      "lon": -2.88848,
+      "name": "Rainfall station"
+    },
+    "1761": {
+      "lat": 52.05139,
+      "lon": -1.76298,
+      "name": "Rainfall station"
+    },
+    "3775": {
+      "lat": 53.07731,
+      "lon": -1.19015,
+      "name": "Rainfall station"
+    },
+    "1112": {
+      "lat": 51.68469,
+      "lon": -2.16267,
+      "name": "Rainfall station"
+    },
+    "600140": {
+      "lat": 54.50017,
+      "lon": -2.93029,
+      "name": "Rainfall station"
+    },
+    "48169": {
+      "lat": 50.19106,
+      "lon": -5.51439,
+      "name": "Rainfall station"
+    },
+    "53101": {
+      "lat": 51.6021,
+      "lon": -2.45548,
+      "name": "Rainfall station"
+    },
+    "E46331": {
+      "lat": 53.24838,
+      "lon": 0.00461,
+      "name": "Rainfall station"
+    },
+    "077336": {
+      "lat": 53.77754,
+      "lon": -2.08417,
+      "name": "Rainfall station"
+    },
+    "3201": {
+      "lat": 52.57933,
+      "lon": -1.53288,
+      "name": "Rainfall station"
+    },
+    "E24940": {
+      "lat": 51.83595,
+      "lon": 0.59738,
+      "name": "Rainfall station"
+    },
+    "51126": {
+      "lat": 51.12475,
+      "lon": -3.20096,
+      "name": "Rainfall station"
+    },
+    "E1980": {
+      "lat": 52.24053,
+      "lon": -1.09123,
+      "name": "Rainfall station"
+    },
+    "E5722": {
+      "lat": 53.0311,
+      "lon": -0.50357,
+      "name": "Rainfall station"
+    },
+    "E9660": {
+      "lat": 50.92936,
+      "lon": -0.46956,
+      "name": "Rainfall station"
+    },
+    "48157": {
+      "lat": 50.28669,
+      "lon": -4.81098,
+      "name": "Rainfall station"
+    },
+    "076413": {
+      "lat": 53.83349,
+      "lon": -1.58894,
+      "name": "Rainfall station"
+    },
+    "53103": {
+      "lat": 51.53011,
+      "lon": -1.89687,
+      "name": "Rainfall station"
+    },
+    "243543TP": {
+      "lat": 51.86653,
+      "lon": 0.24762,
+      "name": "Rainfall station"
+    },
+    "E2433": {
+      "lat": 52.29678,
+      "lon": -0.67069,
+      "name": "Rainfall station"
+    },
+    "286392TP": {
+      "lat": 51.40071,
+      "lon": -0.28424,
+      "name": "Rainfall station"
+    },
+    "078772": {
+      "lat": 53.55274,
+      "lon": -1.82411,
+      "name": "Rainfall station"
+    },
+    "46161": {
+      "lat": 50.38444,
+      "lon": -3.52397,
+      "name": "Rainfall station"
+    },
+    "563599": {
+      "lat": 53.46242,
+      "lon": -2.36822,
+      "name": "Rainfall station"
+    },
+    "E5733": {
+      "lat": 51.89574,
+      "lon": 0.45111,
+      "name": "Rainfall station"
+    },
+    "588705": {
+      "lat": 54.19077,
+      "lon": -3.16394,
+      "name": "Rainfall station"
+    },
+    "50101": {
+      "lat": 50.97536,
+      "lon": -4.29109,
+      "name": "Rainfall station"
+    },
+    "1771": {
+      "lat": 52.91116,
+      "lon": -2.63713,
+      "name": "Rainfall station"
+    },
+    "48159": {
+      "lat": 50.22279,
+      "lon": -5.16196,
+      "name": "Rainfall station"
+    },
+    "085960": {
+      "lat": 53.52702,
+      "lon": -1.38525,
+      "name": "Rainfall station"
+    },
+    "046222": {
+      "lat": 53.71993,
+      "lon": -0.67625,
+      "name": "Rainfall station"
+    },
+    "3198": {
+      "lat": 52.5301,
+      "lon": -1.38304,
+      "name": "Rainfall station"
+    },
+    "238944TP": {
+      "lat": 51.67702,
+      "lon": 0.23533,
+      "name": "Rainfall station"
+    },
+    "47106": {
+      "lat": 50.56224,
+      "lon": -4.48139,
+      "name": "Rainfall station"
+    },
+    "E46341": {
+      "lat": 52.53802,
+      "lon": -0.33756,
+      "name": "Rainfall station"
+    },
+    "E21870": {
+      "lat": 52.68435,
+      "lon": 0.92713,
+      "name": "Rainfall station"
+    },
+    "271491TP": {
+      "lat": 51.33031,
+      "lon": -0.76342,
+      "name": "Rainfall station"
+    },
+    "E911": {
+      "lat": 51.3725,
+      "lon": 0.21759,
+      "name": "Rainfall station"
+    },
+    "025878": {
+      "lat": 54.82382,
+      "lon": -1.36572,
+      "name": "Rainfall station"
+    },
+    "55000A": {
+      "lat": 53.42541,
+      "lon": -2.62222,
+      "name": "Rainfall station"
+    },
+    "E8020": {
+      "lat": 50.91155,
+      "lon": 0.28949,
+      "name": "Rainfall station"
+    },
+    "E5732": {
+      "lat": 52.12423,
+      "lon": 0.95747,
+      "name": "Rainfall station"
+    },
+    "562656": {
+      "lat": 53.53977,
+      "lon": -2.35078,
+      "name": "Rainfall station"
+    },
+    "E24632": {
+      "lat": 52.3424,
+      "lon": -0.06745,
+      "name": "Rainfall station"
+    },
+    "49101": {
+      "lat": 50.48178,
+      "lon": -4.70131,
+      "name": "Rainfall station"
+    },
+    "000182TP": {
+      "lat": 51.88526,
+      "lon": -0.15687,
+      "name": "Rainfall station"
+    },
+    "50111": {
+      "lat": 51.16343,
+      "lon": -3.9371,
+      "name": "Rainfall station"
+    },
+    "592158": {
+      "lat": 54.49822,
+      "lon": -3.55716,
+      "name": "Rainfall station"
+    },
+    "E8030": {
+      "lat": 50.99015,
+      "lon": 0.12806,
+      "name": "Rainfall station"
+    },
+    "47144": {
+      "lat": 50.67721,
+      "lon": -4.61202,
+      "name": "Rainfall station"
+    },
+    "070365": {
+      "lat": 54.24441,
+      "lon": -0.80684,
+      "name": "Rainfall station"
+    },
+    "E22683": {
+      "lat": 51.96743,
+      "lon": 0.93403,
+      "name": "Rainfall station"
+    },
+    "E8290": {
+      "lat": 51.43497,
+      "lon": -0.35345,
+      "name": "Rainfall station"
+    },
+    "E5724": {
+      "lat": 53.08807,
+      "lon": 0.27044,
+      "name": "Rainfall station"
+    },
+    "000076TP": {
+      "lat": 51.70151,
+      "lon": -0.74754,
+      "name": "Rainfall station"
+    },
+    "270669TP": {
+      "lat": 51.2924,
+      "lon": -1.0355,
+      "name": "Rainfall station"
+    },
+    "3323": {
+      "lat": 53.02581,
+      "lon": -1.72338,
+      "name": "Rainfall station"
+    },
+    "50105": {
+      "lat": 50.7032,
+      "lon": -3.97755,
+      "name": "Rainfall station"
+    },
+    "000997": {
+      "lat": 55.58067,
+      "lon": -1.64545,
+      "name": "Rainfall station"
+    },
+    "45100": {
+      "lat": 51.16159,
+      "lon": -3.76969,
+      "name": "Rainfall station"
+    },
+    "47160": {
+      "lat": 50.87779,
+      "lon": -4.48817,
+      "name": "Rainfall station"
+    },
+    "47156": {
+      "lat": 50.70003,
+      "lon": -4.05672,
+      "name": "Rainfall station"
+    },
+    "576635": {
+      "lat": 53.77461,
+      "lon": -2.70324,
+      "name": "Rainfall station"
+    },
+    "E4850": {
+      "lat": 51.35932,
+      "lon": 1.40357,
+      "name": "Rainfall station"
+    },
+    "E24718": {
+      "lat": 52.29472,
+      "lon": 0.3323,
+      "name": "Rainfall station"
+    },
+    "475212_TG_354": {
+      "lat": 52.20577,
+      "lon": -2.57284,
+      "name": "Rainfall station"
+    },
+    "290578TP": {
+      "lat": 51.36735,
+      "lon": 0.20441,
+      "name": "Rainfall station"
+    },
+    "1747": {
+      "lat": 52.80665,
+      "lon": -2.49764,
+      "name": "Rainfall station"
+    },
+    "44201": {
+      "lat": 50.61385,
+      "lon": -1.95825,
+      "name": "Rainfall station"
+    },
+    "E24712": {
+      "lat": 52.01676,
+      "lon": -0.48811,
+      "name": "Rainfall station"
+    },
+    "006077": {
+      "lat": 55.20738,
+      "lon": -2.04003,
+      "name": "Rainfall station"
+    },
+    "51124": {
+      "lat": 51.20715,
+      "lon": -3.53666,
+      "name": "Rainfall station"
+    },
+    "E24141": {
+      "lat": 52.30712,
+      "lon": 1.15305,
+      "name": "Rainfall station"
+    },
+    "531179": {
+      "lat": 51.46023,
+      "lon": -2.60952,
+      "name": "Rainfall station"
+    },
+    "3096": {
+      "lat": 52.61521,
+      "lon": -2.15281,
+      "name": "Rainfall station"
+    },
+    "246726TP": {
+      "lat": 51.61064,
+      "lon": -0.31244,
+      "name": "Rainfall station"
+    },
+    "054371": {
+      "lat": 54.4192,
+      "lon": -1.5153,
+      "name": "Rainfall station"
+    },
+    "E8040": {
+      "lat": 50.93086,
+      "lon": 0.26767,
+      "name": "Rainfall station"
+    },
+    "47164": {
+      "lat": 50.50119,
+      "lon": -4.06076,
+      "name": "Rainfall station"
+    },
+    "562811": {
+      "lat": 53.56087,
+      "lon": -2.14111,
+      "name": "Rainfall station"
+    },
+    "46151": {
+      "lat": 50.26339,
+      "lon": -3.81194,
+      "name": "Rainfall station"
+    },
+    "E2527": {
+      "lat": 52.19106,
+      "lon": -1.08785,
+      "name": "Rainfall station"
+    },
+    "3604": {
+      "lat": 53.2233,
+      "lon": -1.1155,
+      "name": "Rainfall station"
+    },
+    "E3474": {
+      "lat": 51.32201,
+      "lon": 1.22853,
+      "name": "Rainfall station"
+    },
+    "E46361": {
+      "lat": 52.93992,
+      "lon": -0.04391,
+      "name": "Rainfall station"
+    },
+    "E22335": {
+      "lat": 51.94644,
+      "lon": -0.54431,
+      "name": "Rainfall station"
+    },
+    "E3220": {
+      "lat": 51.35057,
+      "lon": 0.74362,
+      "name": "Rainfall station"
+    },
+    "46107": {
+      "lat": 50.58221,
+      "lon": -3.89761,
+      "name": "Rainfall station"
+    },
+    "E24854": {
+      "lat": 51.62381,
+      "lon": 0.82654,
+      "name": "Rainfall station"
+    },
+    "E24499": {
+      "lat": 52.70329,
+      "lon": 0.69746,
+      "name": "Rainfall station"
+    },
+    "45204": {
+      "lat": 50.81654,
+      "lon": -3.08515,
+      "name": "Rainfall station"
+    },
+    "237740TP": {
+      "lat": 51.60013,
+      "lon": 0.25899,
+      "name": "Rainfall station"
+    },
+    "043533": {
+      "lat": 53.99922,
+      "lon": -0.43093,
+      "name": "Rainfall station"
+    },
+    "E5720": {
+      "lat": 53.30674,
+      "lon": -0.54799,
+      "name": "Rainfall station"
+    },
+    "48102": {
+      "lat": 50.2233,
+      "lon": -5.30502,
+      "name": "Rainfall station"
+    },
+    "613905": {
+      "lat": 55.08949,
+      "lon": -2.69324,
+      "name": "Rainfall station"
+    },
+    "054604": {
+      "lat": 54.32908,
+      "lon": -1.45639,
+      "name": "Rainfall station"
+    },
+    "53113": {
+      "lat": 51.29097,
+      "lon": -1.96338,
+      "name": "Rainfall station"
+    },
+    "279941TP": {
+      "lat": 51.39698,
+      "lon": -0.54025,
+      "name": "Rainfall station"
+    },
+    "E26212": {
+      "lat": 51.93437,
+      "lon": -0.25232,
+      "name": "Rainfall station"
+    },
+    "3347": {
+      "lat": 52.90508,
+      "lon": -2.37685,
+      "name": "Rainfall station"
+    },
+    "50109": {
+      "lat": 50.98512,
+      "lon": -3.66181,
+      "name": "Rainfall station"
+    },
+    "000180TP": {
+      "lat": 51.61884,
+      "lon": 0.17324,
+      "name": "Rainfall station"
+    },
+    "569323": {
+      "lat": 53.67859,
+      "lon": -2.94236,
+      "name": "Rainfall station"
+    },
+    "000028": {
+      "lat": 53.50029,
+      "lon": -1.67358,
+      "name": "Rainfall station"
+    },
+    "1086": {
+      "lat": 52.17451,
+      "lon": -1.736,
+      "name": "Rainfall station"
+    },
+    "E7260": {
+      "lat": 50.8635,
+      "lon": 0.56711,
+      "name": "Rainfall station"
+    },
+    "582970": {
+      "lat": 54.12223,
+      "lon": -2.57295,
+      "name": "Rainfall station"
+    },
+    "48103": {
+      "lat": 50.1602,
+      "lon": -5.11442,
+      "name": "Rainfall station"
+    },
+    "49147": {
+      "lat": 50.39162,
+      "lon": -5.07188,
+      "name": "Rainfall station"
+    },
+    "46167": {
+      "lat": 50.59221,
+      "lon": -3.71716,
+      "name": "Rainfall station"
+    },
+    "588886": {
+      "lat": 54.13609,
+      "lon": -3.23894,
+      "name": "Rainfall station"
+    },
+    "45184": {
+      "lat": 50.72862,
+      "lon": -3.4756,
+      "name": "Rainfall station"
+    },
+    "45108_": {
+      "lat": 50.88495,
+      "lon": -3.48764,
+      "name": "Rainfall station"
+    },
+    "E1711": {
+      "lat": 51.14274,
+      "lon": 0.09504,
+      "name": "Rainfall station"
+    },
+    "558844": {
+      "lat": 53.49079,
+      "lon": -1.88315,
+      "name": "Rainfall station"
+    },
+    "45185": {
+      "lat": 51.04627,
+      "lon": -3.45999,
+      "name": "Rainfall station"
+    },
+    "E2400": {
+      "lat": 51.09695,
+      "lon": 0.54431,
+      "name": "Rainfall station"
+    },
+    "2705SO": {
+      "lat": 50.75953,
+      "lon": -0.78703,
+      "name": "Rainfall station"
+    },
+    "035024NE": {
+      "lat": 54.50543,
+      "lon": -0.84558,
+      "name": "Rainfall station"
+    },
+    "588006": {
+      "lat": 54.37829,
+      "lon": -3.10304,
+      "name": "Rainfall station"
+    },
+    "270397": {
+      "lat": 51.44172,
+      "lon": -0.93739,
+      "name": "Rainfall station"
+    },
+    "604742": {
+      "lat": 54.67014,
+      "lon": -2.78841,
+      "name": "Rainfall station"
+    },
+    "46168": {
+      "lat": 50.68002,
+      "lon": -3.73877,
+      "name": "Rainfall station"
+    },
+    "577794": {
+      "lat": 53.98606,
+      "lon": -2.66258,
+      "name": "Rainfall station"
+    },
+    "4527": {
+      "lat": 52.76297,
+      "lon": -1.23452,
+      "name": "Rainfall station"
+    },
+    "3642": {
+      "lat": 52.76297,
+      "lon": -1.23452,
+      "name": "Rainfall station"
+    },
+    "305111": {
+      "lat": 51.09822,
+      "lon": 1.15577,
+      "name": "Rainfall station"
+    },
+    "562992_": {
+      "lat": 53.5355,
+      "lon": -2.26323,
+      "name": "Rainfall station"
+    },
+    "510001": {
+      "lat": 51.83846,
+      "lon": 0.16202,
+      "name": "Rainfall station"
+    },
+    "46169": {
+      "lat": 50.51656,
+      "lon": -3.84137,
+      "name": "Rainfall station"
+    },
+    "45186": {
+      "lat": 50.67998,
+      "lon": -3.40896,
+      "name": "Rainfall station"
+    },
+    "1409Lucas": {
+      "lat": 52.59735,
+      "lon": -3.02971,
+      "name": "Rainfall station"
+    },
+    "301666": {
+      "lat": 51.13193,
+      "lon": 0.96793,
+      "name": "Rainfall station"
+    },
+    "E5650": {
+      "lat": 51.13193,
+      "lon": 0.96793,
+      "name": "Rainfall station"
+    },
+    "E2561": {
+      "lat": 52.31072,
+      "lon": -0.88884,
+      "name": "Rainfall station"
+    },
+    "E21326": {
+      "lat": 52.42855,
+      "lon": -0.35345,
+      "name": "Rainfall station"
+    },
+    "E22268": {
+      "lat": 52.04115,
+      "lon": 0.14263,
+      "name": "Rainfall station"
+    },
+    "7015": {
+      "lat": 52.22104,
+      "lon": -2.98439,
+      "name": "Rainfall station"
+    },
+    "1607": {
+      "lat": 52.02382,
+      "lon": -2.91301,
+      "name": "Rainfall station"
+    },
+    "1606": {
+      "lat": 51.95223,
+      "lon": -2.73549,
+      "name": "Rainfall station"
+    },
+    "47176": {
+      "lat": 50.58494,
+      "lon": -4.05452,
+      "name": "Rainfall station"
+    },
+    "1338": {
+      "lat": 52.61225,
+      "lon": -3.41554,
+      "name": "Rainfall station"
+    },
+    "1750": {
+      "lat": 52.50705,
+      "lon": -3.16904,
+      "name": "Rainfall station"
+    },
+    "1810": {
+      "lat": 52.32019,
+      "lon": -3.05848,
+      "name": "Rainfall station"
+    },
+    "1408": {
+      "lat": 52.38014,
+      "lon": -3.50066,
+      "name": "Rainfall station"
+    },
+    "1023SE": {
+      "lat": 51.29466,
+      "lon": 1.10897,
+      "name": "Rainfall station"
+    },
+    "593362": {
+      "lat": 54.61415,
+      "lon": -3.15741,
+      "name": "Rainfall station"
+    },
+    "0744SE": {
+      "lat": 51.26689,
+      "lon": 0.85763,
+      "name": "Rainfall station"
+    },
+    "DH112233": {
+      "lat": 52.16873,
+      "lon": -1.23599,
+      "name": "Rainfall station"
+    },
+    "0925SE": {
+      "lat": 51.20788,
+      "lon": 1.38379,
+      "name": "Rainfall station"
+    },
+    "0924SE": {
+      "lat": 51.25101,
+      "lon": 1.32246,
+      "name": "Rainfall station"
+    },
+    "563170": {
+      "lat": 53.53478,
+      "lon": -2.16214,
+      "name": "Rainfall station"
+    },
+    "1822SO": {
+      "lat": 50.81128,
+      "lon": 0.21929,
+      "name": "Rainfall station"
+    },
+    "Coldw1": {
+      "lat": 53.82331,
+      "lon": -2.15414,
+      "name": "Rainfall station"
+    },
+    "Mitch1": {
+      "lat": 53.74298,
+      "lon": -2.32366,
+      "name": "Rainfall station"
+    },
+    "Edgeh1": {
+      "lat": 53.56046,
+      "lon": -2.8733,
+      "name": "Rainfall station"
+    },
+    "582191": {
+      "lat": 54.14438,
+      "lon": -2.43395,
+      "name": "Rainfall station"
+    },
+    "579623": {
+      "lat": 54.01325,
+      "lon": -2.77441,
+      "name": "Rainfall station"
+    },
+    "EdgeH1": {
+      "lat": 53.56046,
+      "lon": -2.8733,
+      "name": "Rainfall station"
+    },
+    "45268": {
+      "lat": 50.70112,
+      "lon": -3.11789,
+      "name": "Rainfall station"
+    },
+    "Dubbs1": {
+      "lat": 54.40699,
+      "lon": -2.89274,
+      "name": "Rainfall station"
+    },
+    "585122_": {
+      "lat": 54.40699,
+      "lon": -2.89274,
+      "name": "Rainfall station"
+    },
+    "019271": {
+      "lat": 55.03334,
+      "lon": -1.61431,
+      "name": "Rainfall station"
+    },
+    "E42297": {
+      "lat": 52.06189,
+      "lon": 0.54628,
+      "name": "Rainfall station"
+    },
+    "1930": {
+      "lat": 52.08085,
+      "lon": -2.56394,
+      "name": "Rainfall station"
+    },
+    "2102SO": {
+      "lat": 51.10548,
+      "lon": 0.11621,
+      "name": "Rainfall station"
+    },
+    "294323": {
+      "lat": 51.20687,
+      "lon": 0.12945,
+      "name": "Rainfall station"
+    },
+    "380002TP": {
+      "lat": 51.57164,
+      "lon": -0.28935,
+      "name": "Rainfall station"
+    },
+    "463589": {
+      "lat": 51.75873,
+      "lon": -2.61208,
+      "name": "Rainfall station"
+    },
+    "E25173": {
+      "lat": 52.70329,
+      "lon": 0.69746,
+      "name": "Rainfall station"
+    },
+    "E48676": {
+      "lat": 52.30712,
+      "lon": 1.15305,
+      "name": "Rainfall station"
+    },
+    "585122": {
+      "lat": 54.40699,
+      "lon": -2.89274,
+      "name": "Rainfall station"
+    },
+    "0323SO": {
+      "lat": 51.24654,
+      "lon": 0.02238,
+      "name": "Rainfall station"
+    },
+    "340767": {
+      "lat": 50.96814,
+      "lon": -1.91806,
+      "name": "Rainfall station"
+    },
+    "604142": {
+      "lat": 54.88901,
+      "lon": -2.7085,
+      "name": "Rainfall station"
+    },
+    "E82080": {
+      "lat": 50.39131,
+      "lon": -3.73944,
+      "name": "Rainfall station"
+    },
+    "605543": {
+      "lat": 54.71337,
+      "lon": -3.01743,
+      "name": "Rainfall station"
+    },
+    "E82120": {
+      "lat": 51.11661,
+      "lon": -3.94086,
+      "name": "Rainfall station"
+    },
+    "575092______________________________________": {
+      "lat": 53.74298,
+      "lon": -2.32366,
+      "name": "Rainfall station"
+    },
+    "574786______________________________________": {
+      "lat": 53.82331,
+      "lon": -2.15414,
+      "name": "Rainfall station"
+    },
+    "015313": {
+      "lat": 55.01056,
+      "lon": -2.08518,
+      "name": "Rainfall station"
+    },
+    "NelsonGC": {
+      "lat": 53.82053,
+      "lon": -2.21034,
+      "name": "Rainfall station"
+    },
+    "575092": {
+      "lat": 53.74298,
+      "lon": -2.32366,
+      "name": "Rainfall station"
+    },
+    "E82920": {
+      "lat": 50.59841,
+      "lon": -3.46022,
+      "name": "Rainfall station"
+    },
+    "E82960": {
+      "lat": 50.47541,
+      "lon": -3.58186,
+      "name": "Rainfall station"
+    },
+    "1775": {
+      "lat": 52.27751,
+      "lon": -1.59908,
+      "name": "Rainfall station"
+    },
+    "E84540": {
+      "lat": 51.13464,
+      "lon": -4.24036,
+      "name": "Rainfall station"
+    },
+    "E84360": {
+      "lat": 50.79965,
+      "lon": -3.73753,
+      "name": "Rainfall station"
+    },
+    "E82040": {
+      "lat": 50.68664,
+      "lon": -3.30016,
+      "name": "Rainfall station"
+    },
+    "E84500": {
+      "lat": 51.19512,
+      "lon": -3.97851,
+      "name": "Rainfall station"
+    },
+    "062916": {
+      "lat": 53.91192,
+      "lon": -1.66277,
+      "name": "Rainfall station"
+    },
+    "024121": {
+      "lat": 54.77475,
+      "lon": -1.68983,
+      "name": "Rainfall station"
+    },
+    "574786": {
+      "lat": 53.82331,
+      "lon": -2.15414,
+      "name": "Rainfall station"
+    },
+    "1772": {
+      "lat": 51.79378,
+      "lon": -2.61545,
+      "name": "Rainfall station"
+    },
+    "3339": {
+      "lat": 52.55502,
+      "lon": -1.87827,
+      "name": "Rainfall station"
+    },
+    "592850": {
+      "lat": 54.5485,
+      "lon": -3.06434,
+      "name": "Rainfall station"
+    },
+    "075497": {
+      "lat": 53.81519,
+      "lon": -1.82302,
+      "name": "Rainfall station"
+    },
+    "585160": {
+      "lat": 54.43892,
+      "lon": -2.82559,
+      "name": "Rainfall station"
+    },
+    "14880": {
+      "lat": 50.67166,
+      "lon": -1.39922,
+      "name": "Rainfall station"
+    },
+    "540001RG": {
+      "lat": 51.52781,
+      "lon": 0.08528,
+      "name": "Rainfall station"
+    },
+    "Egerton1": {
+      "lat": 53.63652,
+      "lon": -2.44837,
+      "name": "Rainfall station"
+    },
+    "605324": {
+      "lat": 54.5837,
+      "lon": -3.23701,
+      "name": "Rainfall station"
+    },
+    "E60880": {
+      "lat": 51.16415,
+      "lon": -1.89483,
+      "name": "Rainfall station"
+    },
+    "E85220": {
+      "lat": 51.03799,
+      "lon": -3.73645,
+      "name": "Rainfall station"
+    },
+    "E82840": {
+      "lat": 50.62611,
+      "lon": -3.90786,
+      "name": "Rainfall station"
+    },
+    "NE063": {
+      "lat": 53.59597,
+      "lon": -1.06695,
+      "name": "Rainfall station"
+    },
+    "Greens1": {
+      "lat": 54.54828,
+      "lon": -2.98394,
+      "name": "Rainfall station"
+    },
+    "E82880": {
+      "lat": 51.19946,
+      "lon": -3.70243,
+      "name": "Rainfall station"
+    },
+    "3340": {
+      "lat": 52.44603,
+      "lon": -1.74615,
+      "name": "Rainfall station"
+    },
+    "266474TP_TEMPNo": {
+      "lat": 51.42733,
+      "lon": -1.7245,
+      "name": "Rainfall station"
+    },
+    "290320": {
+      "lat": 51.29289,
+      "lon": 0.1951,
+      "name": "Rainfall station"
+    },
+    "598145": {
+      "lat": 54.50441,
+      "lon": -2.24163,
+      "name": "Rainfall station"
+    },
+    "569723": {
+      "lat": 53.6046,
+      "lon": -2.55685,
+      "name": "Rainfall station"
+    },
+    "1403SE": {
+      "lat": 51.1306,
+      "lon": 1.31809,
+      "name": "Rainfall station"
+    },
+    "E71440": {
+      "lat": 51.27714,
+      "lon": -1.7125,
+      "name": "Rainfall station"
+    },
+    "E83440": {
+      "lat": 50.83885,
+      "lon": -2.89394,
+      "name": "Rainfall station"
+    },
+    "442790": {
+      "lat": 52.41637,
+      "lon": -2.83729,
+      "name": "Rainfall station"
+    },
+    "E83400": {
+      "lat": 50.40265,
+      "lon": -3.93264,
+      "name": "Rainfall station"
+    },
+    "558975": {
+      "lat": 53.46387,
+      "lon": -1.94799,
+      "name": "Rainfall station"
+    },
+    "600295": {
+      "lat": 54.54828,
+      "lon": -2.98394,
+      "name": "Rainfall station"
+    },
+    "E6340": {
+      "lat": 51.55311,
+      "lon": -2.55595,
+      "name": "Rainfall station"
+    },
+    "E99682": {
+      "lat": 50.85997,
+      "lon": -3.23961,
+      "name": "Rainfall station"
+    },
+    "266523": {
+      "lat": 51.42733,
+      "lon": -1.7245,
+      "name": "Rainfall station"
+    },
+    "247564": {
+      "lat": 51.40128,
+      "lon": -0.5243,
+      "name": "Rainfall station"
+    },
+    "082673": {
+      "lat": 53.32457,
+      "lon": -1.5398,
+      "name": "Rainfall station"
+    },
+    "282751": {
+      "lat": 51.24117,
+      "lon": -0.5939,
+      "name": "Rainfall station"
+    },
+    "E40764": {
+      "lat": 52.02978,
+      "lon": 1.13204,
+      "name": "Rainfall station"
+    },
+    "E7940": {
+      "lat": 51.51253,
+      "lon": -2.58139,
+      "name": "Rainfall station"
+    },
+    "E7970": {
+      "lat": 51.40271,
+      "lon": -2.60588,
+      "name": "Rainfall station"
+    },
+    "E14620": {
+      "lat": 51.06456,
+      "lon": -3.10379,
+      "name": "Rainfall station"
+    },
+    "0422SO": {
+      "lat": 51.10021,
+      "lon": 0.00742,
+      "name": "Rainfall station"
+    },
+    "13341": {
+      "lat": 52.7606,
+      "lon": -3.25437,
+      "name": "Rainfall station"
+    },
+    "1221": {
+      "lat": 52.65665,
+      "lon": -3.13164,
+      "name": "Rainfall station"
+    },
+    "1765": {
+      "lat": 52.52218,
+      "lon": -3.42886,
+      "name": "Rainfall station"
+    },
+    "476898": {
+      "lat": 51.95223,
+      "lon": -2.73549,
+      "name": "Rainfall station"
+    },
+    "05973": {
+      "lat": 53.96665,
+      "lon": -1.11509,
+      "name": "Rainfall station"
+    },
+    "064280": {
+      "lat": 53.86912,
+      "lon": -1.31941,
+      "name": "Rainfall station"
+    },
+    "NE040": {
+      "lat": 54.78139,
+      "lon": -2.10802,
+      "name": "Rainfall station"
+    },
+    "074740": {
+      "lat": 53.92315,
+      "lon": -1.9322,
+      "name": "Rainfall station"
+    },
+    "296705": {
+      "lat": 51.16947,
+      "lon": 0.59981,
+      "name": "Rainfall station"
+    },
+    "NE024": {
+      "lat": 53.19274,
+      "lon": -1.40501,
+      "name": "Rainfall station"
+    },
+    "E47474": {
+      "lat": 52.06301,
+      "lon": -0.71047,
+      "name": "Milton Keynes"
+    },
+    "B23653": {
+      "lat": 51.06608,
+      "lon": -0.15962,
+      "name": "Rainfall station"
+    },
+    "47158_": {
+      "lat": 50.77151,
+      "lon": -4.22863,
+      "name": "Rainfall station"
+    }
+  }
+}
