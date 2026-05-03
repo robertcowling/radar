@@ -746,19 +746,55 @@
         var satOverlays = {};
         var satUrlKeys = { geo: 'sat_url_bw', vis: 'sat_url_vis', ir: 'sat_url_ir', ir_grey: 'sat_url_ir_grey' };
 
+        // Return only frames that have data for the currently-selected satellite layer.
+        // When sat is 'none', all frames pass through unfiltered.
+        function getEffectiveFrames(sliced) {
+            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
+            if (satVal === 'none') return sliced;
+            var satKey = satUrlKeys[satVal];
+            if (!satKey) return sliced;
+            return sliced.filter(function(f) { return !!f[satKey]; });
+        }
+
+        // Re-filter the current duration slice for the active sat layer while
+        // keeping the playhead as close to its current time as possible.
+        function refilterFrames() {
+            var hours = document.getElementById('durationSelect').value;
+            var numFrames = parseInt(hours) * 4;
+            var sliced = allFrames.slice(-Math.min(numFrames, allFrames.length));
+
+            var currentTime = frames.length > 0 ? frames[currentFrameIdx].time : null;
+            frames = getEffectiveFrames(sliced);
+            slider.max = Math.max(0, frames.length - 1);
+            updateTimelineTicks();
+
+            var targetIdx = frames.length - 1;
+            if (currentTime && frames.length > 0) {
+                var targetMs = parseUTCStr(currentTime).getTime();
+                var bestDiff = Infinity;
+                frames.forEach(function(f, i) {
+                    var diff = Math.abs(parseUTCStr(f.time).getTime() - targetMs);
+                    if (diff < bestDiff) { bestDiff = diff; targetIdx = i; }
+                });
+            }
+            if (frames.length > 0) setFrame(targetIdx);
+            preloadVisibleFrames();
+        }
+
         function onSatLayerChange(val) {
             // Remove all sat overlays
             Object.keys(satOverlays).forEach(function(k) {
                 if (map.hasLayer(satOverlays[k])) map.removeLayer(satOverlays[k]);
             });
-            if (val === 'none') return;
-            if (!satOverlays[val]) {
-                satOverlays[val] = L.imageOverlay('', satBounds, { opacity: 1.0, interactive: false });
+            if (val !== 'none') {
+                if (!satOverlays[val]) {
+                    satOverlays[val] = L.imageOverlay('', satBounds, { opacity: 1.0, interactive: false });
+                }
+                satOverlays[val].addTo(map);
+                enforceZOrder();
             }
-            satOverlays[val].addTo(map);
-            enforceZOrder();
-            if (frames.length > 0) setFrame(currentFrameIdx);
-            preloadVisibleFrames();
+            // Re-filter frames so radar and sat always share the same timesteps
+            refilterFrames();
         }
 
         function onFeedChange(val) {
@@ -1077,19 +1113,13 @@
 
         function updateDuration(hours) {
             var numFrames = parseInt(hours) * 4; // 4 frames per hour (15-min intervals)
-            if (numFrames > allFrames.length) {
-                numFrames = allFrames.length;
-            }
-            // Slice the end of the array to get the most recent N frames
-            frames = allFrames.slice(-numFrames);
+            if (numFrames > allFrames.length) numFrames = allFrames.length;
+            var sliced = allFrames.slice(-numFrames);
+            frames = getEffectiveFrames(sliced);
 
-            // Update slider bounds to reflect the new slice length
-            slider.max = frames.length - 1;
-
+            slider.max = Math.max(0, frames.length - 1);
             updateTimelineTicks();
             preloadVisibleFrames();
-
-            // Jump to the newest frame available in this slice
             setFrame(frames.length - 1);
         }
 

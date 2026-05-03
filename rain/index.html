@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UK Rain Gauges</title>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            background: #f8f9fa;
+            color: #3c4043;
+        }
+        #map { width: 100vw; height: 100vh; }
+
+        .surface {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+            transition: box-shadow 0.3s ease;
+        }
+        .surface:hover {
+            box-shadow: 0 12px 32px rgba(0,0,0,0.16), 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 20px;
+            z-index: 1000;
+            width: 270px;
+            max-height: calc(100vh - 130px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .info-panel h3 { margin: 0 0 14px; font-size: 18px; color: #202124; font-weight: 500; }
+
+        .player-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            z-index: 1000;
+            width: 95%;
+            max-width: 950px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 500;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 100px;
+            max-width: 140px;
+        }
+        .btn:hover { background: #1557b0; box-shadow: 0 4px 8px rgba(0,0,0,0.25); transform: translateY(-1px); }
+        .btn:active { box-shadow: 0 1px 2px rgba(0,0,0,0.2); transform: translateY(0); }
+
+        select {
+            appearance: none;
+            background: #f1f3f4;
+            border: none;
+            padding: 10px 36px 10px 20px;
+            border-radius: 24px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            color: #202124;
+            font-weight: 500;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            outline: none;
+        }
+        select:hover { background-color: #e8eaed; }
+
+        .timeline-container {
+            position: relative;
+            flex-grow: 1;
+            height: 48px;
+            display: flex;
+            align-items: center;
+        }
+        .timeline-track {
+            position: absolute;
+            top: 50%;
+            left: 9px; right: 9px;
+            height: 6px;
+            margin-top: -3px;
+            background: #e8eaed;
+            border-radius: 3px;
+            z-index: 1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .timeline-ticks {
+            position: absolute;
+            top: 50%;
+            left: 8px; right: 8px;
+            height: 20px;
+            transform: translateY(-50%);
+            pointer-events: none;
+            z-index: 2;
+        }
+        .tick {
+            position: absolute;
+            width: 2px;
+            height: 6px;
+            background: #dadce0;
+            top: 7px;
+            transform: translateX(-50%);
+            border-radius: 1px;
+        }
+        .tick.hour { height: 10px; top: 5px; background: #bdc1c6; }
+        .tick-label {
+            position: absolute;
+            top: 24px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #80868b;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+        .tick.today-mark {
+            width: auto;
+            background: transparent;
+            color: #1a73e8;
+            top: -22px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+            z-index: 3;
+            margin: 0;
+            position: relative;
+        }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; cursor: pointer;
+            background: transparent; border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 18px; width: 18px;
+            border-radius: 50%;
+            background: #1a73e8;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            border: 2px solid white;
+        }
+
+        .time-box {
+            background: #f8f9fa;
+            border-left: 4px solid #1a73e8;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+        }
+
+        .cbar-container { margin-bottom: 12px; }
+        .cbar {
+            display: flex;
+            height: 10px;
+            width: 100%;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+        .cbar-block { flex-grow: 1; }
+        .cbar-labels {
+            position: relative;
+            height: 12px;
+            width: 100%;
+            font-size: 9.5px;
+            color: #5f6368;
+            font-weight: 500;
+        }
+        .cbar-label {
+            position: absolute;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        .custom-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #3c4043;
+        }
+        .custom-checkbox input {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            accent-color: #1a73e8;
+        }
+
+        .control-group { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+        .control-group.play-group { align-items: center; }
+        .control-label { font-size: 10px; font-weight: 600; color: #80868b; letter-spacing: 0.5px; padding-left: 8px; }
+
+        /* Threshold panel */
+        #thresholdPanel {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 60px;
+        }
+        .thresh-section { margin-top: 10px; padding-top: 8px; border-top: 1px solid #e8eaed; }
+        .thresh-header {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: #5f6368;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 4px;
+        }
+        .thresh-count {
+            font-size: 10px; font-weight: 700; background: #e8eaed;
+            color: #3c4043; padding: 1px 6px; border-radius: 8px;
+        }
+        .thresh-row {
+            display: flex; align-items: center;
+            padding: 3px 6px; border-radius: 6px;
+            cursor: pointer; font-size: 12px;
+            gap: 6px;
+        }
+        .thresh-row:hover { background: #f1f3f4; }
+        .thresh-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #202124; }
+        .thresh-val {
+            font-size: 11px; font-weight: 700; color: white;
+            padding: 1px 6px; border-radius: 8px; white-space: nowrap;
+            background: #5f6368;
+        }
+
+        .region-boundary { filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.75)); }
+
+        .leaflet-tooltip.gauge-tip {
+            font-family: 'Roboto', sans-serif;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .player-panel {
+                width: calc(100% - 20px);
+                padding: 10px 12px;
+                gap: 8px;
+                bottom: 8px;
+                box-sizing: border-box;
+                flex-wrap: wrap;
+            }
+            .info-panel {
+                top: 10px; right: 10px;
+                width: calc(100% - 30px);
+                left: 15px;
+                max-height: calc(100vh - 120px);
+            }
+            .timeline-container { width: 100%; order: 4; margin-top: 5px; }
+            .control-group { flex: 1; }
+            .control-group.play-group { flex: 0 1 auto; min-width: 80px; }
+            #windowSelect, #periodSelect { width: 100%; font-size: 13px; padding: 8px 12px; box-sizing: border-box; }
+            #playBtn { width: 100%; padding: 8px 16px; min-width: 0; max-width: none; }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <div class="info-panel surface" id="infoPanel">
+        <h3>Rain Gauges</h3>
+
+        <!-- Accumulation period -->
+        <div class="control-group" style="margin-bottom:12px">
+            <span class="control-label">Accumulation Period</span>
+            <select id="periodSelect" onchange="onPeriodChange()">
+                <option value="1">1 hour</option>
+                <option value="6">6 hours</option>
+                <option value="12">12 hours</option>
+                <option value="24">24 hours</option>
+            </select>
+        </div>
+
+        <!-- Validity time -->
+        <div class="time-box">
+            <p style="margin:0;font-size:11px;text-transform:uppercase;font-weight:700;color:#1a73e8;letter-spacing:0.5px">Validity (UTC)</p>
+            <div id="timeDisplay" style="font-size:16px;font-weight:700;color:#202124;margin-top:3px">Loading&hellip;</div>
+        </div>
+
+        <!-- Colour scale -->
+        <div class="cbar-container">
+            <p id="cbarTitle" style="font-weight:500;margin:0 0 6px;font-size:12px;color:#3c4043">Accumulation (mm / 1hr)</p>
+            <div class="cbar" id="rainCbar"></div>
+            <div class="cbar-labels" id="rainLabels"></div>
+        </div>
+
+        <!-- Threshold exceedances (scrollable) -->
+        <div id="thresholdPanel">
+            <div style="color:#80868b;font-size:12px;padding:4px 0">Loading data&hellip;</div>
+        </div>
+
+        <!-- UK regions toggle -->
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e8eaed;flex-shrink:0">
+            <label class="custom-checkbox">
+                <input type="checkbox" id="boundaryToggle" checked onchange="toggleBoundaries(this.checked)">
+                UK regions
+            </label>
+        </div>
+
+        <!-- Attribution -->
+        <p style="font-size:11px;margin:10px 0 0;line-height:1.6;flex-shrink:0">
+            <a href="/" style="color:#1a73e8">&larr; Live radar</a> &nbsp;&middot;&nbsp;
+            <strong>Data:</strong>
+            <a href="https://environment.data.gov.uk/flood-monitoring/doc/rainfall" target="_blank" style="color:#1a73e8">Environment Agency</a>
+            &mdash; Open Government Licence v3.0
+        </p>
+    </div>
+
+    <!-- Player bar -->
+    <div class="player-panel surface" id="controlsPanel">
+        <div class="control-group play-group">
+            <span class="control-label" style="opacity:0;pointer-events:none">Play</span>
+            <button class="btn" id="playBtn" onclick="togglePlay()">
+                <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <span id="playText">Play</span>
+            </button>
+        </div>
+
+        <div class="timeline-container">
+            <div class="timeline-track"></div>
+            <div class="timeline-ticks" id="timelineTicks"></div>
+            <input type="range" id="timeSlider" min="0" max="0" value="0" oninput="onSliderChange(this.value)">
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Window</span>
+            <select id="windowSelect" onchange="onWindowChange()">
+                <option value="24" selected>Last 24 hours</option>
+                <option value="48">Last 48 hours</option>
+                <option value="72">Last 72 hours</option>
+            </select>
+        </div>
+    </div>
+
+    <script>
+        // ── Config ─────────────────────────────────────────────────────────────
+        var ACCUM_COLORS = ['#e1f5fe','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'];
+        var ACCUM_BREAKS = {
+            1:  [0.2, 1,   2,  5,  10,  20,  30,  50,  100],
+            6:  [1,   3,   6,  12, 20,  30,  50,  75,  150],
+            12: [2,   5,  10,  20, 30,  50,  75, 100,  200],
+            24: [2,   5,  10,  20, 40,  60,  80, 120,  250]
+        };
+        // Threshold exceedance list — panel only, not map colours
+        var THRESHOLDS = {
+            1:  [{mm: 20, label: '>20 mm / 1hr'},
+                 {mm: 30, label: '>30 mm / 1hr'}],
+            6:  [],
+            12: [{mm: 30, label: '>30 mm / 12hr'},
+                 {mm: 50, label: '>50 mm / 12hr'}],
+            24: []
+        };
+        var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+        // ── State ──────────────────────────────────────────────────────────────
+        var meta         = null;
+        var stations     = {};
+        var dayCache     = {};   // dateKey → {date, readings} or null (load failed)
+        var markers      = {};
+        var playing      = false;
+        var playInterval;
+        var currentSlotIdx = 0;
+        var accumHours   = 1;
+        var windowHours  = 24;
+        var playSpeed    = 200;
+        var anchorMs     = 0;
+        var totalSlots   = 0;
+
+        // ── Map setup ──────────────────────────────────────────────────────────
+        var map = L.map('map', {zoomControl: false}).setView([54.5, -3.5], 6);
+        L.control.zoom({position: 'topleft'}).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        }).addTo(map);
+
+        // UK regions
+        var regionLayer;
+        fetch('../uk_regions.geojson')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                regionLayer = L.geoJSON(data, {
+                    style: {color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary'},
+                    interactive: false
+                }).addTo(map);
+            })
+            .catch(function() {});
+
+        function toggleBoundaries(show) {
+            if (!regionLayer) return;
+            if (show) regionLayer.addTo(map); else map.removeLayer(regionLayer);
+        }
+
+        // Canvas renderer for smooth performance with ~1000 markers
+        var renderer = L.canvas({padding: 0.5});
+        var markerLayer = L.layerGroup().addTo(map);
+
+        // ── Helpers ────────────────────────────────────────────────────────────
+        function fmtDateKey(d) {
+            return d.getUTCFullYear().toString() +
+                String(d.getUTCMonth() + 1).padStart(2, '0') +
+                String(d.getUTCDate()).padStart(2, '0');
+        }
+
+        function slotToMs(idx) { return anchorMs + idx * 900000; }
+
+        function fmtUTC(ms) {
+            var d = new Date(ms);
+            return DAYS[d.getUTCDay()] + ' ' +
+                String(d.getUTCDate()).padStart(2,'0') + ' ' +
+                MONTHS[d.getUTCMonth()] + ' ' +
+                d.getUTCFullYear() + ' ' +
+                String(d.getUTCHours()).padStart(2,'0') + ':' +
+                String(d.getUTCMinutes()).padStart(2,'0');
+        }
+
+        function neededDayKeys(validityMs, accumHrs) {
+            var oldestMs = validityMs - accumHrs * 3600000;
+            var keys = [];
+            var d = new Date(oldestMs);
+            d.setUTCHours(0, 0, 0, 0);
+            while (d.getTime() <= validityMs) {
+                var k = fmtDateKey(d);
+                if (keys.indexOf(k) === -1) keys.push(k);
+                d = new Date(d.getTime() + 86400000);
+            }
+            return keys;
+        }
+
+        function loadDayFile(dateKey, cb) {
+            if (dayCache[dateKey] !== undefined) { cb(); return; }
+            if (!meta || !meta.r2_base_url) { dayCache[dateKey] = null; cb(); return; }
+            var url = meta.r2_base_url + '/rain/readings/' + dateKey + '.json';
+            fetch(url)
+                .then(function(r) { if (!r.ok) throw new Error(); return r.json(); })
+                .then(function(data) { dayCache[dateKey] = data; cb(); })
+                .catch(function() { dayCache[dateKey] = null; cb(); });
+        }
+
+        function ensureDaysLoaded(dayKeys, cb) {
+            var pending = dayKeys.filter(function(k) { return dayCache[k] === undefined; });
+            if (!pending.length) { cb(); return; }
+            var done = 0;
+            pending.forEach(function(k) {
+                loadDayFile(k, function() { if (++done === pending.length) cb(); });
+            });
+        }
+
+        // ── Accumulation ───────────────────────────────────────────────────────
+        function computeAccum(stationId, validityMs, accumHrs) {
+            var total = 0;
+            var slots = accumHrs * 4;
+            for (var s = 0; s < slots; s++) {
+                var t = new Date(validityMs - s * 900000);
+                var dk = fmtDateKey(t);
+                var slotIdx = String((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15);
+                var day = dayCache[dk];
+                if (!day) continue;
+                var stData = day.readings[stationId];
+                if (!stData) continue;
+                var v = stData[slotIdx];
+                if (typeof v === 'number' && v >= 0) total += v;
+            }
+            return total;
+        }
+
+        function getAccumStyle(val, period) {
+            var breaks = ACCUM_BREAKS[period] || ACCUM_BREAKS[1];
+            if (val < 0.1) return {fill: '#90a4ae', opacity: 0.2, radius: 3};
+            var colorIdx = 0;
+            for (var i = 0; i < breaks.length; i++) {
+                if (val >= breaks[i]) colorIdx = i; else break;
+            }
+            var r = Math.min(4 + Math.floor(colorIdx * 0.7), 8);
+            return {fill: ACCUM_COLORS[colorIdx], opacity: 0.85, radius: r};
+        }
+
+        // ── Markers ────────────────────────────────────────────────────────────
+        function createMarkers() {
+            markerLayer.clearLayers();
+            markers = {};
+            Object.keys(stations).forEach(function(id) {
+                var s = stations[id];
+                if (!s || s.lat == null || s.lon == null) return;
+                var m = L.circleMarker([s.lat, s.lon], {
+                    renderer: renderer,
+                    radius: 3,
+                    fillColor: '#90a4ae',
+                    color: 'transparent',
+                    weight: 0,
+                    fillOpacity: 0.2,
+                    interactive: true
+                });
+                m.bindTooltip('', {direction: 'top', className: 'gauge-tip', offset: [0, -4]});
+                m.on('click', (function(sid) {
+                    return function() { panToStation(sid); };
+                })(id));
+                markers[id] = m;
+                markerLayer.addLayer(m);
+            });
+        }
+
+        function panToStation(id) {
+            var s = stations[id];
+            if (!s) return;
+            map.panTo([s.lat, s.lon]);
+            if (markers[id]) markers[id].openTooltip();
+        }
+
+        // ── Render frame ───────────────────────────────────────────────────────
+        function renderFrame(validityMs) {
+            var accumMap = {};
+            Object.keys(stations).forEach(function(id) {
+                accumMap[id] = computeAccum(id, validityMs, accumHours);
+            });
+
+            Object.keys(markers).forEach(function(id) {
+                var val = accumMap[id] || 0;
+                var style = getAccumStyle(val, accumHours);
+                markers[id].setStyle({fillColor: style.fill, fillOpacity: style.opacity, radius: style.radius});
+                var name = (stations[id] && stations[id].name) || id;
+                markers[id].setTooltipContent(
+                    '<b>' + name + '</b><br>' + val.toFixed(1) + ' mm / ' + accumHours + 'hr'
+                );
+            });
+
+            renderThresholdPanel(accumMap);
+            document.getElementById('timeDisplay').innerText = fmtUTC(validityMs);
+        }
+
+        function renderThresholdPanel(accumMap) {
+            var thresholds = THRESHOLDS[accumHours] || [];
+            if (!thresholds.length) {
+                document.getElementById('thresholdPanel').innerHTML =
+                    '<div style="color:#80868b;font-size:12px;padding:4px 0">No thresholds defined for this period</div>';
+                return;
+            }
+            var html = '';
+            thresholds.forEach(function(t) {
+                var exceeders = Object.keys(accumMap)
+                    .filter(function(id) { return accumMap[id] >= t.mm; })
+                    .sort(function(a, b) { return accumMap[b] - accumMap[a]; });
+
+                // Colour badge: pick the break colour nearest to the threshold
+                var breaks = ACCUM_BREAKS[accumHours] || ACCUM_BREAKS[1];
+                var ci = 0;
+                for (var i = 0; i < breaks.length; i++) {
+                    if (t.mm >= breaks[i]) ci = i; else break;
+                }
+                var badgeColor = ACCUM_COLORS[ci];
+
+                html += '<div class="thresh-section">';
+                html += '<div class="thresh-header">' + t.label +
+                    '<span class="thresh-count">' + exceeders.length + '</span></div>';
+                if (!exceeders.length) {
+                    html += '<div style="color:#80868b;font-size:12px;padding:3px 6px">None</div>';
+                } else {
+                    exceeders.slice(0, 50).forEach(function(id) {
+                        var name = (stations[id] && stations[id].name) || id;
+                        html += '<div class="thresh-row" onclick="panToStation(\'' + id.replace(/'/g, "\\'") + '\')">' +
+                            '<span class="thresh-name">' + name + '</span>' +
+                            '<span class="thresh-val" style="background:' + badgeColor + '">' +
+                            accumMap[id].toFixed(1) + 'mm</span></div>';
+                    });
+                    if (exceeders.length > 50) {
+                        html += '<div style="color:#80868b;font-size:11px;padding:3px 6px">&hellip;and ' + (exceeders.length - 50) + ' more</div>';
+                    }
+                }
+                html += '</div>';
+            });
+            document.getElementById('thresholdPanel').innerHTML = html;
+        }
+
+        // ── Timeline ───────────────────────────────────────────────────────────
+        function rebuildTimeline() {
+            if (!meta || !meta.latest_time) return;
+            var latestMs = new Date(meta.latest_time).getTime();
+            anchorMs    = latestMs - windowHours * 3600000;
+            totalSlots  = windowHours * 4;
+            var slider  = document.getElementById('timeSlider');
+            slider.max  = totalSlots - 1;
+            updateTimelineTicks();
+            setSlot(totalSlots - 1);
+        }
+
+        function updateTimelineTicks() {
+            var container = document.getElementById('timelineTicks');
+            container.innerHTML = '';
+            var max = totalSlots - 1;
+            if (max <= 0) return;
+            var lastDay = null, lastDayPct = -100;
+            var labelInterval = windowHours > 24 ? 6 : (windowHours > 12 ? 3 : 2);
+
+            for (var i = 0; i <= max; i++) {
+                var ms  = slotToMs(i);
+                var d   = new Date(ms);
+                var h   = d.getUTCHours(), m = d.getUTCMinutes();
+                var pct = (i / max) * 100;
+                var dk  = fmtDateKey(d);
+                var ts  = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+
+                if (dk !== lastDay) {
+                    if (pct - lastDayPct > 8) {
+                        var mark = document.createElement('div');
+                        mark.className = 'tick today-mark';
+                        mark.style.left = Math.max(pct, 2) + '%';
+                        mark.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
+                            '<span style="font-weight:700">' + String(d.getUTCDate()).padStart(2,'0') + ' ' + MONTHS[d.getUTCMonth()] + '</span>';
+                        container.appendChild(mark);
+                        lastDayPct = pct;
+                    }
+                    lastDay = dk;
+                }
+
+                if (h === 0 && m === 0) {
+                    var t = document.createElement('div');
+                    t.className = 'tick'; t.style.left = pct + '%';
+                    t.style.height = '14px'; t.style.top = '3px';
+                    t.style.background = '#ea4335'; t.style.width = '2px';
+                    container.appendChild(t);
+                } else if (h === 12 && m === 0) {
+                    var t = document.createElement('div');
+                    t.className = 'tick'; t.style.left = pct + '%';
+                    t.style.height = '12px'; t.style.top = '4px';
+                    t.style.background = '#fbbc04'; t.style.width = '2px';
+                    container.appendChild(t);
+                    var lbl = document.createElement('div');
+                    lbl.className = 'tick-label'; lbl.style.left = pct + '%'; lbl.innerText = '12:00';
+                    container.appendChild(lbl);
+                } else if (m === 0 && h % labelInterval === 0 && pct > 2 && pct < 98) {
+                    var t = document.createElement('div');
+                    t.className = 'tick hour'; t.style.left = pct + '%';
+                    container.appendChild(t);
+                    var lbl = document.createElement('div');
+                    lbl.className = 'tick-label'; lbl.style.left = pct + '%';
+                    lbl.innerText = String(h).padStart(2,'0') + ':00';
+                    container.appendChild(lbl);
+                } else if (m === 30 && windowHours <= 6) {
+                    var t = document.createElement('div');
+                    t.className = 'tick'; t.style.left = pct + '%';
+                    container.appendChild(t);
+                }
+            }
+        }
+
+        function setSlot(idx) {
+            currentSlotIdx = Math.max(0, Math.min(idx, totalSlots - 1));
+            document.getElementById('timeSlider').value = currentSlotIdx;
+            var validityMs = slotToMs(currentSlotIdx);
+            var dayKeys = neededDayKeys(validityMs, accumHours);
+            ensureDaysLoaded(dayKeys, function() {
+                if (Object.keys(stations).length > 0) renderFrame(validityMs);
+            });
+        }
+
+        function onSliderChange(val) {
+            if (playing) togglePlay();
+            setSlot(parseInt(val));
+        }
+
+        function onPeriodChange() {
+            accumHours = parseInt(document.getElementById('periodSelect').value);
+            updateColorbar();
+            setSlot(currentSlotIdx);
+        }
+
+        function onWindowChange() {
+            windowHours = parseInt(document.getElementById('windowSelect').value);
+            rebuildTimeline();
+        }
+
+        // ── Playback ───────────────────────────────────────────────────────────
+        function playStep() {
+            if (!playing) return;
+            var nextIdx = currentSlotIdx + 1;
+            var delay = playSpeed;
+            if (nextIdx >= totalSlots) {
+                nextIdx = 0;
+            } else if (nextIdx === totalSlots - 1) {
+                delay = 1200;
+            }
+            setSlot(nextIdx);
+            playInterval = setTimeout(playStep, delay);
+        }
+
+        function togglePlay() {
+            var icon = document.getElementById('playIcon');
+            var text = document.getElementById('playText');
+            if (playing) {
+                clearTimeout(playInterval);
+                icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"></polygon>';
+                text.innerText = 'Play';
+                playing = false;
+            } else {
+                if (currentSlotIdx >= totalSlots - 1) setSlot(0);
+                icon.innerHTML = '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>';
+                text.innerText = 'Pause';
+                playing = true;
+                playInterval = setTimeout(playStep, playSpeed);
+            }
+        }
+
+        // ── Colour bar ─────────────────────────────────────────────────────────
+        function updateColorbar() {
+            var breaks = ACCUM_BREAKS[accumHours] || ACCUM_BREAKS[1];
+            var cbar   = document.getElementById('rainCbar');
+            var labels = document.getElementById('rainLabels');
+
+            var html = '';
+            ACCUM_COLORS.forEach(function(c) {
+                html += '<div class="cbar-block" style="background:' + c + '"></div>';
+            });
+            cbar.innerHTML = html;
+
+            var step  = 100 / (breaks.length - 1);
+            var lhtml = breaks.map(function(v, i) {
+                return '<span class="cbar-label" style="left:' + (i * step).toFixed(1) + '%">' + v + '</span>';
+            }).join('');
+            labels.innerHTML = lhtml;
+
+            document.getElementById('cbarTitle').innerText =
+                'Accumulation (mm / ' + accumHours + 'hr)';
+        }
+
+        // ── Boot ───────────────────────────────────────────────────────────────
+        updateColorbar();
+
+        // Load meta
+        fetch('meta.json?_cb=' + Date.now())
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                meta = data;
+                if (!meta.latest_time) {
+                    document.getElementById('thresholdPanel').innerHTML =
+                        '<div style="color:#80868b;font-size:12px;padding:4px 0">Waiting for first data run&hellip;</div>';
+                    document.getElementById('timeDisplay').innerText = 'No data yet';
+                    return;
+                }
+                rebuildTimeline();
+                // Auto-poll every 5 min
+                setInterval(function() {
+                    fetch('meta.json?_cb=' + Date.now())
+                        .then(function(r) { return r.json(); })
+                        .then(function(d) {
+                            if (d.latest_time && d.latest_time !== meta.latest_time) {
+                                var wasLatest = currentSlotIdx === totalSlots - 1;
+                                delete dayCache[fmtDateKey(new Date(d.latest_time))];
+                                meta = d;
+                                rebuildTimeline();
+                                if (!wasLatest) setSlot(currentSlotIdx);
+                            }
+                        }).catch(function() {});
+                }, 5 * 60 * 1000);
+            })
+            .catch(function() {
+                document.getElementById('timeDisplay').innerText = 'Could not load data';
+            });
+
+        // Load stations
+        fetch('stations.json?_cb=' + Date.now())
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                stations = data.stations || data || {};
+                if (!Object.keys(stations).length) return;
+                createMarkers();
+                if (totalSlots > 0) setSlot(currentSlotIdx);
+            })
+            .catch(function() {});
+    </script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+name: Fetch Rain Gauge Data
+
+on:
+  # Triggered every 15 min by Google Apps Script (same mechanism as radar_update.yml)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Fetch rain gauge readings
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+      run: python fetch_rain.py
+
+    - name: Commit manifest
+      run: |
+        git config --global user.name "Radar Automator"
+        git config --global user.email "radar-bot@github.com"
+        git add rain/meta.json rain/stations.json
+        git diff --cached --quiet && echo "No changes to commit" || (
+          git commit -m "Update rain gauge data $(date -u +'%Y-%m-%d %H:%M UTC')" &&
+          git pull --rebase -X theirs origin main &&
+          git push origin main
+        )
