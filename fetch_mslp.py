@@ -372,8 +372,8 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path, detail=False):
         return False
 
     # Stroke widths: detail variant uses narrower lines for zoomed-in view
-    thin_lw,  thin_stroke  = (0.15, 0.55) if detail else (0.25, 0.9)
-    thick_lw, thick_stroke = (0.35, 1.0)  if detail else (0.55, 1.5)
+    thin_lw,  thin_stroke  = (0.13, 0.47) if detail else (0.25, 0.9)
+    thick_lw, thick_stroke = (0.30, 0.85) if detail else (0.55, 1.5)
 
     # Thin black lines every 4 hPa
     n = len(ax.collections)
@@ -408,13 +408,18 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path, detail=False):
     # H / L pressure centre markers
     highs, lows = find_pressure_centers(lat_1d, lon_1d, msl_2d)
     yoff = -0.10 * (MERC_YMAX - MERC_YMIN) / (OUT_HEIGHT / DPI)
-    stroke = [pe.withStroke(linewidth=1.5, foreground='white')]
+    
+    letter_fontsize = 5 if detail else 9
+    pres_fontsize = 3.5 if detail else 6
+    marker_stroke_width = 1.0 if detail else 1.5
+    
+    stroke = [pe.withStroke(linewidth=marker_stroke_width, foreground='white')]
     for colour, letter, centres in [('#8c3232', 'H', highs), ('#2b5285', 'L', lows)]:
         for mx, my, pres in centres:
-            ax.text(mx, my, letter, color=colour, fontsize=9, fontweight='bold',
+            ax.text(mx, my, letter, color=colour, fontsize=letter_fontsize, fontweight='bold',
                     ha='center', va='center', path_effects=stroke,
                     fontfamily=_LABEL_FONT)
-            ax.text(mx, my + yoff, f'{round(pres)}', color=colour, fontsize=6,
+            ax.text(mx, my + yoff, f'{round(pres)}', color=colour, fontsize=pres_fontsize,
                     ha='center', va='top', path_effects=stroke,
                     fontfamily=_LABEL_FONT)
 
