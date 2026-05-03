@@ -84,10 +84,11 @@ def fetch_stations():
         lon = item.get("long")
         if not ref or lat is None or lon is None:
             continue
+        name = item.get("gridReference") or item.get("stationReference") or ref
         stations[ref] = {
             "lat": round(float(lat), 5),
             "lon": round(float(lon), 5),
-            "name": item.get("label", ref),
+            "name": name,
         }
     print(f"  {len(stations)} stations with coordinates")
     return stations
@@ -248,7 +249,7 @@ def main():
     # ── Write updated meta ────────────────────────────────────────────────────
     meta = {
         "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "latest_time": latest_dt or last_time,
+        "latest_time": latest_dt or meta.get("latest_time", ""),
         "available_days": sorted(available_days),
         "r2_base_url": R2_PUBLIC_URL,
     }
