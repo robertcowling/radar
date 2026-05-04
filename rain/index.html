@@ -420,6 +420,7 @@
     <script>
         // ── Config ─────────────────────────────────────────────────────────────
         var ACCUM_COLORS = ['#e1f5fe','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'];
+        var ACCUM_TEXT  = ['#01579b','#01579b','#002b6b','#ffffff','#ffffff','#5d3a00','#ffffff','#ffffff','#ffffff'];
         var SCALE_MODES = {
             normal: [0.1, 0.5,  1,  2,  4,   8,  16,  32,  64],
             high:   [2,   5,   10, 25, 50, 100, 150, 200, 350]
@@ -557,7 +558,7 @@
             for (var i = 0; i < breaks.length; i++) {
                 if (val >= breaks[i]) colorIdx = i; else break;
             }
-            return {nodata: false, fill: ACCUM_COLORS[colorIdx]};
+            return {nodata: false, fill: ACCUM_COLORS[colorIdx], text: ACCUM_TEXT[colorIdx]};
         }
 
         // ── Markers ────────────────────────────────────────────────────────────
@@ -610,10 +611,12 @@
                         if (style.nodata) {
                             div.className = 'rg-icon rg-nodata';
                             div.style.background = '';
+                            div.style.color = '';
                             div.textContent = '';
                         } else {
                             div.className = 'rg-icon';
                             div.style.background = style.fill;
+                            div.style.color = style.text;
                             div.textContent = showValues ? fmtVal(val) : '';
                         }
                     } else if (showValues !== prevVals._showValues) {
