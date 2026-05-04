@@ -42,7 +42,6 @@
             flex-direction: column;
             overflow: hidden;
         }
-        .info-panel h3 { margin: 0 0 14px; font-size: 18px; color: #202124; font-weight: 500; }
 
         .player-panel {
             position: absolute;
@@ -318,6 +317,21 @@
             border: none;
         }
 
+        #menuBtn {
+            background: none; border: none; cursor: pointer;
+            padding: 4px 6px; border-radius: 6px;
+            color: #5f6368; display: flex; align-items: center;
+            flex-shrink: 0;
+        }
+        #menuBtn:hover { background: #f1f3f4; }
+        .panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 14px; flex-shrink: 0;
+        }
+        .panel-header h3 { margin: 0; font-size: 18px; color: #202124; font-weight: 500; }
+        #panelBody { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
+        #panelBody.collapsed { display: none; }
+
         @media (max-width: 768px) {
             .player-panel {
                 width: calc(100% - 20px);
@@ -346,8 +360,18 @@
     <div id="map"></div>
 
     <div class="info-panel surface" id="infoPanel">
-        <h3>Rain Gauges</h3>
+        <div class="panel-header">
+            <h3>Rain Gauges</h3>
+            <button id="menuBtn" onclick="toggleMenu()" title="Collapse panel">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
 
+        <div id="panelBody">
         <!-- Scale mode -->
         <div class="control-group" style="margin-bottom:12px">
             <span class="control-label">Scale</span>
@@ -359,13 +383,13 @@
 
         <!-- Window display -->
         <div class="time-box">
-            <p style="margin:0;font-size:11px;text-transform:uppercase;font-weight:700;color:#1a73e8;letter-spacing:0.5px">Window (UTC)</p>
+            <p style="margin:0;font-size:11px;text-transform:uppercase;font-weight:700;color:#1a73e8;letter-spacing:0.5px">Window</p>
             <div id="timeDisplay" style="font-size:13px;font-weight:700;color:#202124;margin-top:3px">Loading&hellip;</div>
         </div>
 
         <!-- Colour scale -->
         <div class="cbar-container">
-            <p id="cbarTitle" style="font-weight:500;margin:0 0 6px;font-size:12px;color:#3c4043">Accumulation (mm / 1hr)</p>
+            <p id="cbarTitle" style="font-weight:500;margin:0 0 6px;font-size:12px;color:#3c4043">Accumulation (mm)</p>
             <div class="cbar" id="rainCbar"></div>
             <div class="cbar-labels" id="rainLabels"></div>
         </div>
@@ -381,11 +405,11 @@
                 <input type="checkbox" id="boundaryToggle" checked onchange="toggleBoundaries(this.checked)">
                 UK regions
             </label>
-        </div>
             <label class="custom-checkbox" style="margin-top:6px">
                 <input type="checkbox" id="valToggle" onchange="onValuesToggle(this.checked)">
                 Show values
             </label>
+        </div>
 
         <!-- Attribution -->
         <p style="font-size:11px;margin:10px 0 0;line-height:1.6;flex-shrink:0">
@@ -394,6 +418,7 @@
             <a href="https://environment.data.gov.uk/flood-monitoring/doc/rainfall" target="_blank" style="color:#1a73e8">Environment Agency</a>
             &mdash; Open Government Licence v3.0
         </p>
+        </div><!-- /panelBody -->
     </div>
 
     <!-- Player bar -->
@@ -406,6 +431,21 @@
                 </svg>
                 <span id="playText">Play</span>
             </button>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Period</span>
+            <select id="accumSelect" onchange="onAccumChange()">
+                <option value="3" selected>3 hours</option>
+                <option value="1">1 hour</option>
+                <option value="6">6 hours</option>
+                <option value="12">12 hours</option>
+                <option value="24">24 hours</option>
+                <option value="48">48 hours</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="custom" hidden>Custom</option>
+            </select>
         </div>
 
         <div class="timeline-container">
@@ -500,15 +540,15 @@
         }
 
         function slotToMs(idx) { return anchorMs + idx * 900000; }
+        function msToSlot(ms)  { return Math.round((ms - anchorMs) / 900000); }
 
-        function fmtUTC(ms) {
+        function fmtLocal(ms) {
             var d = new Date(ms);
-            return DAYS[d.getUTCDay()] + ' ' +
-                String(d.getUTCDate()).padStart(2,'0') + ' ' +
-                MONTHS[d.getUTCMonth()] + ' ' +
-                d.getUTCFullYear() + ' ' +
-                String(d.getUTCHours()).padStart(2,'0') + ':' +
-                String(d.getUTCMinutes()).padStart(2,'0');
+            return DAYS[d.getDay()] + ' ' +
+                String(d.getDate()).padStart(2,'0') + ' ' +
+                MONTHS[d.getMonth()] + ' ' +
+                String(d.getHours()).padStart(2,'0') + ':' +
+                String(d.getMinutes()).padStart(2,'0');
         }
 
         function neededDayKeys(validityMs, accumHrs) {
@@ -654,7 +694,7 @@
                          : dur % 1 === 0 ? dur + 'hr'
                          : dur.toFixed(1) + 'hr';
             document.getElementById('timeDisplay').innerText =
-                fmtUTC(slotToMs(startSlotIdx)) + '\n→ ' + fmtUTC(validityMs) + '  (' + durLabel + ')';
+                fmtLocal(slotToMs(startSlotIdx)) + '\n→ ' + fmtLocal(validityMs) + '  (' + durLabel + ')';
         }
 
         function renderThresholdPanel(accumMap, accumHrs) {
@@ -715,7 +755,7 @@
             document.getElementById('sliderEnd').max   = max;
             updateTimelineTicks();
             var prevDur = endSlotIdx - startSlotIdx;
-            var dur = prevDur > 0 ? prevDur : 4; // default 1hr
+            var dur = prevDur > 0 ? prevDur : 12; // default 3hr
             endSlotIdx   = max;
             startSlotIdx = Math.max(0, max - dur);
             setWindow(startSlotIdx, endSlotIdx);
@@ -732,22 +772,22 @@
             for (var i = 0; i <= max; i++) {
                 var ms  = slotToMs(i);
                 var d   = new Date(ms);
-                var h   = d.getUTCHours(), m = d.getUTCMinutes();
+                var h   = d.getHours(), m = d.getMinutes();
                 var pct = (i / max) * 100;
-                var dk  = fmtDateKey(d);
-                var ts  = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+                var localDay = String(d.getFullYear()) +
+                    String(d.getMonth() + 1).padStart(2,'0') +
+                    String(d.getDate()).padStart(2,'0');
 
-                if (dk !== lastDay) {
+                if (localDay !== lastDay) {
                     if (pct - lastDayPct > 8) {
                         var mark = document.createElement('div');
                         mark.className = 'tick today-mark';
                         mark.style.left = Math.max(pct, 2) + '%';
-                        mark.innerHTML = '<span style="color:#1a73e8;font-weight:700;font-size:12px">| ' + String(d.getUTCDate()).padStart(2,'0') + ' ' + MONTHS[d.getUTCMonth()] + '</span>';
-
+                        mark.innerHTML = '<span style="color:#1a73e8;font-weight:700;font-size:12px">| ' + String(d.getDate()).padStart(2,'0') + ' ' + MONTHS[d.getMonth()] + '</span>';
                         container.appendChild(mark);
                         lastDayPct = pct;
                     }
-                    lastDay = dk;
+                    lastDay = localDay;
                 }
 
                 if (h === 0 && m === 0) {
@@ -809,6 +849,37 @@
         function fmtVal(val) {
             if (val < 1) return val.toFixed(1);
             return Math.round(val).toString();
+        }
+
+        function toggleMenu() {
+            document.getElementById('panelBody').classList.toggle('collapsed');
+        }
+
+        function onAccumChange() {
+            var val = document.getElementById('accumSelect').value;
+            if (val === 'custom') return;
+            var max = totalSlots - 1;
+            var latestMs = slotToMs(max);
+            var now = new Date(latestMs);
+            if (val === 'today') {
+                var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                setWindow(Math.max(0, msToSlot(midnight.getTime())), max);
+            } else if (val === 'yesterday') {
+                var todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                var ystMid   = new Date(todayMid.getTime() - 86400000);
+                var s = Math.max(0, msToSlot(ystMid.getTime()));
+                var e = Math.min(max, msToSlot(todayMid.getTime()) - 1);
+                setWindow(s, e);
+            } else {
+                var hrs = parseFloat(val);
+                setWindow(Math.max(0, max - Math.round(hrs * 4)), max);
+            }
+        }
+
+        function setAccumCustom() {
+            var sel = document.getElementById('accumSelect');
+            sel.querySelector('option[value="custom"]').hidden = false;
+            sel.value = 'custom';
         }
 
         function onValuesToggle(checked) {
@@ -883,12 +954,14 @@
             if (playing) togglePlay();
             var v = parseInt(this.value);
             if (v <= startSlotIdx) v = startSlotIdx + 1;
+            setAccumCustom();
             setWindow(startSlotIdx, v);
         });
         document.getElementById('sliderStart').addEventListener('input', function() {
             if (playing) togglePlay();
             var v = parseInt(this.value);
             if (v >= endSlotIdx) v = endSlotIdx - 1;
+            setAccumCustom();
             setWindow(v, endSlotIdx);
         });
         document.getElementById('rangeGrab').addEventListener('mousedown', function(e) {
@@ -903,6 +976,7 @@
             var delta = Math.round((e.clientX - grabDrag.x) / pxPerSlot);
             var dur = grabDrag.end - grabDrag.start;
             var newStart = Math.max(0, Math.min(grabDrag.start + delta, totalSlots - 1 - dur));
+            setAccumCustom();
             setWindow(newStart, newStart + dur);
         });
         document.addEventListener('mouseup', function() { grabDrag = null; });
