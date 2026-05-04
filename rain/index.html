@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <title>UK Rain Gauges</title>
@@ -312,6 +312,17 @@
                 <option value="6">6 hours</option>
                 <option value="12">12 hours</option>
                 <option value="24">24 hours</option>
+                <option value="48">2 days (48hr)</option>
+                <option value="72">3 days (72hr)</option>
+            </select>
+        </div>
+
+        <!-- Scale mode -->
+        <div class="control-group" style="margin-bottom:12px">
+            <span class="control-label">Scale</span>
+            <select id="scaleSelect" onchange="onScaleChange()">
+                <option value="normal">Normal</option>
+                <option value="high">High events</option>
             </select>
         </div>
 
@@ -381,12 +392,11 @@
     <script>
         // ── Config ─────────────────────────────────────────────────────────────
         var ACCUM_COLORS = ['#e1f5fe','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'];
-        var ACCUM_BREAKS = {
-            1:  [0.2, 1,   2,  5,  10,  20,  30,  50,  100],
-            6:  [1,   3,   6,  12, 20,  30,  50,  75,  150],
-            12: [2,   5,  10,  20, 30,  50,  75, 100,  200],
-            24: [2,   5,  10,  20, 40,  60,  80, 120,  250]
+        var SCALE_MODES = {
+            normal: [0.1, 0.5,  1,  2,  4,   8,  16,  32,  64],
+            high:   [2,   5,   10, 25, 50, 100, 150, 200, 350]
         };
+        var scaleMode = 'normal';
         // Threshold exceedance list — panel only, not map colours
         var THRESHOLDS = {
             1:  [{mm: 20, label: '>20 mm / 1hr'},
@@ -394,7 +404,11 @@
             6:  [],
             12: [{mm: 30, label: '>30 mm / 12hr'},
                  {mm: 50, label: '>50 mm / 12hr'}],
-            24: []
+            24: [],
+            48: [{mm: 50,  label: '>50 mm / 48hr'},
+                 {mm: 100, label: '>100 mm / 48hr'}],
+            72: [{mm: 75,  label: '>75 mm / 72hr'},
+                 {mm: 150, label: '>150 mm / 72hr'}]
         };
         var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         var DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -510,9 +524,9 @@
             return total;
         }
 
-        function getAccumStyle(val, period) {
-            var breaks = ACCUM_BREAKS[period] || ACCUM_BREAKS[1];
-            if (val < 0.1) return {fill: '#90a4ae', opacity: 0.2, radius: 3};
+        function getAccumStyle(val) {
+            var breaks = SCALE_MODES[scaleMode];
+            if (val < 0.05) return {fill: '#90a4ae', opacity: 0.2, radius: 3};
             var colorIdx = 0;
             for (var i = 0; i < breaks.length; i++) {
                 if (val >= breaks[i]) colorIdx = i; else break;
@@ -562,11 +576,16 @@
 
             Object.keys(markers).forEach(function(id) {
                 var val = accumMap[id] || 0;
-                var style = getAccumStyle(val, accumHours);
+                var style = getAccumStyle(val);
                 markers[id].setStyle({fillColor: style.fill, fillOpacity: style.opacity, radius: style.radius});
-                var name = (stations[id] && stations[id].name) || id;
+                var s = stations[id];
+                var name = (s && s.name) || id;
+                var hydroUrl = (s && s.guid)
+                    ? 'https://environment.data.gov.uk/hydrology/id/stations/' + s.guid + '_' + id + '.html'
+                    : null;
                 markers[id].setTooltipContent(
-                    '<b>' + name + '</b><br>' + val.toFixed(1) + ' mm / ' + accumHours + 'hr'
+                    '<b>' + name + '</b><br>' + val.toFixed(1) + ' mm' +
+                    (hydroUrl ? '<br><a href="' + hydroUrl + '" target="_blank" style="color:#1a73e8;font-size:11px">Hydrology API &#x2197;</a>' : '')
                 );
             });
 
@@ -588,7 +607,7 @@
                     .sort(function(a, b) { return accumMap[b] - accumMap[a]; });
 
                 // Colour badge: pick the break colour nearest to the threshold
-                var breaks = ACCUM_BREAKS[accumHours] || ACCUM_BREAKS[1];
+                var breaks = SCALE_MODES[scaleMode];
                 var ci = 0;
                 for (var i = 0; i < breaks.length; i++) {
                     if (t.mm >= breaks[i]) ci = i; else break;
@@ -650,8 +669,8 @@
                         var mark = document.createElement('div');
                         mark.className = 'tick today-mark';
                         mark.style.left = Math.max(pct, 2) + '%';
-                        mark.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
-                            '<span style="font-weight:700">' + String(d.getUTCDate()).padStart(2,'0') + ' ' + MONTHS[d.getUTCMonth()] + '</span>';
+                        mark.innerHTML = '<span style="color:#1a73e8;font-weight:700;font-size:12px">| ' + String(d.getUTCDate()).padStart(2,'0') + ' ' + MONTHS[d.getUTCMonth()] + '</span>';
+
                         container.appendChild(mark);
                         lastDayPct = pct;
                     }
@@ -706,6 +725,12 @@
 
         function onPeriodChange() {
             accumHours = parseInt(document.getElementById('periodSelect').value);
+            updateColorbar();
+            setSlot(currentSlotIdx);
+        }
+
+        function onScaleChange() {
+            scaleMode = document.getElementById('scaleSelect').value;
             updateColorbar();
             setSlot(currentSlotIdx);
         }
