@@ -17,8 +17,9 @@ from datetime import datetime, timedelta, timezone
 import boto3
 import requests
 
-# ── EA API ────────────────────────────────────────────────────────────────────
-EA_BASE = "https://environment.data.gov.uk/flood-monitoring"
+# ── EA APIs ───────────────────────────────────────────────────────────────────
+EA_BASE    = "https://environment.data.gov.uk/flood-monitoring"   # readings (real-time)
+HYDRO_BASE = "https://environment.data.gov.uk/hydrology"          # stations + readings
 
 # ── Cloudflare R2 ─────────────────────────────────────────────────────────────
 R2_ACCOUNT_ID    = os.environ.get("R2_ACCOUNT_ID", "")
@@ -58,12 +59,17 @@ def r2_put_json(r2, key, data):
                   ContentType="application/json; charset=utf-8")
 
 
-def station_id_from_measure(uri):
-    """Extract stationReference from a measure URI.
-    e.g. '.../measures/52203-rainfall-tipping_bucket_raingauge-t-15_min-mm' → '52203'
+def station_id_from_measure(uri, suid_to_ref=None):
+    """Extract station ID from a measure URI.
+
+    Hydrology API:    .../measures/{GUID}-rainfall-t-900-mm-qualified  → GUID lookup
+    Flood monitoring: .../measures/52203-rainfall-tipping_bucket_...   → direct ref
     """
     suffix = uri.rsplit("/", 1)[-1]
-    return suffix.split("-rainfall")[0]
+    raw_id = suffix.split("-rainfall")[0]
+    if suid_to_ref is not None:
+        return suid_to_ref.get(raw_id)
+    return raw_id
 
 
 def dt_to_slot(dt_str):
@@ -73,33 +79,40 @@ def dt_to_slot(dt_str):
 
 
 def fetch_stations():
-    print("Fetching station list from EA API...")
-    url = f"{EA_BASE}/id/stations?parameter=rainfall&_limit=10000"
-    r = requests.get(url, timeout=30)
+    """Fetch stations from the Hydrology API (real place-name labels).
+    Returns (stations dict keyed by stationReference, suid_to_ref lookup).
+    """
+    print("Fetching station list from Hydrology API...")
+    url = f"{HYDRO_BASE}/id/stations.json?observedProperty=rainfall&_limit=10000"
+    r = requests.get(url, timeout=60)
     r.raise_for_status()
     stations = {}
+    suid_to_ref = {}
     for item in r.json().get("items", []):
-        ref = item.get("stationReference") or item.get("notation")
-        lat = item.get("lat")
-        lon = item.get("long")
+        ref  = item.get("stationReference")
+        guid = item.get("stationGuid")
+        lat  = item.get("lat")
+        lon  = item.get("long")
         if not ref or lat is None or lon is None:
             continue
-        name = item.get("gridReference") or item.get("stationReference") or ref
+        if guid:
+            suid_to_ref[guid] = ref
         stations[ref] = {
-            "lat": round(float(lat), 5),
-            "lon": round(float(lon), 5),
-            "name": name,
+            "lat":  round(float(lat), 5),
+            "lon":  round(float(lon), 5),
+            "name": item.get("label") or ref,
+            "guid": guid,
         }
     print(f"  {len(stations)} stations with coordinates")
-    return stations
+    return stations, suid_to_ref
 
 
 def fetch_readings_for_date(date_str):
-    """Fetch all readings for a YYYY-MM-DD date.
-    The ?date= filter has no default limit on the EA API, so all readings for
-    the day are returned in one response. No pagination needed.
+    """Fetch all 15-min rainfall readings for a YYYY-MM-DD date from Hydrology API.
+    ~96k readings/day (1000 stations × 96 slots) — well within 200k limit.
     """
-    url = f"{EA_BASE}/data/readings?parameter=rainfall&date={date_str}"
+    url = (f"{HYDRO_BASE}/data/readings.json"
+           f"?observedProperty=rainfall&period=900&date={date_str}&_limit=200000")
     print(f"  Fetching readings for {date_str}...")
     r = requests.get(url, timeout=120)
     r.raise_for_status()
@@ -108,27 +121,30 @@ def fetch_readings_for_date(date_str):
     return items
 
 
-def parse_readings(items):
+def parse_readings(items, suid_to_ref=None):
     """Group readings by (date_key → station_id → slot_str → value).
     Returns (by_date dict, latest_dateTime str or None).
+    suid_to_ref: GUID→stationReference lookup for Hydrology API readings;
+                 pass None when parsing flood-monitoring CSVs (backfill).
     """
     by_date = {}
     latest_dt = None
     for item in items:
         dt_str  = item.get("dateTime", "")
         raw_val = item.get("value")
+        quality = item.get("quality", "")
         measure = item.get("measure", "")
         if isinstance(measure, dict):
             measure = measure.get("@id", "")
-        if not dt_str or raw_val is None:
+        if not dt_str or raw_val is None or quality == "Missing":
             continue
         try:
             val = float(raw_val)
         except (TypeError, ValueError):
             continue
         if val < 0:
-            continue  # EA uses negative sentinels for missing data
-        station = station_id_from_measure(measure)
+            continue
+        station = station_id_from_measure(measure, suid_to_ref)
         if not station:
             continue
         date_key, slot = dt_to_slot(dt_str)
@@ -164,7 +180,7 @@ def main():
     stations_data = load_local_json(STATIONS_PATH, {})
     stations = stations_data.get("stations", {})
     if len(stations) < 100:
-        stations = fetch_stations()
+        stations, suid_to_ref = fetch_stations()
         stations_data = {
             "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "stations": stations,
@@ -178,6 +194,7 @@ def main():
                 print(f"Warning: stations.json upload failed: {e}")
     else:
         print(f"Using cached stations ({len(stations)} stations)")
+        suid_to_ref = {s["guid"]: ref for ref, s in stations.items() if s.get("guid")}
 
     # ── Load current meta ──────────────────────────────────────────────────────
     meta = load_local_json(META_PATH, {
@@ -206,7 +223,7 @@ def main():
             r2_put_json(r2, "rain/meta.json", meta)
         return
 
-    by_date, latest_dt = parse_readings(items)
+    by_date, latest_dt = parse_readings(items, suid_to_ref)
 
     # ── Merge into R2 day files ───────────────────────────────────────────────
     available_days = set(meta.get("available_days", []))

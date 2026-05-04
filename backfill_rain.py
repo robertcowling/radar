@@ -85,7 +85,7 @@ def main():
         print("Warning: R2 env vars not set — dry run only")
 
     # ── Stations ──────────────────────────────────────────────────────────────
-    stations = fetch_stations()
+    stations, _ = fetch_stations()
     stations_data = {"generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "stations": stations}
     write_local_json(STATIONS_PATH, stations_data)
     if USE_R2:
