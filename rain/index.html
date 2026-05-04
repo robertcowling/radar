@@ -750,8 +750,8 @@
         // ── Timeline ───────────────────────────────────────────────────────────
         function computeZoom(durSlots) {
             var durationHrs = durSlots / 4;
-            var target = Math.max(durationHrs * 6, 4);
-            var snaps = [4, 6, 8, 12, 16, 24, 36, 48];
+            var target = Math.max(durationHrs * 8, 4);
+            var snaps = [4, 8, 12, 16, 24, 32, 48];
             for (var i = 0; i < snaps.length; i++) {
                 if (snaps[i] >= target) return snaps[i];
             }
