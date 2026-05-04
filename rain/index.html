@@ -381,9 +381,9 @@
             </select>
         </div>
 
-        <!-- Window display -->
+        <!-- Time display -->
         <div class="time-box">
-            <p style="margin:0;font-size:11px;text-transform:uppercase;font-weight:700;color:#1a73e8;letter-spacing:0.5px">Window</p>
+            <p style="margin:0;font-size:11px;text-transform:uppercase;font-weight:700;color:#1a73e8;letter-spacing:0.5px">Valid time</p>
             <div id="timeDisplay" style="font-size:13px;font-weight:700;color:#202124;margin-top:3px">Loading&hellip;</div>
         </div>
 
@@ -436,8 +436,8 @@
         <div class="control-group">
             <span class="control-label">Period</span>
             <select id="accumSelect" onchange="onAccumChange()">
-                <option value="3" selected>3 hours</option>
                 <option value="1">1 hour</option>
+                <option value="3" selected>3 hours</option>
                 <option value="6">6 hours</option>
                 <option value="12">12 hours</option>
                 <option value="24">24 hours</option>
@@ -694,7 +694,7 @@
                          : dur % 1 === 0 ? dur + 'hr'
                          : dur.toFixed(1) + 'hr';
             document.getElementById('timeDisplay').innerText =
-                fmtLocal(slotToMs(startSlotIdx)) + '\n→ ' + fmtLocal(validityMs) + '  (' + durLabel + ')';
+                fmtLocal(validityMs) + '\n' + durLabel + ' accumulation';
         }
 
         function renderThresholdPanel(accumMap, accumHrs) {
