@@ -882,10 +882,18 @@
             }
         }
 
-        function setAccumCustom() {
+        function syncAccumSelect(durSlots) {
+            var durHrs = durSlots / 4;
             var sel = document.getElementById('accumSelect');
-            sel.querySelector('option[value="custom"]').hidden = false;
-            sel.value = 'custom';
+            var presets = [1, 3, 6, 12, 24, 48];
+            var idx = presets.indexOf(durHrs);
+            if (idx !== -1) {
+                sel.querySelector('option[value="custom"]').hidden = true;
+                sel.value = String(presets[idx]);
+            } else {
+                sel.querySelector('option[value="custom"]').hidden = false;
+                sel.value = 'custom';
+            }
         }
 
         function onValuesToggle(checked) {
@@ -960,15 +968,15 @@
             if (playing) togglePlay();
             var v = parseInt(this.value);
             if (v <= startSlotIdx) v = startSlotIdx + 1;
-            setAccumCustom();
             setWindow(startSlotIdx, v);
+            syncAccumSelect(v - startSlotIdx);
         });
         document.getElementById('sliderStart').addEventListener('input', function() {
             if (playing) togglePlay();
             var v = parseInt(this.value);
             if (v >= endSlotIdx) v = endSlotIdx - 1;
-            setAccumCustom();
             setWindow(v, endSlotIdx);
+            syncAccumSelect(endSlotIdx - v);
         });
         document.getElementById('rangeGrab').addEventListener('mousedown', function(e) {
             e.preventDefault();
@@ -982,7 +990,6 @@
             var delta = Math.round((e.clientX - grabDrag.x) / pxPerSlot);
             var dur = grabDrag.end - grabDrag.start;
             var newStart = Math.max(0, Math.min(grabDrag.start + delta, totalSlots - 1 - dur));
-            setAccumCustom();
             setWindow(newStart, newStart + dur);
         });
         document.addEventListener('mouseup', function() { grabDrag = null; });
