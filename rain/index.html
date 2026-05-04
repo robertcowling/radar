@@ -748,16 +748,6 @@
         }
 
         // ── Timeline ───────────────────────────────────────────────────────────
-        function computeZoom(durSlots) {
-            var durationHrs = durSlots / 4;
-            var target = Math.max(durationHrs * 8, 4);
-            var snaps = [4, 8, 12, 16, 24, 32, 48];
-            for (var i = 0; i < snaps.length; i++) {
-                if (snaps[i] >= target) return snaps[i];
-            }
-            return 48;
-        }
-
         function rebuildTimeline() {
             if (!meta || !meta.latest_time) return;
             latestMs   = new Date(meta.latest_time.replace(/Z?$/, 'Z')).getTime();
@@ -848,32 +838,13 @@
         }
 
         function setWindow(startIdx, endIdx) {
-            if (totalSlots < 2) return;
-            var endMs   = anchorMs + endIdx   * 900000;
-            var startMs = anchorMs + startIdx * 900000;
-            var durSlots = Math.max(endIdx - startIdx, 1);
-
-            var newWH = computeZoom(durSlots);
-            if (newWH !== windowHours) {
-                var midMs   = (startMs + endMs) / 2;
-                var newAnch = midMs - (newWH / 2) * 3600000;
-                var cap     = latestMs - newWH * 3600000;
-                anchorMs    = Math.min(newAnch, cap);
-                windowHours = newWH;
-                totalSlots  = newWH * 4;
-                var mx = totalSlots - 1;
-                document.getElementById('sliderStart').max = mx;
-                document.getElementById('sliderEnd').max   = mx;
-                updateTimelineTicks();
-            }
-
             var max = totalSlots - 1;
-            endSlotIdx   = Math.max(1, Math.min(Math.round((endMs   - anchorMs) / 900000), max));
-            startSlotIdx = Math.max(0, Math.min(Math.round((startMs - anchorMs) / 900000), endSlotIdx - 1));
+            endSlotIdx   = Math.max(1, Math.min(endIdx,   max));
+            startSlotIdx = Math.max(0, Math.min(startIdx, endSlotIdx - 1));
             syncSliders();
-            var accumHrs   = (endSlotIdx - startSlotIdx) / 4;
+            var accumHrs  = (endSlotIdx - startSlotIdx) / 4;
             var validityMs = slotToMs(endSlotIdx);
-            var dayKeys    = neededDayKeys(validityMs, accumHrs);
+            var dayKeys = neededDayKeys(validityMs, accumHrs);
             ensureDaysLoaded(dayKeys, function() {
                 if (Object.keys(stations).length > 0) renderFrame(validityMs, accumHrs);
             });
