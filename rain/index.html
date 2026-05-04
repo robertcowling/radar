@@ -285,6 +285,19 @@
             background: #5f6368;
         }
 
+        .panel-tabs { display: flex; gap: 4px; margin-bottom: 8px; flex-shrink: 0; }
+        .panel-tab {
+            flex: 1; padding: 5px 6px; border-radius: 16px; font-size: 11px;
+            font-weight: 600; cursor: pointer; border: none; text-align: center;
+            background: #f1f3f4; color: #5f6368; font-family: 'Roboto', sans-serif;
+            transition: background 0.15s, color 0.15s;
+        }
+        .panel-tab.active { background: #1a73e8; color: white; }
+        .event-time { font-size: 10px; font-weight: 600; color: #80868b; white-space: nowrap; flex-shrink: 0; min-width: 46px; }
+        .thresh-name-wrap { flex: 1; overflow: hidden; }
+        .thresh-name-wrap .thresh-name { display: block; }
+        .thresh-county { font-size: 10px; color: #80868b; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
         .region-boundary { filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.75)); }
 
         .leaflet-tooltip.gauge-tip {
@@ -397,7 +410,11 @@
             <div class="cbar-labels" id="rainLabels"></div>
         </div>
 
-        <!-- Threshold exceedances (scrollable) -->
+        <!-- Panel tabs + exceedances (scrollable) -->
+        <div class="panel-tabs">
+            <button class="panel-tab active" id="tabTimeline" onclick="switchTab('timeline')">Timeline</button>
+            <button class="panel-tab"        id="tabTop10"   onclick="switchTab('top10')">Top 10</button>
+        </div>
         <div id="thresholdPanel">
             <div style="color:#80868b;font-size:12px;padding:4px 0">Loading data&hellip;</div>
         </div>
@@ -501,6 +518,10 @@
         var markers      = {};
         var playing      = false;
         var showValues   = false;
+        var panelTab     = 'timeline';
+        var countyData   = [];
+        var _countiesReady = false;
+        var _stationsReady = false;
         var playInterval;
         var endSlotIdx   = 0;
         var startSlotIdx = 0;
@@ -682,11 +703,15 @@
                 var hydroUrl = s && s.guid
                     ? 'https://environment.data.gov.uk/hydrology/station/' + s.guid
                     : null;
-                markers[id].setTooltipContent('<b>' + name + '</b><br>' + val.toFixed(1) + ' mm');
+                var tipCounty = (s && s.county) ? '<br><span style="font-size:10px;color:#80868b">' + s.county + '</span>' : '';
+                markers[id].setTooltipContent('<b>' + name + '</b>' + tipCounty + '<br>' + val.toFixed(1) + ' mm');
                 var nameHtml = hydroUrl
                     ? '<a href="' + hydroUrl + '" target="_blank" style="color:#1a73e8;font-weight:700">' + name + ' &#x2197;</a>'
                     : '<b>' + name + '</b>';
-                markers[id].setPopupContent(nameHtml + '<br><span style="font-size:12px;color:#3c4043">' + val.toFixed(1) + ' mm</span>');
+                var popCounty = (s && s.county)
+                    ? '<br><span style="font-size:11px;color:#5f6368">' + s.county + (s.countyRegion ? ', ' + s.countyRegion : '') + '</span>'
+                    : '';
+                markers[id].setPopupContent(nameHtml + popCounty + '<br><span style="font-size:12px;color:#3c4043">' + val.toFixed(1) + ' mm</span>');
             });
             renderFrame._prev = accumMap;
             renderFrame._prev._scale = scaleMode;
@@ -703,51 +728,198 @@
                 fmtLocal(validityMs) + '\n' + durLabel + ' accumulation';
         }
 
+        // ── County lookup ──────────────────────────────────────────────────────
+        function pointInRing(pt, ring) {
+            var x = pt[0], y = pt[1], inside = false;
+            for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+                var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+                if (((yi > y) !== (yj > y)) && x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+                    inside = !inside;
+            }
+            return inside;
+        }
+
+        function assignCounties() {
+            Object.keys(stations).forEach(function(id) {
+                var s = stations[id];
+                if (!s || s.county !== undefined) return;
+                var pt = [s.lon, s.lat];
+                s.county = null;
+                for (var i = 0; i < countyData.length; i++) {
+                    var g = countyData[i].geometry;
+                    var polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+                    for (var p = 0; p < polys.length; p++) {
+                        if (pointInRing(pt, polys[p][0])) {
+                            s.county = countyData[i].properties.name || countyData[i].properties.public_name;
+                            s.countyRegion = countyData[i].properties.public_region || countyData[i].properties.region;
+                            break;
+                        }
+                    }
+                    if (s.county) break;
+                }
+            });
+        }
+
+        function loadCounties() {
+            fetch('uk-counties.geojson')
+                .then(function(r) { return r.json(); })
+                .then(function(gj) {
+                    countyData = gj.features || [];
+                    _countiesReady = true;
+                    if (_stationsReady) assignCounties();
+                })
+                .catch(function() { _countiesReady = true; });
+        }
+
+        // ── Panel tabs ─────────────────────────────────────────────────────────
+        function switchTab(tab) {
+            panelTab = tab;
+            document.getElementById('tabTimeline').classList.toggle('active', tab === 'timeline');
+            document.getElementById('tabTop10').classList.toggle('active', tab === 'top10');
+            if (renderThresholdPanel._lastMap) {
+                renderThresholdPanel(renderThresholdPanel._lastMap, renderThresholdPanel._lastHrs);
+            }
+        }
+
+        function fmtLocalShort(ms) {
+            var d = new Date(ms);
+            return DAYS[d.getDay()].substr(0,3) + ' ' +
+                String(d.getHours()).padStart(2,'0') + ':' +
+                String(d.getMinutes()).padStart(2,'0');
+        }
+
         function renderThresholdPanel(accumMap, accumHrs) {
+            renderThresholdPanel._lastMap = accumMap;
+            renderThresholdPanel._lastHrs = accumHrs;
+            if (panelTab === 'top10') renderTop10(accumMap, accumHrs);
+            else                      scheduleTimeline(accumHrs);
+        }
+
+        function renderTop10(accumMap, accumHrs) {
+            var sorted = Object.keys(accumMap)
+                .map(function(id) { return {id: id, val: accumMap[id]}; })
+                .filter(function(x) { return x.val >= 0.05; })
+                .sort(function(a, b) { return b.val - a.val; })
+                .slice(0, 10);
+            if (!sorted.length) {
+                document.getElementById('thresholdPanel').innerHTML =
+                    '<div style="color:#80868b;font-size:12px;padding:4px 0">No readings for this period</div>';
+                return;
+            }
+            var html = '';
+            sorted.forEach(function(x, i) {
+                var s = stations[x.id];
+                var name = (s && s.name) || x.id;
+                var style = getAccumStyle(x.val);
+                var sid = x.id.replace(/'/g, "\\'");
+                html += '<div class="thresh-row" onclick="panToStation(\'' + sid + '\')">';
+                html += '<span class="event-time" style="min-width:20px;text-align:right;color:#3c4043;font-weight:700">' + (i + 1) + '</span>';
+                html += '<span class="thresh-name-wrap"><span class="thresh-name">' + name + '</span>';
+                if (s && s.county) html += '<span class="thresh-county">' + s.county + '</span>';
+                html += '</span>';
+                html += '<span class="thresh-val" style="background:' + style.fill + ';color:' + style.text + '">' + x.val.toFixed(1) + 'mm</span>';
+                html += '</div>';
+            });
+            document.getElementById('thresholdPanel').innerHTML = html;
+        }
+
+        var _timelineTimer = null;
+        function scheduleTimeline(accumHrs) {
+            clearTimeout(_timelineTimer);
+            _timelineTimer = setTimeout(function() { buildAndRenderTimeline(accumHrs); }, 120);
+        }
+
+        function buildAndRenderTimeline(accumHrs) {
             var periodKeys = [1, 6, 12, 24, 48];
             var nearestKey = periodKeys.reduce(function(a, b) {
                 return Math.abs(b - accumHrs) < Math.abs(a - accumHrs) ? b : a;
             });
             var thresholds = THRESHOLDS[nearestKey] || [];
-            if (!thresholds.length) {
-                document.getElementById('thresholdPanel').innerHTML =
-                    '<div style="color:#80868b;font-size:12px;padding:4px 0">No thresholds defined for this period</div>';
+
+            var scanStart = slotToMs(startSlotIdx);
+            var scanEnd   = slotToMs(endSlotIdx);
+            // Step = 1hr, but at most 96 steps
+            var step = Math.max(900000 * 4, Math.ceil((scanEnd - scanStart) / (96 * 3600000)) * 3600000);
+            step = Math.max(step, 3600000); // minimum 1hr step
+
+            var events = [];
+
+            if (thresholds.length) {
+                var prevState = {};
+                for (var t = scanStart; t <= scanEnd; t += step) {
+                    Object.keys(stations).forEach(function(id) {
+                        var val = computeAccum(id, t, accumHrs);
+                        thresholds.forEach(function(thresh) {
+                            var key = id + '|' + thresh.mm;
+                            var exceeds = val >= thresh.mm;
+                            if (exceeds && !prevState[key]) {
+                                events.push({ms: t, id: id, val: val, thresh: thresh});
+                            }
+                            prevState[key] = exceeds;
+                        });
+                    });
+                }
+                // Most recent first, then by amount
+                events.sort(function(a, b) { return b.ms !== a.ms ? b.ms - a.ms : b.val - a.val; });
+            }
+
+            var panel = document.getElementById('thresholdPanel');
+            if (!events.length) {
+                // No threshold events — show top 20 by amount as a fallback list
+                var accumMap = renderThresholdPanel._lastMap || {};
+                var top = Object.keys(accumMap)
+                    .map(function(id) { return {id: id, val: accumMap[id]}; })
+                    .filter(function(x) { return x.val >= 0.05; })
+                    .sort(function(a, b) { return b.val - a.val; })
+                    .slice(0, 20);
+                if (!top.length) {
+                    panel.innerHTML = '<div style="color:#80868b;font-size:12px;padding:4px 0">No readings for this period</div>';
+                    return;
+                }
+                var note = thresholds.length
+                    ? '<div style="color:#80868b;font-size:11px;padding:2px 0 6px">No threshold warnings — showing all readings</div>'
+                    : '<div style="color:#80868b;font-size:11px;padding:2px 0 6px">No thresholds defined — showing all readings</div>';
+                var html = note;
+                top.forEach(function(x) {
+                    var s = stations[x.id];
+                    var name = (s && s.name) || x.id;
+                    var style = getAccumStyle(x.val);
+                    var sid = x.id.replace(/'/g, "\\'");
+                    html += '<div class="thresh-row" onclick="panToStation(\'' + sid + '\')">';
+                    html += '<span class="thresh-name-wrap"><span class="thresh-name">' + name + '</span>';
+                    if (s && s.county) html += '<span class="thresh-county">' + s.county + '</span>';
+                    html += '</span>';
+                    html += '<span class="thresh-val" style="background:' + style.fill + ';color:' + style.text + '">' + x.val.toFixed(1) + 'mm</span>';
+                    html += '</div>';
+                });
+                panel.innerHTML = html;
                 return;
             }
+
             var html = '';
-            thresholds.forEach(function(t) {
-                var exceeders = Object.keys(accumMap)
-                    .filter(function(id) { return accumMap[id] >= t.mm; })
-                    .sort(function(a, b) { return accumMap[b] - accumMap[a]; });
-
-                // Colour badge: pick the break colour nearest to the threshold
-                var breaks = SCALE_MODES[scaleMode];
-                var ci = 0;
-                for (var i = 0; i < breaks.length; i++) {
-                    if (t.mm >= breaks[i]) ci = i; else break;
+            var lastDay = null;
+            events.forEach(function(ev) {
+                var d = new Date(ev.ms);
+                var dayKey = d.getDate() + '/' + d.getMonth();
+                if (dayKey !== lastDay) {
+                    var dayLabel = DAYS[d.getDay()] + ' ' + String(d.getDate()).padStart(2,'0') + ' ' + MONTHS[d.getMonth()];
+                    html += '<div class="thresh-header" style="margin-top:8px;padding-top:6px;border-top:1px solid #e8eaed">' + dayLabel + '</div>';
+                    lastDay = dayKey;
                 }
-                var badgeColor = ACCUM_COLORS[ci];
-
-                html += '<div class="thresh-section">';
-                html += '<div class="thresh-header">' + t.label +
-                    '<span class="thresh-count">' + exceeders.length + '</span></div>';
-                if (!exceeders.length) {
-                    html += '<div style="color:#80868b;font-size:12px;padding:3px 6px">None</div>';
-                } else {
-                    exceeders.slice(0, 50).forEach(function(id) {
-                        var name = (stations[id] && stations[id].name) || id;
-                        html += '<div class="thresh-row" onclick="panToStation(\'' + id.replace(/'/g, "\\'") + '\')">' +
-                            '<span class="thresh-name">' + name + '</span>' +
-                            '<span class="thresh-val" style="background:' + badgeColor + '">' +
-                            accumMap[id].toFixed(1) + 'mm</span></div>';
-                    });
-                    if (exceeders.length > 50) {
-                        html += '<div style="color:#80868b;font-size:11px;padding:3px 6px">&hellip;and ' + (exceeders.length - 50) + ' more</div>';
-                    }
-                }
+                var s = stations[ev.id];
+                var name = (s && s.name) || ev.id;
+                var style = getAccumStyle(ev.val);
+                var sid = ev.id.replace(/'/g, "\\'");
+                var timeStr = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+                html += '<div class="thresh-row" onclick="panToStation(\'' + sid + '\')">';
+                html += '<span class="event-time">' + timeStr + '</span>';
+                html += '<span class="thresh-name-wrap"><span class="thresh-name">' + name + '</span>';
+                if (s && s.county) html += '<span class="thresh-county">' + s.county + '</span>';
+                html += '</span>';
+                html += '<span class="thresh-val" style="background:' + style.fill + ';color:' + style.text + '">' + ev.val.toFixed(1) + 'mm</span>';
                 html += '</div>';
             });
-            document.getElementById('thresholdPanel').innerHTML = html;
+            panel.innerHTML = html;
         }
 
         // ── Timeline ───────────────────────────────────────────────────────────
@@ -1033,12 +1205,15 @@
                 document.getElementById('timeDisplay').innerText = 'Could not load data';
             });
 
-        // Load stations
+        // Load stations + counties
+        loadCounties();
         fetch('stations.json?_cb=' + Date.now())
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 stations = data.stations || data || {};
                 if (!Object.keys(stations).length) return;
+                _stationsReady = true;
+                if (_countiesReady) assignCounties();
                 createMarkers();
                 if (totalSlots > 0) setWindow(startSlotIdx, endSlotIdx);
             })
