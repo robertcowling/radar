@@ -689,10 +689,12 @@
             renderFrame._prev._showValues = showValues;
 
             renderThresholdPanel(accumMap, accumHrs);
-            var dur = accumHrs;
-            var durLabel = dur < 1 ? Math.round(dur * 60) + 'min'
-                         : dur % 1 === 0 ? dur + 'hr'
-                         : dur.toFixed(1) + 'hr';
+            var totalMins = Math.round((endSlotIdx - startSlotIdx) * 15);
+            var durLabel = totalMins < 60
+                ? totalMins + 'min'
+                : totalMins % 60 === 0
+                    ? (totalMins / 60) + 'hr'
+                    : Math.floor(totalMins / 60) + 'hr ' + (totalMins % 60) + 'min';
             document.getElementById('timeDisplay').innerText =
                 fmtLocal(validityMs) + '\n' + durLabel + ' accumulation';
         }
