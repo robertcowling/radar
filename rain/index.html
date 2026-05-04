@@ -113,7 +113,7 @@
             background: #e8eaed;
             border-radius: 3px;
             z-index: 1;
-            overflow: hidden;
+            overflow: visible;
             pointer-events: none;
         }
         .timeline-ticks {
@@ -155,30 +155,50 @@
             gap: 2px;
         }
 
-        input[type=range] {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 100%;
-            background: transparent;
+        .range-selected {
+            position: absolute;
+            top: 0; height: 6px;
+            background: #1a73e8; opacity: 0.45;
+            border-radius: 3px; pointer-events: none;
+        }
+        .range-grab {
+            position: absolute;
+            top: 50%; transform: translateY(-50%);
+            left: 50%; margin-left: -14px;
+            width: 28px; height: 22px;
+            background: #202124; border: 2px solid white;
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            gap: 3px; cursor: grab; pointer-events: all;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+        .range-grab:active { cursor: grabbing; }
+        .grab-line { width: 2px; height: 10px; background: white; border-radius: 1px; }
+
+        .range-input {
+            position: absolute; width: 100%;
+            top: 50%; transform: translateY(-50%);
             z-index: 3;
-            margin: 0;
-            position: relative;
         }
-        input[type=range]:focus { outline: none; }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 6px; cursor: pointer;
-            background: transparent; border-radius: 3px;
+        .range-input input[type=range] {
+            position: absolute; width: 100%; margin: 0;
+            pointer-events: none;
+            background: transparent;
+            -webkit-appearance: none; appearance: none;
         }
-        input[type=range]::-webkit-slider-thumb {
-            height: 18px; width: 18px;
-            border-radius: 50%;
-            background: #1a73e8;
-            cursor: pointer;
-            -webkit-appearance: none;
-            margin-top: -6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        .range-input input[type=range]:focus { outline: none; }
+        .range-input input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; background: transparent;
+        }
+        .range-input input[type=range]::-webkit-slider-thumb {
+            pointer-events: all; -webkit-appearance: none;
+            border-radius: 4px; cursor: pointer;
             border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            margin-top: -9px;
         }
+        #sliderStart::-webkit-slider-thumb { background: #80868b; height: 18px; width: 8px; }
+        #sliderEnd::-webkit-slider-thumb   { background: #1a73e8; height: 26px; width: 10px; margin-top: -10px; }
 
         .time-box {
             background: #f8f9fa;
@@ -316,7 +336,7 @@
             .timeline-container { width: 100%; order: 4; margin-top: 5px; }
             .control-group { flex: 1; }
             .control-group.play-group { flex: 0 1 auto; min-width: 80px; }
-            #windowSelect, #periodSelect { width: 100%; font-size: 13px; padding: 8px 12px; box-sizing: border-box; }
+            #scaleSelect { width: 100%; font-size: 13px; padding: 8px 12px; box-sizing: border-box; }
             #playBtn { width: 100%; padding: 8px 16px; min-width: 0; max-width: none; }
         }
     </style>
@@ -328,19 +348,6 @@
     <div class="info-panel surface" id="infoPanel">
         <h3>Rain Gauges</h3>
 
-        <!-- Accumulation period -->
-        <div class="control-group" style="margin-bottom:12px">
-            <span class="control-label">Accumulation Period</span>
-            <select id="periodSelect" onchange="onPeriodChange()">
-                <option value="1">1 hour</option>
-                <option value="6">6 hours</option>
-                <option value="12">12 hours</option>
-                <option value="24">24 hours</option>
-                <option value="48">2 days (48hr)</option>
-                <option value="72">3 days (72hr)</option>
-            </select>
-        </div>
-
         <!-- Scale mode -->
         <div class="control-group" style="margin-bottom:12px">
             <span class="control-label">Scale</span>
@@ -350,10 +357,10 @@
             </select>
         </div>
 
-        <!-- Validity time -->
+        <!-- Window display -->
         <div class="time-box">
-            <p style="margin:0;font-size:11px;text-transform:uppercase;font-weight:700;color:#1a73e8;letter-spacing:0.5px">Validity (UTC)</p>
-            <div id="timeDisplay" style="font-size:16px;font-weight:700;color:#202124;margin-top:3px">Loading&hellip;</div>
+            <p style="margin:0;font-size:11px;text-transform:uppercase;font-weight:700;color:#1a73e8;letter-spacing:0.5px">Window (UTC)</p>
+            <div id="timeDisplay" style="font-size:13px;font-weight:700;color:#202124;margin-top:3px">Loading&hellip;</div>
         </div>
 
         <!-- Colour scale -->
@@ -402,18 +409,20 @@
         </div>
 
         <div class="timeline-container">
-            <div class="timeline-track"></div>
+            <div class="timeline-track">
+                <div class="range-selected" id="rangeSelected">
+                    <div class="range-grab" id="rangeGrab">
+                        <span class="grab-line"></span>
+                        <span class="grab-line"></span>
+                        <span class="grab-line"></span>
+                    </div>
+                </div>
+            </div>
             <div class="timeline-ticks" id="timelineTicks"></div>
-            <input type="range" id="timeSlider" min="0" max="0" value="0" oninput="onSliderChange(this.value)">
-        </div>
-
-        <div class="control-group">
-            <span class="control-label">Window</span>
-            <select id="windowSelect" onchange="onWindowChange()">
-                <option value="24" selected>Last 24 hours</option>
-                <option value="48">Last 48 hours</option>
-                <option value="72">Last 72 hours</option>
-            </select>
+            <div class="range-input">
+                <input type="range" id="sliderStart" min="0" max="0" value="0">
+                <input type="range" id="sliderEnd"   min="0" max="0" value="0">
+            </div>
         </div>
     </div>
 
@@ -450,12 +459,13 @@
         var playing      = false;
         var showValues   = false;
         var playInterval;
-        var currentSlotIdx = 0;
-        var accumHours   = 1;
-        var windowHours  = 24;
+        var endSlotIdx   = 0;
+        var startSlotIdx = 0;
+        var windowHours  = 48;
         var playSpeed    = 200;
         var anchorMs     = 0;
         var totalSlots   = 0;
+        var grabDrag     = null;
 
         // ── Map setup ──────────────────────────────────────────────────────────
         var map = L.map('map', {zoomControl: false}).setView([54.5, -3.5], 6);
@@ -594,10 +604,10 @@
         }
 
         // ── Render frame ───────────────────────────────────────────────────────
-        function renderFrame(validityMs) {
+        function renderFrame(validityMs, accumHrs) {
             var accumMap = {};
             Object.keys(stations).forEach(function(id) {
-                accumMap[id] = computeAccum(id, validityMs, accumHours);
+                accumMap[id] = computeAccum(id, validityMs, accumHrs);
             });
 
             var prevVals = renderFrame._prev || {};
@@ -638,12 +648,21 @@
             renderFrame._prev._scale = scaleMode;
             renderFrame._prev._showValues = showValues;
 
-            renderThresholdPanel(accumMap);
-            document.getElementById('timeDisplay').innerText = fmtUTC(validityMs);
+            renderThresholdPanel(accumMap, accumHrs);
+            var dur = accumHrs;
+            var durLabel = dur < 1 ? Math.round(dur * 60) + 'min'
+                         : dur % 1 === 0 ? dur + 'hr'
+                         : dur.toFixed(1) + 'hr';
+            document.getElementById('timeDisplay').innerText =
+                fmtUTC(slotToMs(startSlotIdx)) + '\n→ ' + fmtUTC(validityMs) + '  (' + durLabel + ')';
         }
 
-        function renderThresholdPanel(accumMap) {
-            var thresholds = THRESHOLDS[accumHours] || [];
+        function renderThresholdPanel(accumMap, accumHrs) {
+            var periodKeys = [1, 6, 12, 24, 48];
+            var nearestKey = periodKeys.reduce(function(a, b) {
+                return Math.abs(b - accumHrs) < Math.abs(a - accumHrs) ? b : a;
+            });
+            var thresholds = THRESHOLDS[nearestKey] || [];
             if (!thresholds.length) {
                 document.getElementById('thresholdPanel').innerHTML =
                     '<div style="color:#80868b;font-size:12px;padding:4px 0">No thresholds defined for this period</div>';
@@ -689,12 +708,17 @@
         function rebuildTimeline() {
             if (!meta || !meta.latest_time) return;
             var latestMs = new Date(meta.latest_time.replace(/Z?$/, 'Z')).getTime();
-            anchorMs    = latestMs - windowHours * 3600000;
-            totalSlots  = windowHours * 4;
-            var slider  = document.getElementById('timeSlider');
-            slider.max  = totalSlots - 1;
+            anchorMs   = latestMs - windowHours * 3600000;
+            totalSlots = windowHours * 4;
+            var max    = totalSlots - 1;
+            document.getElementById('sliderStart').max = max;
+            document.getElementById('sliderEnd').max   = max;
             updateTimelineTicks();
-            setSlot(totalSlots - 1);
+            var prevDur = endSlotIdx - startSlotIdx;
+            var dur = prevDur > 0 ? prevDur : 4; // default 1hr
+            endSlotIdx   = max;
+            startSlotIdx = Math.max(0, max - dur);
+            setWindow(startSlotIdx, endSlotIdx);
         }
 
         function updateTimelineTicks() {
@@ -757,19 +781,29 @@
             }
         }
 
-        function setSlot(idx) {
-            currentSlotIdx = Math.max(0, Math.min(idx, totalSlots - 1));
-            document.getElementById('timeSlider').value = currentSlotIdx;
-            var validityMs = slotToMs(currentSlotIdx);
-            var dayKeys = neededDayKeys(validityMs, accumHours);
-            ensureDaysLoaded(dayKeys, function() {
-                if (Object.keys(stations).length > 0) renderFrame(validityMs);
-            });
+        function syncSliders() {
+            var max = totalSlots - 1;
+            if (max <= 0) return;
+            document.getElementById('sliderStart').value = startSlotIdx;
+            document.getElementById('sliderEnd').value   = endSlotIdx;
+            var leftPct  = (startSlotIdx / max) * 100;
+            var rightPct = (endSlotIdx   / max) * 100;
+            var sel = document.getElementById('rangeSelected');
+            sel.style.left  = leftPct + '%';
+            sel.style.width = (rightPct - leftPct) + '%';
         }
 
-        function onSliderChange(val) {
-            if (playing) togglePlay();
-            setSlot(parseInt(val));
+        function setWindow(startIdx, endIdx) {
+            var max = totalSlots - 1;
+            endSlotIdx   = Math.max(1, Math.min(endIdx,   max));
+            startSlotIdx = Math.max(0, Math.min(startIdx, endSlotIdx - 1));
+            syncSliders();
+            var accumHrs  = (endSlotIdx - startSlotIdx) / 4;
+            var validityMs = slotToMs(endSlotIdx);
+            var dayKeys = neededDayKeys(validityMs, accumHrs);
+            ensureDaysLoaded(dayKeys, function() {
+                if (Object.keys(stations).length > 0) renderFrame(validityMs, accumHrs);
+            });
         }
 
         function fmtVal(val) {
@@ -779,37 +813,28 @@
 
         function onValuesToggle(checked) {
             showValues = checked;
-            setSlot(currentSlotIdx);
-        }
-
-        function onPeriodChange() {
-            accumHours = parseInt(document.getElementById('periodSelect').value);
-            updateColorbar();
-            setSlot(currentSlotIdx);
+            setWindow(startSlotIdx, endSlotIdx);
         }
 
         function onScaleChange() {
             scaleMode = document.getElementById('scaleSelect').value;
             updateColorbar();
-            setSlot(currentSlotIdx);
-        }
-
-        function onWindowChange() {
-            windowHours = parseInt(document.getElementById('windowSelect').value);
-            rebuildTimeline();
+            setWindow(startSlotIdx, endSlotIdx);
         }
 
         // ── Playback ───────────────────────────────────────────────────────────
         function playStep() {
             if (!playing) return;
-            var nextIdx = currentSlotIdx + 1;
-            var delay = playSpeed;
-            if (nextIdx >= totalSlots) {
-                nextIdx = 0;
-            } else if (nextIdx === totalSlots - 1) {
+            var dur     = endSlotIdx - startSlotIdx;
+            var nextEnd = endSlotIdx + 1;
+            var delay   = playSpeed;
+            if (nextEnd >= totalSlots) {
+                nextEnd = dur;
+                delay   = 1200;
+            } else if (nextEnd === totalSlots - 1) {
                 delay = 1200;
             }
-            setSlot(nextIdx);
+            setWindow(nextEnd - dur, nextEnd);
             playInterval = setTimeout(playStep, delay);
         }
 
@@ -822,7 +847,8 @@
                 text.innerText = 'Play';
                 playing = false;
             } else {
-                if (currentSlotIdx >= totalSlots - 1) setSlot(0);
+                var dur = endSlotIdx - startSlotIdx;
+                if (endSlotIdx >= totalSlots - 1) setWindow(0, dur);
                 icon.innerHTML = '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>';
                 text.innerText = 'Pause';
                 playing = true;
@@ -851,6 +877,35 @@
             document.getElementById('cbarTitle').innerText = 'Accumulation (mm)';
 
         }
+
+        // ── Slider events ─────────────────────────────────────────────────────
+        document.getElementById('sliderEnd').addEventListener('input', function() {
+            if (playing) togglePlay();
+            var v = parseInt(this.value);
+            if (v <= startSlotIdx) v = startSlotIdx + 1;
+            setWindow(startSlotIdx, v);
+        });
+        document.getElementById('sliderStart').addEventListener('input', function() {
+            if (playing) togglePlay();
+            var v = parseInt(this.value);
+            if (v >= endSlotIdx) v = endSlotIdx - 1;
+            setWindow(v, endSlotIdx);
+        });
+        document.getElementById('rangeGrab').addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            grabDrag = {x: e.clientX, start: startSlotIdx, end: endSlotIdx};
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!grabDrag) return;
+            var track = document.querySelector('.timeline-container');
+            var w = track.getBoundingClientRect().width;
+            var pxPerSlot = w / Math.max(totalSlots - 1, 1);
+            var delta = Math.round((e.clientX - grabDrag.x) / pxPerSlot);
+            var dur = grabDrag.end - grabDrag.start;
+            var newStart = Math.max(0, Math.min(grabDrag.start + delta, totalSlots - 1 - dur));
+            setWindow(newStart, newStart + dur);
+        });
+        document.addEventListener('mouseup', function() { grabDrag = null; });
 
         // ── Boot ───────────────────────────────────────────────────────────────
         updateColorbar();
@@ -891,7 +946,7 @@
                 stations = data.stations || data || {};
                 if (!Object.keys(stations).length) return;
                 createMarkers();
-                if (totalSlots > 0) setSlot(currentSlotIdx);
+                if (totalSlots > 0) setWindow(startSlotIdx, endSlotIdx);
             })
             .catch(function() {});
     </script>
