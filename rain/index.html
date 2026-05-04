@@ -688,7 +688,7 @@
         // ── Timeline ───────────────────────────────────────────────────────────
         function rebuildTimeline() {
             if (!meta || !meta.latest_time) return;
-            var latestMs = new Date(meta.latest_time).getTime();
+            var latestMs = new Date(meta.latest_time.replace(/Z?$/, 'Z')).getTime();
             anchorMs    = latestMs - windowHours * 3600000;
             totalSlots  = windowHours * 4;
             var slider  = document.getElementById('timeSlider');
@@ -873,7 +873,7 @@
                         .then(function(r) { return r.json(); })
                         .then(function(d) {
                             if (d.latest_time && d.latest_time !== meta.latest_time) {
-                                delete dayCache[fmtDateKey(new Date(d.latest_time))];
+                                delete dayCache[fmtDateKey(new Date(d.latest_time.replace(/Z?$/, 'Z')))];
                                 meta = d;
                                 rebuildTimeline();
                             }
