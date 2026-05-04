@@ -274,6 +274,30 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
+        .rg-wrap {
+            display: flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px;
+        }
+        .rg-icon {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(255,255,255,0.55);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Roboto', sans-serif;
+            font-size: 8.5px; font-weight: 700;
+            color: white;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .rg-icon.rg-nodata {
+            width: 7px; height: 7px;
+            background: #90a4ae;
+            opacity: 0.35;
+            border: none;
+        }
+
         @media (max-width: 768px) {
             .player-panel {
                 width: calc(100% - 20px);
@@ -351,6 +375,10 @@
                 UK regions
             </label>
         </div>
+            <label class="custom-checkbox" style="margin-top:6px">
+                <input type="checkbox" id="valToggle" onchange="onValuesToggle(this.checked)">
+                Show values
+            </label>
 
         <!-- Attribution -->
         <p style="font-size:11px;margin:10px 0 0;line-height:1.6;flex-shrink:0">
@@ -419,6 +447,7 @@
         var dayCache     = {};   // dateKey → {date, readings} or null (load failed)
         var markers      = {};
         var playing      = false;
+        var showValues   = false;
         var playInterval;
         var currentSlotIdx = 0;
         var accumHours   = 1;
@@ -450,9 +479,6 @@
             if (!regionLayer) return;
             if (show) regionLayer.addTo(map); else map.removeLayer(regionLayer);
         }
-
-        // Canvas renderer for smooth performance with ~1000 markers
-        var renderer = L.canvas({padding: 0.5});
         var markerLayer = L.layerGroup().addTo(map);
 
         // ── Helpers ────────────────────────────────────────────────────────────
@@ -526,11 +552,13 @@
 
         function getAccumStyle(val) {
             var breaks = SCALE_MODES[scaleMode];
-            if (val < 0.05) return {fill: '#90a4ae', opacity: 0.2, radius: 3};
+            if (val < 0.05) return {nodata: true, fill: ''};
             var colorIdx = 0;
             for (var i = 0; i < breaks.length; i++) {
                 if (val >= breaks[i]) colorIdx = i; else break;
             }
+            return {nodata: false, fill: ACCUM_COLORS[colorIdx]};
+        }
             var r = Math.min(4 + Math.floor(colorIdx * 0.7), 8);
             return {fill: ACCUM_COLORS[colorIdx], opacity: 0.85, radius: r};
         }
@@ -542,16 +570,14 @@
             Object.keys(stations).forEach(function(id) {
                 var s = stations[id];
                 if (!s || s.lat == null || s.lon == null) return;
-                var m = L.circleMarker([s.lat, s.lon], {
-                    renderer: renderer,
-                    radius: 3,
-                    fillColor: '#90a4ae',
-                    color: 'transparent',
-                    weight: 0,
-                    fillOpacity: 0.2,
-                    interactive: true
+                var icon = L.divIcon({
+                    className: '',
+                    html: '<div class="rg-wrap"><div class="rg-icon rg-nodata"></div></div>',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
                 });
-                m.bindTooltip('', {direction: 'top', className: 'gauge-tip', offset: [0, -4]});
+                var m = L.marker([s.lat, s.lon], {icon: icon});
+                m.bindTooltip('', {direction: 'top', className: 'gauge-tip', offset: [0, -12]});
                 m.on('click', (function(sid) {
                     return function() { panToStation(sid); };
                 })(id));
@@ -577,7 +603,21 @@
             Object.keys(markers).forEach(function(id) {
                 var val = accumMap[id] || 0;
                 var style = getAccumStyle(val);
-                markers[id].setStyle({fillColor: style.fill, fillOpacity: style.opacity, radius: style.radius});
+                var el = markers[id].getElement();
+                if (el) {
+                    var div = el.querySelector('.rg-icon');
+                    if (div) {
+                        if (style.nodata) {
+                            div.className = 'rg-icon rg-nodata';
+                            div.style.background = '';
+                            div.textContent = '';
+                        } else {
+                            div.className = 'rg-icon';
+                            div.style.background = style.fill;
+                            div.textContent = showValues ? fmtVal(val) : '';
+                        }
+                    }
+                }
                 var s = stations[id];
                 var name = (s && s.name) || id;
                 var hydroUrl = (s && s.guid)
@@ -721,6 +761,16 @@
         function onSliderChange(val) {
             if (playing) togglePlay();
             setSlot(parseInt(val));
+        }
+
+        function fmtVal(val) {
+            if (val < 1) return val.toFixed(1);
+            return Math.round(val).toString();
+        }
+
+        function onValuesToggle(checked) {
+            showValues = checked;
+            setSlot(currentSlotIdx);
         }
 
         function onPeriodChange() {
