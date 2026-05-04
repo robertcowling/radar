@@ -191,13 +191,16 @@
         }
         .range-input input[type=range]::-webkit-slider-thumb {
             pointer-events: all; -webkit-appearance: none;
-            border-radius: 4px; cursor: pointer;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            margin-top: -9px;
+            cursor: pointer; border: none; border-radius: 1px; box-shadow: none;
         }
-        #sliderStart::-webkit-slider-thumb { background: #80868b; height: 18px; width: 8px; }
-        #sliderEnd::-webkit-slider-thumb   { background: #1a73e8; height: 26px; width: 10px; margin-top: -10px; }
+        #sliderStart::-webkit-slider-thumb {
+            background: linear-gradient(90deg, transparent 5px, #5f6368 5px, #5f6368 9px, transparent 9px);
+            height: 22px; width: 14px; margin-top: -8px;
+        }
+        #sliderEnd::-webkit-slider-thumb {
+            background: linear-gradient(90deg, transparent 4px, #1a73e8 4px, #1a73e8 10px, transparent 10px);
+            height: 30px; width: 14px; margin-top: -12px;
+        }
 
         .time-box {
             background: #f8f9fa;
