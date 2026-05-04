@@ -872,7 +872,13 @@
                 setWindow(s, e);
             } else {
                 var hrs = parseFloat(val);
-                setWindow(Math.max(0, max - Math.round(hrs * 4)), max);
+                var dur = Math.round(hrs * 4);
+                var newStart = endSlotIdx - dur;
+                if (newStart < 0) {
+                    setWindow(0, Math.min(dur, max));
+                } else {
+                    setWindow(newStart, endSlotIdx);
+                }
             }
         }
 
