@@ -773,7 +773,7 @@
 
         // ── Colour bar ─────────────────────────────────────────────────────────
         function updateColorbar() {
-            var breaks = ACCUM_BREAKS[accumHours] || ACCUM_BREAKS[1];
+            var breaks = SCALE_MODES[scaleMode];
             var cbar   = document.getElementById('rainCbar');
             var labels = document.getElementById('rainLabels');
 
@@ -789,8 +789,8 @@
             }).join('');
             labels.innerHTML = lhtml;
 
-            document.getElementById('cbarTitle').innerText =
-                'Accumulation (mm / ' + accumHours + 'hr)';
+            document.getElementById('cbarTitle').innerText = 'Accumulation (mm)';
+
         }
 
         // ── Boot ───────────────────────────────────────────────────────────────
