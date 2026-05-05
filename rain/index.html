@@ -1149,7 +1149,7 @@
             sel.style.left  = leftPct + '%';
             sel.style.width = (rightPct - leftPct) + '%';
             var midPct = (leftPct + rightPct) / 2;
-            document.getElementById('rangeGrab').style.left = 'calc(' + midPct + '% - 14px)';
+            document.getElementById('rangeGrab').style.left = midPct + '%';
         }
 
         function setWindow(startIdx, endIdx) {
