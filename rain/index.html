@@ -711,7 +711,7 @@
                 var t = new Date(validityMs - i * 900000);
                 var dk = fmtDateKey(t);
                 var slotIdx = String((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15);
-                var v = 0;
+                var v = null;
                 if (dayCache[dk] && dayCache[dk].readings && dayCache[dk].readings[id]) {
                     var reading = dayCache[dk].readings[id][slotIdx];
                     if (typeof reading === 'number' && reading >= 0) {
@@ -719,7 +719,7 @@
                     }
                 }
                 data.push(v);
-                if (v > maxVal) maxVal = v;
+                if (v !== null && v > maxVal) maxVal = v;
             }
             
             if (maxVal < 1) maxVal = 1; // min scale 1mm
@@ -734,7 +734,13 @@
             var chartW = w - padL;
             var chartH = h - padB;
             
-            var svg = '<svg width="' + w + 'px" height="' + h + 'px" viewBox="0 0 ' + w + ' ' + h + '" style="margin-top:8px;">';
+            var svg = '<svg width="' + w + 'px" height="' + h + 'px" viewBox="0 0 ' + w + ' ' + h + '" style="margin-top:8px; display:block;">';
+            
+            // Window Shading
+            var selStart = padL + (startSlotIdx / slots) * chartW;
+            var selW = ((endSlotIdx - startSlotIdx) / slots) * chartW;
+            if (selW <= 0) selW = 1;
+            svg += '<rect x="' + selStart + '" y="0" width="' + selW + '" height="' + chartH + '" fill="rgba(26,115,232,0.1)" stroke="rgba(26,115,232,0.5)" stroke-width="0.5" />';
             
             // Y-axis grid
             for (var i = 0; i <= steps; i++) {
@@ -760,19 +766,42 @@
                 }
             }
             
-            // Bars
+            // Bars & Hover
             var barW = chartW / slots;
             data.forEach(function(val, i) {
-                if (val > 0) {
+                var bx = padL + i * barW;
+                var t = new Date(validityMs - (slots - 1 - i) * 900000);
+                var timeStr = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+                var valStr = val === null ? "Missing" : val.toFixed(1) + " mm";
+                
+                // Hover hit area
+                svg += '<rect x="' + bx + '" y="0" width="' + barW + '" height="' + chartH + '" fill="transparent"><title>' + timeStr + ' - ' + valStr + '</title></rect>';
+                
+                if (val !== null && val > 0) {
                     var barH = (val / maxVal) * chartH;
-                    var bx = padL + i * barW;
                     var by = chartH - barH;
-                    svg += '<rect x="' + bx + '" y="' + by + '" width="' + (barW > 0.5 ? barW - 0.2 : barW) + '" height="' + barH + '" fill="#1a73e8" />';
+                    svg += '<rect x="' + bx + '" y="' + by + '" width="' + (barW > 0.5 ? barW - 0.2 : barW) + '" height="' + barH + '" fill="#1a73e8" style="pointer-events:none;" />';
                 }
             });
-            
             svg += '</svg>';
-            return svg;
+            
+            // Tabular Data
+            var tableHtml = '<div style="max-height: 80px; overflow-y: auto; margin-top: 8px; border-top: 1px solid #e8eaed; padding-top: 4px; font-size: 10px; color: #3c4043;">';
+            tableHtml += '<table style="width:100%; border-collapse: collapse;">';
+            for (var i = slots - 1; i >= 0; i--) {
+                var v = data[i];
+                var t = new Date(validityMs - (slots - 1 - i) * 900000);
+                var timeStr = DAYS[t.getDay()].substr(0,3) + ' ' + String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+                var valStr = v === null ? '<span style="color:#bdc1c6">—</span>' : v.toFixed(1) + ' mm';
+                // Highlight rows that are inside the current slider window
+                var inWin = (i >= startSlotIdx && i < endSlotIdx);
+                var bg = inWin ? 'background:rgba(26,115,232,0.05);' : '';
+                var fw = inWin ? 'font-weight:600;' : '';
+                tableHtml += '<tr style="' + bg + fw + '"><td style="padding:2px 0;">' + timeStr + '</td><td style="text-align:right; padding:2px 0;">' + valStr + '</td></tr>';
+            }
+            tableHtml += '</table></div>';
+            
+            return svg + tableHtml;
         }
         
         function updateSinglePopup(id) {
