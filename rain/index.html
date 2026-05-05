@@ -428,11 +428,11 @@
                     None
                 </label>
                 <label class="custom-checkbox">
-                    <input type="radio" name="boundaryLayer" value="regions" checked onchange="onBoundaryChange('regions')">
+                    <input type="radio" name="boundaryLayer" value="regions" onchange="onBoundaryChange('regions')">
                     UK Regions
                 </label>
                 <label class="custom-checkbox">
-                    <input type="radio" name="boundaryLayer" value="counties" onchange="onBoundaryChange('counties')">
+                    <input type="radio" name="boundaryLayer" value="counties" checked onchange="onBoundaryChange('counties')">
                     Counties
                 </label>
             </div>
@@ -565,7 +565,7 @@
                     })
                     .catch(function() {});
             } else if (val === 'counties' && !countiesLayer) {
-                fetch('https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/geo/uk-counties.geojson')
+                fetch('../uk-counties.geojson')
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
                         countiesLayer = L.geoJSON(data, {
@@ -594,7 +594,7 @@
         }
 
         // Init boundaries
-        loadBoundary('regions');
+        loadBoundary('counties');
         var markerLayer = L.layerGroup().addTo(map);
 
         // ── Helpers ────────────────────────────────────────────────────────────
