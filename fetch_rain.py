@@ -32,16 +32,7 @@ USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, R2_BUCKET, R2_PUBL
 RETENTION_DAYS  = 31
 META_PATH       = "rain/meta.json"
 STATIONS_PATH   = "rain/stations.json"
-EVENTS_PATH     = "rain/events.json"
 R2_READINGS_PFX = "rain/readings"
-
-# Threshold definitions: period (hrs) → [{mm, level}]
-# Heavy: 10mm/1hr, 25mm/3hr   Extreme: 30mm/1hr, 40mm/3hr, 50mm/6hr
-THRESHOLD_PERIODS = {
-    1: [{"mm": 10, "level": "heavy"},  {"mm": 30, "level": "extreme"}],
-    3: [{"mm": 25, "level": "heavy"},  {"mm": 40, "level": "extreme"}],
-    6: [{"mm": 50, "level": "extreme"}],
-}
 
 
 def get_r2():
@@ -177,58 +168,6 @@ def write_local_json(path, data):
         json.dump(data, f, indent=2)
 
 
-def compute_events(r2, available_days, now):
-    """Scan the last 48 hr of data for threshold crossings; return event list."""
-    # Load the 3 most-recent day files (covers up to 72 hr, enough for 48 hr window)
-    day_data = {}
-    for dk in list(available_days)[-3:]:
-        data = r2_get_json(r2, f"{R2_READINGS_PFX}/{dk}.json", None)
-        if data:
-            day_data[dk] = data.get("readings", {})
-
-    if not day_data:
-        return []
-
-    all_stations = set()
-    for readings in day_data.values():
-        all_stations.update(readings.keys())
-
-    events = []
-    scan_start = (now - timedelta(hours=48)).replace(minute=0, second=0, microsecond=0)
-
-    for period_hrs, thresholds in THRESHOLD_PERIODS.items():
-        prev_state: dict[str, bool] = {}
-        t = scan_start
-        while t <= now:
-            for sid in all_stations:
-                total = 0.0
-                for s in range(period_hrs * 4):
-                    t2 = t - timedelta(seconds=s * 900)
-                    dk = t2.strftime("%Y%m%d")
-                    slot_str = str((t2.hour * 60 + t2.minute) // 15)
-                    readings = day_data.get(dk, {}).get(sid)
-                    if readings:
-                        v = readings.get(slot_str)
-                        if v is not None and v >= 0:
-                            total += v
-                for thresh in thresholds:
-                    key = f"{sid}|{thresh['mm']}"
-                    exceeds = total >= thresh["mm"]
-                    if exceeds and not prev_state.get(key, False):
-                        events.append({
-                            "t":   int(t.timestamp() * 1000),
-                            "id":  sid,
-                            "p":   period_hrs,
-                            "mm":  round(total, 2),
-                            "lvl": thresh["level"],
-                        })
-                    prev_state[key] = exceeds
-            t += timedelta(hours=1)
-
-    events.sort(key=lambda e: -e["t"])
-    return events
-
-
 def main():
     now = datetime.now(timezone.utc)
     os.makedirs("rain", exist_ok=True)
@@ -337,20 +276,6 @@ def main():
             r2_put_json(r2, "rain/meta.json", meta)
         except Exception as e:
             print(f"Warning: meta.json upload failed: {e}")
-
-    # ── Compute and upload threshold events ────────────────────────────────
-    if USE_R2:
-        try:
-            events = compute_events(r2, meta["available_days"], now)
-            events_obj = {
-                "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "events": events,
-            }
-            r2_put_json(r2, EVENTS_PATH, events_obj)
-            print(f"  Uploaded events.json ({len(events)} events)")
-        except Exception as e:
-            print(f"Warning: events.json upload failed: {e}")
-
     print(f"Done. {len(available_days)} days, latest={meta['latest_time']}")
 
 
