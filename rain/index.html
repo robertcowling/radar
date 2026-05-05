@@ -1129,6 +1129,11 @@
             var accumHrs  = (endSlotIdx - startSlotIdx) / 4;
             var validityMs = slotToMs(endSlotIdx);
             var dayKeys = neededDayKeys(validityMs, accumHrs);
+            // Always ensure the full 48-hour history up to latestMs is loaded for the hyetographs
+            if (typeof latestMs !== 'undefined' && typeof windowHours !== 'undefined') {
+                var hyetoKeys = neededDayKeys(latestMs, windowHours);
+                hyetoKeys.forEach(function(k) { if (dayKeys.indexOf(k) === -1) dayKeys.push(k); });
+            }
             ensureDaysLoaded(dayKeys, function() {
                 if (Object.keys(stations).length > 0) renderFrame(validityMs, accumHrs);
             });
