@@ -735,7 +735,7 @@
                     })
                     .catch(err => console.log("Could not load regions:", err));
             } else if (val === 'counties' && !countiesLayer) {
-                fetch('https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/geo/counties.geojson')
+                fetch('https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/geo/uk-counties.geojson')
                     .then(res => res.json())
                     .then(data => {
                         countiesLayer = L.geoJSON(data, {

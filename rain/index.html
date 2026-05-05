@@ -419,12 +419,23 @@
             <div style="color:#80868b;font-size:12px;padding:4px 0">Loading data&hellip;</div>
         </div>
 
-        <!-- UK regions toggle -->
+        <!-- Boundaries & Labels -->
         <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e8eaed;flex-shrink:0">
-            <label class="custom-checkbox">
-                <input type="checkbox" id="boundaryToggle" checked onchange="toggleBoundaries(this.checked)">
-                UK regions
-            </label>
+            <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Boundaries</p>
+            <div style="display: flex; gap: 12px; margin-bottom: 8px;">
+                <label class="custom-checkbox">
+                    <input type="radio" name="boundaryLayer" value="none" onchange="onBoundaryChange('none')">
+                    None
+                </label>
+                <label class="custom-checkbox">
+                    <input type="radio" name="boundaryLayer" value="regions" checked onchange="onBoundaryChange('regions')">
+                    UK Regions
+                </label>
+                <label class="custom-checkbox">
+                    <input type="radio" name="boundaryLayer" value="counties" onchange="onBoundaryChange('counties')">
+                    Counties
+                </label>
+            </div>
             <label class="custom-checkbox" style="margin-top:6px">
                 <input type="checkbox" id="valToggle" onchange="onValuesToggle(this.checked)">
                 Show values
@@ -535,22 +546,55 @@
             maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
         }).addTo(map);
 
-        // UK regions
-        var regionLayer;
-        fetch('../uk_regions.geojson')
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                regionLayer = L.geoJSON(data, {
-                    style: {color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary'},
-                    interactive: false
-                }).addTo(map);
-            })
-            .catch(function() {});
+        // UK regions and Counties
+        var regionLayer = null;
+        var countiesLayer = null;
 
-        function toggleBoundaries(show) {
-            if (!regionLayer) return;
-            if (show) regionLayer.addTo(map); else map.removeLayer(regionLayer);
+        function loadBoundary(val) {
+            if (val === 'regions' && !regionLayer) {
+                fetch('../uk_regions.geojson')
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        regionLayer = L.geoJSON(data, {
+                            style: {color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary'},
+                            interactive: false
+                        });
+                        if (document.querySelector('input[name="boundaryLayer"]:checked').value === 'regions') {
+                            regionLayer.addTo(map);
+                        }
+                    })
+                    .catch(function() {});
+            } else if (val === 'counties' && !countiesLayer) {
+                fetch('https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/geo/uk-counties.geojson')
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        countiesLayer = L.geoJSON(data, {
+                            style: {color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary'},
+                            interactive: false
+                        });
+                        if (document.querySelector('input[name="boundaryLayer"]:checked').value === 'counties') {
+                            countiesLayer.addTo(map);
+                        }
+                    })
+                    .catch(function() {});
+            }
         }
+
+        function onBoundaryChange(val) {
+            if (regionLayer && map.hasLayer(regionLayer)) map.removeLayer(regionLayer);
+            if (countiesLayer && map.hasLayer(countiesLayer)) map.removeLayer(countiesLayer);
+
+            if (val === 'regions') {
+                if (regionLayer) regionLayer.addTo(map);
+                else loadBoundary('regions');
+            } else if (val === 'counties') {
+                if (countiesLayer) countiesLayer.addTo(map);
+                else loadBoundary('counties');
+            }
+        }
+
+        // Init boundaries
+        loadBoundary('regions');
         var markerLayer = L.layerGroup().addTo(map);
 
         // ── Helpers ────────────────────────────────────────────────────────────
