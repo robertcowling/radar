@@ -495,6 +495,14 @@
                 <input type="range" id="sliderEnd"   min="0" max="0" value="0">
             </div>
         </div>
+    <!-- Hyetograph Modal -->
+    <div id="hyetoModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center; backdrop-filter: blur(2px);">
+        <div class="surface" style="width: 480px; padding: 24px; position:relative; max-width:90vw; border-radius:12px;">
+            <button onclick="document.getElementById('hyetoModal').style.display='none'" style="position:absolute; top:12px; right:12px; background:none; border:none; cursor:pointer; font-size:24px; color:#80868b; line-height:1;">&times;</button>
+            <h4 id="hyetoTitle" style="margin:0 0 4px; color:#202124; font-size:18px; font-weight:500;">Gauge Name</h4>
+            <p id="hyetoSubtitle" style="margin:0 0 20px; color:#5f6368; font-size:13px;">48-hour hyetograph (15m res) up to valid time</p>
+            <div id="hyetoChart" style="height: 160px; width: 100%;"></div>
+        </div>
     </div>
 
     <script>
@@ -701,11 +709,94 @@
             });
         }
 
+        function showHyetograph(id) {
+            var s = stations[id];
+            if (!s) return;
+            var name = s.name || id;
+            document.getElementById('hyetoTitle').innerText = name;
+            
+            var validityMs = slotToMs(endSlotIdx);
+            var slots = 48 * 4; // 48 hours = 192 slots
+            var data = [];
+            var maxVal = 0;
+            
+            for (var i = slots - 1; i >= 0; i--) {
+                var t = new Date(validityMs - i * 900000);
+                var dk = fmtDateKey(t);
+                var slotIdx = String((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15);
+                var v = 0;
+                if (dayCache[dk] && dayCache[dk].readings[id]) {
+                    var reading = dayCache[dk].readings[id][slotIdx];
+                    if (typeof reading === 'number' && reading >= 0) {
+                        v = reading;
+                    }
+                }
+                data.push(v);
+                if (v > maxVal) maxVal = v;
+            }
+            
+            if (maxVal < 1) maxVal = 1; // min scale 1mm
+            var steps = 4;
+            maxVal = Math.ceil(maxVal * 1.1); // 10% headroom
+            if (maxVal < 1) maxVal = 1;
+            
+            var w = 480;
+            var h = 160;
+            var padL = 25;
+            var padB = 20;
+            var chartW = w - padL;
+            var chartH = h - padB;
+            
+            var svg = '<svg width="100%" height="100%" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">';
+            
+            // Y-axis grid
+            for (var i = 0; i <= steps; i++) {
+                var y = chartH - (i / steps) * chartH;
+                var val = (maxVal * (i / steps)).toFixed(maxVal < 5 ? 1 : 0);
+                if (i > 0) {
+                    svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + w + '" y2="' + y + '" stroke="#e8eaed" stroke-dasharray="2,2" stroke-width="1" />';
+                    svg += '<text x="' + (padL - 4) + '" y="' + (y + 4) + '" fill="#80868b" font-size="10" font-family="Roboto" text-anchor="end">' + val + '</text>';
+                } else {
+                    svg += '<line x1="' + padL + '" y1="' + chartH + '" x2="' + w + '" y2="' + chartH + '" stroke="#bdc1c6" stroke-width="1" />';
+                }
+            }
+            
+            // X-axis ticks (every 6 hours)
+            for (var i = 0; i <= slots; i += 24) { // 24 slots = 6 hrs
+                var x = padL + (i / slots) * chartW;
+                var dt = new Date(validityMs - (slots - i) * 900000);
+                svg += '<line x1="' + x + '" y1="' + chartH + '" x2="' + x + '" y2="' + (chartH + 4) + '" stroke="#bdc1c6" stroke-width="1" />';
+                if (i % 48 === 0 || i === slots) { // labels every 12h
+                    var lbl = String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+                    if (dt.getHours() === 0) lbl = DAYS[dt.getDay()].substring(0,3);
+                    svg += '<text x="' + x + '" y="' + (chartH + 14) + '" fill="#80868b" font-size="10" font-family="Roboto" text-anchor="middle">' + lbl + '</text>';
+                }
+            }
+            
+            // Bars
+            var barW = chartW / slots;
+            data.forEach(function(val, i) {
+                if (val > 0) {
+                    var barH = (val / maxVal) * chartH;
+                    var bx = padL + i * barW;
+                    var by = chartH - barH;
+                    svg += '<rect x="' + bx + '" y="' + by + '" width="' + (barW > 0.5 ? barW - 0.2 : barW) + '" height="' + barH + '" fill="#1a73e8" rx="0.5" />';
+                }
+            });
+            
+            svg += '</svg>';
+            document.getElementById('hyetoChart').innerHTML = svg;
+            
+            var modal = document.getElementById('hyetoModal');
+            modal.style.display = 'flex';
+        }
+
         function panToStation(id) {
             var s = stations[id];
             if (!s) return;
             map.panTo([s.lat, s.lon]);
             if (markers[id]) markers[id].openPopup();
+            showHyetograph(id);
         }
 
         // ── Render frame ───────────────────────────────────────────────────────
