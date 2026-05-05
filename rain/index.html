@@ -1049,11 +1049,10 @@
             });
             var thresholds = THRESHOLDS[nearestKey] || [];
 
-            var scanStart = slotToMs(startSlotIdx);
-            var scanEnd   = slotToMs(endSlotIdx);
-            // Step = 1hr, but at most 96 steps
-            var step = Math.max(900000 * 4, Math.ceil((scanEnd - scanStart) / (96 * 3600000)) * 3600000);
-            step = Math.max(step, 3600000); // minimum 1hr step
+            // Scan the full 48-hr visible timeline, not just the highlighted window
+            var scanStart = slotToMs(0);
+            var scanEnd   = slotToMs(totalSlots - 1);
+            var step = 3600000; // 1hr steps across 48hr = 48 iterations
 
             var events = [];
 
