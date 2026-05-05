@@ -755,13 +755,19 @@
             });
         }
 
+        function tryAssignCounties() {
+            if (!_countiesReady || !_stationsReady || !countyData.length) return;
+            try { assignCounties(); } catch(e) {}
+            if (totalSlots > 0 && renderThresholdPanel._lastMap) setWindow(startSlotIdx, endSlotIdx);
+        }
+
         function loadCounties() {
             fetch('uk-counties.geojson')
                 .then(function(r) { return r.json(); })
                 .then(function(gj) {
                     countyData = gj.features || [];
                     _countiesReady = true;
-                    if (_stationsReady) assignCounties();
+                    tryAssignCounties();
                 })
                 .catch(function() { _countiesReady = true; });
         }
@@ -868,7 +874,7 @@
                 var lvlColor = ev.lvl === 'extreme' ? '#c62828' : '#ef6c00';
                 var sid = ev.id.replace(/'/g, "\\'");
                 var timeStr = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-                html += '<div class="thresh-row" onclick="panToStation(\'' + sid + '\')\">';
+                html += '<div class="thresh-row" onclick="panToStation(\'' + sid + '\')">';
                 html += '<span class="event-time">' + timeStr + '</span>';
                 html += '<span class="thresh-name-wrap"><span class="thresh-name">' + name + '</span>';
                 if (s && s.county) html += '<span class="thresh-county">' + s.county + '</span>';
