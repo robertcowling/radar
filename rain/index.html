@@ -708,6 +708,8 @@
             var cH = H - padT - padB;
             var max = totalSlots - 1;
             var barW = cW / totalSlots;
+            var safeId = id.replace(/[^A-Za-z0-9]/g, '_');
+            var tipId  = 'ht_' + safeId;
 
             // Gather 15-min slot data for the full 48-hr window
             var data = [], maxVal = 0;
@@ -760,7 +762,7 @@
                 }
             }
 
-            // Bars — coloured by 15-min rainfall intensity
+            // Bars — coloured by 15-min rainfall intensity; hover updates readout
             for (var i = 0; i < totalSlots; i++) {
                 var v = data[i];
                 if (v === null || v < 0.05) continue;
@@ -772,10 +774,13 @@
                 var dt = new Date(slotToMs(i));
                 var tip = DAYS[dt.getDay()].substr(0,3) + ' ' +
                     String(dt.getHours()).padStart(2,'0') + ':' +
-                    String(dt.getMinutes()).padStart(2,'0') + ' ' + v.toFixed(1) + 'mm';
+                    String(dt.getMinutes()).padStart(2,'0') + ' — ' + v.toFixed(1) + ' mm';
                 svg += '<rect x="' + bx + '" y="' + by + '" width="' +
                        Math.max(barW - 0.3, 0.4).toFixed(1) + '" height="' + bh.toFixed(1) +
-                       '" fill="' + col + '"><title>' + tip + '</title></rect>';
+                       '" fill="' + col +
+                       '" onmouseover="var e=document.getElementById(\'' + tipId + '\');if(e)e.textContent=\'' + tip + '\'"' +
+                       ' onmouseout="var e=document.getElementById(\'' + tipId + '\');if(e)e.textContent=\' \'">' +
+                       '<title>' + tip + '</title></rect>';
             }
 
             // X-axis labels every 12 hr
@@ -811,7 +816,8 @@
                    'font-size="7.5" font-family="sans-serif" text-anchor="end">' + toLbl + '</text>';
 
             svg += '</svg>';
-            return svg;
+            return svg + '<div id="' + tipId + '" style="height:13px;font-size:10px;color:#5f6368;' +
+                   'text-align:center;margin-top:1px;font-family:sans-serif"> </div>';
         }
         
         function updateSinglePopup(id) {
@@ -823,7 +829,13 @@
             var nameHtml = hydroUrl ? '<a href="' + hydroUrl + '" target="_blank" style="color:#1a73e8;font-weight:700">' + name + ' &#x2197;</a>' : '<b>' + name + '</b>';
             var popCounty = s.county ? '<br><span style="font-size:11px;color:#5f6368">' + s.county + (s.countyRegion ? ', ' + s.countyRegion : '') + '</span>' : '';
             var hyetoHtml = generateHyetographSVG(id);
-            markers[id].setPopupContent(nameHtml + popCounty + '<br><span style="font-size:12px;color:#3c4043">' + val.toFixed(1) + ' mm</span>' + hyetoHtml);
+            var totalMins2 = Math.round((endSlotIdx - startSlotIdx) * 15);
+            var durLabel2 = totalMins2 < 60 ? totalMins2 + 'min' : totalMins2 % 60 === 0 ? (totalMins2/60) + 'hr' : Math.floor(totalMins2/60) + 'hr ' + (totalMins2%60) + 'min';
+            var popVal = '<div style="margin:6px 0 3px;display:flex;align-items:baseline;gap:3px">' +
+                '<span style="font-size:20px;font-weight:700;color:#202124;line-height:1">' + val.toFixed(1) + '</span>' +
+                '<span style="font-size:12px;color:#5f6368;margin-left:3px">mm</span>' +
+                '<span style="font-size:10px;color:#9aa0a6;margin-left:6px">' + durLabel2 + ' total</span></div>';
+            markers[id].setPopupContent(nameHtml + popCounty + popVal + hyetoHtml);
         }
 
         function panToStation(id) {
@@ -883,7 +895,11 @@
                 if (markers[id].isPopupOpen()) {
                     var hyetoHtml = generateHyetographSVG(id);
                 }
-                markers[id].setPopupContent(nameHtml + popCounty + '<br><span style="font-size:12px;color:#3c4043">' + val.toFixed(1) + ' mm</span>' + hyetoHtml);
+                var popVal = '<div style="margin:6px 0 3px;display:flex;align-items:baseline;gap:3px">' +
+                    '<span style="font-size:20px;font-weight:700;color:#202124;line-height:1">' + val.toFixed(1) + '</span>' +
+                    '<span style="font-size:12px;color:#5f6368;margin-left:3px">mm</span>' +
+                    '<span style="font-size:10px;color:#9aa0a6;margin-left:6px">' + durLabel + ' total</span></div>';
+                markers[id].setPopupContent(nameHtml + popCounty + popVal + hyetoHtml);
             });
             renderFrame._prev = accumMap;
             renderFrame._prev._scale = scaleMode;
