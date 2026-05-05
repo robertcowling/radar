@@ -790,7 +790,6 @@
         function panToStation(id) {
             var s = stations[id];
             if (!s) return;
-            map.panTo([s.lat, s.lon]);
             if (markers[id]) {
                 updateSinglePopup(id);
                 markers[id].openPopup();
