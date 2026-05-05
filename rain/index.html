@@ -495,15 +495,7 @@
                 <input type="range" id="sliderEnd"   min="0" max="0" value="0">
             </div>
         </div>
-    <!-- Hyetograph Modal -->
-    <div id="hyetoModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center; backdrop-filter: blur(2px);">
-        <div class="surface" style="width: 480px; padding: 24px; position:relative; max-width:90vw; border-radius:12px;">
-            <button onclick="document.getElementById('hyetoModal').style.display='none'" style="position:absolute; top:12px; right:12px; background:none; border:none; cursor:pointer; font-size:24px; color:#80868b; line-height:1;">&times;</button>
-            <h4 id="hyetoTitle" style="margin:0 0 4px; color:#202124; font-size:18px; font-weight:500;">Gauge Name</h4>
-            <p id="hyetoSubtitle" style="margin:0 0 20px; color:#5f6368; font-size:13px;">48-hour hyetograph (15m res) up to valid time</p>
-            <div id="hyetoChart" style="height: 160px; width: 100%;"></div>
         </div>
-    </div>
 
     <script>
         // ── Config ─────────────────────────────────────────────────────────────
@@ -699,7 +691,7 @@
                 });
                 var m = L.marker([s.lat, s.lon], {icon: icon});
                 m.bindTooltip('', {direction: 'top', className: 'gauge-tip', offset: [0, -12]});
-                m.bindPopup('', {className: 'gauge-popup', maxWidth: 220});
+                m.bindPopup('', {className: 'gauge-popup', maxWidth: 260});
                 m.on('click', (function(sid) {
                     return function() { panToStation(sid); };
                 })(id));
@@ -709,13 +701,7 @@
             });
         }
 
-        function showHyetograph(id) {
-            var s = stations[id];
-            if (!s) return;
-            var name = s.name || id;
-            document.getElementById('hyetoTitle').innerText = name;
-            document.getElementById('hyetoSubtitle').innerText = '48-hour hyetograph (15m res) up to ' + fmtLocal(latestMs);
-            
+        function generateHyetographSVG(id) {
             var validityMs = latestMs;
             var slots = 48 * 4; // 48 hours = 192 slots
             var data = [];
@@ -737,18 +723,18 @@
             }
             
             if (maxVal < 1) maxVal = 1; // min scale 1mm
-            var steps = 4;
+            var steps = 3;
             maxVal = Math.ceil(maxVal * 1.1); // 10% headroom
             if (maxVal < 1) maxVal = 1;
             
-            var w = 480;
-            var h = 160;
-            var padL = 25;
-            var padB = 20;
+            var w = 240;
+            var h = 90;
+            var padL = 20;
+            var padB = 16;
             var chartW = w - padL;
             var chartH = h - padB;
             
-            var svg = '<svg width="100%" height="100%" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">';
+            var svg = '<svg width="' + w + 'px" height="' + h + 'px" viewBox="0 0 ' + w + ' ' + h + '" style="margin-top:8px;">';
             
             // Y-axis grid
             for (var i = 0; i <= steps; i++) {
@@ -756,21 +742,21 @@
                 var val = (maxVal * (i / steps)).toFixed(maxVal < 5 ? 1 : 0);
                 if (i > 0) {
                     svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + w + '" y2="' + y + '" stroke="#e8eaed" stroke-dasharray="2,2" stroke-width="1" />';
-                    svg += '<text x="' + (padL - 4) + '" y="' + (y + 4) + '" fill="#80868b" font-size="10" font-family="Roboto" text-anchor="end">' + val + '</text>';
+                    svg += '<text x="' + (padL - 4) + '" y="' + (y + 3) + '" fill="#80868b" font-size="8" font-family="Roboto" text-anchor="end">' + val + '</text>';
                 } else {
                     svg += '<line x1="' + padL + '" y1="' + chartH + '" x2="' + w + '" y2="' + chartH + '" stroke="#bdc1c6" stroke-width="1" />';
                 }
             }
             
-            // X-axis ticks (every 6 hours)
-            for (var i = 0; i <= slots; i += 24) { // 24 slots = 6 hrs
+            // X-axis ticks (every 12 hours)
+            for (var i = 0; i <= slots; i += 48) { // 48 slots = 12 hrs
                 var x = padL + (i / slots) * chartW;
                 var dt = new Date(validityMs - (slots - i) * 900000);
-                svg += '<line x1="' + x + '" y1="' + chartH + '" x2="' + x + '" y2="' + (chartH + 4) + '" stroke="#bdc1c6" stroke-width="1" />';
-                if (i % 48 === 0 || i === slots) { // labels every 12h
+                svg += '<line x1="' + x + '" y1="' + chartH + '" x2="' + x + '" y2="' + (chartH + 3) + '" stroke="#bdc1c6" stroke-width="1" />';
+                if (i === 0 || i === slots || i % 48 === 0) {
                     var lbl = String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
                     if (dt.getHours() === 0) lbl = DAYS[dt.getDay()].substring(0,3);
-                    svg += '<text x="' + x + '" y="' + (chartH + 14) + '" fill="#80868b" font-size="10" font-family="Roboto" text-anchor="middle">' + lbl + '</text>';
+                    svg += '<text x="' + x + '" y="' + (chartH + 10) + '" fill="#80868b" font-size="8" font-family="Roboto" text-anchor="middle">' + lbl + '</text>';
                 }
             }
             
@@ -781,23 +767,34 @@
                     var barH = (val / maxVal) * chartH;
                     var bx = padL + i * barW;
                     var by = chartH - barH;
-                    svg += '<rect x="' + bx + '" y="' + by + '" width="' + (barW > 0.5 ? barW - 0.2 : barW) + '" height="' + barH + '" fill="#1a73e8" rx="0.5" />';
+                    svg += '<rect x="' + bx + '" y="' + by + '" width="' + (barW > 0.5 ? barW - 0.2 : barW) + '" height="' + barH + '" fill="#1a73e8" />';
                 }
             });
             
             svg += '</svg>';
-            document.getElementById('hyetoChart').innerHTML = svg;
-            
-            var modal = document.getElementById('hyetoModal');
-            modal.style.display = 'flex';
+            return svg;
+        }
+        
+        function updateSinglePopup(id) {
+            var s = stations[id];
+            if (!s || !markers[id]) return;
+            var val = renderFrame._prev ? (renderFrame._prev[id] || 0) : 0;
+            var name = s.name || id;
+            var hydroUrl = s.guid ? 'https://environment.data.gov.uk/hydrology/station/' + s.guid : null;
+            var nameHtml = hydroUrl ? '<a href="' + hydroUrl + '" target="_blank" style="color:#1a73e8;font-weight:700">' + name + ' &#x2197;</a>' : '<b>' + name + '</b>';
+            var popCounty = s.county ? '<br><span style="font-size:11px;color:#5f6368">' + s.county + (s.countyRegion ? ', ' + s.countyRegion : '') + '</span>' : '';
+            var hyetoHtml = '<div style="font-size:10px; color:#80868b; margin-top:6px; font-weight:600;">48-hr hyetograph</div>' + generateHyetographSVG(id);
+            markers[id].setPopupContent(nameHtml + popCounty + '<br><span style="font-size:12px;color:#3c4043">' + val.toFixed(1) + ' mm</span>' + hyetoHtml);
         }
 
         function panToStation(id) {
             var s = stations[id];
             if (!s) return;
             map.panTo([s.lat, s.lon]);
-            if (markers[id]) markers[id].openPopup();
-            showHyetograph(id);
+            if (markers[id]) {
+                updateSinglePopup(id);
+                markers[id].openPopup();
+            }
         }
 
         // ── Render frame ───────────────────────────────────────────────────────
@@ -843,7 +840,12 @@
                 var popCounty = (s && s.county)
                     ? '<br><span style="font-size:11px;color:#5f6368">' + s.county + (s.countyRegion ? ', ' + s.countyRegion : '') + '</span>'
                     : '';
-                markers[id].setPopupContent(nameHtml + popCounty + '<br><span style="font-size:12px;color:#3c4043">' + val.toFixed(1) + ' mm</span>');
+                
+                var hyetoHtml = '';
+                if (markers[id].isPopupOpen()) {
+                    hyetoHtml = '<div style="font-size:10px; color:#80868b; margin-top:6px; font-weight:600;">48-hr hyetograph</div>' + generateHyetographSVG(id);
+                }
+                markers[id].setPopupContent(nameHtml + popCounty + '<br><span style="font-size:12px;color:#3c4043">' + val.toFixed(1) + ' mm</span>' + hyetoHtml);
             });
             renderFrame._prev = accumMap;
             renderFrame._prev._scale = scaleMode;
