@@ -714,8 +714,9 @@
             if (!s) return;
             var name = s.name || id;
             document.getElementById('hyetoTitle').innerText = name;
+            document.getElementById('hyetoSubtitle').innerText = '48-hour hyetograph (15m res) up to ' + fmtLocal(latestMs);
             
-            var validityMs = slotToMs(endSlotIdx);
+            var validityMs = latestMs;
             var slots = 48 * 4; // 48 hours = 192 slots
             var data = [];
             var maxVal = 0;
@@ -725,7 +726,7 @@
                 var dk = fmtDateKey(t);
                 var slotIdx = String((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15);
                 var v = 0;
-                if (dayCache[dk] && dayCache[dk].readings[id]) {
+                if (dayCache[dk] && dayCache[dk].readings && dayCache[dk].readings[id]) {
                     var reading = dayCache[dk].readings[id][slotIdx];
                     if (typeof reading === 'number' && reading >= 0) {
                         v = reading;
