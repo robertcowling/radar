@@ -317,6 +317,7 @@
             width: 20px; height: 20px;
             border-radius: 50%;
             border: 1.5px solid rgba(255,255,255,0.55);
+            transform: translateZ(0); will-change: transform;
             display: flex; align-items: center; justify-content: center;
             font-family: 'Roboto', sans-serif;
             font-size: 8.5px; font-weight: 700;
@@ -774,13 +775,15 @@
                 var dt = new Date(slotToMs(i));
                 var tip = DAYS[dt.getDay()].substr(0,3) + ' ' +
                     String(dt.getHours()).padStart(2,'0') + ':' +
-                    String(dt.getMinutes()).padStart(2,'0') + ' — ' + v.toFixed(1) + ' mm';
+                    String(dt.getMinutes()).padStart(2,'0') + ': ' + v.toFixed(1) + ' mm';
                 svg += '<rect x="' + bx + '" y="' + by + '" width="' +
                        Math.max(barW - 0.3, 0.4).toFixed(1) + '" height="' + bh.toFixed(1) +
-                       '" fill="' + col +
-                       '" onmouseover="var e=document.getElementById(\'' + tipId + '\');if(e)e.textContent=\'' + tip + '\'"' +
-                       ' onmouseout="var e=document.getElementById(\'' + tipId + '\');if(e)e.textContent=\' \'">' +
-                       '<title>' + tip + '</title></rect>';
+                       '" fill="' + col + '" pointer-events="none"></rect>';
+                svg += '<rect x="' + bx + '" y="' + padT + '" width="' + barW.toFixed(1) + '" height="' + cH +
+                       '" fill="transparent"' +
+                       ' onmouseover="var e=document.getElementById(\'' + tipId + '\');if(e)e.textContent=\'' + tip + '\'"' +
+                       ' onmouseout="var e=document.getElementById(\'' + tipId + '\');if(e)e.textContent=\' \'"' +
+                       '></rect>';
             }
 
             // X-axis labels every 12 hr
@@ -1079,7 +1082,7 @@
                 if (s && s.county) html += '<span class="thresh-county">' + s.county + '</span>';
                 html += '</span>';
                                 var lvlColor = ev.thresh.level === 'extreme' ? '#c62828' : '#ef6c00';
-                html += '<span style="font-size:10px;font-weight:700;color:' + lvlColor + ';text-transform:uppercase;flex-shrink:0;padding-right:2px;min-width:50px;text-align:right">' + (ev.thresh.level || '') + '</span>';
+                html += '<span style="font-size:10px;font-weight:700;color:' + lvlColor + ';flex-shrink:0;padding-right:2px;min-width:60px;text-align:right">' + (ev.thresh.label || ev.thresh.level || '') + '</span>';
                 html += '<span class="thresh-val" style="background:' + style.fill + ';color:' + style.text + '">' + ev.val.toFixed(1) + 'mm</span>';
                 html += '</div>';
             });
