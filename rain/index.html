@@ -1049,10 +1049,11 @@
             });
             var thresholds = THRESHOLDS[nearestKey] || [];
 
-            // Scan the full 48-hr visible timeline, not just the highlighted window
-            var scanStart = slotToMs(0);
+            // Scan the 48-hr timeline; only include crossings whose full accumulation
+            // period lies within the visible window (no data from before slot 0)
+            var scanStart = slotToMs(0) + Math.round(accumHrs * 3600000);
             var scanEnd   = slotToMs(totalSlots - 1);
-            var step = 3600000; // 1hr steps across 48hr = 48 iterations
+            var step = 3600000; // 1hr steps
 
             var events = [];
 
