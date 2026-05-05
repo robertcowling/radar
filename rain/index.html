@@ -496,17 +496,14 @@
         };
         var scaleMode = 'normal';
         // Threshold exceedance list — panel only, not map colours
+        // Threshold definitions (must match fetch_rain.py THRESHOLD_PERIODS)
+        // Heavy: 10mm/1hr, 25mm/3hr   Extreme: 30mm/1hr, 40mm/3hr, 50mm/6hr
         var THRESHOLDS = {
-            1:  [{mm: 20, label: '>20 mm / 1hr'},
-                 {mm: 30, label: '>30 mm / 1hr'}],
-            6:  [],
-            12: [{mm: 30, label: '>30 mm / 12hr'},
-                 {mm: 50, label: '>50 mm / 12hr'}],
-            24: [],
-            48: [{mm: 50,  label: '>50 mm / 48hr'},
-                 {mm: 100, label: '>100 mm / 48hr'}],
-            72: [{mm: 75,  label: '>75 mm / 72hr'},
-                 {mm: 150, label: '>150 mm / 72hr'}]
+            1: [{mm: 10, level: 'heavy',   label: '>10mm/1hr'},
+                {mm: 30, level: 'extreme', label: '>30mm/1hr'}],
+            3: [{mm: 25, level: 'heavy',   label: '>25mm/3hr'},
+                {mm: 40, level: 'extreme', label: '>40mm/3hr'}],
+            6: [{mm: 50, level: 'extreme', label: '>50mm/6hr'}],
         };
         var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         var DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -700,9 +697,7 @@
                 }
                 var s = stations[id];
                 var name = (s && s.name) || id;
-                var hydroUrl = s && s.guid
-                    ? 'https://environment.data.gov.uk/hydrology/station/' + s.guid
-                    : null;
+                var hydroUrl = 'https://environment.data.gov.uk/flood-monitoring/id/stations/' + id;
                 var tipCounty = (s && s.county) ? '<br><span style="font-size:10px;color:#80868b">' + s.county + '</span>' : '';
                 markers[id].setTooltipContent('<b>' + name + '</b>' + tipCounty + '<br>' + val.toFixed(1) + ' mm');
                 var nameHtml = hydroUrl
@@ -792,7 +787,7 @@
             renderThresholdPanel._lastMap = accumMap;
             renderThresholdPanel._lastHrs = accumHrs;
             if (panelTab === 'top10') renderTop10(accumMap, accumHrs);
-            else                      scheduleTimeline(accumHrs);
+            else                      renderTimeline(accumHrs);
         }
 
         function renderTop10(accumMap, accumHrs) {
@@ -823,100 +818,63 @@
             document.getElementById('thresholdPanel').innerHTML = html;
         }
 
-        var _timelineTimer = null;
-        function scheduleTimeline(accumHrs) {
-            clearTimeout(_timelineTimer);
-            _timelineTimer = setTimeout(function() { buildAndRenderTimeline(accumHrs); }, 120);
+        function fetchEvents() {
+            if (!meta || !meta.r2_base_url) return;
+            fetch(meta.r2_base_url + '/rain/events.json?_cb=' + Date.now())
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    eventsData = data;
+                    if (panelTab === 'timeline' && renderThresholdPanel._lastHrs != null) {
+                        renderTimeline(renderThresholdPanel._lastHrs);
+                    }
+                }).catch(function() {});
         }
 
-        function buildAndRenderTimeline(accumHrs) {
-            var periodKeys = [1, 6, 12, 24, 48];
+        function renderTimeline(accumHrs) {
+            var panel = document.getElementById('thresholdPanel');
+            var periodKeys = [1, 3, 6];
             var nearestKey = periodKeys.reduce(function(a, b) {
                 return Math.abs(b - accumHrs) < Math.abs(a - accumHrs) ? b : a;
             });
-            var thresholds = THRESHOLDS[nearestKey] || [];
-
-            var scanStart = slotToMs(startSlotIdx);
-            var scanEnd   = slotToMs(endSlotIdx);
-            // Step = 1hr, but at most 96 steps
-            var step = Math.max(900000 * 4, Math.ceil((scanEnd - scanStart) / (96 * 3600000)) * 3600000);
-            step = Math.max(step, 3600000); // minimum 1hr step
-
-            var events = [];
-
-            if (thresholds.length) {
-                var prevState = {};
-                for (var t = scanStart; t <= scanEnd; t += step) {
-                    Object.keys(stations).forEach(function(id) {
-                        var val = computeAccum(id, t, accumHrs);
-                        thresholds.forEach(function(thresh) {
-                            var key = id + '|' + thresh.mm;
-                            var exceeds = val >= thresh.mm;
-                            if (exceeds && !prevState[key]) {
-                                events.push({ms: t, id: id, val: val, thresh: thresh});
-                            }
-                            prevState[key] = exceeds;
-                        });
-                    });
-                }
-                // Most recent first, then by amount
-                events.sort(function(a, b) { return b.ms !== a.ms ? b.ms - a.ms : b.val - a.val; });
-            }
-
-            var panel = document.getElementById('thresholdPanel');
-            if (!events.length) {
-                // No threshold events — show top 20 by amount as a fallback list
-                var accumMap = renderThresholdPanel._lastMap || {};
-                var top = Object.keys(accumMap)
-                    .map(function(id) { return {id: id, val: accumMap[id]}; })
-                    .filter(function(x) { return x.val >= 0.05; })
-                    .sort(function(a, b) { return b.val - a.val; })
-                    .slice(0, 20);
-                if (!top.length) {
-                    panel.innerHTML = '<div style="color:#80868b;font-size:12px;padding:4px 0">No readings for this period</div>';
-                    return;
-                }
-                var note = thresholds.length
-                    ? '<div style="color:#80868b;font-size:11px;padding:2px 0 6px">No threshold warnings — showing all readings</div>'
-                    : '<div style="color:#80868b;font-size:11px;padding:2px 0 6px">No thresholds defined — showing all readings</div>';
-                var html = note;
-                top.forEach(function(x) {
-                    var s = stations[x.id];
-                    var name = (s && s.name) || x.id;
-                    var style = getAccumStyle(x.val);
-                    var sid = x.id.replace(/'/g, "\\'");
-                    html += '<div class="thresh-row" onclick="panToStation(\'' + sid + '\')">';
-                    html += '<span class="thresh-name-wrap"><span class="thresh-name">' + name + '</span>';
-                    if (s && s.county) html += '<span class="thresh-county">' + s.county + '</span>';
-                    html += '</span>';
-                    html += '<span class="thresh-val" style="background:' + style.fill + ';color:' + style.text + '">' + x.val.toFixed(1) + 'mm</span>';
-                    html += '</div>';
-                });
-                panel.innerHTML = html;
+            if (!THRESHOLDS[nearestKey]) {
+                panel.innerHTML = '<div style="color:#80868b;font-size:12px;padding:4px 0">No thresholds defined for this period</div>';
                 return;
             }
-
-            var html = '';
-            var lastDay = null;
-            events.forEach(function(ev) {
-                var d = new Date(ev.ms);
+            if (!eventsData) {
+                panel.innerHTML = '<div style="color:#80868b;font-size:12px;padding:4px 0">Loading events&hellip;</div>';
+                return;
+            }
+            var startMs = slotToMs(startSlotIdx);
+            var endMs   = slotToMs(endSlotIdx);
+            var filtered = eventsData.events.filter(function(ev) {
+                return ev.p === nearestKey && ev.t >= startMs && ev.t <= endMs;
+            }).sort(function(a, b) { return b.t - a.t; });
+            if (!filtered.length) {
+                panel.innerHTML = '<div style="color:#80868b;font-size:12px;padding:4px 0">No threshold exceedances in this window</div>';
+                return;
+            }
+            var html = ''; var lastDay = null;
+            filtered.forEach(function(ev) {
+                var d = new Date(ev.t);
                 var dayKey = d.getDate() + '/' + d.getMonth();
                 if (dayKey !== lastDay) {
-                    var dayLabel = DAYS[d.getDay()] + ' ' + String(d.getDate()).padStart(2,'0') + ' ' + MONTHS[d.getMonth()];
-                    html += '<div class="thresh-header" style="margin-top:8px;padding-top:6px;border-top:1px solid #e8eaed">' + dayLabel + '</div>';
+                    html += '<div class="thresh-header" style="margin-top:8px;padding-top:6px;border-top:1px solid #e8eaed">'
+                        + DAYS[d.getDay()] + ' ' + String(d.getDate()).padStart(2,'0') + ' ' + MONTHS[d.getMonth()] + '</div>';
                     lastDay = dayKey;
                 }
                 var s = stations[ev.id];
                 var name = (s && s.name) || ev.id;
-                var style = getAccumStyle(ev.val);
+                var style = getAccumStyle(ev.mm);
+                var lvlColor = ev.lvl === 'extreme' ? '#c62828' : '#ef6c00';
                 var sid = ev.id.replace(/'/g, "\\'");
                 var timeStr = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-                html += '<div class="thresh-row" onclick="panToStation(\'' + sid + '\')">';
+                html += '<div class="thresh-row" onclick="panToStation(\'' + sid + '\')\">';
                 html += '<span class="event-time">' + timeStr + '</span>';
                 html += '<span class="thresh-name-wrap"><span class="thresh-name">' + name + '</span>';
                 if (s && s.county) html += '<span class="thresh-county">' + s.county + '</span>';
                 html += '</span>';
-                html += '<span class="thresh-val" style="background:' + style.fill + ';color:' + style.text + '">' + ev.val.toFixed(1) + 'mm</span>';
+                html += '<span style="font-size:10px;font-weight:700;color:' + lvlColor + ';text-transform:uppercase;flex-shrink:0;padding-right:2px">' + ev.lvl + '</span>';
+                html += '<span class="thresh-val" style="background:' + style.fill + ';color:' + style.text + '">' + ev.mm.toFixed(1) + 'mm</span>';
                 html += '</div>';
             });
             panel.innerHTML = html;
@@ -1188,6 +1146,7 @@
                     return;
                 }
                 rebuildTimeline();
+                fetchEvents();
                 // Auto-poll every 5 min
                 setInterval(function() {
                     fetch('meta.json?_cb=' + Date.now())
@@ -1197,6 +1156,7 @@
                                 delete dayCache[fmtDateKey(new Date(d.latest_time.replace(/Z?$/, 'Z')))];
                                 meta = d;
                                 rebuildTimeline();
+                                fetchEvents();
                             }
                         }).catch(function() {});
                 }, 5 * 60 * 1000);
