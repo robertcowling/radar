@@ -21,6 +21,11 @@ import requests
 EA_BASE    = "https://environment.data.gov.uk/flood-monitoring"   # readings (real-time)
 HYDRO_BASE = "https://environment.data.gov.uk/hydrology"          # stations + readings
 
+# ── NRW API ───────────────────────────────────────────────────────────────────
+NRW_BASE = "https://api.naturalresources.wales/rivers-and-seas/v1/api"
+NRW_KEY  = os.environ.get("NRW_KEY", "")
+USE_NRW  = bool(NRW_KEY)
+
 # ── Cloudflare R2 ─────────────────────────────────────────────────────────────
 R2_ACCOUNT_ID    = os.environ.get("R2_ACCOUNT_ID", "")
 R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID", "")
@@ -119,6 +124,60 @@ def fetch_readings_for_date(date_str):
     items = r.json().get("items", [])
     print(f"    {len(items)} readings")
     return items
+
+
+def fetch_nrw_data():
+    """Fetch latest rainfall readings from NRW StationData API.
+    Returns (nrw_stations dict, by_date dict, latest_dt str or None).
+    Station IDs are prefixed 'nrw_' to avoid EA collisions.
+    """
+    if not USE_NRW:
+        return {}, {}, None
+    print("Fetching NRW station data...")
+    r = requests.get(f"{NRW_BASE}/StationData",
+                     headers={"Ocp-Apim-Subscription-Key": NRW_KEY},
+                     timeout=60)
+    r.raise_for_status()
+    items = r.json()
+
+    nrw_stations = {}
+    by_date = {}
+    latest_dt = None
+
+    for item in items:
+        lat = item.get("latitude")
+        lon = item.get("longitude")
+        if lat is None or lon is None:
+            continue
+        sid  = f"nrw_{item.get('stationId')}"
+        name = item.get("nameEN") or sid
+        for param in (item.get("parameters") or []):
+            if "rainfall" not in (param.get("paramNameEN") or "").lower():
+                continue
+            val_str  = param.get("latestValue")
+            time_str = (param.get("latestTime") or "")
+            if val_str is None or not time_str:
+                continue
+            try:
+                val = float(val_str)
+            except (TypeError, ValueError):
+                continue
+            if val < 0:
+                continue
+            nrw_stations[sid] = {
+                "lat":    round(float(lat), 5),
+                "lon":    round(float(lon), 5),
+                "name":   name,
+                "source": "nrw",
+            }
+            date_key, slot = dt_to_slot(time_str[:19].rstrip("Z"))
+            by_date.setdefault(date_key, {}).setdefault(sid, {})[str(slot)] = round(val, 2)
+            if latest_dt is None or time_str > latest_dt:
+                latest_dt = time_str
+            break  # one rainfall param per station
+
+    print(f"  NRW: {len(nrw_stations)} rainfall stations, latest={latest_dt}")
+    return nrw_stations, by_date, latest_dt
 
 
 def parse_readings(items, suid_to_ref=None):
@@ -224,6 +283,28 @@ def main():
         return
 
     by_date, latest_dt = parse_readings(items, suid_to_ref)
+
+    # ── NRW readings (merged in before upload loop) ───────────────────────────
+    if USE_NRW:
+        try:
+            nrw_stations_new, nrw_by_date, nrw_latest = fetch_nrw_data()
+            for date_key, station_slots in nrw_by_date.items():
+                for sid, slots in station_slots.items():
+                    by_date.setdefault(date_key, {}).setdefault(sid, {}).update(slots)
+            if nrw_latest and (latest_dt is None or nrw_latest > latest_dt):
+                latest_dt = nrw_latest
+            if nrw_stations_new:
+                stations.update(nrw_stations_new)
+                stations_data["stations"] = stations
+                write_local_json(STATIONS_PATH, stations_data)
+                if USE_R2:
+                    try:
+                        r2_put_json(r2, "rain/stations.json", stations_data)
+                        print(f"Updated stations.json with {len(nrw_stations_new)} NRW stations")
+                    except Exception as e:
+                        print(f"Warning: stations.json NRW update failed: {e}")
+        except Exception as e:
+            print(f"Warning: NRW fetch failed: {e}")
 
     # ── Merge into R2 day files ───────────────────────────────────────────────
     available_days = set(meta.get("available_days", []))
