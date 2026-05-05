@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <title>UK Rain Gauges</title>
@@ -497,16 +497,12 @@
         var scaleMode = 'normal';
         // Threshold exceedance list — panel only, not map colours
         var THRESHOLDS = {
-            1:  [{mm: 20, label: '>20 mm / 1hr'},
-                 {mm: 30, label: '>30 mm / 1hr'}],
-            6:  [],
-            12: [{mm: 30, label: '>30 mm / 12hr'},
-                 {mm: 50, label: '>50 mm / 12hr'}],
-            24: [],
-            48: [{mm: 50,  label: '>50 mm / 48hr'},
-                 {mm: 100, label: '>100 mm / 48hr'}],
-            72: [{mm: 75,  label: '>75 mm / 72hr'},
-                 {mm: 150, label: '>150 mm / 72hr'}]
+            1: [{mm: 10, label: '>10 mm/1hr', level: 'heavy'},
+                {mm: 30, label: '>30 mm/1hr', level: 'extreme'}],
+            2: [{mm: 20, label: '>20 mm/2hr', level: 'heavy'}],
+            3: [{mm: 25, label: '>25 mm/3hr', level: 'heavy'},
+                {mm: 40, label: '>40 mm/3hr', level: 'extreme'}],
+            6: [{mm: 50, label: '>50 mm/6hr', level: 'extreme'}]
         };
         var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         var DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -830,7 +826,7 @@
         }
 
         function buildAndRenderTimeline(accumHrs) {
-            var periodKeys = [1, 6, 12, 24, 48];
+            var periodKeys = [1, 2, 3, 6];
             var nearestKey = periodKeys.reduce(function(a, b) {
                 return Math.abs(b - accumHrs) < Math.abs(a - accumHrs) ? b : a;
             });
@@ -865,34 +861,8 @@
 
             var panel = document.getElementById('thresholdPanel');
             if (!events.length) {
-                // No threshold events — show top 20 by amount as a fallback list
-                var accumMap = renderThresholdPanel._lastMap || {};
-                var top = Object.keys(accumMap)
-                    .map(function(id) { return {id: id, val: accumMap[id]}; })
-                    .filter(function(x) { return x.val >= 0.05; })
-                    .sort(function(a, b) { return b.val - a.val; })
-                    .slice(0, 20);
-                if (!top.length) {
-                    panel.innerHTML = '<div style="color:#80868b;font-size:12px;padding:4px 0">No readings for this period</div>';
-                    return;
-                }
-                var note = thresholds.length
-                    ? '<div style="color:#80868b;font-size:11px;padding:2px 0 6px">No threshold warnings — showing all readings</div>'
-                    : '<div style="color:#80868b;font-size:11px;padding:2px 0 6px">No thresholds defined — showing all readings</div>';
-                var html = note;
-                top.forEach(function(x) {
-                    var s = stations[x.id];
-                    var name = (s && s.name) || x.id;
-                    var style = getAccumStyle(x.val);
-                    var sid = x.id.replace(/'/g, "\\'");
-                    html += '<div class="thresh-row" onclick="panToStation(\'' + sid + '\')">';
-                    html += '<span class="thresh-name-wrap"><span class="thresh-name">' + name + '</span>';
-                    if (s && s.county) html += '<span class="thresh-county">' + s.county + '</span>';
-                    html += '</span>';
-                    html += '<span class="thresh-val" style="background:' + style.fill + ';color:' + style.text + '">' + x.val.toFixed(1) + 'mm</span>';
-                    html += '</div>';
-                });
-                panel.innerHTML = html;
+                var noMsg = thresholds.length ? 'No threshold exceedances in this window' : 'No thresholds defined for this period';
+                panel.innerHTML = '<div style="color:#80868b;font-size:12px;padding:4px 0">' + noMsg + '</div>';
                 return;
             }
 
@@ -916,6 +886,8 @@
                 html += '<span class="thresh-name-wrap"><span class="thresh-name">' + name + '</span>';
                 if (s && s.county) html += '<span class="thresh-county">' + s.county + '</span>';
                 html += '</span>';
+                                var lvlColor = ev.thresh.level === 'extreme' ? '#c62828' : '#ef6c00';
+                html += '<span style="font-size:10px;font-weight:700;color:' + lvlColor + ';text-transform:uppercase;flex-shrink:0;padding-right:2px;min-width:50px;text-align:right">' + (ev.thresh.level || '') + '</span>';
                 html += '<span class="thresh-val" style="background:' + style.fill + ';color:' + style.text + '">' + ev.val.toFixed(1) + 'mm</span>';
                 html += '</div>';
             });
