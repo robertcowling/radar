@@ -852,18 +852,38 @@
 
         // ── Render frame ───────────────────────────────────────────────────────
         function renderFrame(validityMs, accumHrs) {
+            // Pre-compute slot keys once — avoids N_stations x N_slots Date creations per frame
+            var nSlots = Math.round(accumHrs * 4);
+            var slotKeys = new Array(nSlots);
+            for (var s = 0; s < nSlots; s++) {
+                var t = new Date(validityMs - s * 900000);
+                slotKeys[s] = [fmtDateKey(t), String(Math.round((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15))];
+            }
             var accumMap = {};
-            Object.keys(stations).forEach(function(id) {
-                accumMap[id] = computeAccum(id, validityMs, accumHrs);
-            });
+            var stIds = Object.keys(stations);
+            for (var i = 0; i < stIds.length; i++) {
+                var sid = stIds[i];
+                var total = 0;
+                for (var s = 0; s < nSlots; s++) {
+                    var day = dayCache[slotKeys[s][0]];
+                    if (!day) continue;
+                    var stData = day.readings[sid];
+                    if (!stData) continue;
+                    var v = stData[slotKeys[s][1]];
+                    if (typeof v === 'number' && v >= 0) total += v;
+                }
+                accumMap[sid] = total;
+            }
 
             var prevVals = renderFrame._prev || {};
+            var popMins = Math.round((endSlotIdx - startSlotIdx) * 15);
+            var popDur = popMins < 60 ? popMins + 'min' : popMins % 60 === 0 ? (popMins / 60) + 'hr' : Math.floor(popMins / 60) + 'hr ' + (popMins % 60) + 'min';
             Object.keys(markers).forEach(function(id) {
                 var val = accumMap[id] || 0;
                 var style = getAccumStyle(val);
                 var div = markers[id]._rgDiv;
+                var changed = prevVals[id] !== val || prevVals._scale !== scaleMode;
                 if (div) {
-                    var changed = prevVals[id] !== val || prevVals._scale !== scaleMode;
                     if (changed) {
                         if (style.nodata) {
                             div.className = 'rg-icon rg-nodata';
@@ -880,31 +900,31 @@
                         div.textContent = (!style.nodata && showValues) ? fmtVal(val) : '';
                     }
                 }
-                var s = stations[id];
-                var name = (s && s.name) || id;
-                var hydroUrl = s && s.guid
-                    ? 'https://environment.data.gov.uk/hydrology/station/' + s.guid
-                    : null;
-                var tipCounty = (s && s.county) ? '<br><span style="font-size:10px;color:#80868b">' + s.county + '</span>' : '';
-                markers[id].setTooltipContent('<b>' + name + '</b>' + tipCounty + '<br>' + val.toFixed(1) + ' mm');
-                var nameHtml = hydroUrl
-                    ? '<a href="' + hydroUrl + '" target="_blank" style="color:#1a73e8;font-weight:700">' + name + ' &#x2197;</a>'
-                    : '<b>' + name + '</b>';
-                var popCounty = (s && s.county)
-                    ? '<br><span style="font-size:11px;color:#5f6368">' + s.county + (s.countyRegion ? ', ' + s.countyRegion : '') + '</span>'
-                    : '';
-                
-                var hyetoHtml = '';
-                if (markers[id].isPopupOpen()) {
-                    hyetoHtml = generateHyetographSVG(id);
+                if (changed) {
+                    var s = stations[id];
+                    var name = (s && s.name) || id;
+                    var tipCounty = (s && s.county) ? '<br><span style="font-size:10px;color:#80868b">' + s.county + '</span>' : '';
+                    markers[id].setTooltipContent('<b>' + name + '</b>' + tipCounty + '<br>' + val.toFixed(1) + ' mm');
                 }
-                var popMins = Math.round((endSlotIdx - startSlotIdx) * 15);
-                var popDur = popMins < 60 ? popMins + 'min' : popMins % 60 === 0 ? (popMins / 60) + 'hr' : Math.floor(popMins / 60) + 'hr ' + (popMins % 60) + 'min';
-                var popVal = '<div style="margin:6px 0 3px;display:flex;align-items:baseline;gap:3px">' +
-                    '<span style="font-size:20px;font-weight:700;color:#202124;line-height:1">' + val.toFixed(1) + '</span>' +
-                    '<span style="font-size:12px;color:#5f6368;margin-left:3px">mm</span>' +
-                    '<span style="font-size:10px;color:#9aa0a6;margin-left:6px">' + popDur + ' total</span></div>';
-                markers[id].setPopupContent(nameHtml + popCounty + popVal + hyetoHtml);
+                if (markers[id].isPopupOpen()) {
+                    var s = stations[id];
+                    var name = (s && s.name) || id;
+                    var hydroUrl = s && s.guid
+                        ? 'https://environment.data.gov.uk/hydrology/station/' + s.guid
+                        : null;
+                    var popCounty = (s && s.county)
+                        ? '<br><span style="font-size:11px;color:#5f6368">' + s.county + (s.countyRegion ? ', ' + s.countyRegion : '') + '</span>'
+                        : '';
+                    var nameHtml = hydroUrl
+                        ? '<a href="' + hydroUrl + '" target="_blank" style="color:#1a73e8;font-weight:700">' + name + ' &#x2197;</a>'
+                        : '<b>' + name + '</b>';
+                    var hyetoHtml = generateHyetographSVG(id);
+                    var popVal = '<div style="margin:6px 0 3px;display:flex;align-items:baseline;gap:3px">' +
+                        '<span style="font-size:20px;font-weight:700;color:#202124;line-height:1">' + val.toFixed(1) + '</span>' +
+                        '<span style="font-size:12px;color:#5f6368;margin-left:3px">mm</span>' +
+                        '<span style="font-size:10px;color:#9aa0a6;margin-left:6px">' + popDur + ' total</span></div>';
+                    markers[id].setPopupContent(nameHtml + popCounty + popVal + hyetoHtml);
+                }
             });
             renderFrame._prev = accumMap;
             renderFrame._prev._scale = scaleMode;
@@ -1183,6 +1203,7 @@
             document.getElementById('rangeGrab').style.left = midPct + '%';
         }
 
+        var _rafPending = null;
         function setWindow(startIdx, endIdx) {
             var max = totalSlots - 1;
             endSlotIdx   = Math.max(1, Math.min(endIdx,   max));
@@ -1196,9 +1217,19 @@
                 var hyetoKeys = neededDayKeys(latestMs, windowHours);
                 hyetoKeys.forEach(function(k) { if (dayKeys.indexOf(k) === -1) dayKeys.push(k); });
             }
-            ensureDaysLoaded(dayKeys, function() {
-                if (Object.keys(stations).length > 0) renderFrame(validityMs, accumHrs);
-            });
+            var pending = dayKeys.filter(function(k) { return dayCache[k] === undefined; });
+            if (pending.length === 0) {
+                if (_rafPending !== null) cancelAnimationFrame(_rafPending);
+                _rafPending = requestAnimationFrame(function() {
+                    _rafPending = null;
+                    if (Object.keys(stations).length > 0)
+                        renderFrame(slotToMs(endSlotIdx), (endSlotIdx - startSlotIdx) / 4);
+                });
+            } else {
+                ensureDaysLoaded(dayKeys, function() {
+                    if (Object.keys(stations).length > 0) renderFrame(validityMs, accumHrs);
+                });
+            }
         }
 
         function fmtVal(val) {
