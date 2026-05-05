@@ -702,106 +702,116 @@
         }
 
         function generateHyetographSVG(id) {
-            var validityMs = latestMs;
-            var slots = 48 * 4; // 48 hours = 192 slots
-            var data = [];
-            var maxVal = 0;
-            
-            for (var i = slots - 1; i >= 0; i--) {
-                var t = new Date(validityMs - i * 900000);
+            var W = 260, H = 80;
+            var padL = 22, padB = 14, padR = 2, padT = 4;
+            var cW = W - padL - padR;
+            var cH = H - padT - padB;
+            var max = totalSlots - 1;
+            var barW = cW / totalSlots;
+
+            // Gather 15-min slot data for the full 48-hr window
+            var data = [], maxVal = 0;
+            for (var i = 0; i < totalSlots; i++) {
+                var t = new Date(slotToMs(i));
                 var dk = fmtDateKey(t);
-                var slotIdx = String((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15);
-                var v = null;
-                if (dayCache[dk] && dayCache[dk].readings && dayCache[dk].readings[id]) {
-                    var reading = dayCache[dk].readings[id][slotIdx];
-                    if (typeof reading === 'number' && reading >= 0) {
-                        v = reading;
-                    }
-                }
+                var si = String(Math.round((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15));
+                var day = dayCache[dk];
+                var v = (day && day.readings && day.readings[id] && day.readings[id][si] != null)
+                    ? +day.readings[id][si] : null;
                 data.push(v);
                 if (v !== null && v > maxVal) maxVal = v;
             }
-            
-            if (maxVal < 1) maxVal = 1; // min scale 1mm
-            var steps = 3;
-            maxVal = Math.ceil(maxVal * 1.1); // 10% headroom
-            if (maxVal < 1) maxVal = 1;
-            
-            var w = 240;
-            var h = 90;
-            var padL = 20;
-            var padB = 16;
-            var chartW = w - padL;
-            var chartH = h - padB;
-            
-            var svg = '<svg width="' + w + 'px" height="' + h + 'px" viewBox="0 0 ' + w + ' ' + h + '" style="margin-top:8px; display:block;">';
-            
-            // Window Shading
-            var selStart = padL + (startSlotIdx / slots) * chartW;
-            var selW = ((endSlotIdx - startSlotIdx) / slots) * chartW;
-            if (selW <= 0) selW = 1;
-            svg += '<rect x="' + selStart + '" y="0" width="' + selW + '" height="' + chartH + '" fill="rgba(26,115,232,0.1)" stroke="rgba(26,115,232,0.5)" stroke-width="0.5" />';
-            
-            // Y-axis grid
-            for (var i = 0; i <= steps; i++) {
-                var y = chartH - (i / steps) * chartH;
-                var val = (maxVal * (i / steps)).toFixed(maxVal < 5 ? 1 : 0);
-                if (i > 0) {
-                    svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + w + '" y2="' + y + '" stroke="#e8eaed" stroke-dasharray="2,2" stroke-width="1" />';
-                    svg += '<text x="' + (padL - 4) + '" y="' + (y + 3) + '" fill="#80868b" font-size="8" font-family="Roboto" text-anchor="end">' + val + '</text>';
-                } else {
-                    svg += '<line x1="' + padL + '" y1="' + chartH + '" x2="' + w + '" y2="' + chartH + '" stroke="#bdc1c6" stroke-width="1" />';
+
+            // Y scale
+            var yMax = maxVal < 0.5 ? 1 : maxVal < 1 ? 2 : maxVal < 4 ? 5 : maxVal < 9 ? 10
+                     : maxVal < 19 ? 20 : Math.ceil(maxVal * 1.15 / 10) * 10;
+            var yStep = yMax <= 2 ? 0.5 : yMax <= 5 ? 1 : yMax <= 10 ? 2 : yMax <= 20 ? 5 : 10;
+            var baseY = padT + cH;
+
+            var svg = '<svg width="' + W + '" height="' + H + '" style="display:block;overflow:visible;margin-top:4px">';
+
+            // Selection fill
+            var sx = padL + (startSlotIdx / max) * cW;
+            var ex = padL + (endSlotIdx   / max) * cW;
+            svg += '<rect x="' + sx.toFixed(1) + '" y="' + padT + '" width="' + Math.max(ex - sx, 1).toFixed(1) +
+                   '" height="' + cH + '" fill="rgba(26,115,232,0.10)"/>';
+
+            // Y gridlines + labels
+            for (var gv = yStep; gv < yMax; gv += yStep) {
+                var gy = (padT + cH - (gv / yMax) * cH).toFixed(1);
+                svg += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy +
+                       '" stroke="#e8eaed" stroke-width="0.8"/>';
+                svg += '<text x="' + (padL - 3) + '" y="' + (+gy + 3) + '" fill="#9aa0a6" font-size="8" ' +
+                       'font-family="sans-serif" text-anchor="end">' +
+                       (gv % 1 === 0 ? gv : gv.toFixed(1)) + '</text>';
+            }
+
+            // Baseline
+            svg += '<line x1="' + padL + '" y1="' + baseY + '" x2="' + (W - padR) + '" y2="' + baseY +
+                   '" stroke="#bdc1c6" stroke-width="1"/>';
+
+            // Midnight separators (local time)
+            for (var i = 1; i < totalSlots; i++) {
+                var dt = new Date(slotToMs(i));
+                if (dt.getHours() === 0 && dt.getMinutes() === 0) {
+                    var mx = (padL + (i / max) * cW).toFixed(1);
+                    svg += '<line x1="' + mx + '" y1="' + padT + '" x2="' + mx + '" y2="' + baseY +
+                           '" stroke="#dde1e7" stroke-width="0.8" stroke-dasharray="2,2"/>';
                 }
             }
-            
-            // X-axis ticks (every 12 hours)
-            for (var i = 0; i <= slots; i += 48) { // 48 slots = 12 hrs
-                var x = padL + (i / slots) * chartW;
-                var dt = new Date(validityMs - (slots - i) * 900000);
-                svg += '<line x1="' + x + '" y1="' + chartH + '" x2="' + x + '" y2="' + (chartH + 3) + '" stroke="#bdc1c6" stroke-width="1" />';
-                if (i === 0 || i === slots || i % 48 === 0) {
-                    var lbl = String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
-                    if (dt.getHours() === 0) lbl = DAYS[dt.getDay()].substring(0,3);
-                    svg += '<text x="' + x + '" y="' + (chartH + 10) + '" fill="#80868b" font-size="8" font-family="Roboto" text-anchor="middle">' + lbl + '</text>';
-                }
-            }
-            
-            // Bars & Hover
-            var barW = chartW / slots;
-            data.forEach(function(val, i) {
-                var bx = padL + i * barW;
-                var t = new Date(validityMs - (slots - 1 - i) * 900000);
-                var timeStr = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
-                var valStr = val === null ? "Missing" : val.toFixed(1) + " mm";
-                
-                // Hover hit area
-                svg += '<rect x="' + bx + '" y="0" width="' + barW + '" height="' + chartH + '" fill="transparent"><title>' + timeStr + ' - ' + valStr + '</title></rect>';
-                
-                if (val !== null && val > 0) {
-                    var barH = (val / maxVal) * chartH;
-                    var by = chartH - barH;
-                    svg += '<rect x="' + bx + '" y="' + by + '" width="' + (barW > 0.5 ? barW - 0.2 : barW) + '" height="' + barH + '" fill="#1a73e8" style="pointer-events:none;" />';
-                }
-            });
-            svg += '</svg>';
-            
-            // Tabular Data
-            var tableHtml = '<div style="max-height: 80px; overflow-y: auto; margin-top: 8px; border-top: 1px solid #e8eaed; padding-top: 4px; font-size: 10px; color: #3c4043;">';
-            tableHtml += '<table style="width:100%; border-collapse: collapse;">';
-            for (var i = slots - 1; i >= 0; i--) {
+
+            // Bars — coloured by 15-min rainfall intensity
+            for (var i = 0; i < totalSlots; i++) {
                 var v = data[i];
-                var t = new Date(validityMs - (slots - 1 - i) * 900000);
-                var timeStr = DAYS[t.getDay()].substr(0,3) + ' ' + String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
-                var valStr = v === null ? '<span style="color:#bdc1c6">—</span>' : v.toFixed(1) + ' mm';
-                // Highlight rows that are inside the current slider window
-                var inWin = (i >= startSlotIdx && i < endSlotIdx);
-                var bg = inWin ? 'background:rgba(26,115,232,0.05);' : '';
-                var fw = inWin ? 'font-weight:600;' : '';
-                tableHtml += '<tr style="' + bg + fw + '"><td style="padding:2px 0;">' + timeStr + '</td><td style="text-align:right; padding:2px 0;">' + valStr + '</td></tr>';
+                if (v === null || v < 0.05) continue;
+                var bx = (padL + i * barW).toFixed(1);
+                var bh = Math.max((v / yMax) * cH, 1);
+                var by = (padT + cH - bh).toFixed(1);
+                var col = v < 0.5 ? '#b3e5fc' : v < 1 ? '#4fc3f7' : v < 2 ? '#0288d1'
+                        : v < 4 ? '#01579b' : v < 8 ? '#2e7d32' : '#ef6c00';
+                var dt = new Date(slotToMs(i));
+                var tip = DAYS[dt.getDay()].substr(0,3) + ' ' +
+                    String(dt.getHours()).padStart(2,'0') + ':' +
+                    String(dt.getMinutes()).padStart(2,'0') + ' ' + v.toFixed(1) + 'mm';
+                svg += '<rect x="' + bx + '" y="' + by + '" width="' +
+                       Math.max(barW - 0.3, 0.4).toFixed(1) + '" height="' + bh.toFixed(1) +
+                       '" fill="' + col + '"><title>' + tip + '</title></rect>';
             }
-            tableHtml += '</table></div>';
-            
-            return svg + tableHtml;
+
+            // X-axis labels every 12 hr
+            for (var i = 0; i <= max; i += 48) {
+                var lx = (padL + (i / max) * cW).toFixed(1);
+                var dt = new Date(slotToMs(i));
+                svg += '<line x1="' + lx + '" y1="' + baseY + '" x2="' + lx + '" y2="' + (baseY + 3) +
+                       '" stroke="#bdc1c6" stroke-width="1"/>';
+                var lbl = (dt.getHours() === 0 && dt.getMinutes() === 0)
+                    ? DAYS[dt.getDay()].substr(0,3)
+                    : String(dt.getHours()).padStart(2,'0') + ':00';
+                svg += '<text x="' + lx + '" y="' + (baseY + 11) + '" fill="#80868b" font-size="8" ' +
+                       'font-family="sans-serif" text-anchor="middle">' + lbl + '</text>';
+            }
+
+            // Valid-from line (grey — matches start thumb colour)
+            svg += '<line x1="' + sx.toFixed(1) + '" y1="' + padT + '" x2="' + sx.toFixed(1) +
+                   '" y2="' + baseY + '" stroke="#5f6368" stroke-width="1.5" stroke-dasharray="3,2"/>';
+            // Valid-until line (blue — matches end thumb colour)
+            svg += '<line x1="' + ex.toFixed(1) + '" y1="' + padT + '" x2="' + ex.toFixed(1) +
+                   '" y2="' + baseY + '" stroke="#1a73e8" stroke-width="1.5"/>';
+
+            // Time labels on the boundary lines
+            var fromD   = new Date(slotToMs(startSlotIdx));
+            var toD     = new Date(slotToMs(endSlotIdx));
+            var fromLbl = String(fromD.getHours()).padStart(2,'0') + ':' + String(fromD.getMinutes()).padStart(2,'0');
+            var toLbl   = String(toD.getHours()).padStart(2,'0') + ':' + String(toD.getMinutes()).padStart(2,'0');
+            var fromTx  = Math.min(sx + 2, W - padR - 26);
+            var toTx    = Math.max(ex - 2, padL + 2);
+            svg += '<text x="' + fromTx.toFixed(1) + '" y="' + (padT + 9) + '" fill="#5f6368" ' +
+                   'font-size="7.5" font-family="sans-serif">' + fromLbl + '</text>';
+            svg += '<text x="' + toTx.toFixed(1) + '" y="' + (padT + 9) + '" fill="#1a73e8" ' +
+                   'font-size="7.5" font-family="sans-serif" text-anchor="end">' + toLbl + '</text>';
+
+            svg += '</svg>';
+            return svg;
         }
         
         function updateSinglePopup(id) {
@@ -812,7 +822,7 @@
             var hydroUrl = s.guid ? 'https://environment.data.gov.uk/hydrology/station/' + s.guid : null;
             var nameHtml = hydroUrl ? '<a href="' + hydroUrl + '" target="_blank" style="color:#1a73e8;font-weight:700">' + name + ' &#x2197;</a>' : '<b>' + name + '</b>';
             var popCounty = s.county ? '<br><span style="font-size:11px;color:#5f6368">' + s.county + (s.countyRegion ? ', ' + s.countyRegion : '') + '</span>' : '';
-            var hyetoHtml = '<div style="font-size:10px; color:#80868b; margin-top:6px; font-weight:600;">48-hr hyetograph</div>' + generateHyetographSVG(id);
+            var hyetoHtml = generateHyetographSVG(id);
             markers[id].setPopupContent(nameHtml + popCounty + '<br><span style="font-size:12px;color:#3c4043">' + val.toFixed(1) + ' mm</span>' + hyetoHtml);
         }
 
@@ -871,7 +881,7 @@
                 
                 var hyetoHtml = '';
                 if (markers[id].isPopupOpen()) {
-                    hyetoHtml = '<div style="font-size:10px; color:#80868b; margin-top:6px; font-weight:600;">48-hr hyetograph</div>' + generateHyetographSVG(id);
+                    var hyetoHtml = generateHyetographSVG(id);
                 }
                 markers[id].setPopupContent(nameHtml + popCounty + '<br><span style="font-size:12px;color:#3c4043">' + val.toFixed(1) + ' mm</span>' + hyetoHtml);
             });
