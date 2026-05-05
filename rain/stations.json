@@ -5472,6 +5472,906 @@
       "lon": -3.23752,
       "name": "Force Crag",
       "guid": "8f39b4d3-94fc-4151-83b9-9b72d9e00342"
+    },
+    "nrw_1000": {
+      "lat": 53.1158,
+      "lon": -3.29668,
+      "name": "Brynhyfryd Ruthin School",
+      "source": "nrw"
+    },
+    "nrw_1001": {
+      "lat": 53.058,
+      "lon": -3.37677,
+      "name": "Clawddnewydd",
+      "source": "nrw"
+    },
+    "nrw_1002": {
+      "lat": 53.13914,
+      "lon": -3.67765,
+      "name": "Gwytherin",
+      "source": "nrw"
+    },
+    "nrw_1003": {
+      "lat": 53.21974,
+      "lon": -3.20904,
+      "name": "Moel Y Crio",
+      "source": "nrw"
+    },
+    "nrw_1004": {
+      "lat": 53.16887,
+      "lon": -3.57032,
+      "name": "Plas Pigot",
+      "source": "nrw"
+    },
+    "nrw_1005": {
+      "lat": 53.26458,
+      "lon": -3.45102,
+      "name": "St Asaph",
+      "source": "nrw"
+    },
+    "nrw_1006": {
+      "lat": 53.13991,
+      "lon": -3.80204,
+      "name": "Llanrwst",
+      "source": "nrw"
+    },
+    "nrw_1007": {
+      "lat": 52.99433,
+      "lon": -3.77356,
+      "name": "Ysbyty Ifan",
+      "source": "nrw"
+    },
+    "nrw_1008": {
+      "lat": 53.02586,
+      "lon": -2.95352,
+      "name": "Five Fords",
+      "source": "nrw"
+    },
+    "nrw_1009": {
+      "lat": 53.10369,
+      "lon": -3.09056,
+      "name": "Llanfynydd",
+      "source": "nrw"
+    },
+    "nrw_1010": {
+      "lat": 53.14919,
+      "lon": -3.19683,
+      "name": "Loggerheads",
+      "source": "nrw"
+    },
+    "nrw_1011": {
+      "lat": 53.17239,
+      "lon": -3.13748,
+      "name": "Mold",
+      "source": "nrw"
+    },
+    "nrw_1012": {
+      "lat": 53.07142,
+      "lon": -3.1306,
+      "name": "Nant Y Ffrith",
+      "source": "nrw"
+    },
+    "nrw_1013": {
+      "lat": 53.20943,
+      "lon": -3.12542,
+      "name": "Northop",
+      "source": "nrw"
+    },
+    "nrw_1014": {
+      "lat": 52.90742,
+      "lon": -3.58349,
+      "name": "Bala Climate",
+      "source": "nrw"
+    },
+    "nrw_1015": {
+      "lat": 52.96327,
+      "lon": -3.72485,
+      "name": "Cynefail",
+      "source": "nrw"
+    },
+    "nrw_1016": {
+      "lat": 53.0635,
+      "lon": -3.55993,
+      "name": "Llyn Alwen",
+      "source": "nrw"
+    },
+    "nrw_1017": {
+      "lat": 52.82857,
+      "lon": -3.70701,
+      "name": "Pant Gwyn",
+      "source": "nrw"
+    },
+    "nrw_1018": {
+      "lat": 52.94515,
+      "lon": -3.66674,
+      "name": "Tryweryn Dam Pluvio and",
+      "source": "nrw"
+    },
+    "nrw_1019": {
+      "lat": 52.81267,
+      "lon": -4.5097,
+      "name": "Abersoch",
+      "source": "nrw"
+    },
+    "nrw_1020": {
+      "lat": 53.21211,
+      "lon": -4.14232,
+      "name": "Afon Adda",
+      "source": "nrw"
+    },
+    "nrw_1021": {
+      "lat": 53.0267,
+      "lon": -4.12566,
+      "name": "Afon Colwyn",
+      "source": "nrw"
+    },
+    "nrw_1022": {
+      "lat": 53.16851,
+      "lon": -4.06573,
+      "name": "Bethesda Quarry",
+      "source": "nrw"
+    },
+    "nrw_1023": {
+      "lat": 52.91808,
+      "lon": -4.2494,
+      "name": "Criccieth",
+      "source": "nrw"
+    },
+    "nrw_1024": {
+      "lat": 53.06731,
+      "lon": -4.01133,
+      "name": "Cwm Dyli",
+      "source": "nrw"
+    },
+    "nrw_1025": {
+      "lat": 52.95423,
+      "lon": -4.44235,
+      "name": "Llithfaen",
+      "source": "nrw"
+    },
+    "nrw_1026": {
+      "lat": 53.33947,
+      "lon": -4.44093,
+      "name": "Llyn Alaw",
+      "source": "nrw"
+    },
+    "nrw_1027": {
+      "lat": 53.26821,
+      "lon": -4.33328,
+      "name": "Llyn Cefni",
+      "source": "nrw"
+    },
+    "nrw_1028": {
+      "lat": 53.26411,
+      "lon": -4.61318,
+      "name": "Trearddur Bay",
+      "source": "nrw"
+    },
+    "nrw_1029": {
+      "lat": 52.67927,
+      "lon": -3.81259,
+      "name": "Corris - Aberllefenni",
+      "source": "nrw"
+    },
+    "nrw_1030": {
+      "lat": 52.74027,
+      "lon": -3.64639,
+      "name": "Llan Y Mawddwy",
+      "source": "nrw"
+    },
+    "nrw_1031": {
+      "lat": 52.64851,
+      "lon": -3.59931,
+      "name": "Llanbrynmair",
+      "source": "nrw"
+    },
+    "nrw_1032": {
+      "lat": 52.93032,
+      "lon": -4.12232,
+      "name": "Porthmadog",
+      "source": "nrw"
+    },
+    "nrw_1033": {
+      "lat": 52.79762,
+      "lon": -3.78501,
+      "name": "Rhyd Y Main",
+      "source": "nrw"
+    },
+    "nrw_1034": {
+      "lat": 51.80966,
+      "lon": -3.21673,
+      "name": "Carno Reservoir",
+      "source": "nrw"
+    },
+    "nrw_1035": {
+      "lat": 51.75529,
+      "lon": -3.12999,
+      "name": "Cwmtillery",
+      "source": "nrw"
+    },
+    "nrw_1036": {
+      "lat": 51.58931,
+      "lon": -3.16405,
+      "name": "Machen Waterloo",
+      "source": "nrw"
+    },
+    "nrw_1037": {
+      "lat": 51.65195,
+      "lon": -3.29673,
+      "name": "Nelson",
+      "source": "nrw"
+    },
+    "nrw_1038": {
+      "lat": 51.53446,
+      "lon": -3.22721,
+      "name": "Rhiwbina Res",
+      "source": "nrw"
+    },
+    "nrw_1039": {
+      "lat": 52.25342,
+      "lon": -3.63879,
+      "name": "Rhymney Reservoir",
+      "source": "nrw"
+    },
+    "nrw_1040": {
+      "lat": 51.71834,
+      "lon": -3.03031,
+      "name": "Trevethin",
+      "source": "nrw"
+    },
+    "nrw_1041": {
+      "lat": 51.68941,
+      "lon": -3.20752,
+      "name": "Ty Fry",
+      "source": "nrw"
+    },
+    "nrw_1042": {
+      "lat": 51.793,
+      "lon": -3.43371,
+      "name": "Llwynon Reservoir",
+      "source": "nrw"
+    },
+    "nrw_1043": {
+      "lat": 51.67904,
+      "lon": -3.48812,
+      "name": "Maerdy WTW",
+      "source": "nrw"
+    },
+    "nrw_1044": {
+      "lat": 51.65785,
+      "lon": -3.39752,
+      "name": "Nant Yr Ysfa",
+      "source": "nrw"
+    },
+    "nrw_1045": {
+      "lat": 51.79789,
+      "lon": -3.36626,
+      "name": "Pontsticill Upper",
+      "source": "nrw"
+    },
+    "nrw_1046": {
+      "lat": 51.48559,
+      "lon": -3.26727,
+      "name": "St Fagans",
+      "source": "nrw"
+    },
+    "nrw_1047": {
+      "lat": 51.68409,
+      "lon": -3.2987,
+      "name": "Trelewis",
+      "source": "nrw"
+    },
+    "nrw_1048": {
+      "lat": 51.68139,
+      "lon": -3.54441,
+      "name": "Tyn Y Waun Treherbert",
+      "source": "nrw"
+    },
+    "nrw_1049": {
+      "lat": 51.93902,
+      "lon": -3.4016,
+      "name": "Brecon",
+      "source": "nrw"
+    },
+    "nrw_1050": {
+      "lat": 51.57724,
+      "lon": -2.80228,
+      "name": "Collister Climate Station",
+      "source": "nrw"
+    },
+    "nrw_1051": {
+      "lat": 51.88766,
+      "lon": -3.62292,
+      "name": "Crai Reservoir",
+      "source": "nrw"
+    },
+    "nrw_1052": {
+      "lat": 51.75722,
+      "lon": -3.06027,
+      "name": "Cwmafon",
+      "source": "nrw"
+    },
+    "nrw_1053": {
+      "lat": 51.61537,
+      "lon": -2.98085,
+      "name": "Lodge Farm Frog",
+      "source": "nrw"
+    },
+    "nrw_1054": {
+      "lat": 51.64799,
+      "lon": -3.05493,
+      "name": "Maes Y Rhiw",
+      "source": "nrw"
+    },
+    "nrw_1055": {
+      "lat": 51.87273,
+      "lon": -3.47926,
+      "name": "Storey Arms",
+      "source": "nrw"
+    },
+    "nrw_1056": {
+      "lat": 51.92671,
+      "lon": -3.12763,
+      "name": "Tal Y Maes",
+      "source": "nrw"
+    },
+    "nrw_1057": {
+      "lat": 52.06755,
+      "lon": -3.44694,
+      "name": "Upper Chapel No1",
+      "source": "nrw"
+    },
+    "nrw_1058": {
+      "lat": 51.94684,
+      "lon": -3.69791,
+      "name": "Usk Reservoir No2",
+      "source": "nrw"
+    },
+    "nrw_1059": {
+      "lat": 51.5945,
+      "lon": -3.03197,
+      "name": "Ynysfro",
+      "source": "nrw"
+    },
+    "nrw_1060": {
+      "lat": 51.41904,
+      "lon": -3.20959,
+      "name": "Cogmoors",
+      "source": "nrw"
+    },
+    "nrw_1061": {
+      "lat": 51.45326,
+      "lon": -3.44525,
+      "name": "Cowbridge STW",
+      "source": "nrw"
+    },
+    "nrw_1062": {
+      "lat": 51.55475,
+      "lon": -3.40327,
+      "name": "Dyffryn Isaf, Llantrisant",
+      "source": "nrw"
+    },
+    "nrw_1063": {
+      "lat": 51.53493,
+      "lon": -3.33778,
+      "name": "Rhiwsaeson STW",
+      "source": "nrw"
+    },
+    "nrw_1064": {
+      "lat": 52.10115,
+      "lon": -3.61863,
+      "name": "Abernant",
+      "source": "nrw"
+    },
+    "nrw_1065": {
+      "lat": 52.30142,
+      "lon": -3.16961,
+      "name": "Bleddfa",
+      "source": "nrw"
+    },
+    "nrw_1066": {
+      "lat": 52.23208,
+      "lon": -3.20105,
+      "name": "Break Your Neck Falls",
+      "source": "nrw"
+    },
+    "nrw_1067": {
+      "lat": 52.3611,
+      "lon": -3.42517,
+      "name": "Bwlch y Sarnau",
+      "source": "nrw"
+    },
+    "nrw_1068": {
+      "lat": 52.25355,
+      "lon": -3.63894,
+      "name": "Ciloerwynt",
+      "source": "nrw"
+    },
+    "nrw_1069": {
+      "lat": 52.27417,
+      "lon": -3.56322,
+      "name": "Elan Village",
+      "source": "nrw"
+    },
+    "nrw_1070": {
+      "lat": 52.39053,
+      "lon": -3.32848,
+      "name": "Llanbadarn Fynydd",
+      "source": "nrw"
+    },
+    "nrw_1071": {
+      "lat": 51.83357,
+      "lon": -3.68174,
+      "name": "Llanerch Yrfa",
+      "source": "nrw"
+    },
+    "nrw_1072": {
+      "lat": 52.40421,
+      "lon": -3.60686,
+      "name": "Llangurig",
+      "source": "nrw"
+    },
+    "nrw_1073": {
+      "lat": 52.25133,
+      "lon": -3.39065,
+      "name": "Llanyre",
+      "source": "nrw"
+    },
+    "nrw_1074": {
+      "lat": 52.42826,
+      "lon": -3.70134,
+      "name": "Pant Mawr raingauge",
+      "source": "nrw"
+    },
+    "nrw_1075": {
+      "lat": 52.29512,
+      "lon": -3.49872,
+      "name": "Rhyader STW",
+      "source": "nrw"
+    },
+    "nrw_1076": {
+      "lat": 51.95928,
+      "lon": -3.05355,
+      "name": "Tafalog raingauge",
+      "source": "nrw"
+    },
+    "nrw_1077": {
+      "lat": 52.00494,
+      "lon": -3.2368,
+      "name": "Talgarth",
+      "source": "nrw"
+    },
+    "nrw_1078": {
+      "lat": 52.03302,
+      "lon": -3.17385,
+      "name": "Tregoyd",
+      "source": "nrw"
+    },
+    "nrw_1079": {
+      "lat": 51.81967,
+      "lon": -3.8593,
+      "name": "Brynamman",
+      "source": "nrw"
+    },
+    "nrw_1080": {
+      "lat": 51.83419,
+      "lon": -3.96011,
+      "name": "Bryncoch",
+      "source": "nrw"
+    },
+    "nrw_1081": {
+      "lat": 51.66344,
+      "lon": -4.11027,
+      "name": "Bynea",
+      "source": "nrw"
+    },
+    "nrw_1082": {
+      "lat": 51.7,
+      "lon": -4.14896,
+      "name": "Felinfoel",
+      "source": "nrw"
+    },
+    "nrw_1083": {
+      "lat": 51.77037,
+      "lon": -4.00049,
+      "name": "Garnswllt",
+      "source": "nrw"
+    },
+    "nrw_1084": {
+      "lat": 51.81198,
+      "lon": -4.08507,
+      "name": "Gorslas",
+      "source": "nrw"
+    },
+    "nrw_1085": {
+      "lat": 51.80075,
+      "lon": -4.24247,
+      "name": "Llangendeirne raingauge",
+      "source": "nrw"
+    },
+    "nrw_1086": {
+      "lat": 51.73513,
+      "lon": -3.93912,
+      "name": "Upper Lliw",
+      "source": "nrw"
+    },
+    "nrw_1087": {
+      "lat": 51.67963,
+      "lon": -3.65463,
+      "name": "Abercregan",
+      "source": "nrw"
+    },
+    "nrw_1088": {
+      "lat": 51.72066,
+      "lon": -3.75441,
+      "name": "Crynant",
+      "source": "nrw"
+    },
+    "nrw_1089": {
+      "lat": 51.66174,
+      "lon": -3.70608,
+      "name": "Fforch Dwm",
+      "source": "nrw"
+    },
+    "nrw_1090": {
+      "lat": 51.74914,
+      "lon": -3.54234,
+      "name": "Hirwaun",
+      "source": "nrw"
+    },
+    "nrw_1091": {
+      "lat": 51.70922,
+      "lon": -3.70233,
+      "name": "Resolven",
+      "source": "nrw"
+    },
+    "nrw_1092": {
+      "lat": 51.63576,
+      "lon": -3.52529,
+      "name": "Blaenogwr",
+      "source": "nrw"
+    },
+    "nrw_1093": {
+      "lat": 51.50486,
+      "lon": -3.53986,
+      "name": "Brackla",
+      "source": "nrw"
+    },
+    "nrw_1094": {
+      "lat": 51.64462,
+      "lon": -3.64527,
+      "name": "Croeserw",
+      "source": "nrw"
+    },
+    "nrw_1095": {
+      "lat": 51.58142,
+      "lon": -3.61962,
+      "name": "Llety Brongu",
+      "source": "nrw"
+    },
+    "nrw_1096": {
+      "lat": 51.76084,
+      "lon": -5.01709,
+      "name": "Bolton Hill",
+      "source": "nrw"
+    },
+    "nrw_1097": {
+      "lat": 51.85175,
+      "lon": -4.88872,
+      "name": "Clarbeston Road",
+      "source": "nrw"
+    },
+    "nrw_1098": {
+      "lat": 51.94926,
+      "lon": -4.592,
+      "name": "Llanfyrnach",
+      "source": "nrw"
+    },
+    "nrw_1099": {
+      "lat": 51.93347,
+      "lon": -4.81224,
+      "name": "Maenclochog",
+      "source": "nrw"
+    },
+    "nrw_1100": {
+      "lat": 51.94233,
+      "lon": -5.0823,
+      "name": "Mathry",
+      "source": "nrw"
+    },
+    "nrw_1101": {
+      "lat": 51.72019,
+      "lon": -4.72501,
+      "name": "Pentlepoir",
+      "source": "nrw"
+    },
+    "nrw_1102": {
+      "lat": 51.78692,
+      "lon": -4.63636,
+      "name": "Tavernspite",
+      "source": "nrw"
+    },
+    "nrw_1103": {
+      "lat": 51.67497,
+      "lon": -4.72794,
+      "name": "Tenby",
+      "source": "nrw"
+    },
+    "nrw_1104": {
+      "lat": 51.9447,
+      "lon": -4.50262,
+      "name": "Trelech",
+      "source": "nrw"
+    },
+    "nrw_1105": {
+      "lat": 52.45627,
+      "lon": -3.93929,
+      "name": "Bontgoch",
+      "source": "nrw"
+    },
+    "nrw_1106": {
+      "lat": 52.43842,
+      "lon": -4.03239,
+      "name": "Bow Street",
+      "source": "nrw"
+    },
+    "nrw_1107": {
+      "lat": 52.39608,
+      "lon": -3.89996,
+      "name": "Cwm Rheidol raingauge",
+      "source": "nrw"
+    },
+    "nrw_1108": {
+      "lat": 52.43132,
+      "lon": -3.84455,
+      "name": "Dinas",
+      "source": "nrw"
+    },
+    "nrw_1109": {
+      "lat": 52.36107,
+      "lon": -3.87787,
+      "name": "Frongoch",
+      "source": "nrw"
+    },
+    "nrw_1110": {
+      "lat": 52.35856,
+      "lon": -3.80335,
+      "name": "Pwll Peiran",
+      "source": "nrw"
+    },
+    "nrw_1111": {
+      "lat": 51.67591,
+      "lon": -3.86762,
+      "name": "Birchgrove",
+      "source": "nrw"
+    },
+    "nrw_1112": {
+      "lat": 51.83179,
+      "lon": -3.68243,
+      "name": "Dan Yr Ogof",
+      "source": "nrw"
+    },
+    "nrw_1113": {
+      "lat": 51.65359,
+      "lon": -4.03219,
+      "name": "Gowerton",
+      "source": "nrw"
+    },
+    "nrw_1114": {
+      "lat": 51.56616,
+      "lon": -4.26834,
+      "name": "Pitton",
+      "source": "nrw"
+    },
+    "nrw_1115": {
+      "lat": 51.57014,
+      "lon": -4.0841,
+      "name": "Southgate",
+      "source": "nrw"
+    },
+    "nrw_1116": {
+      "lat": 51.719,
+      "lon": -3.92469,
+      "name": "Spyte",
+      "source": "nrw"
+    },
+    "nrw_1117": {
+      "lat": 51.70546,
+      "lon": -3.86495,
+      "name": "Trebanos",
+      "source": "nrw"
+    },
+    "nrw_1118": {
+      "lat": 51.61241,
+      "lon": -3.96212,
+      "name": "Victoria Park",
+      "source": "nrw"
+    },
+    "nrw_1119": {
+      "lat": 51.81814,
+      "lon": -3.53885,
+      "name": "Ystradfellte",
+      "source": "nrw"
+    },
+    "nrw_1120": {
+      "lat": 51.76356,
+      "lon": -3.77694,
+      "name": "Ystradgynlais",
+      "source": "nrw"
+    },
+    "nrw_1121": {
+      "lat": 51.78414,
+      "lon": -3.82126,
+      "name": "Ystradowen",
+      "source": "nrw"
+    },
+    "nrw_1122": {
+      "lat": 52.12202,
+      "lon": -4.04288,
+      "name": "Cellan",
+      "source": "nrw"
+    },
+    "nrw_1123": {
+      "lat": 52.11285,
+      "lon": -4.65503,
+      "name": "Ferwig",
+      "source": "nrw"
+    },
+    "nrw_1124": {
+      "lat": 52.06214,
+      "lon": -4.58488,
+      "name": "Llechryd",
+      "source": "nrw"
+    },
+    "nrw_1125": {
+      "lat": 52.24612,
+      "lon": -4.06699,
+      "name": "Penuwch",
+      "source": "nrw"
+    },
+    "nrw_1126": {
+      "lat": 52.2842,
+      "lon": -3.86607,
+      "name": "Pontrydfendigaid No2",
+      "source": "nrw"
+    },
+    "nrw_1127": {
+      "lat": 52.12733,
+      "lon": -4.25029,
+      "name": "Rhos Ymryson",
+      "source": "nrw"
+    },
+    "nrw_1128": {
+      "lat": 51.98461,
+      "lon": -4.05993,
+      "name": "Abergorlech",
+      "source": "nrw"
+    },
+    "nrw_1129": {
+      "lat": 52.03959,
+      "lon": -3.93346,
+      "name": "Caio",
+      "source": "nrw"
+    },
+    "nrw_1130": {
+      "lat": 52.04494,
+      "lon": -3.74685,
+      "name": "Cynghordy",
+      "source": "nrw"
+    },
+    "nrw_1131": {
+      "lat": 51.89985,
+      "lon": -3.74884,
+      "name": "Llynyfan",
+      "source": "nrw"
+    },
+    "nrw_1132": {
+      "lat": 51.95271,
+      "lon": -3.78358,
+      "name": "Myddfai",
+      "source": "nrw"
+    },
+    "nrw_1133": {
+      "lat": 52.20994,
+      "lon": -3.81416,
+      "name": "Nant Y Maen",
+      "source": "nrw"
+    },
+    "nrw_1134": {
+      "lat": 52.00541,
+      "lon": -4.26699,
+      "name": "Pencader",
+      "source": "nrw"
+    },
+    "nrw_1135": {
+      "lat": 51.91163,
+      "lon": -4.25922,
+      "name": "Rhydargaeau",
+      "source": "nrw"
+    },
+    "nrw_1136": {
+      "lat": 52.1092,
+      "lon": -3.77179,
+      "name": "Ystradffin No1",
+      "source": "nrw"
+    },
+    "nrw_1137": {
+      "lat": 51.41466,
+      "lon": -3.50585,
+      "name": "Llantwit Major",
+      "source": "nrw"
+    },
+    "nrw_1138": {
+      "lat": 52.61234,
+      "lon": -3.41722,
+      "name": "Cefn Coch",
+      "source": "nrw"
+    },
+    "nrw_1139": {
+      "lat": 52.50036,
+      "lon": -3.66112,
+      "name": "Dolydd",
+      "source": "nrw"
+    },
+    "nrw_1140": {
+      "lat": 52.52256,
+      "lon": -3.42986,
+      "name": "Henfryn",
+      "source": "nrw"
+    },
+    "nrw_1141": {
+      "lat": 52.76071,
+      "lon": -3.25586,
+      "name": "Llanfyllin",
+      "source": "nrw"
+    },
+    "nrw_1142": {
+      "lat": 52.82135,
+      "lon": -3.40816,
+      "name": "Llangynog",
+      "source": "nrw"
+    },
+    "nrw_1143": {
+      "lat": 52.38012,
+      "lon": -3.50091,
+      "name": "Nantgwyn",
+      "source": "nrw"
+    },
+    "nrw_1144": {
+      "lat": 52.71757,
+      "lon": -3.51445,
+      "name": "Pen Y Coed",
+      "source": "nrw"
+    },
+    "nrw_1145": {
+      "lat": 52.87965,
+      "lon": -3.15912,
+      "name": "Penygwely",
+      "source": "nrw"
+    },
+    "nrw_1146": {
+      "lat": 52.32049,
+      "lon": -3.05779,
+      "name": "Rhos Y Meirch",
+      "source": "nrw"
+    },
+    "nrw_1147": {
+      "lat": 52.50728,
+      "lon": -3.17062,
+      "name": "Sarn",
+      "source": "nrw"
+    },
+    "nrw_1148": {
+      "lat": 52.75789,
+      "lon": -3.46043,
+      "name": "Vyrnwy",
+      "source": "nrw"
+    },
+    "nrw_1149": {
+      "lat": 52.65723,
+      "lon": -3.133,
+      "name": "Welshpool",
+      "source": "nrw"
     }
   }
 }
