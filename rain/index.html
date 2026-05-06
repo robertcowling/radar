@@ -99,13 +99,13 @@
         .timeline-container {
             position: relative;
             flex-grow: 1;
-            height: 76px;
+            height: 84px;
             display: flex;
             align-items: center;
         }
         .timeline-track {
             position: absolute;
-            top: 54%;
+            top: 60%;
             left: 9px; right: 9px;
             height: 6px;
             margin-top: -3px;
@@ -117,7 +117,7 @@
         }
         .timeline-ticks {
             position: absolute;
-            top: 54%;
+            top: 60%;
             left: 8px; right: 8px;
             height: 20px;
             transform: none;
@@ -147,8 +147,8 @@
             width: auto;
             background: transparent;
             color: #1a73e8;
-            top: -30px;
-            font-size: 12px;
+            top: -40px;
+            font-size: 11px;
             display: flex;
             align-items: center;
             gap: 2px;
@@ -162,9 +162,10 @@
         }
         .range-grab {
             position: absolute;
-            bottom: calc(100% + 4px);
+            top: 50%; margin-top: -9px;
             left: 50%; margin-left: -14px;
-            width: 28px; height: 22px;
+            width: 28px; height: 18px;
+            z-index: 4;
             background: #202124; border: 2px solid white;
             border-radius: 6px;
             display: flex; align-items: center; justify-content: center;
@@ -172,12 +173,12 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.4);
         }
         .range-grab:active { cursor: grabbing; }
-        .grab-line { width: 2px; height: 10px; background: white; border-radius: 1px; }
+        .grab-line { width: 2px; height: 7px; background: white; border-radius: 1px; }
 
         .range-input {
             position: absolute; width: 100%;
-            top: 54%; transform: translateY(-50%);
-            z-index: 3;
+            top: 60%; transform: translateY(-50%);
+            z-index: 5;
         }
         .range-input input[type=range] {
             position: absolute; width: 100%; margin: 0;
@@ -195,11 +196,11 @@
         }
         #sliderStart::-webkit-slider-thumb {
             background: linear-gradient(90deg, transparent 5px, #5f6368 5px, #5f6368 9px, transparent 9px);
-            height: 22px; width: 14px; margin-top: -8px;
+            height: 36px; width: 14px; margin-top: -28px;
         }
         #sliderEnd::-webkit-slider-thumb {
             background: linear-gradient(90deg, transparent 4px, #1a73e8 4px, #1a73e8 10px, transparent 10px);
-            height: 30px; width: 14px; margin-top: -12px;
+            height: 36px; width: 14px; margin-top: -28px;
         }
 
         .time-box {
@@ -704,7 +705,7 @@
 
         function generateHyetographSVG(id) {
             var W = 260, H = 80;
-            var padL = 22, padB = 14, padR = 2, padT = 4;
+            var padL = 22, padB = 22, padR = 2, padT = 4;
             var cW = W - padL - padR;
             var cH = H - padT - padB;
             var max = totalSlots - 1;
@@ -786,17 +787,20 @@
                        '></rect>';
             }
 
-            // X-axis labels every 12 hr
+            // X-axis labels every 12 hr (HH:00 always; date on midnight ticks)
             for (var i = 0; i <= max; i += 48) {
                 var lx = (padL + (i / max) * cW).toFixed(1);
                 var dt = new Date(slotToMs(i));
                 svg += '<line x1="' + lx + '" y1="' + baseY + '" x2="' + lx + '" y2="' + (baseY + 3) +
                        '" stroke="#bdc1c6" stroke-width="1"/>';
-                var lbl = (dt.getHours() === 0 && dt.getMinutes() === 0)
-                    ? DAYS[dt.getDay()].substr(0,3)
-                    : String(dt.getHours()).padStart(2,'0') + ':00';
-                svg += '<text x="' + lx + '" y="' + (baseY + 11) + '" fill="#80868b" font-size="8" ' +
-                       'font-family="sans-serif" text-anchor="middle">' + lbl + '</text>';
+                var tLbl = String(dt.getHours()).padStart(2,'0') + ':00';
+                svg += '<text x="' + lx + '" y="' + (baseY + 10) + '" fill="#80868b" font-size="8" ' +
+                       'font-family="sans-serif" text-anchor="middle">' + tLbl + '</text>';
+                if (dt.getHours() === 0) {
+                    var dLbl = String(dt.getDate()).padStart(2,'0') + ' ' + MONTHS[dt.getMonth()];
+                    svg += '<text x="' + lx + '" y="' + (baseY + 19) + '" fill="#5f6368" font-size="7.5" ' +
+                           'font-family="sans-serif" text-anchor="middle">' + dLbl + '</text>';
+                }
             }
 
             // Valid-from line (grey — matches start thumb colour)
@@ -813,9 +817,11 @@
             var toLbl   = String(toD.getHours()).padStart(2,'0') + ':' + String(toD.getMinutes()).padStart(2,'0');
             var fromTx  = Math.min(sx + 2, W - padR - 26);
             var toTx    = Math.max(ex - 2, padL + 2);
-            svg += '<text x="' + fromTx.toFixed(1) + '" y="' + (padT + 9) + '" fill="#5f6368" ' +
+            var labY1 = padT + 8;
+            var labY2 = (Math.abs(ex - sx) < 40) ? padT + 17 : padT + 8;
+            svg += '<text x="' + fromTx.toFixed(1) + '" y="' + labY1 + '" fill="#5f6368" ' +
                    'font-size="7.5" font-family="sans-serif">' + fromLbl + '</text>';
-            svg += '<text x="' + toTx.toFixed(1) + '" y="' + (padT + 9) + '" fill="#1a73e8" ' +
+            svg += '<text x="' + toTx.toFixed(1) + '" y="' + labY2 + '" fill="#1a73e8" ' +
                    'font-size="7.5" font-family="sans-serif" text-anchor="end">' + toLbl + '</text>';
 
             svg += '</svg>';
@@ -823,6 +829,64 @@
                    'text-align:center;margin-top:1px;font-family:sans-serif"> </div>';
         }
         
+        var _popStIds = {};
+
+        function generateAccumTable(id) {
+            var nowMs = slotToMs(endSlotIdx);
+            var periods = [1, 3, 6, 12, 24, 48];
+            var html = '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.7">';
+            html += '<thead><tr>'
+                + '<th style="text-align:left;color:#5f6368;font-weight:500;padding:1px 0">Period</th>'
+                + '<th style="text-align:right;color:#5f6368;font-weight:500;padding:1px 6px">Total</th></tr></thead><tbody>';
+            periods.forEach(function(hrs) {
+                var val = computeAccum(id, nowMs, hrs);
+                html += '<tr>'
+                    + '<td style="padding:1px 0;color:#202124">' + hrs + ' hr</td>'
+                    + '<td style="padding:1px 6px;text-align:right;font-weight:600;color:#202124">' + val.toFixed(1) + ' mm</td></tr>';
+            });
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function generateSeriesTable(id) {
+            var rows = [];
+            for (var i = endSlotIdx; i >= 0; i--) {
+                var t = new Date(slotToMs(i));
+                var dk = fmtDateKey(t);
+                var si = String(Math.round((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15));
+                var day = dayCache[dk];
+                var v = (day && day.readings && day.readings[id] && day.readings[id][si] != null)
+                    ? +day.readings[id][si] : null;
+                if (v === null || v < 0) continue;
+                var ts = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+                var ds = String(t.getDate()).padStart(2,'0') + ' ' + MONTHS[t.getMonth()];
+                rows.push('<tr>'
+                    + '<td style="padding:1px 0;color:#5f6368;white-space:nowrap">' + ds + ' ' + ts + '</td>'
+                    + '<td style="padding:1px 6px;text-align:right;color:#202124">' + v.toFixed(1) + '</td></tr>');
+            }
+            if (!rows.length) return '<div style="color:#9aa0a6;font-size:11px;padding:4px 0">No data in window</div>';
+            return '<div style="max-height:130px;overflow-y:auto">'
+                + '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.5">'
+                + '<thead><tr>'
+                + '<th style="text-align:left;color:#5f6368;font-weight:500;padding:1px 0">Time</th>'
+                + '<th style="text-align:right;color:#5f6368;font-weight:500;padding:1px 6px">mm</th>'
+                + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+        }
+
+        function showPopTabFor(safeId, tab) {
+            var stId = _popStIds[safeId];
+            if (!stId) return;
+            var panel = document.getElementById('ppanel_' + safeId);
+            if (!panel) return;
+            panel.innerHTML = tab === 0 ? generateAccumTable(stId) : generateSeriesTable(stId);
+            [0, 1].forEach(function(i) {
+                var btn = document.getElementById('ptab' + i + '_' + safeId);
+                if (!btn) return;
+                btn.style.borderBottom = i === tab ? '2px solid #1a73e8' : '2px solid transparent';
+                btn.style.color = i === tab ? '#1a73e8' : '#5f6368';
+            });
+        }
+
         function updateSinglePopup(id) {
             var s = stations[id];
             if (!s || !markers[id]) return;
@@ -838,7 +902,19 @@
                 '<span style="font-size:20px;font-weight:700;color:#202124;line-height:1">' + val.toFixed(1) + '</span>' +
                 '<span style="font-size:12px;color:#5f6368;margin-left:3px">mm</span>' +
                 '<span style="font-size:10px;color:#9aa0a6;margin-left:6px">' + durLabel2 + ' total</span></div>';
-            markers[id].setPopupContent(nameHtml + popCounty + popVal + hyetoHtml);
+            var safeId = id.replace(/[^A-Za-z0-9]/g, '_');
+            _popStIds[safeId] = id;
+            var tabBtnStyle = 'background:none;border:none;border-bottom:2px solid transparent;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit';
+            var tabsHtml = '<div style="margin-top:6px;border-top:1px solid #e8eaed;padding-top:4px">'
+                + '<div style="display:flex;gap:0;margin-bottom:4px">'
+                + '<button id="ptab0_' + safeId + '" style="' + tabBtnStyle + ';border-bottom:2px solid #1a73e8;color:#1a73e8"'
+                + ' onclick="showPopTabFor(\'' + safeId + '\',0)">Totals</button>'
+                + '<button id="ptab1_' + safeId + '" style="' + tabBtnStyle + ';color:#5f6368"'
+                + ' onclick="showPopTabFor(\'' + safeId + '\',1)">15-min</button>'
+                + '</div>'
+                + '<div id="ppanel_' + safeId + '">' + generateAccumTable(id) + '</div>'
+                + '</div>';
+            markers[id].setPopupContent(nameHtml + popCounty + popVal + hyetoHtml + tabsHtml);
         }
 
         function panToStation(id) {
