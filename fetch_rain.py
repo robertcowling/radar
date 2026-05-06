@@ -222,17 +222,22 @@ def fetch_nrw_data():
         print("  No rainfall measures found — NRW data unavailable")
         return nrw_stations, by_date, latest_dt
 
-    # ── Step 3: bulk readings — 4×6hr chunks covering last 24hr ──────────────
-    # API hard limit: start date cannot be more than 24 hours in the past.
-    # Max window per call: ~12hr (400 above that). Use 6hr chunks for headroom.
+    # ── Step 3: bulk readings — smart chunked fetch ───────────────────────────
+    # API hard limit: max 24hr historical, max ~12hr window per call.
+    # Normal runs (every 15min): fetch last 1hr only (1 call, catches new readings).
+    # Top-of-hour runs: also fetch 1-7hr ago to catch any delayed readings.
     now = datetime.now(timezone.utc)
+    chunks_to_fetch = [(0, 1)]   # always: last 1 hour
+    if now.minute < 20:          # near top of hour: add catch-up window
+        chunks_to_fetch.append((1, 7))
     count = 0
-    for chunk in range(4):   # 0-6hr, 6-12hr, 12-18hr, 18-24hr ago
-        chunk_end   = now - timedelta(hours=chunk * 6)
-        chunk_start = now - timedelta(hours=(chunk + 1) * 6)
+    for (hrs_ago_end, hrs_ago_start) in chunks_to_fetch:
+        chunk_end   = now - timedelta(hours=hrs_ago_end)
+        chunk_start = now - timedelta(hours=hrs_ago_start)
+
         start_str = chunk_start.strftime("%Y-%m-%dT%H:%M:%SZ")
         end_str   = chunk_end.strftime("%Y-%m-%dT%H:%M:%SZ")
-        print(f"  NRW chunk {chunk+1}/4: {start_str} → {end_str}")
+        print(f"  NRW fetch: {start_str} → {end_str}")
         try:
             rr = requests.get(
                 f"{NRW_TELEMETRY_BASE}/measures/readings",
