@@ -185,6 +185,7 @@
             pointer-events: none;
             background: transparent;
             -webkit-appearance: none; appearance: none;
+            z-index: 20;
         }
         .range-input input[type=range]:focus { outline: none; }
         .range-input input[type=range]::-webkit-slider-runnable-track {
@@ -193,6 +194,7 @@
         .range-input input[type=range]::-webkit-slider-thumb {
             pointer-events: all; -webkit-appearance: none;
             cursor: pointer; border: none; border-radius: 1px; box-shadow: none;
+            position: relative; z-index: 50;
         }
         #sliderStart::-webkit-slider-thumb {
             background: linear-gradient(90deg, transparent 5px, #5f6368 5px, #5f6368 9px, transparent 9px);
