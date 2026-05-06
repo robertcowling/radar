@@ -162,9 +162,9 @@
         }
         .range-grab {
             position: absolute;
-            top: 50%; margin-top: -9px;
+            top: 50%; margin-top: -13px;
             left: 50%; margin-left: -14px;
-            width: 28px; height: 18px;
+            width: 28px; height: 26px;
             z-index: 4;
             background: #202124; border: 2px solid white;
             border-radius: 6px;
@@ -173,7 +173,18 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.4);
         }
         .range-grab:active { cursor: grabbing; }
-        .grab-line { width: 2px; height: 7px; background: white; border-radius: 1px; }
+        .grab-line { width: 2px; height: 10px; background: white; border-radius: 1px; }
+        .slider-time-label {
+            position: absolute;
+            bottom: -20px;
+            font-size: 10px;
+            font-weight: 600;
+            white-space: nowrap;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+        .slider-time-label-start { color: #5f6368; }
+        .slider-time-label-end   { color: #1a73e8; }
 
         .range-input {
             position: absolute; width: 100%;
@@ -490,6 +501,8 @@
                     <span class="grab-line"></span>
                     <span class="grab-line"></span>
                 </div>
+                <div id="sliderLabelStart" class="slider-time-label slider-time-label-start"></div>
+                <div id="sliderLabelEnd" class="slider-time-label slider-time-label-end"></div>
             </div>
             <div class="timeline-ticks" id="timelineTicks"></div>
             <div class="range-input">
@@ -887,10 +900,9 @@
             });
         }
 
-        function updateSinglePopup(id) {
+        function getPopupHTML(id, val) {
             var s = stations[id];
-            if (!s || !markers[id]) return;
-            var val = renderFrame._prev ? (renderFrame._prev[id] || 0) : 0;
+            if (!s) return '';
             var name = s.name || id;
             var hydroUrl = s.guid ? 'https://environment.data.gov.uk/hydrology/station/' + s.guid : null;
             var nameHtml = hydroUrl ? '<a href="' + hydroUrl + '" target="_blank" style="color:#1a73e8;font-weight:700">' + name + ' &#x2197;</a>' : '<b>' + name + '</b>';
@@ -914,7 +926,12 @@
                 + '</div>'
                 + '<div id="ppanel_' + safeId + '">' + generateAccumTable(id) + '</div>'
                 + '</div>';
-            markers[id].setPopupContent(nameHtml + popCounty + popVal + hyetoHtml + tabsHtml);
+            return nameHtml + popCounty + popVal + hyetoHtml + tabsHtml;
+        }
+
+        function updateSinglePopup(id) {
+            var val = renderFrame._prev ? (renderFrame._prev[id] || 0) : 0;
+            if (markers[id]) markers[id].setPopupContent(getPopupHTML(id, val));
         }
 
         function panToStation(id) {
@@ -983,23 +1000,7 @@
                     markers[id].setTooltipContent('<b>' + name + '</b>' + tipCounty + '<br>' + val.toFixed(1) + ' mm');
                 }
                 if (markers[id].isPopupOpen()) {
-                    var s = stations[id];
-                    var name = (s && s.name) || id;
-                    var hydroUrl = s && s.guid
-                        ? 'https://environment.data.gov.uk/hydrology/station/' + s.guid
-                        : null;
-                    var popCounty = (s && s.county)
-                        ? '<br><span style="font-size:11px;color:#5f6368">' + s.county + (s.countyRegion ? ', ' + s.countyRegion : '') + '</span>'
-                        : '';
-                    var nameHtml = hydroUrl
-                        ? '<a href="' + hydroUrl + '" target="_blank" style="color:#1a73e8;font-weight:700">' + name + ' &#x2197;</a>'
-                        : '<b>' + name + '</b>';
-                    var hyetoHtml = generateHyetographSVG(id);
-                    var popVal = '<div style="margin:6px 0 3px;display:flex;align-items:baseline;gap:3px">' +
-                        '<span style="font-size:20px;font-weight:700;color:#202124;line-height:1">' + val.toFixed(1) + '</span>' +
-                        '<span style="font-size:12px;color:#5f6368;margin-left:3px">mm</span>' +
-                        '<span style="font-size:10px;color:#9aa0a6;margin-left:6px">' + popDur + ' total</span></div>';
-                    markers[id].setPopupContent(nameHtml + popCounty + popVal + hyetoHtml);
+                    markers[id].setPopupContent(getPopupHTML(id, val));
                 }
             });
             renderFrame._prev = accumMap;
@@ -1267,6 +1268,17 @@
             sel.style.width = (rightPct - leftPct) + '%';
             var midPct = (leftPct + rightPct) / 2;
             document.getElementById('rangeGrab').style.left = midPct + '%';
+            
+            var lblStart = document.getElementById('sliderLabelStart');
+            var lblEnd = document.getElementById('sliderLabelEnd');
+            if (lblStart && lblEnd) {
+                lblStart.style.left = leftPct + '%';
+                lblEnd.style.left = rightPct + '%';
+                var sDate = new Date(slotToMs(startSlotIdx));
+                var eDate = new Date(slotToMs(endSlotIdx));
+                lblStart.innerText = String(sDate.getHours()).padStart(2,'0') + ':' + String(sDate.getMinutes()).padStart(2,'0');
+                lblEnd.innerText = String(eDate.getHours()).padStart(2,'0') + ':' + String(eDate.getMinutes()).padStart(2,'0');
+            }
         }
 
         var _rafPending = null;
