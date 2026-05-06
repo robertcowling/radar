@@ -99,13 +99,13 @@
         .timeline-container {
             position: relative;
             flex-grow: 1;
-            height: 72px;
+            height: 64px;
             display: flex;
             align-items: center;
         }
         .timeline-track {
             position: absolute;
-            top: 65%;
+            top: 70%;
             left: 9px; right: 9px;
             height: 6px;
             margin-top: -3px;
@@ -117,7 +117,7 @@
         }
         .timeline-ticks {
             position: absolute;
-            top: 65%;
+            top: 70%;
             left: 8px; right: 8px;
             height: 20px;
             transform: none;
@@ -147,7 +147,7 @@
             width: auto;
             background: transparent;
             color: #1a73e8;
-            top: -17px;
+            top: -20px;
             font-size: 12px;
             display: flex;
             align-items: center;
@@ -162,8 +162,8 @@
         }
         .range-grab {
             position: absolute;
-            top: 4px;
-            transform: translateX(-50%);
+            bottom: calc(100% + 14px);
+            left: 50%; margin-left: -14px;
             width: 28px; height: 22px;
             background: #202124; border: 2px solid white;
             border-radius: 6px;
@@ -176,7 +176,7 @@
 
         .range-input {
             position: absolute; width: 100%;
-            top: 65%; transform: translateY(-50%);
+            top: 70%; transform: translateY(-50%);
             z-index: 3;
         }
         .range-input input[type=range] {
@@ -482,13 +482,13 @@
         </div>
 
         <div class="timeline-container">
-            <div class="range-grab" id="rangeGrab">
-                <span class="grab-line"></span>
-                <span class="grab-line"></span>
-                <span class="grab-line"></span>
-            </div>
             <div class="timeline-track">
                 <div class="range-selected" id="rangeSelected"></div>
+                <div class="range-grab" id="rangeGrab">
+                    <span class="grab-line"></span>
+                    <span class="grab-line"></span>
+                    <span class="grab-line"></span>
+                </div>
             </div>
             <div class="timeline-ticks" id="timelineTicks"></div>
             <div class="range-input">
@@ -1073,7 +1073,10 @@
                             var key = id + '|' + thresh.mm;
                             var exceeds = val >= thresh.mm;
                             if (exceeds && !prevState[key]) {
-                                events.push({ms: t, id: id, val: val, thresh: thresh});
+                                // Only show crossings whose time falls in the highlighted window
+                                if (t >= slotToMs(startSlotIdx) && t <= slotToMs(endSlotIdx)) {
+                                    events.push({ms: t, id: id, val: val, thresh: thresh});
+                                }
                             }
                             prevState[key] = exceeds;
                         });
