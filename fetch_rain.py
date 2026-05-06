@@ -222,47 +222,53 @@ def fetch_nrw_data():
         print("  No rainfall measures found — NRW data unavailable")
         return nrw_stations, by_date, latest_dt
 
-    # ── Step 3: bulk readings for last 49 hr ───────────────────────────────────
+    # ── Step 3: bulk readings — 4×6hr chunks covering last 24hr ──────────────
+    # API hard limit: start date cannot be more than 24 hours in the past.
+    # Max window per call: ~12hr (400 above that). Use 6hr chunks for headroom.
     now = datetime.now(timezone.utc)
-    start_str = (now - timedelta(hours=49)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    end_str   = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-    print(f"  Fetching Telemetry bulk readings {start_str} → {end_str}...")
-    try:
-        rr = requests.get(
-            f"{NRW_TELEMETRY_BASE}/measures/readings",
-            params={"start": start_str, "end": end_str},
-            headers=hdrs,
-            timeout=120,
-        )
-        rr.raise_for_status()
-        readings = rr.json()
-        if not isinstance(readings, list):
-            readings = readings.get("items") or readings.get("value") or []
-        count = 0
-        for rec in readings:
-            mid = rec.get("measureId") or rec.get("measure_id") or ""
-            sid = measure_to_sid.get(mid)
-            if not sid:
-                continue
-            # timestamp: "2026-05-06 17:00:00" (space separator)
-            ts = (rec.get("timestamp") or "").replace(" ", "T").replace(".000Z", "").rstrip("Z")
-            v  = rec.get("value")
-            if not ts or v is None:
-                continue
-            try:
-                v = float(v)
-            except (TypeError, ValueError):
-                continue
-            if v < 0:
-                continue
-            dk, slot = dt_to_slot(ts)
-            by_date.setdefault(dk, {}).setdefault(sid, {})[str(slot)] = round(v, 2)
-            if latest_dt is None or ts > latest_dt:
-                latest_dt = ts
-            count += 1
-        print(f"  Telemetry bulk readings: {count} readings ingested")
-    except Exception as e:
-        print(f"  Warning: Telemetry bulk readings failed: {e}")
+    count = 0
+    for chunk in range(4):   # 0-6hr, 6-12hr, 12-18hr, 18-24hr ago
+        chunk_end   = now - timedelta(hours=chunk * 6)
+        chunk_start = now - timedelta(hours=(chunk + 1) * 6)
+        start_str = chunk_start.strftime("%Y-%m-%dT%H:%M:%SZ")
+        end_str   = chunk_end.strftime("%Y-%m-%dT%H:%M:%SZ")
+        print(f"  NRW chunk {chunk+1}/4: {start_str} → {end_str}")
+        try:
+            rr = requests.get(
+                f"{NRW_TELEMETRY_BASE}/measures/readings",
+                params={"start": start_str, "end": end_str},
+                headers=hdrs,
+                timeout=60,
+            )
+            rr.raise_for_status()
+            readings = rr.json()
+            if not isinstance(readings, list):
+                readings = readings.get("items") or readings.get("value") or []
+            for rec in readings:
+                mid = rec.get("measureId") or rec.get("measure_id") or ""
+                sid = measure_to_sid.get(mid)
+                if not sid:
+                    continue
+                # timestamp: "2026-05-06 17:00:00" (space separator)
+                ts = (rec.get("timestamp") or "").replace(" ", "T").replace(".000Z", "").rstrip("Z")
+                v  = rec.get("value")
+                if not ts or v is None:
+                    continue
+                try:
+                    v = float(v)
+                except (TypeError, ValueError):
+                    continue
+                if v < 0:
+                    continue
+                dk, slot = dt_to_slot(ts)
+                by_date.setdefault(dk, {}).setdefault(sid, {})[str(slot)] = round(v, 2)
+                if latest_dt is None or ts > latest_dt:
+                    latest_dt = ts
+                count += 1
+        except Exception as e:
+            print(f"    Warning: chunk {chunk+1} failed: {e}")
+    print(f"  Telemetry bulk readings: {count} readings ingested")
+
 
     print(f"  NRW total: {len(nrw_stations)} stations, latest={latest_dt}")
     return nrw_stations, by_date, latest_dt
