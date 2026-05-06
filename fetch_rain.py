@@ -34,7 +34,7 @@ R2_BUCKET        = os.environ.get("R2_BUCKET_NAME", "")
 R2_PUBLIC_URL    = os.environ.get("R2_PUBLIC_BASE_URL", "").rstrip("/")
 USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, R2_BUCKET, R2_PUBLIC_URL])
 
-RETENTION_DAYS  = 31
+RETENTION_DAYS  = 14
 META_PATH       = "rain/meta.json"
 STATIONS_PATH   = "rain/stations.json"
 R2_READINGS_PFX = "rain/readings"
@@ -176,7 +176,48 @@ def fetch_nrw_data():
                 latest_dt = time_str
             break  # one rainfall param per station
 
-    print(f"  NRW: {len(nrw_stations)} rainfall stations, latest={latest_dt}")
+    # ── Also fetch 48-hr historical 15-min readings per NRW station ───────────
+    now = datetime.now(timezone.utc)
+    since_str = (now - timedelta(hours=49)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    hist_ok = 0
+    hist_fail = 0
+    for sid in list(nrw_stations.keys()):
+        raw_id = sid[len("nrw_"):]
+        try:
+            url = (f"{NRW_BASE}/Readings"
+                   f"?stationId={raw_id}&dataType=RF&startDate={since_str}")
+            rh = requests.get(url,
+                              headers={"Ocp-Apim-Subscription-Key": NRW_KEY},
+                              timeout=30)
+            if not rh.ok:
+                hist_fail += 1
+                continue
+            readings = rh.json()
+            if not isinstance(readings, list):
+                readings = readings.get("items") or readings.get("readings") or []
+            for rec in readings:
+                # Try common field names used by NRW API
+                ts = rec.get("dateTime") or rec.get("timestamp") or rec.get("time") or ""
+                v  = rec.get("value")
+                if not ts or v is None:
+                    continue
+                try:
+                    v = float(v)
+                except (TypeError, ValueError):
+                    continue
+                if v < 0:
+                    continue
+                ts_clean = ts[:19].rstrip("Z")
+                dk, slot = dt_to_slot(ts_clean)
+                by_date.setdefault(dk, {}).setdefault(sid, {})[str(slot)] = round(v, 2)
+                if latest_dt is None or ts > latest_dt:
+                    latest_dt = ts
+            hist_ok += 1
+        except Exception:
+            hist_fail += 1
+
+    print(f"  NRW: {len(nrw_stations)} rainfall stations, "
+          f"history ok={hist_ok} fail={hist_fail}, latest={latest_dt}")
     return nrw_stations, by_date, latest_dt
 
 
@@ -334,15 +375,26 @@ def main():
 
     # ── Prune days beyond retention window ────────────────────────────────────
     cutoff = (now - timedelta(days=RETENTION_DAYS)).strftime("%Y%m%d")
+    # Drop old entries from meta tracking
     old_days = sorted(d for d in available_days if d < cutoff)
     for d in old_days:
-        if USE_R2:
-            try:
-                r2.delete_object(Bucket=R2_BUCKET, Key=f"{R2_READINGS_PFX}/{d}.json")
-                print(f"  Deleted old day: {d}")
-            except Exception as e:
-                print(f"  Warning: could not delete {d}: {e}")
         available_days.discard(d)
+    # Scan R2 directly so orphaned objects not in meta are also removed
+    if USE_R2:
+        try:
+            paginator = r2.get_paginator("list_objects_v2")
+            for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=R2_READINGS_PFX + "/"):
+                for obj in page.get("Contents", []):
+                    key = obj["Key"]
+                    fname = key.rsplit("/", 1)[-1].replace(".json", "")
+                    if len(fname) == 8 and fname.isdigit() and fname < cutoff:
+                        try:
+                            r2.delete_object(Bucket=R2_BUCKET, Key=key)
+                            print(f"  Deleted old R2 object: {key}")
+                        except Exception as e:
+                            print(f"  Warning: could not delete {key}: {e}")
+        except Exception as e:
+            print(f"  Warning: R2 list scan for pruning failed: {e}")
 
     # ── Write updated meta ────────────────────────────────────────────────────
     meta = {

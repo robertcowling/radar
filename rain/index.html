@@ -162,8 +162,8 @@
         }
         .range-grab {
             position: absolute;
-            top: 50%; margin-top: -13px;
-            left: 50%; margin-left: -14px;
+            top: 50%;
+            transform: translate(-50%, -50%);
             width: 28px; height: 26px;
             z-index: 30;
             background: #202124; border: 2px solid white;
@@ -406,14 +406,9 @@
                 <option value="high">High events</option>
             </select>
         </div>
-
-        <!-- Time display -->
-        <div class="time-box">
-            <p style="margin:0;font-size:10px;text-transform:uppercase;font-weight:700;color:#1a73e8;letter-spacing:0.5px">Valid time</p>
-            <div id="timeUntil" style="font-size:15px;font-weight:700;color:#202124;margin-top:2px;white-space:nowrap">Loading&hellip;</div>
-            <div id="timeFrom"  style="font-size:11px;color:#5f6368;margin-top:4px;white-space:nowrap">&mdash;</div>
-        </div>
-
+        <!-- Time display (hidden — shown on timeline bar) -->
+        <div id="timeUntil" style="display:none"></div>
+        <div id="timeFrom"  style="display:none"></div>
         <!-- Colour scale -->
         <div class="cbar-container">
             <p id="cbarTitle" style="font-weight:500;margin:0 0 6px;font-size:12px;color:#3c4043">Accumulation (mm)</p>
@@ -665,7 +660,7 @@
             for (var s = 0; s < slots; s++) {
                 var t = new Date(validityMs - s * 900000);
                 var dk = fmtDateKey(t);
-                var slotIdx = String((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15);
+                var slotIdx = String(Math.round((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15));
                 var day = dayCache[dk];
                 if (!day) continue;
                 var stData = day.readings[stationId];
@@ -812,11 +807,12 @@
             }
 
             // Valid-from line (grey — matches start thumb colour)
+            var lineBottom = baseY - 2;
             svg += '<line x1="' + sx.toFixed(1) + '" y1="' + padT + '" x2="' + sx.toFixed(1) +
-                   '" y2="' + baseY + '" stroke="#5f6368" stroke-width="1.5" stroke-dasharray="3,2"/>';
+                   '" y2="' + lineBottom + '" stroke="#5f6368" stroke-width="1.5" stroke-dasharray="3,2"/>';
             // Valid-until line (blue — matches end thumb colour)
             svg += '<line x1="' + ex.toFixed(1) + '" y1="' + padT + '" x2="' + ex.toFixed(1) +
-                   '" y2="' + baseY + '" stroke="#1a73e8" stroke-width="1.5"/>';
+                   '" y2="' + lineBottom + '" stroke="#1a73e8" stroke-width="1.5"/>';
 
             // Time labels on the boundary lines
             var fromD   = new Date(slotToMs(startSlotIdx));
