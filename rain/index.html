@@ -99,13 +99,13 @@
         .timeline-container {
             position: relative;
             flex-grow: 1;
-            height: 64px;
+            height: 76px;
             display: flex;
             align-items: center;
         }
         .timeline-track {
             position: absolute;
-            top: 70%;
+            top: 54%;
             left: 9px; right: 9px;
             height: 6px;
             margin-top: -3px;
@@ -117,7 +117,7 @@
         }
         .timeline-ticks {
             position: absolute;
-            top: 70%;
+            top: 54%;
             left: 8px; right: 8px;
             height: 20px;
             transform: none;
@@ -136,7 +136,7 @@
         .tick.hour { height: 10px; top: 5px; background: #bdc1c6; }
         .tick-label {
             position: absolute;
-            top: 20px;
+            top: 18px;
             font-size: 11px;
             font-weight: 500;
             color: #80868b;
@@ -147,7 +147,7 @@
             width: auto;
             background: transparent;
             color: #1a73e8;
-            top: -20px;
+            top: -30px;
             font-size: 12px;
             display: flex;
             align-items: center;
@@ -162,7 +162,7 @@
         }
         .range-grab {
             position: absolute;
-            bottom: calc(100% + 14px);
+            bottom: calc(100% + 4px);
             left: 50%; margin-left: -14px;
             width: 28px; height: 22px;
             background: #202124; border: 2px solid white;
@@ -176,7 +176,7 @@
 
         .range-input {
             position: absolute; width: 100%;
-            top: 70%; transform: translateY(-50%);
+            top: 54%; transform: translateY(-50%);
             z-index: 3;
         }
         .range-input input[type=range] {
@@ -937,7 +937,7 @@
                 : totalMins % 60 === 0
                     ? (totalMins / 60) + 'hr'
                     : Math.floor(totalMins / 60) + 'hr ' + (totalMins % 60) + 'min';
-            document.getElementById('timeUntil').innerText = 'Until ' + fmtLocal(validityMs);
+            document.getElementById('timeUntil').innerText = fmtLocal(validityMs);
             document.getElementById('timeFrom').innerText  = 'From ' + fmtLocal(slotToMs(startSlotIdx)) + '  --  ' + durLabel;
         }
 
@@ -1049,41 +1049,19 @@
             });
             var thresholds = THRESHOLDS[nearestKey] || [];
 
-            // Scan the 48-hr timeline; only include crossings whose full accumulation
-            // period lies within the visible window (no data from before slot 0)
-            var scanStart = slotToMs(0) + Math.round(accumHrs * 3600000);
-            var scanEnd   = slotToMs(totalSlots - 1);
-            var step = 3600000; // 1hr steps
-
             var events = [];
 
             if (thresholds.length) {
-                var prevState = {};
-                // Pre-seed prevState one step before scan to avoid spurious crossings
-                var initT = scanStart - step;
+                var nowMs = slotToMs(endSlotIdx);
                 Object.keys(stations).forEach(function(id) {
+                    var val = computeAccum(id, nowMs, accumHrs);
                     thresholds.forEach(function(thresh) {
-                        prevState[id + '|' + thresh.mm] = computeAccum(id, initT, accumHrs) >= thresh.mm;
+                        if (val >= thresh.mm) {
+                            events.push({ms: nowMs, id: id, val: val, thresh: thresh});
+                        }
                     });
                 });
-                for (var t = scanStart; t <= scanEnd; t += step) {
-                    Object.keys(stations).forEach(function(id) {
-                        var val = computeAccum(id, t, accumHrs);
-                        thresholds.forEach(function(thresh) {
-                            var key = id + '|' + thresh.mm;
-                            var exceeds = val >= thresh.mm;
-                            if (exceeds && !prevState[key]) {
-                                // Only show crossings whose time falls in the highlighted window
-                                if (t >= slotToMs(startSlotIdx) && t <= slotToMs(endSlotIdx)) {
-                                    events.push({ms: t, id: id, val: val, thresh: thresh});
-                                }
-                            }
-                            prevState[key] = exceeds;
-                        });
-                    });
-                }
-                // Most recent first, then by amount
-                events.sort(function(a, b) { return b.ms !== a.ms ? b.ms - a.ms : b.val - a.val; });
+                events.sort(function(a, b) { return b.val - a.val; });
             }
 
             var panel = document.getElementById('thresholdPanel');
