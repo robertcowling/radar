@@ -111,7 +111,6 @@
             margin-top: -3px;
             background: #e8eaed;
             border-radius: 3px;
-            z-index: 30;
             overflow: visible;
             pointer-events: none;
         }
@@ -159,13 +158,14 @@
             top: 0; height: 6px;
             background: #1a73e8; opacity: 0.45;
             border-radius: 3px; pointer-events: none;
+            z-index: 10;
         }
         .range-grab {
             position: absolute;
             top: 50%; margin-top: -13px;
             left: 50%; margin-left: -14px;
             width: 28px; height: 26px;
-            z-index: 4;
+            z-index: 30;
             background: #202124; border: 2px solid white;
             border-radius: 6px;
             display: flex; align-items: center; justify-content: center;
