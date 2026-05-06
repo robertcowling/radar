@@ -193,16 +193,22 @@
         }
         .range-input input[type=range]::-webkit-slider-thumb {
             pointer-events: all; -webkit-appearance: none;
-            cursor: pointer; border: none; border-radius: 1px; box-shadow: none;
+            cursor: ew-resize; border: none;
             position: relative; z-index: 50;
         }
         #sliderStart::-webkit-slider-thumb {
-            background: linear-gradient(90deg, transparent 5px, #5f6368 5px, #5f6368 9px, transparent 9px);
-            height: 28px; width: 14px; margin-top: -20px;
+            width: 6px; height: 30px;
+            border-radius: 3px;
+            background: #5f6368;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.45), 0 0 0 2px #fff;
+            margin-top: -12px;
         }
         #sliderEnd::-webkit-slider-thumb {
-            background: linear-gradient(90deg, transparent 4px, #1a73e8 4px, #1a73e8 10px, transparent 10px);
-            height: 28px; width: 14px; margin-top: -20px;
+            width: 6px; height: 30px;
+            border-radius: 3px;
+            background: #1a73e8;
+            box-shadow: 0 2px 6px rgba(26,115,232,0.5), 0 0 0 2px #fff;
+            margin-top: -12px;
         }
 
         .time-box {
@@ -442,7 +448,7 @@
                 </label>
             </div>
             <label class="custom-checkbox" style="margin-top:6px">
-                <input type="checkbox" id="valToggle" onchange="onValuesToggle(this.checked)">
+                <input type="checkbox" id="valToggle" onchange="onValuesToggle(this.checked)" checked>
                 Show values
             </label>
         </div>
@@ -528,7 +534,7 @@
         var dayCache     = {};   // dateKey → {date, readings} or null (load failed)
         var markers      = {};
         var playing      = false;
-        var showValues   = false;
+        var showValues   = true;
         var panelTab     = 'timeline';
         var countyData   = [];
         var _countiesReady = false;
