@@ -6372,6 +6372,864 @@
       "lon": -3.133,
       "name": "Welshpool",
       "source": "nrw"
+    },
+    "nrw_H055477663": {
+      "lat": 51.9588,
+      "lon": -3.0523,
+      "name": "Tafalog River Station",
+      "source": "nrw"
+    },
+    "nrw_H058492449": {
+      "lat": 51.4141,
+      "lon": -3.5047,
+      "name": "Llantwit Major Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H102532551": {
+      "lat": 53.3392,
+      "lon": -4.4398,
+      "name": "Llyn Alaw Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H056486276": {
+      "lat": 51.7178,
+      "lon": -3.0291,
+      "name": "Trevethin Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H056486128": {
+      "lat": 51.7567,
+      "lon": -3.059,
+      "name": "Cwmafon Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H063000678": {
+      "lat": 52.438,
+      "lon": -4.0312,
+      "name": "Bow Street Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057491054": {
+      "lat": 51.5542,
+      "lon": -3.4021,
+      "name": "Dyffryn Isaf Llantrisant Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H054001334": {
+      "lat": 52.7603,
+      "lon": -3.2546,
+      "name": "Llanfyllin Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H055000010": {
+      "lat": 52.4279,
+      "lon": -3.7002,
+      "name": "Pant Mawr River Station",
+      "source": "nrw"
+    },
+    "nrw_H060505084": {
+      "lat": 51.9112,
+      "lon": -4.2581,
+      "name": "Rhydargaeau Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H054001408": {
+      "lat": 52.3797,
+      "lon": -3.4997,
+      "name": "Nantgwyn Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057490520": {
+      "lat": 51.6785,
+      "lon": -3.4869,
+      "name": "Maerdy WTW Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059497884": {
+      "lat": 51.7185,
+      "lon": -3.9236,
+      "name": "Spyte Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H054001009": {
+      "lat": 52.7172,
+      "lon": -3.5132,
+      "name": "Pen Y Coed Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H055464676": {
+      "lat": 52.2947,
+      "lon": -3.4975,
+      "name": "Rhyader STW Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H066535895": {
+      "lat": 53.1396,
+      "lon": -3.8009,
+      "name": "Llanrwst Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H066538134": {
+      "lat": 53.0577,
+      "lon": -3.3755,
+      "name": "Clawddnewydd Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057491201": {
+      "lat": 51.535,
+      "lon": -3.3365,
+      "name": "Rhiwsaeson STW Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H056486603": {
+      "lat": 51.594,
+      "lon": -3.0307,
+      "name": "Ynysfro Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H054001338": {
+      "lat": 52.612,
+      "lon": -3.416,
+      "name": "Cefn Coch Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H055003658": {
+      "lat": 52.1007,
+      "lon": -3.6175,
+      "name": "Abernant River Station",
+      "source": "nrw"
+    },
+    "nrw_H055466958": {
+      "lat": 52.2509,
+      "lon": -3.3894,
+      "name": "Llanyre Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059497135": {
+      "lat": 51.6121,
+      "lon": -3.9609,
+      "name": "Victoria Park Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H055469722": {
+      "lat": 52.0045,
+      "lon": -3.2356,
+      "name": "Talgarth Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059497549": {
+      "lat": 51.8192,
+      "lon": -3.8582,
+      "name": "Brynamman Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H060000736": {
+      "lat": 51.7864,
+      "lon": -4.6353,
+      "name": "Tavernspite Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H063000813": {
+      "lat": 52.3607,
+      "lon": -3.8767,
+      "name": "Frongoch River Station",
+      "source": "nrw"
+    },
+    "nrw_H066313309": {
+      "lat": 53.1155,
+      "lon": -3.2954,
+      "name": "Brynhyfryd Ruthin School Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H058492876": {
+      "lat": 51.5809,
+      "lon": -3.6185,
+      "name": "Llety Brongu Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H062514541": {
+      "lat": 52.1216,
+      "lon": -4.0418,
+      "name": "Cellan Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057490292": {
+      "lat": 51.6809,
+      "lon": -3.5432,
+      "name": "Tyn Y Waun Treherbert Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H056486460": {
+      "lat": 51.6149,
+      "lon": -2.9796,
+      "name": "Lodge Farm Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H055465397": {
+      "lat": 52.2738,
+      "lon": -3.562,
+      "name": "Elan Village Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H061507893": {
+      "lat": 51.7197,
+      "lon": -4.7241,
+      "name": "Pentlepoir Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H055466562": {
+      "lat": 52.3606,
+      "lon": -3.4247,
+      "name": "Bwlch Y Sarnau Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057488028": {
+      "lat": 51.7802,
+      "lon": -3.2979,
+      "name": "Rhymney Reservoir Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H055471837": {
+      "lat": 52.301,
+      "lon": -3.1684,
+      "name": "Bleddfa Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059495292": {
+      "lat": 51.7837,
+      "lon": -3.8201,
+      "name": "Ystradowen Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H067000010": {
+      "lat": 52.9629,
+      "lon": -3.7237,
+      "name": "Cynefail River Station",
+      "source": "nrw"
+    },
+    "nrw_H065003707": {
+      "lat": 53.031,
+      "lon": -4.1255,
+      "name": "Afon Colwyn River Station",
+      "source": "nrw"
+    },
+    "nrw_H058494988": {
+      "lat": 51.7487,
+      "lon": -3.5412,
+      "name": "Hirwaun Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H063000230": {
+      "lat": 52.2457,
+      "lon": -4.0659,
+      "name": "Penuwch Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057482878": {
+      "lat": 51.8723,
+      "lon": -3.4781,
+      "name": "Storey Arms Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H060000015": {
+      "lat": 51.8003,
+      "lon": -4.2414,
+      "name": "Llangendeirne River Station",
+      "source": "nrw"
+    },
+    "nrw_H060003238": {
+      "lat": 51.9842,
+      "lon": -4.0588,
+      "name": "Abergorlech Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H060000672": {
+      "lat": 51.9442,
+      "lon": -4.5016,
+      "name": "Trelech Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H064001817": {
+      "lat": 52.7399,
+      "lon": -3.6452,
+      "name": "Llan Y Mawddwy Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H067547372": {
+      "lat": 53.2194,
+      "lon": -3.2078,
+      "name": "Moel Y Crio Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H054427444": {
+      "lat": 52.8793,
+      "lon": -3.1579,
+      "name": "Pen Y Gwely Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H060000138": {
+      "lat": 51.8115,
+      "lon": -4.084,
+      "name": "Gorslas Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H066540361": {
+      "lat": 53.1686,
+      "lon": -3.5691,
+      "name": "Plas Pigot Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H064000123": {
+      "lat": 52.4559,
+      "lon": -3.9381,
+      "name": "Bontgoch Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H054002830": {
+      "lat": 52.5222,
+      "lon": -3.4287,
+      "name": "Henfryn Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H058492011": {
+      "lat": 51.4527,
+      "lon": -3.4441,
+      "name": "Cowbridge STW Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H055001810": {
+      "lat": 52.3201,
+      "lon": -3.0565,
+      "name": "Rhos Y Meirch Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H062000433": {
+      "lat": 52.1124,
+      "lon": -4.654,
+      "name": "Ferwig Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H056484400": {
+      "lat": 51.9262,
+      "lon": -3.1264,
+      "name": "Tal Y Maes Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H054001700": {
+      "lat": 52.821,
+      "lon": -3.4069,
+      "name": "Llangynog Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H056487078": {
+      "lat": 51.7548,
+      "lon": -3.1288,
+      "name": "Cwmtillery Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H067541879": {
+      "lat": 52.8282,
+      "lon": -3.7058,
+      "name": "Pant Gwyn Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H056000528": {
+      "lat": 51.8092,
+      "lon": -3.2155,
+      "name": "Carno Reservoir Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H058494448": {
+      "lat": 51.6612,
+      "lon": -3.7049,
+      "name": "Fforch Dwm Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059000692": {
+      "lat": 51.8313,
+      "lon": -3.6813,
+      "name": "Dan Yr Ogof Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057490848": {
+      "lat": 51.5339,
+      "lon": -3.226,
+      "name": "Rhiwbina Reservoir Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H056483077": {
+      "lat": 52.0671,
+      "lon": -3.4457,
+      "name": "Upper Chapel Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057488564": {
+      "lat": 51.5861,
+      "lon": -3.1704,
+      "name": "Machen Waterloo Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H062515204": {
+      "lat": 52.1269,
+      "lon": -4.2492,
+      "name": "Rhos Ymryson Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H067547251": {
+      "lat": 53.1489,
+      "lon": -3.1956,
+      "name": "Loggerheads Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H062517113": {
+      "lat": 52.0617,
+      "lon": -4.5838,
+      "name": "Llechryd Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H054001221": {
+      "lat": 52.6568,
+      "lon": -3.1319,
+      "name": "Welshpool Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H060502487": {
+      "lat": 52.0391,
+      "lon": -3.9323,
+      "name": "Caio Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H065000913": {
+      "lat": 53.1682,
+      "lon": -4.0646,
+      "name": "Bethesda Quarry Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H067090126": {
+      "lat": 52.9448,
+      "lon": -3.6655,
+      "name": "Tryweryn Dam Pluvio and Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H055472159": {
+      "lat": 52.2316,
+      "lon": -3.1998,
+      "name": "Break Your Neck Falls Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057491537": {
+      "lat": 51.4857,
+      "lon": -3.2627,
+      "name": "St Fagans Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H061000673": {
+      "lat": 51.8513,
+      "lon": -4.8877,
+      "name": "Clarbeston Road Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H054001152": {
+      "lat": 52.5,
+      "lon": -3.6599,
+      "name": "Dolydd Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H066090068": {
+      "lat": 53.2643,
+      "lon": -3.4498,
+      "name": "St Asaph Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H065527852": {
+      "lat": 52.9177,
+      "lon": -4.2483,
+      "name": "Criccieth Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H065529898": {
+      "lat": 52.93,
+      "lon": -4.1212,
+      "name": "Porthmadog Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H058495247": {
+      "lat": 51.7087,
+      "lon": -3.7012,
+      "name": "Resolven Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059497307": {
+      "lat": 51.5696,
+      "lon": -4.083,
+      "name": "Southgate Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H058000659": {
+      "lat": 51.7202,
+      "lon": -3.7533,
+      "name": "Crynant Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059498721": {
+      "lat": 51.7699,
+      "lon": -3.9994,
+      "name": "Garnswllt Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H058000416": {
+      "lat": 51.6441,
+      "lon": -3.6441,
+      "name": "Croeserw Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H062515704": {
+      "lat": 52.005,
+      "lon": -4.2659,
+      "name": "Pencader Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H064525371": {
+      "lat": 52.7969,
+      "lon": -3.7832,
+      "name": "Rhyd Y Main Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H060000737": {
+      "lat": 52.1085,
+      "lon": -3.7704,
+      "name": "Ystradffin No1 Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H063520455": {
+      "lat": 52.3957,
+      "lon": -3.8988,
+      "name": "Cwm Rheidol Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H058000750": {
+      "lat": 51.6789,
+      "lon": -3.6535,
+      "name": "Abercregan River Station",
+      "source": "nrw"
+    },
+    "nrw_H102531386": {
+      "lat": 53.2679,
+      "lon": -4.3321,
+      "name": "Llyn Cefni Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059000120": {
+      "lat": 51.6754,
+      "lon": -3.8665,
+      "name": "Birchgrove Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057000817": {
+      "lat": 51.7925,
+      "lon": -3.4325,
+      "name": "Llwynon Reservoir River Station",
+      "source": "nrw"
+    },
+    "nrw_H057489655": {
+      "lat": 51.6515,
+      "lon": -3.2955,
+      "name": "Nelson Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H055465260": {
+      "lat": 52.2531,
+      "lon": -3.6378,
+      "name": "Ciloerwynt Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H060505811": {
+      "lat": 51.9488,
+      "lon": -4.5909,
+      "name": "Llanfyrnach Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057489274": {
+      "lat": 51.7967,
+      "lon": -3.3659,
+      "name": "Pontsticill Upper Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059496431": {
+      "lat": 51.7631,
+      "lon": -3.7758,
+      "name": "Ystradgynlais Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H056481665": {
+      "lat": 51.9464,
+      "lon": -3.6967,
+      "name": "Usk Reservoir No2 Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H062513666": {
+      "lat": 52.2838,
+      "lon": -3.8649,
+      "name": "Pontrydfendigaid No2 Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H054001750": {
+      "lat": 52.5069,
+      "lon": -3.1694,
+      "name": "Sarn Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H056000516": {
+      "lat": 51.8872,
+      "lon": -3.6217,
+      "name": "Crai Reservoir",
+      "source": "nrw"
+    },
+    "nrw_H059497540": {
+      "lat": 51.5657,
+      "lon": -4.2673,
+      "name": "Pitton Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H056486419": {
+      "lat": 51.6475,
+      "lon": -3.0537,
+      "name": "Maes Y Rhiw Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H102532397": {
+      "lat": 53.2638,
+      "lon": -4.6121,
+      "name": "Trearddur Bay Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H064291898": {
+      "lat": 52.6481,
+      "lon": -3.5981,
+      "name": "Llanbrynmair Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H061000263": {
+      "lat": 51.9419,
+      "lon": -5.0813,
+      "name": "Mathry Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H067541672": {
+      "lat": 53.2091,
+      "lon": -3.1241,
+      "name": "Northop Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059000134": {
+      "lat": 51.8337,
+      "lon": -3.959,
+      "name": "Bryncoch Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H058000415": {
+      "lat": 51.5105,
+      "lon": -3.561,
+      "name": "Brackla Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H055464225": {
+      "lat": 52.4038,
+      "lon": -3.6057,
+      "name": "Llangurig Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H060501297": {
+      "lat": 52.0445,
+      "lon": -3.7457,
+      "name": "Cynghordy Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H061508000": {
+      "lat": 51.6745,
+      "lon": -4.7268,
+      "name": "Tenby Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H067547764": {
+      "lat": 53.1034,
+      "lon": -3.0893,
+      "name": "Llanfynydd Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H056483040": {
+      "lat": 51.9386,
+      "lon": -3.4004,
+      "name": "Brecon WTW",
+      "source": "nrw"
+    },
+    "nrw_H055465928": {
+      "lat": 52.3901,
+      "lon": -3.3273,
+      "name": "Llanbadarn Fynydd Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H058491789": {
+      "lat": 51.4185,
+      "lon": -3.2084,
+      "name": "Cogmoors Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H058000109": {
+      "lat": 51.6353,
+      "lon": -3.5241,
+      "name": "Blaenogwr Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H061000700": {
+      "lat": 51.933,
+      "lon": -4.8112,
+      "name": "Maenclochog Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059497994": {
+      "lat": 51.6531,
+      "lon": -4.0311,
+      "name": "Gowerton Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H067546191": {
+      "lat": 53.0255,
+      "lon": -2.9522,
+      "name": "Five Fords Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057488264": {
+      "lat": 51.6889,
+      "lon": -3.2063,
+      "name": "Ty Fry Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H054001134": {
+      "lat": 52.7575,
+      "lon": -3.4592,
+      "name": "Vyrnwy Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H058000113": {
+      "lat": 51.8177,
+      "lon": -3.5377,
+      "name": "Ystradfellte Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H060000676": {
+      "lat": 51.9523,
+      "lon": -3.7824,
+      "name": "Myddfai Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H067548097": {
+      "lat": 53.1598,
+      "lon": -3.1271,
+      "name": "Mold Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059497880": {
+      "lat": 51.7347,
+      "lon": -3.938,
+      "name": "Upper Lliw Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059499326": {
+      "lat": 51.6995,
+      "lon": -4.1479,
+      "name": "Felinfoel Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H063520264": {
+      "lat": 52.4309,
+      "lon": -3.8434,
+      "name": "Dinas Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H065527222": {
+      "lat": 53.067,
+      "lon": -4.0102,
+      "name": "Cwm Dyli Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H067547797": {
+      "lat": 53.0711,
+      "lon": -3.1293,
+      "name": "Nant Y Ffrith Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H066539773": {
+      "lat": 53.1391,
+      "lon": -3.6777,
+      "name": "Gwytherin Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H065003344": {
+      "lat": 52.8123,
+      "lon": -4.5086,
+      "name": "Abersoch Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057489616": {
+      "lat": 51.6836,
+      "lon": -3.2975,
+      "name": "Trelewis Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H060000427": {
+      "lat": 51.8994,
+      "lon": -3.7477,
+      "name": "Llynyfan Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H066281059": {
+      "lat": 52.994,
+      "lon": -3.7724,
+      "name": "Ysbyty Ifan Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H063003852": {
+      "lat": 52.3582,
+      "lon": -3.8022,
+      "name": "Pwll Peiran Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H061000262": {
+      "lat": 51.7604,
+      "lon": -5.0161,
+      "name": "Bolton Hill Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H060500543": {
+      "lat": 52.2095,
+      "lon": -3.813,
+      "name": "Nant Y Maen Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059000739": {
+      "lat": 51.6629,
+      "lon": -4.1092,
+      "name": "Bynea Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H059496829": {
+      "lat": 51.705,
+      "lon": -3.8638,
+      "name": "Trebanos Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H057490109": {
+      "lat": 51.6574,
+      "lon": -3.3963,
+      "name": "Nant Yr Ysfa Raingauge",
+      "source": "nrw"
+    },
+    "nrw_H064522987": {
+      "lat": 52.6789,
+      "lon": -3.8114,
+      "name": "Corris - Aberllefenni Raingauge",
+      "source": "nrw"
     }
   }
 }
