@@ -111,7 +111,7 @@
             margin-top: -3px;
             background: #e8eaed;
             border-radius: 3px;
-            z-index: 1;
+            z-index: 10;
             overflow: visible;
             pointer-events: none;
         }
@@ -122,7 +122,7 @@
             height: 20px;
             transform: none;
             pointer-events: none;
-            z-index: 2;
+            z-index: 1;
         }
         .tick {
             position: absolute;
@@ -174,22 +174,11 @@
         }
         .range-grab:active { cursor: grabbing; }
         .grab-line { width: 2px; height: 10px; background: white; border-radius: 1px; }
-        .slider-time-label {
-            position: absolute;
-            bottom: -20px;
-            font-size: 10px;
-            font-weight: 600;
-            white-space: nowrap;
-            transform: translateX(-50%);
-            pointer-events: none;
-        }
-        .slider-time-label-start { color: #5f6368; }
-        .slider-time-label-end   { color: #1a73e8; }
 
         .range-input {
             position: absolute; width: 100%;
             top: 60%; transform: translateY(-50%);
-            z-index: 5;
+            z-index: 20;
         }
         .range-input input[type=range] {
             position: absolute; width: 100%; margin: 0;
@@ -207,11 +196,11 @@
         }
         #sliderStart::-webkit-slider-thumb {
             background: linear-gradient(90deg, transparent 5px, #5f6368 5px, #5f6368 9px, transparent 9px);
-            height: 36px; width: 14px; margin-top: -28px;
+            height: 28px; width: 14px; margin-top: -20px;
         }
         #sliderEnd::-webkit-slider-thumb {
             background: linear-gradient(90deg, transparent 4px, #1a73e8 4px, #1a73e8 10px, transparent 10px);
-            height: 36px; width: 14px; margin-top: -28px;
+            height: 28px; width: 14px; margin-top: -20px;
         }
 
         .time-box {
@@ -501,8 +490,6 @@
                     <span class="grab-line"></span>
                     <span class="grab-line"></span>
                 </div>
-                <div id="sliderLabelStart" class="slider-time-label slider-time-label-start"></div>
-                <div id="sliderLabelEnd" class="slider-time-label slider-time-label-end"></div>
             </div>
             <div class="timeline-ticks" id="timelineTicks"></div>
             <div class="range-input">
@@ -870,9 +857,14 @@
                 var day = dayCache[dk];
                 var v = (day && day.readings && day.readings[id] && day.readings[id][si] != null)
                     ? +day.readings[id][si] : null;
-                if (v === null || v < 0) continue;
                 var ts = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
                 var ds = String(t.getDate()).padStart(2,'0') + ' ' + MONTHS[t.getMonth()];
+                if (v === null || v < 0) {
+                    rows.push('<tr>'
+                        + '<td style="padding:1px 0;color:#5f6368;white-space:nowrap">' + ds + ' ' + ts + '</td>'
+                        + '<td style="padding:1px 6px;text-align:right;color:#9aa0a6;font-style:italic">No data</td></tr>');
+                    continue;
+                }
                 rows.push('<tr>'
                     + '<td style="padding:1px 0;color:#5f6368;white-space:nowrap">' + ds + ' ' + ts + '</td>'
                     + '<td style="padding:1px 6px;text-align:right;color:#202124">' + v.toFixed(1) + '</td></tr>');
@@ -1268,17 +1260,6 @@
             sel.style.width = (rightPct - leftPct) + '%';
             var midPct = (leftPct + rightPct) / 2;
             document.getElementById('rangeGrab').style.left = midPct + '%';
-            
-            var lblStart = document.getElementById('sliderLabelStart');
-            var lblEnd = document.getElementById('sliderLabelEnd');
-            if (lblStart && lblEnd) {
-                lblStart.style.left = leftPct + '%';
-                lblEnd.style.left = rightPct + '%';
-                var sDate = new Date(slotToMs(startSlotIdx));
-                var eDate = new Date(slotToMs(endSlotIdx));
-                lblStart.innerText = String(sDate.getHours()).padStart(2,'0') + ':' + String(sDate.getMinutes()).padStart(2,'0');
-                lblEnd.innerText = String(eDate.getHours()).padStart(2,'0') + ':' + String(eDate.getMinutes()).padStart(2,'0');
-            }
         }
 
         var _rafPending = null;
