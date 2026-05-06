@@ -99,13 +99,13 @@
         .timeline-container {
             position: relative;
             flex-grow: 1;
-            height: 56px;
+            height: 72px;
             display: flex;
             align-items: center;
         }
         .timeline-track {
             position: absolute;
-            top: 58%;
+            top: 65%;
             left: 9px; right: 9px;
             height: 6px;
             margin-top: -3px;
@@ -117,7 +117,7 @@
         }
         .timeline-ticks {
             position: absolute;
-            top: 58%;
+            top: 65%;
             left: 8px; right: 8px;
             height: 20px;
             transform: none;
@@ -136,7 +136,7 @@
         .tick.hour { height: 10px; top: 5px; background: #bdc1c6; }
         .tick-label {
             position: absolute;
-            top: 24px;
+            top: 20px;
             font-size: 11px;
             font-weight: 500;
             color: #80868b;
@@ -147,7 +147,7 @@
             width: auto;
             background: transparent;
             color: #1a73e8;
-            top: -22px;
+            top: -17px;
             font-size: 12px;
             display: flex;
             align-items: center;
@@ -162,8 +162,8 @@
         }
         .range-grab {
             position: absolute;
-            bottom: calc(100% + 2px);
-            left: 50%; margin-left: -14px;
+            top: 4px;
+            transform: translateX(-50%);
             width: 28px; height: 22px;
             background: #202124; border: 2px solid white;
             border-radius: 6px;
@@ -176,7 +176,7 @@
 
         .range-input {
             position: absolute; width: 100%;
-            top: 58%; transform: translateY(-50%);
+            top: 65%; transform: translateY(-50%);
             z-index: 3;
         }
         .range-input input[type=range] {
@@ -482,13 +482,13 @@
         </div>
 
         <div class="timeline-container">
+            <div class="range-grab" id="rangeGrab">
+                <span class="grab-line"></span>
+                <span class="grab-line"></span>
+                <span class="grab-line"></span>
+            </div>
             <div class="timeline-track">
                 <div class="range-selected" id="rangeSelected"></div>
-                <div class="range-grab" id="rangeGrab">
-                    <span class="grab-line"></span>
-                    <span class="grab-line"></span>
-                    <span class="grab-line"></span>
-                </div>
             </div>
             <div class="timeline-ticks" id="timelineTicks"></div>
             <div class="range-input">
@@ -1059,6 +1059,13 @@
 
             if (thresholds.length) {
                 var prevState = {};
+                // Pre-seed prevState one step before scan to avoid spurious crossings
+                var initT = scanStart - step;
+                Object.keys(stations).forEach(function(id) {
+                    thresholds.forEach(function(thresh) {
+                        prevState[id + '|' + thresh.mm] = computeAccum(id, initT, accumHrs) >= thresh.mm;
+                    });
+                });
                 for (var t = scanStart; t <= scanEnd; t += step) {
                     Object.keys(stations).forEach(function(id) {
                         var val = computeAccum(id, t, accumHrs);
@@ -1170,10 +1177,12 @@
                     t.style.height = '12px'; t.style.top = '4px';
                     t.style.background = '#fbbc04'; t.style.width = '2px';
                     container.appendChild(t);
-                    var lbl = document.createElement('div');
-                    lbl.className = 'tick-label'; lbl.style.left = pct + '%'; lbl.innerText = '12:00';
-                    container.appendChild(lbl);
-                } else if (m === 0 && h % labelInterval === 0 && pct > 2 && pct < 98) {
+                    if (pct > 5 && pct < 95) {
+                        var lbl = document.createElement('div');
+                        lbl.className = 'tick-label'; lbl.style.left = pct + '%'; lbl.innerText = '12:00';
+                        container.appendChild(lbl);
+                    }
+                } else if (m === 0 && h % labelInterval === 0 && pct > 5 && pct < 95) {
                     var t = document.createElement('div');
                     t.className = 'tick hour'; t.style.left = pct + '%';
                     container.appendChild(t);
