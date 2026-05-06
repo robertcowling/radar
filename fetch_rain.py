@@ -22,7 +22,8 @@ EA_BASE    = "https://environment.data.gov.uk/flood-monitoring"   # readings (re
 HYDRO_BASE = "https://environment.data.gov.uk/hydrology"          # stations + readings
 
 # ── NRW API ───────────────────────────────────────────────────────────────────
-NRW_BASE = "https://api.naturalresources.wales/rivers-and-seas/v1/api"
+NRW_RIVERS_BASE   = "https://api.naturalresources.wales/rivers-and-seas/v1/api"
+NRW_TELEMETRY_BASE = "https://api.naturalresources.wales/telemetry/api"
 NRW_KEY  = os.environ.get("NRW_KEY", "")
 USE_NRW  = bool(NRW_KEY)
 
@@ -127,77 +128,129 @@ def fetch_readings_for_date(date_str):
 
 
 def fetch_nrw_data():
-    """Fetch latest rainfall readings from NRW StationData API.
+    """Fetch NRW rainfall data via the Telemetry API.
+    Strategy:
+      1. GET /telemetry/api/measures  → build measureId → (stationId, lat, lon, name) map
+         (filter to rainfall measures only)
+      2. GET /telemetry/api/measures/readings?start=...&end=...  → bulk readings last 48hr
+      3. Fall back to rivers-and-seas StationData latestValue for station metadata
+         if the telemetry measures endpoint is unavailable.
     Returns (nrw_stations dict, by_date dict, latest_dt str or None).
     Station IDs are prefixed 'nrw_' to avoid EA collisions.
     """
     if not USE_NRW:
         return {}, {}, None
-    print("Fetching NRW station data...")
-    r = requests.get(f"{NRW_BASE}/StationData",
-                     headers={"Ocp-Apim-Subscription-Key": NRW_KEY},
-                     timeout=60)
-    r.raise_for_status()
-    items = r.json()
 
+    headers = {"Ocp-Apim-Subscription-Key": NRW_KEY}
     nrw_stations = {}
     by_date = {}
     latest_dt = None
 
-    for item in items:
-        lat = item.get("latitude")
-        lon = item.get("longitude")
-        if lat is None or lon is None:
-            continue
-        sid  = f"nrw_{item.get('stationId')}"
-        name = item.get("nameEN") or sid
-        for param in (item.get("parameters") or []):
-            if "rainfall" not in (param.get("paramNameEN") or "").lower():
+    # ── Step 1: build measureId → station map from Telemetry /measures ────────
+    print("Fetching NRW measures from Telemetry API...")
+    measure_to_station = {}   # measureId (str) → sid
+    try:
+        rm = requests.get(f"{NRW_TELEMETRY_BASE}/measures",
+                          headers=headers, timeout=60)
+        rm.raise_for_status()
+        measures_data = rm.json()
+        if not isinstance(measures_data, list):
+            measures_data = measures_data.get("items") or measures_data.get("value") or []
+        for m in measures_data:
+            # Filter to rainfall measures
+            param = (m.get("parameterName") or m.get("parameter") or
+                     m.get("measureType") or m.get("measureTypeName") or "")
+            if "rain" not in param.lower() and "rainfall" not in param.lower():
                 continue
-            val_str  = param.get("latestValue")
-            time_str = (param.get("latestTime") or "")
-            if val_str is None or not time_str:
+            mid  = str(m.get("measureId") or m.get("id") or "")
+            if not mid:
                 continue
-            try:
-                val = float(val_str)
-            except (TypeError, ValueError):
+            lat  = m.get("latitude") or m.get("lat")
+            lon  = m.get("longitude") or m.get("long") or m.get("lon")
+            name = (m.get("stationName") or m.get("name") or
+                    m.get("nameEN") or mid)
+            raw_station_id = str(m.get("stationId") or m.get("station") or "")
+            if not raw_station_id or lat is None or lon is None:
                 continue
-            if val < 0:
-                continue
+            sid = f"nrw_{raw_station_id}"
             nrw_stations[sid] = {
                 "lat":    round(float(lat), 5),
                 "lon":    round(float(lon), 5),
                 "name":   name,
                 "source": "nrw",
             }
-            date_key, slot = dt_to_slot(time_str[:19].rstrip("Z"))
-            by_date.setdefault(date_key, {}).setdefault(sid, {})[str(slot)] = round(val, 2)
-            if latest_dt is None or time_str > latest_dt:
-                latest_dt = time_str
-            break  # one rainfall param per station
+            measure_to_station[mid] = sid
+        print(f"  Telemetry measures: {len(measure_to_station)} rainfall measures "
+              f"at {len(nrw_stations)} stations")
+    except Exception as e:
+        print(f"  Warning: Telemetry /measures failed ({e}), "
+              "falling back to rivers-and-seas StationData")
 
-    # ── Also fetch 48-hr historical 15-min readings per NRW station ───────────
-    now = datetime.now(timezone.utc)
-    since_str = (now - timedelta(hours=49)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    hist_ok = 0
-    hist_fail = 0
-    for sid in list(nrw_stations.keys()):
-        raw_id = sid[len("nrw_"):]
+    # ── Fallback: use rivers-and-seas StationData if measures endpoint failed ──
+    if not nrw_stations:
         try:
-            url = (f"{NRW_BASE}/Readings"
-                   f"?stationId={raw_id}&dataType=RF&startDate={since_str}")
-            rh = requests.get(url,
-                              headers={"Ocp-Apim-Subscription-Key": NRW_KEY},
-                              timeout=30)
-            if not rh.ok:
-                hist_fail += 1
-                continue
-            readings = rh.json()
+            rs = requests.get(f"{NRW_RIVERS_BASE}/StationData",
+                              headers=headers, timeout=60)
+            rs.raise_for_status()
+            for item in rs.json():
+                lat = item.get("latitude")
+                lon = item.get("longitude")
+                if lat is None or lon is None:
+                    continue
+                sid  = f"nrw_{item.get('stationId')}"
+                name = item.get("nameEN") or sid
+                for param in (item.get("parameters") or []):
+                    if "rainfall" not in (param.get("paramNameEN") or "").lower():
+                        continue
+                    val_str  = param.get("latestValue")
+                    time_str = (param.get("latestTime") or "")
+                    if val_str is None or not time_str:
+                        continue
+                    try:
+                        val = float(val_str)
+                    except (TypeError, ValueError):
+                        continue
+                    if val < 0:
+                        continue
+                    nrw_stations[sid] = {
+                        "lat":    round(float(lat), 5),
+                        "lon":    round(float(lon), 5),
+                        "name":   name,
+                        "source": "nrw",
+                    }
+                    date_key, slot = dt_to_slot(time_str[:19].rstrip("Z"))
+                    by_date.setdefault(date_key, {}).setdefault(sid, {})[str(slot)] = round(val, 2)
+                    if latest_dt is None or time_str > latest_dt:
+                        latest_dt = time_str
+                    break
+            print(f"  Fallback StationData: {len(nrw_stations)} stations")
+        except Exception as e:
+            print(f"  Warning: StationData fallback also failed: {e}")
+
+    # ── Step 2: bulk fetch readings from Telemetry API ─────────────────────────
+    if measure_to_station:
+        now = datetime.now(timezone.utc)
+        start_str = (now - timedelta(hours=49)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        end_str   = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+        print(f"  Fetching Telemetry bulk readings {start_str} → {end_str}...")
+        try:
+            rr = requests.get(
+                f"{NRW_TELEMETRY_BASE}/measures/readings",
+                params={"start": start_str, "end": end_str},
+                headers=headers,
+                timeout=120,
+            )
+            rr.raise_for_status()
+            readings = rr.json()
             if not isinstance(readings, list):
-                readings = readings.get("items") or readings.get("readings") or []
+                readings = readings.get("items") or readings.get("value") or []
+            count = 0
             for rec in readings:
-                # Try common field names used by NRW API
-                ts = rec.get("dateTime") or rec.get("timestamp") or rec.get("time") or ""
+                mid = str(rec.get("measureId") or "")
+                sid = measure_to_station.get(mid)
+                if not sid:
+                    continue
+                ts = rec.get("timestamp") or ""
                 v  = rec.get("value")
                 if not ts or v is None:
                     continue
@@ -212,12 +265,12 @@ def fetch_nrw_data():
                 by_date.setdefault(dk, {}).setdefault(sid, {})[str(slot)] = round(v, 2)
                 if latest_dt is None or ts > latest_dt:
                     latest_dt = ts
-            hist_ok += 1
-        except Exception:
-            hist_fail += 1
+                count += 1
+            print(f"  Telemetry bulk readings: {count} readings ingested")
+        except Exception as e:
+            print(f"  Warning: Telemetry bulk readings failed: {e}")
 
-    print(f"  NRW: {len(nrw_stations)} rainfall stations, "
-          f"history ok={hist_ok} fail={hist_fail}, latest={latest_dt}")
+    print(f"  NRW total: {len(nrw_stations)} stations, latest={latest_dt}")
     return nrw_stations, by_date, latest_dt
 
 
