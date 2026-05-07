@@ -13,6 +13,7 @@ import json
 import os
 import sys
 from datetime import datetime, timedelta, timezone
+from math import atan2, cos, radians, sin, sqrt
 
 import boto3
 import requests
@@ -275,6 +276,7 @@ def fetch_nrw_data():
     print(f"  Telemetry bulk readings: {count} readings ingested")
 
 
+    _dedup_nrw_numeric(nrw_stations, by_date)
     print(f"  NRW total: {len(nrw_stations)} stations, latest={latest_dt}")
     return nrw_stations, by_date, latest_dt
 
@@ -327,6 +329,40 @@ def write_local_json(path, data):
         json.dump(data, f, indent=2)
 
 
+def _haversine_km(lat1, lon1, lat2, lon2):
+    R = 6371.0
+    dlat, dlon = radians(lat2 - lat1), radians(lon2 - lon1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    return R * 2 * atan2(sqrt(a), sqrt(1 - a))
+
+
+def _dedup_nrw_numeric(stations, by_date=None, threshold_km=3.0):
+    """Remove nrw_NNNN (legacy numeric-ID) entries that have a nearby nrw_H...
+    counterpart within threshold_km.  Stations with no H-prefix partner are kept.
+    Operates in-place; also prunes matching keys from by_date if supplied."""
+    numeric = [sid for sid in stations if sid.startswith("nrw_") and sid[4:].isdigit()]
+    h_list  = [(sid, s) for sid, s in stations.items() if sid.startswith("nrw_H")]
+    if not numeric or not h_list:
+        return
+
+    to_remove = set()
+    for sid in numeric:
+        s = stations[sid]
+        for _, hs in h_list:
+            if _haversine_km(s["lat"], s["lon"], hs["lat"], hs["lon"]) <= threshold_km:
+                to_remove.add(sid)
+                break
+
+    for sid in to_remove:
+        del stations[sid]
+    if by_date:
+        for slots in by_date.values():
+            for sid in to_remove:
+                slots.pop(sid, None)
+    if to_remove:
+        print(f"  NRW dedup: removed {len(to_remove)} legacy numeric-ID stations")
+
+
 def main():
     now = datetime.now(timezone.utc)
     os.makedirs("rain", exist_ok=True)
@@ -354,6 +390,12 @@ def main():
     else:
         print(f"Using cached stations ({len(stations)} stations)")
         suid_to_ref = {s["guid"]: ref for ref, s in stations.items() if s.get("guid")}
+        # Clean up legacy numeric NRW stations that have an H-prefix counterpart
+        before = len(stations)
+        _dedup_nrw_numeric(stations)
+        if len(stations) != before:
+            stations_data["stations"] = stations
+            write_local_json(STATIONS_PATH, stations_data)
 
     # ── Load current meta ──────────────────────────────────────────────────────
     meta = load_local_json(META_PATH, {
