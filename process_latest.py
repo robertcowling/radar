@@ -334,6 +334,7 @@ def main():
 
     mapping = None
     frames = []
+    frame_dts = []  # parallel to frames — used for sat-holdback check below
 
     for key in latest_keys:
         h5_name = os.path.basename(key)
@@ -454,6 +455,18 @@ def main():
         if sat_url_ir_grey:
             frame_data["sat_url_ir_grey"] = sat_url_ir_grey
         frames.append(frame_data)
+        frame_dts.append(dt if iso_time is not None else None)
+
+    # Hold back any trailing frames that are recent enough to have sat images
+    # but don't have them yet (EUMETSAT WMS hadn't published at fetch time).
+    # They will re-appear on the next 15-min run once sat is available.
+    # Frames older than SAT_MAX_AGE_HOURS are never retried, so always keep them.
+    sat_age_cutoff = datetime.utcnow() - timedelta(hours=SAT_MAX_AGE_HOURS)
+    frames = [
+        f for f, fdt in zip(frames, frame_dts)
+        if fdt is None or fdt < sat_age_cutoff or f.get('sat_url_bw')
+    ]
+    print(f"Frames after sat-holdback filter: {len(frames)}")
 
     with open("frames.json", "w") as f:
         json.dump(frames, f, indent=2)
