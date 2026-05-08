@@ -187,6 +187,17 @@ def list_r2_keys(r2):
     return keys
 
 
+def list_sat_r2_keys(r2):
+    """Return the set of sat_gh/ keys that have been confirmed uploaded to R2."""
+    keys = set()
+    paginator = r2.get_paginator('list_objects_v2')
+    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix='sat_gh/'):
+        for obj in page.get('Contents', []):
+            keys.add(obj['Key'])
+    print(f"R2: {len(keys)} existing sat_gh objects found.")
+    return keys
+
+
 def upload_to_r2(r2, local_path, r2_key, content_type, existing_keys, force=False):
     if not force and r2_key in existing_keys:
         return True
@@ -226,6 +237,7 @@ def main():
     s3 = boto3.client("s3", region_name="eu-west-2", config=Config(signature_version=UNSIGNED))
     r2 = get_r2_client() if USE_R2 else None
     r2_keys = list_r2_keys(r2) if USE_R2 else None
+    sat_r2_keys = list_sat_r2_keys(r2) if USE_R2 else set()
 
     keys = collect_keys_with_retry(s3)
     latest_keys = sorted(keys)[-NUM_FILES:]
@@ -274,10 +286,10 @@ def main():
             sat_name_ir_grey = h5_name.replace(".h5", "_sat_ir_grey.jpg")
             
             if USE_R2:
-                sat_url_bw      = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_bw}"
-                sat_url_vis     = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_vis}"
-                sat_url_ir      = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir}"
-                sat_url_ir_grey = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir_grey}"
+                if f"sat_gh/{sat_name_bw}"      in sat_r2_keys: sat_url_bw      = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_bw}"
+                if f"sat_gh/{sat_name_vis}"     in sat_r2_keys: sat_url_vis     = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_vis}"
+                if f"sat_gh/{sat_name_ir}"      in sat_r2_keys: sat_url_ir      = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir}"
+                if f"sat_gh/{sat_name_ir_grey}" in sat_r2_keys: sat_url_ir_grey = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir_grey}"
             else:
                 sat_url_bw      = f"static/sat/{sat_name_bw}"
                 sat_url_vis     = f"static/sat/{sat_name_vis}"
