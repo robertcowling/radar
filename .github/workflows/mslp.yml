@@ -17,7 +17,7 @@ jobs:
         fetch-depth: 0
 
     - name: Install eccodes system library and fonts
-      run: sudo apt-get install -y libeccodes-dev fonts-roboto
+      run: sudo apt-get update && sudo apt-get install -y --fix-missing libeccodes-dev fonts-roboto
 
     - name: Set up Python
       uses: actions/setup-python@v4
