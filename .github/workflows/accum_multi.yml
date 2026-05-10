@@ -33,13 +33,22 @@ jobs:
         R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
       run: python make_accum_multi.py
 
+    - name: Generate gauge bias data
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+      run: python make_gauge_bias.py
+
     - name: Commit metadata
       run: |
         git config --global user.name "Radar Automator"
         git config --global user.email "radar-bot@github.com"
-        git add accum_multi_meta.json
+        git add accum_multi_meta.json gauge_bias_meta.json
         git diff --cached --quiet && echo "No changes to commit" || (
-          git commit -m "Update accumulation meta $(date -u +'%Y-%m-%d %H:%M UTC')" &&
+          git commit -m "Update accumulation and bias meta $(date -u +'%Y-%m-%d %H:%M UTC')" &&
           git pull --rebase -X theirs origin main &&
           git push origin main
         )
