@@ -1,8 +1,6 @@
 name: Generate Multi-period Accumulation
 
 on:
-  schedule:
-    - cron: '10 * * * *'  # 10 past every hour
   workflow_dispatch:
 
 permissions:
