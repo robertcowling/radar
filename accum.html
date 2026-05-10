@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar Accumulation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  body { padding: 0; margin: 0; font-family: 'Roboto', sans-serif; background: #f8f9fa; color: #3c4043; }
+  #map { width: 100vw; height: 100vh; }
+
+  .surface {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+  }
+
+  /* ── Info panel ─────────────────────────────────────────────────────────── */
+  .info-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 22px 24px;
+    z-index: 1000;
+    width: 260px;
+  }
+
+  .info-panel h3 {
+    margin: 0 0 2px 0;
+    font-size: 17px;
+    font-weight: 500;
+    color: #202124;
+  }
+
+  #generatedAt {
+    font-size: 11px;
+    color: #80868b;
+    margin-bottom: 14px;
+  }
+
+  .time-box {
+    background: #f8f9fa;
+    border-left: 4px solid #1a73e8;
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 16px;
+  }
+
+  .time-box .period-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1a73e8;
+    margin-bottom: 5px;
+  }
+
+  .time-box .time-row {
+    font-size: 12px;
+    color: #3c4043;
+    line-height: 1.6;
+  }
+
+  /* Colour bar */
+  .cbar-label-top {
+    font-size: 13px;
+    color: #5f6368;
+    margin-bottom: 6px;
+  }
+
+  .cbar {
+    display: flex;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .cbar-block { flex: 1; }
+
+  .cbar-labels {
+    position: relative;
+    height: 14px;
+    margin-top: 3px;
+    font-size: 10px;
+    color: #5f6368;
+    font-weight: 500;
+  }
+
+  .cbar-label {
+    position: absolute;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  /* Opacity */
+  .opacity-control { margin-top: 14px; }
+  .opacity-control label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #5f6368;
+    margin-bottom: 5px;
+  }
+  .opacity-control input { width: 100%; accent-color: #1a73e8; cursor: pointer; }
+
+  /* Scheme toggle */
+  .scheme-row { display: flex; gap: 8px; margin-top: 14px; }
+  .scheme-btn {
+    flex: 1;
+    padding: 7px 0;
+    border-radius: 20px;
+    border: 1.5px solid #e8eaed;
+    background: transparent;
+    color: #5f6368;
+    font-size: 12px;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .scheme-btn.active { background: #1a73e8; border-color: #1a73e8; color: white; }
+  .scheme-btn:hover:not(.active) { background: #f1f3f4; }
+
+  /* ── Player panel ───────────────────────────────────────────────────────── */
+  .player-panel {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 14px 24px 10px;
+    z-index: 1000;
+    width: 95%;
+    max-width: 860px;
+  }
+
+  .period-label-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+  }
+
+  .period-label-row span {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: #80868b;
+    cursor: pointer;
+    transition: color 0.1s;
+    user-select: none;
+  }
+  .period-label-row span:first-child { text-align: left; }
+  .period-label-row span:last-child  { text-align: right; }
+  .period-label-row span.active { color: #1a73e8; font-weight: 700; }
+
+  /* Slider */
+  .timeline-container {
+    position: relative;
+    height: 38px;
+    display: flex;
+    align-items: center;
+  }
+
+  .timeline-track {
+    position: absolute;
+    left: 9px; right: 9px;
+    height: 6px;
+    background: #e8eaed;
+    border-radius: 3px;
+    pointer-events: none;
+  }
+
+  #periodSlider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    background: transparent;
+    position: relative;
+    z-index: 2;
+    cursor: pointer;
+  }
+  #periodSlider:focus { outline: none; }
+  #periodSlider::-webkit-slider-runnable-track {
+    height: 6px;
+    background: transparent;
+    border-radius: 3px;
+  }
+  #periodSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #1a73e8;
+    border: 2.5px solid white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    margin-top: -7px;
+    transition: transform 0.1s;
+  }
+  #periodSlider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+  /* No-data state */
+  #noData {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 12px;
+    padding: 24px 32px;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 2000;
+    display: none;
+  }
+  #noData p { margin: 0; color: #5f6368; font-size: 14px; }
+
+  /* Crisp image rendering */
+  .leaflet-image-layer { image-rendering: pixelated; }
+
+  @media (max-width: 640px) {
+    .info-panel { width: calc(100% - 30px); top: 10px; right: 15px; left: 15px; }
+    .player-panel { bottom: 8px; width: calc(100% - 20px); padding: 12px 16px 8px; }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="noData"><p>Accumulation data not yet available.<br>Run the workflow to generate images.</p></div>
+
+<!-- Info panel -->
+<div class="info-panel surface">
+  <h3>Accumulation</h3>
+  <div id="generatedAt">Loading...</div>
+
+  <div class="time-box">
+    <div class="period-name" id="periodName">—</div>
+    <div class="time-row" id="periodStart">—</div>
+    <div class="time-row" id="periodEnd">—</div>
+  </div>
+
+  <div class="cbar-label-top">Accumulation (mm)</div>
+  <div class="cbar" id="cbar"></div>
+  <div class="cbar-labels" id="cbarLabels"></div>
+
+  <div class="opacity-control">
+    <label>Opacity</label>
+    <input type="range" id="opacitySlider" min="0" max="100" value="85"
+           oninput="setOpacity(this.value)">
+  </div>
+
+  <div class="scheme-row">
+    <button class="scheme-btn active" data-scheme="norm" onclick="setScheme(this)">Normal</button>
+    <button class="scheme-btn"        data-scheme="high" onclick="setScheme(this)">High events</button>
+  </div>
+</div>
+
+<!-- Player panel -->
+<div class="player-panel surface">
+  <div class="period-label-row" id="periodLabelRow">
+    <span data-idx="0" onclick="setPeriod(0)">1hr</span>
+    <span data-idx="1" onclick="setPeriod(1)">3hr</span>
+    <span data-idx="2" onclick="setPeriod(2)">6hr</span>
+    <span data-idx="3" onclick="setPeriod(3)">12hr</span>
+    <span data-idx="4" onclick="setPeriod(4)">24hr</span>
+    <span data-idx="5" onclick="setPeriod(5)">48hr</span>
+  </div>
+  <div class="timeline-container">
+    <div class="timeline-track"></div>
+    <input type="range" id="periodSlider" min="0" max="5" step="1" value="3"
+           oninput="setPeriod(parseInt(this.value))">
+  </div>
+</div>
+
+<script>
+var PERIODS = ['1hr', '3hr', '6hr', '12hr', '24hr', '48hr'];
+
+var COLORS = ['#e0f3ff', '#81d4fa', '#03a9f4', '#01579b', '#2e7d32', '#fbc02d', '#ef6c00', '#c62828', '#6a1b9a'];
+
+var SCHEMES = {
+  norm: { bounds: [0.5, 1, 2, 5, 10, 20, 40, 80, 160] },
+  high: { bounds: [2, 5, 10, 25, 50, 100, 150, 200, 350] },
+};
+
+// Bounds match process_parallel.py / parallel feed domain
+var imgBounds = [[43.7009, -17.9739], [62.9207, 16.1291]];
+
+var map = L.map('map', { zoomControl: false }).setView([54.5, -3.5], 5);
+L.control.zoom({ position: 'topleft' }).addTo(map);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 20,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+}).addTo(map);
+
+var accumOverlay = L.imageOverlay('', imgBounds, { opacity: 0.85, interactive: false }).addTo(map);
+
+var meta = null;
+var currentIdx = 3;   // 12hr default
+var currentScheme = 'norm';
+
+// ── Colour bar ────────────────────────────────────────────────────────────────
+function buildCbar(scheme) {
+  var bounds = SCHEMES[scheme].bounds;
+  var cbar   = document.getElementById('cbar');
+  var labels = document.getElementById('cbarLabels');
+  cbar.innerHTML = '';
+  labels.innerHTML = '';
+
+  COLORS.forEach(function(c) {
+    var b = document.createElement('div');
+    b.className = 'cbar-block';
+    b.style.background = c;
+    cbar.appendChild(b);
+  });
+
+  // Label at the LEFT edge of each colour block (= the threshold that triggers it)
+  // n colours → n blocks, label i sits at pct = i/n * 100
+  var n = COLORS.length;
+  bounds.forEach(function(v, i) {
+    var pct = ((i + 1) / n * 100).toFixed(1);
+    var el = document.createElement('span');
+    el.className = 'cbar-label';
+    el.style.left = pct + '%';
+    el.textContent = v;
+    labels.appendChild(el);
+  });
+}
+
+// ── Display update ────────────────────────────────────────────────────────────
+function updateDisplay() {
+  if (!meta) return;
+  var period = PERIODS[currentIdx];
+  var pdata  = meta.periods && meta.periods[period];
+
+  if (!pdata || !pdata[currentScheme]) {
+    document.getElementById('noData').style.display = 'block';
+    return;
+  }
+  document.getElementById('noData').style.display = 'none';
+
+  accumOverlay.setUrl(pdata[currentScheme] + '?_=' + (meta.generated_at || ''));
+
+  document.getElementById('periodName').textContent = period + ' accumulation';
+  document.getElementById('periodStart').textContent = '▶ ' + (pdata.period_start || '—');
+  document.getElementById('periodEnd').textContent   = '■ ' + (pdata.period_end   || '—');
+
+  // Highlight active label
+  document.querySelectorAll('#periodLabelRow span').forEach(function(el) {
+    el.classList.toggle('active', +el.dataset.idx === currentIdx);
+  });
+
+  buildCbar(currentScheme);
+
+  if (meta.generated_at) {
+    var d   = new Date(meta.generated_at);
+    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+    document.getElementById('generatedAt').textContent =
+      'Updated ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' UTC';
+  }
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+function setPeriod(idx) {
+  currentIdx = idx;
+  document.getElementById('periodSlider').value = idx;
+  updateDisplay();
+}
+
+function setScheme(btn) {
+  document.querySelectorAll('.scheme-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  currentScheme = btn.dataset.scheme;
+  updateDisplay();
+}
+
+function setOpacity(val) {
+  accumOverlay.setOpacity(val / 100);
+}
+
+// ── Data loading ──────────────────────────────────────────────────────────────
+function loadMeta() {
+  fetch('accum_multi_meta.json?_=' + Date.now())
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(data) {
+      meta = data;
+      updateDisplay();
+    })
+    .catch(function() {
+      document.getElementById('noData').style.display = 'block';
+    });
+}
+
+loadMeta();
+setInterval(loadMeta, 5 * 60 * 1000);  // refresh meta every 5 min
+</script>
+</body>
+</html>
