@@ -591,11 +591,11 @@
             <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Radar Feed</p>
             <div style="margin-bottom: 24px;">
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="radarFeed" value="standard" checked onchange="onFeedChange('standard')">
+                    <input type="radio" name="radarFeed" value="standard" onchange="onFeedChange('standard')">
                     UK (standard)
                 </label>
                 <label class="custom-checkbox" style="margin-bottom: 0;">
-                    <input type="radio" name="radarFeed" value="parallel" onchange="onFeedChange('parallel')">
+                    <input type="radio" name="radarFeed" value="parallel" checked onchange="onFeedChange('parallel')">
                     Full domain
                 </label>
             </div>
@@ -684,7 +684,7 @@
         var playing = false;
         var playInterval;
         var playSpeed = 135; // default to new normal speed
-        var currentFeed = 'standard';
+        var currentFeed = 'parallel';
         var STANDARD_BOUNDS = [[49.0, -11.5], [61.5, 3.5]];
         var PARALLEL_BOUNDS = [[43.7009, -17.9739], [62.9207, 16.1291]];
 
@@ -698,7 +698,7 @@
         }).addTo(map);
 
         // Radar Overlay
-        var bounds = STANDARD_BOUNDS;
+        var bounds = PARALLEL_BOUNDS;
         // Satellite Overlay — 2× taller domain, same centre (-4.0°, 55.25°)
         var satBounds = [[37.75, -40.4], [67.5, 32.4]];
         var radarOverlay = L.imageOverlay('', bounds, {
