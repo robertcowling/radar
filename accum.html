@@ -41,6 +41,34 @@
     margin-bottom: 14px;
   }
 
+  /* Period dropdown */
+  .period-select-row { margin-bottom: 12px; }
+  .period-select-row label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #5f6368;
+    margin-bottom: 5px;
+  }
+  #periodSelect {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1.5px solid #e8eaed;
+    border-radius: 8px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #202124;
+    background: white;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235f6368' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  #periodSelect:focus { outline: none; border-color: #1a73e8; }
+
   .time-box {
     background: #f8f9fa;
     border-left: 4px solid #1a73e8;
@@ -128,31 +156,23 @@
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
-    padding: 14px 24px 10px;
+    padding: 12px 24px 10px;
     z-index: 1000;
     width: 95%;
     max-width: 860px;
   }
 
-  .period-label-row {
+  .time-label-row {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 2px;
+    justify-content: center;
+    margin-bottom: 4px;
   }
 
-  .period-label-row span {
-    flex: 1;
-    text-align: center;
-    font-size: 12px;
+  #timeLabel {
+    font-size: 13px;
     font-weight: 500;
-    color: #80868b;
-    cursor: pointer;
-    transition: color 0.1s;
-    user-select: none;
+    color: #3c4043;
   }
-  .period-label-row span:first-child { text-align: left; }
-  .period-label-row span:last-child  { text-align: right; }
-  .period-label-row span.active { color: #1a73e8; font-weight: 700; }
 
   /* Slider */
   .timeline-container {
@@ -171,7 +191,7 @@
     pointer-events: none;
   }
 
-  #periodSlider {
+  #timeSlider {
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
@@ -180,13 +200,13 @@
     z-index: 2;
     cursor: pointer;
   }
-  #periodSlider:focus { outline: none; }
-  #periodSlider::-webkit-slider-runnable-track {
+  #timeSlider:focus { outline: none; }
+  #timeSlider::-webkit-slider-runnable-track {
     height: 6px;
     background: transparent;
     border-radius: 3px;
   }
-  #periodSlider::-webkit-slider-thumb {
+  #timeSlider::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 20px; height: 20px;
     border-radius: 50%;
@@ -196,7 +216,7 @@
     margin-top: -7px;
     transition: transform 0.1s;
   }
-  #periodSlider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  #timeSlider::-webkit-slider-thumb:hover { transform: scale(1.15); }
 
   /* No-data state */
   #noData {
@@ -219,7 +239,7 @@
 
   @media (max-width: 640px) {
     .info-panel { width: calc(100% - 30px); top: 10px; right: 15px; left: 15px; }
-    .player-panel { bottom: 8px; width: calc(100% - 20px); padding: 12px 16px 8px; }
+    .player-panel { bottom: 8px; width: calc(100% - 20px); padding: 10px 16px 8px; }
   }
 </style>
 </head>
@@ -232,6 +252,18 @@
 <div class="info-panel surface">
   <h3>Accumulation</h3>
   <div id="generatedAt">Loading...</div>
+
+  <div class="period-select-row">
+    <label>Period</label>
+    <select id="periodSelect" onchange="setPeriod(this.value)">
+      <option value="1hr">1 hour</option>
+      <option value="3hr">3 hours</option>
+      <option value="6hr">6 hours</option>
+      <option value="12hr" selected>12 hours</option>
+      <option value="24hr">24 hours</option>
+      <option value="48hr">48 hours</option>
+    </select>
+  </div>
 
   <div class="time-box">
     <div class="period-name" id="periodName">—</div>
@@ -257,37 +289,28 @@
 
 <!-- Player panel -->
 <div class="player-panel surface">
-  <div class="period-label-row" id="periodLabelRow">
-    <span data-idx="0" onclick="setPeriod(0)">1hr</span>
-    <span data-idx="1" onclick="setPeriod(1)">3hr</span>
-    <span data-idx="2" onclick="setPeriod(2)">6hr</span>
-    <span data-idx="3" onclick="setPeriod(3)">12hr</span>
-    <span data-idx="4" onclick="setPeriod(4)">24hr</span>
-    <span data-idx="5" onclick="setPeriod(5)">48hr</span>
+  <div class="time-label-row">
+    <span id="timeLabel">—</span>
   </div>
   <div class="timeline-container">
     <div class="timeline-track"></div>
-    <input type="range" id="periodSlider" min="0" max="5" step="1" value="3"
-           oninput="setPeriod(parseInt(this.value))">
+    <input type="range" id="timeSlider" min="0" max="0" step="1" value="0"
+           oninput="setSnapshot(parseInt(this.value))">
   </div>
 </div>
 
 <script>
-var PERIODS = ['1hr', '3hr', '6hr', '12hr', '24hr', '48hr'];
-
-var COLORS = ['#e0f3ff', '#81d4fa', '#03a9f4', '#01579b', '#2e7d32', '#fbc02d', '#ef6c00', '#c62828', '#6a1b9a'];
+var COLORS = ['#e0f3ff','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'];
 
 var SCHEMES = {
-  norm: { bounds: [0.5, 1, 2, 5, 10, 20, 40, 80, 160] },
-  high: { bounds: [2, 5, 10, 25, 50, 100, 150, 200, 350] },
+  norm: { bounds: [0.5,1,2,5,10,20,40,80,160] },
+  high: { bounds: [2,5,10,25,50,100,150,200,350] },
 };
 
-// Bounds match process_parallel.py / parallel feed domain
-var imgBounds = [[43.7009, -17.9739], [62.9207, 16.1291]];
+var imgBounds = [[43.7009,-17.9739],[62.9207,16.1291]];
 
-var map = L.map('map', { zoomControl: false }).setView([54.5, -3.5], 5);
+var map = L.map('map', { zoomControl: false }).setView([54.5,-3.5], 5);
 L.control.zoom({ position: 'topleft' }).addTo(map);
-
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
   maxZoom: 20,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
@@ -295,9 +318,11 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 
 var accumOverlay = L.imageOverlay('', imgBounds, { opacity: 0.85, interactive: false }).addTo(map);
 
-var meta = null;
-var currentIdx = 3;   // 12hr default
-var currentScheme = 'norm';
+var snapshots       = [];
+var currentIdx      = 0;
+var currentPeriod   = '12hr';
+var currentScheme   = 'norm';
+var generatedAt     = '';
 
 // ── Colour bar ────────────────────────────────────────────────────────────────
 function buildCbar(scheme) {
@@ -314,8 +339,6 @@ function buildCbar(scheme) {
     cbar.appendChild(b);
   });
 
-  // Label at the LEFT edge of each colour block (= the threshold that triggers it)
-  // n colours → n blocks, label i sits at pct = i/n * 100
   var n = COLORS.length;
   bounds.forEach(function(v, i) {
     var pct = ((i + 1) / n * 100).toFixed(1);
@@ -329,9 +352,9 @@ function buildCbar(scheme) {
 
 // ── Display update ────────────────────────────────────────────────────────────
 function updateDisplay() {
-  if (!meta) return;
-  var period = PERIODS[currentIdx];
-  var pdata  = meta.periods && meta.periods[period];
+  if (!snapshots.length) return;
+  var snap  = snapshots[currentIdx];
+  var pdata = snap && snap[currentPeriod];
 
   if (!pdata || !pdata[currentScheme]) {
     document.getElementById('noData').style.display = 'block';
@@ -339,31 +362,24 @@ function updateDisplay() {
   }
   document.getElementById('noData').style.display = 'none';
 
-  accumOverlay.setUrl(pdata[currentScheme] + '?_=' + (meta.generated_at || ''));
+  accumOverlay.setUrl(pdata[currentScheme] + '?_=' + generatedAt);
 
-  document.getElementById('periodName').textContent = period + ' accumulation';
+  document.getElementById('timeLabel').textContent   = snap.time || '—';
+  document.getElementById('periodName').textContent  = currentPeriod + ' accumulation';
   document.getElementById('periodStart').textContent = '▶ ' + (pdata.period_start || '—');
   document.getElementById('periodEnd').textContent   = '■ ' + (pdata.period_end   || '—');
 
-  // Highlight active label
-  document.querySelectorAll('#periodLabelRow span').forEach(function(el) {
-    el.classList.toggle('active', +el.dataset.idx === currentIdx);
-  });
-
   buildCbar(currentScheme);
-
-  if (meta.generated_at) {
-    var d   = new Date(meta.generated_at);
-    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
-    document.getElementById('generatedAt').textContent =
-      'Updated ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' UTC';
-  }
 }
 
 // ── Controls ──────────────────────────────────────────────────────────────────
-function setPeriod(idx) {
+function setSnapshot(idx) {
   currentIdx = idx;
-  document.getElementById('periodSlider').value = idx;
+  updateDisplay();
+}
+
+function setPeriod(period) {
+  currentPeriod = period;
   updateDisplay();
 }
 
@@ -383,7 +399,30 @@ function loadMeta() {
   fetch('accum_multi_meta.json?_=' + Date.now())
     .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function(data) {
-      meta = data;
+      if (!data.snapshots || !data.snapshots.length) {
+        document.getElementById('noData').style.display = 'block';
+        return;
+      }
+
+      generatedAt = data.generated_at || '';
+
+      // Stay at the latest snapshot if user was already there (or first load)
+      var wasAtEnd = !snapshots.length || currentIdx >= snapshots.length - 1;
+      snapshots = data.snapshots;
+
+      var slider = document.getElementById('timeSlider');
+      slider.max = snapshots.length - 1;
+
+      currentIdx = wasAtEnd ? snapshots.length - 1 : Math.min(currentIdx, snapshots.length - 1);
+      slider.value = currentIdx;
+
+      if (data.generated_at) {
+        var d   = new Date(data.generated_at);
+        var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+        document.getElementById('generatedAt').textContent =
+          'Updated ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' UTC';
+      }
+
       updateDisplay();
     })
     .catch(function() {
@@ -392,7 +431,7 @@ function loadMeta() {
 }
 
 loadMeta();
-setInterval(loadMeta, 5 * 60 * 1000);  // refresh meta every 5 min
+setInterval(loadMeta, 5 * 60 * 1000);
 </script>
 </body>
 </html>

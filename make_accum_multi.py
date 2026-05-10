@@ -288,8 +288,17 @@ def frame_label(fk):
         return fk
 
 
+HIST_RETENTION = 192   # 48hr × 4 runs/hr
+
+
 def render_and_upload(r2, sums, all_frame_keys):
-    meta_periods = {}
+    snap_ts   = all_frame_keys[-1]
+    snap_time = frame_label(snap_ts)
+
+    existing_meta = json_from_r2(r2, "accum_multi_meta.json", default={})
+    snapshots = [s for s in existing_meta.get("snapshots", []) if s.get("ts") != snap_ts]
+
+    snap_entry = {"ts": snap_ts, "time": snap_time}
 
     for period, n_frames in PERIODS.items():
         target_keys  = all_frame_keys[-n_frames:]
@@ -297,34 +306,54 @@ def render_and_upload(r2, sums, all_frame_keys):
         period_end   = frame_label(target_keys[-1]) if target_keys else ""
         arr = sums[period]
 
-        period_meta = {"period_start": period_start, "period_end": period_end}
+        period_data = {"period_start": period_start, "period_end": period_end}
         for scheme_name, bounds in SCHEMES.items():
             indices = np.digitize(arr, bounds)
             indices[arr == 0] = 0
             img = Image.fromarray(ACCUM_COLORS[indices], "RGBA")
 
-            r2_key = f"accum_{period}_{scheme_name}.png"
             buf = io.BytesIO()
             img.save(buf, format="PNG")
-            buf.seek(0)
-            r2.put_object(Bucket=R2_BUCKET, Key=r2_key, Body=buf.read(),
-                          ContentType="image/png")
-            period_meta[scheme_name] = f"{R2_PUBLIC_URL}/{r2_key}"
-            print(f"  Uploaded {r2_key}  (max={arr.max():.1f}mm)")
+            png_bytes = buf.getvalue()
 
-        meta_periods[period] = period_meta
+            r2_key   = f"accum_{period}_{scheme_name}.png"
+            hist_key = f"accum_hist/{snap_ts}_{period}_{scheme_name}.png"
+            r2.put_object(Bucket=R2_BUCKET, Key=r2_key,   Body=png_bytes, ContentType="image/png")
+            r2.put_object(Bucket=R2_BUCKET, Key=hist_key, Body=png_bytes, ContentType="image/png")
+            period_data[scheme_name] = f"{R2_PUBLIC_URL}/{hist_key}"
+            print(f"  {r2_key}  max={arr.max():.1f}mm")
+
+        snap_entry[period] = period_data
+
+    snapshots.append(snap_entry)
+    snapshots = snapshots[-HIST_RETENTION:]
 
     meta = {
         "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:00.000Z"),
-        "periods": meta_periods,
+        "snapshots": snapshots,
     }
     with open("accum_multi_meta.json", "w") as f:
         json.dump(meta, f, indent=2)
     json_to_r2(r2, "accum_multi_meta.json", meta)
-    print(f"Meta written ({len(meta_periods)} periods, {len(SCHEMES)} schemes each)")
+    print(f"Meta written ({len(snapshots)} snapshots)")
+    return {s["ts"] for s in snapshots}
 
 
 # ── Cleanup ────────────────────────────────────────────────────────────────────
+def cleanup_old_hist(r2, keep_ts_set):
+    """Remove accum_hist/ PNGs whose timestamp is no longer in the snapshot list."""
+    deleted = 0
+    for page in r2.get_paginator("list_objects_v2").paginate(
+            Bucket=R2_BUCKET, Prefix="accum_hist/"):
+        for obj in page.get("Contents", []):
+            ts = os.path.basename(obj["Key"])[:12]
+            if ts not in keep_ts_set:
+                r2.delete_object(Bucket=R2_BUCKET, Key=obj["Key"])
+                deleted += 1
+    if deleted:
+        print(f"  Deleted {deleted} expired hist PNGs from R2")
+
+
 def cleanup_old_frames(r2, all_frame_keys):
     """Remove accum_frames/ NPZs for timestamps no longer in the 48hr window."""
     keep = set(all_frame_keys)
@@ -373,10 +402,11 @@ def main():
         sums[period] = update_period_sum(r2, period, n_frames, all_frame_keys, new_data)
 
     print("Rendering and uploading images...")
-    render_and_upload(r2, sums, all_frame_keys)
+    snap_ts_set = render_and_upload(r2, sums, all_frame_keys)
 
-    print("Cleaning up expired frame NPZs...")
+    print("Cleaning up...")
     cleanup_old_frames(r2, all_frame_keys)
+    cleanup_old_hist(r2, snap_ts_set)
 
     print("Done.")
 
