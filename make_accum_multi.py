@@ -34,9 +34,7 @@ PERIODS = {
 }
 
 # ── Colour schemes ─────────────────────────────────────────────────────────────
-# Shared RGBA ramp (transparent → pale blue → blue → dark blue → green →
-#                    amber → orange → red → purple)
-ACCUM_COLORS = np.array([
+_STANDARD_COLORS = np.array([
     [0,   0,   0,   0],
     [224, 243, 255, 255],
     [129, 212, 250, 255],
@@ -50,8 +48,33 @@ ACCUM_COLORS = np.array([
 ], dtype=np.uint8)
 
 SCHEMES = {
-    "norm": np.array([0.5,  1,   2,   5,  10,  20,  40,  80,  160]),
-    "high": np.array([2,    5,  10,  25,  50, 100, 150, 200,  350]),
+    "norm": {
+        "bounds": np.array([0.5,  1,   2,   5,  10,  20,  40,  80,  160]),
+        "colors": _STANDARD_COLORS,
+    },
+    "high": {
+        "bounds": np.array([2,    5,  10,  25,  50, 100, 150, 200,  350]),
+        "colors": _STANDARD_COLORS,
+    },
+    "met": {
+        "bounds": np.array([0.03, 1, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160, 180]),
+        "colors": np.array([
+            [0,   0,   0,   0],
+            [51,  153, 255, 255],
+            [0,   204,   0, 255],
+            [255, 255, 179, 255],
+            [255, 255,   0, 255],
+            [255, 160,  64, 255],
+            [255, 102,   0, 255],
+            [204,   0,   0, 255],
+            [128,  64,   0, 255],
+            [204, 153, 255, 255],
+            [255,   0, 255, 255],
+            [153, 153, 153, 255],
+            [255, 255, 255, 255],
+            [204, 170,   0, 255],
+        ], dtype=np.uint8),
+    },
 }
 
 # ── R2 ─────────────────────────────────────────────────────────────────────────
@@ -307,10 +330,10 @@ def render_and_upload(r2, sums, all_frame_keys):
         arr = sums[period]
 
         period_data = {"period_start": period_start, "period_end": period_end}
-        for scheme_name, bounds in SCHEMES.items():
-            indices = np.digitize(arr, bounds)
+        for scheme_name, scheme in SCHEMES.items():
+            indices = np.digitize(arr, scheme["bounds"])
             indices[arr == 0] = 0
-            img = Image.fromarray(ACCUM_COLORS[indices], "RGBA")
+            img = Image.fromarray(scheme["colors"][indices], "RGBA")
 
             buf = io.BytesIO()
             img.save(buf, format="PNG")
@@ -340,14 +363,15 @@ def render_and_upload(r2, sums, all_frame_keys):
 
 
 # ── Cleanup ────────────────────────────────────────────────────────────────────
-def cleanup_old_hist(r2, keep_ts_set):
-    """Remove accum_hist/ PNGs whose timestamp is no longer in the snapshot list."""
+def cleanup_old_hist(r2, retention_days=14):
+    """Remove accum_hist/ PNGs older than retention_days (matches R2 retention policy)."""
+    cutoff_str = (datetime.utcnow() - timedelta(days=retention_days)).strftime("%Y%m%d%H%M")
     deleted = 0
     for page in r2.get_paginator("list_objects_v2").paginate(
             Bucket=R2_BUCKET, Prefix="accum_hist/"):
         for obj in page.get("Contents", []):
             ts = os.path.basename(obj["Key"])[:12]
-            if ts not in keep_ts_set:
+            if ts.isdigit() and ts < cutoff_str:
                 r2.delete_object(Bucket=R2_BUCKET, Key=obj["Key"])
                 deleted += 1
     if deleted:
@@ -406,7 +430,7 @@ def main():
 
     print("Cleaning up...")
     cleanup_old_frames(r2, all_frame_keys)
-    cleanup_old_hist(r2, snap_ts_set)
+    cleanup_old_hist(r2)
 
     print("Done.")
 

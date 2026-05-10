@@ -284,6 +284,7 @@
   <div class="scheme-row">
     <button class="scheme-btn active" data-scheme="norm" onclick="setScheme(this)">Normal</button>
     <button class="scheme-btn"        data-scheme="high" onclick="setScheme(this)">High events</button>
+    <button class="scheme-btn"        data-scheme="met"  onclick="setScheme(this)">Alternative</button>
   </div>
 </div>
 
@@ -300,11 +301,15 @@
 </div>
 
 <script>
-var COLORS = ['#e0f3ff','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'];
+var _STD = ['#e0f3ff','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'];
 
 var SCHEMES = {
-  norm: { bounds: [0.5,1,2,5,10,20,40,80,160] },
-  high: { bounds: [2,5,10,25,50,100,150,200,350] },
+  norm: { bounds: [0.5,1,2,5,10,20,40,80,160],   colors: _STD },
+  high: { bounds: [2,5,10,25,50,100,150,200,350], colors: _STD },
+  met:  {
+    bounds: [0.03,1,5,10,20,40,60,80,100,120,140,160,180],
+    colors: ['#3399FF','#00CC00','#FFFFB3','#FFFF00','#FFA040','#FF6600','#CC0000','#804000','#CC99FF','#FF00FF','#999999','#FFFFFF','#CCAA00']
+  },
 };
 
 var imgBounds = [[43.7009,-17.9739],[62.9207,16.1291]];
@@ -326,21 +331,21 @@ var generatedAt     = '';
 
 // ── Colour bar ────────────────────────────────────────────────────────────────
 function buildCbar(scheme) {
-  var bounds = SCHEMES[scheme].bounds;
+  var s      = SCHEMES[scheme];
   var cbar   = document.getElementById('cbar');
   var labels = document.getElementById('cbarLabels');
   cbar.innerHTML = '';
   labels.innerHTML = '';
 
-  COLORS.forEach(function(c) {
+  s.colors.forEach(function(c) {
     var b = document.createElement('div');
     b.className = 'cbar-block';
     b.style.background = c;
     cbar.appendChild(b);
   });
 
-  var n = COLORS.length;
-  bounds.forEach(function(v, i) {
+  var n = s.colors.length;
+  s.bounds.forEach(function(v, i) {
     var pct = ((i + 1) / n * 100).toFixed(1);
     var el = document.createElement('span');
     el.className = 'cbar-label';
