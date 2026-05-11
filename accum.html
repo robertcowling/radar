@@ -648,7 +648,7 @@ function blendHex(a, b, t) {
 }
 
 function biasColor(diff, hours) {
-  var t = Math.max(-1, Math.min(1, diff / (hours * 2)));
+  var t = Math.max(-1, Math.min(1, diff / hours));
   return t >= 0 ? blendHex('#e2e8f0', '#ef4444', t) : blendHex('#e2e8f0', '#3b82f6', -t);
 }
 
@@ -711,7 +711,7 @@ function renderBiasMarkers() {
 function updateBiasSensNote() {
   var pi    = PERIODS_LIST.indexOf(currentPeriod);
   var hours = PERIOD_H[pi];
-  document.getElementById('biasSatMm').textContent = (hours * 2);
+  document.getElementById('biasSatMm').textContent = hours;
 }
 
 function setBiasVisible(checked) {
