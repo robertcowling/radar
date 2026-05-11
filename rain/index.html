@@ -523,6 +523,11 @@
         var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         var DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
+        // ── CDN rewrite ────────────────────────────────────────────────────────
+        var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
+        var R2_CDN  = 'https://radar.floodforecast.co.uk';
+        function cdnJson(r) { return r.text().then(function(t) { return JSON.parse(t.replaceAll(R2_BASE, R2_CDN)); }); }
+
         // ── State ──────────────────────────────────────────────────────────────
         var meta         = null;
         var stations     = {};
@@ -1507,7 +1512,7 @@
 
         // Load meta
         fetch('meta.json?_cb=' + Date.now())
-            .then(function(r) { return r.json(); })
+            .then(cdnJson)
             .then(function(data) {
                 meta = data;
                 if (!meta.latest_time) {
@@ -1520,7 +1525,7 @@
                 // Auto-poll every 5 min
                 setInterval(function() {
                     fetch('meta.json?_cb=' + Date.now())
-                        .then(function(r) { return r.json(); })
+                        .then(cdnJson)
                         .then(function(d) {
                             if (d.latest_time && d.latest_time !== meta.latest_time) {
                                 delete dayCache[fmtDateKey(new Date(d.latest_time.replace(/Z?$/, 'Z')))];

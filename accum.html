@@ -406,6 +406,10 @@
 </div>
 
 <script>
+var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
+var R2_CDN  = 'https://radar.floodforecast.co.uk';
+function cdnJson(r) { return r.text().then(function(t) { return JSON.parse(t.replaceAll(R2_BASE, R2_CDN)); }); }
+
 var _STD = ['#e0f3ff','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'];
 var SCHEMES = {
   norm: { bounds: [0.5,1,2,5,10,20,40,80,160],   colors: _STD },
@@ -623,7 +627,7 @@ function setBiasVisible(checked) {
 
 function loadBiasMeta() {
   fetch('gauge_bias_meta.json?_=' + Date.now())
-    .then(function(r) { return r.json(); })
+    .then(cdnJson)
     .then(function(data) { r2BaseUrl = (data.r2_base_url || '').replace(/\/$/, ''); })
     .catch(function() {});
 }
@@ -631,7 +635,7 @@ function loadBiasMeta() {
 // ── Data loading ──────────────────────────────────────────────────────────────
 function loadMeta() {
   fetch('accum_multi_meta.json?_=' + Date.now())
-    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return cdnJson(r); })
     .then(function(data) {
       if (!data.snapshots || !data.snapshots.length) {
         document.getElementById('noData').style.display = 'block';

@@ -199,6 +199,10 @@
     </div>
 
     <script>
+        var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
+        var R2_CDN  = 'https://radar.floodforecast.co.uk';
+        function cdnJson(r) { return r.text().then(function(t) { return JSON.parse(t.replaceAll(R2_BASE, R2_CDN)); }); }
+
         var bounds = [[49.0, -11.5], [61.5, 3.5]];
 
         var map = L.map('map', {
@@ -246,7 +250,7 @@
             fetch('../accum_24hr_meta.json?_cb=' + Date.now())
                 .then(function(r) {
                     if (!r.ok) throw new Error('HTTP ' + r.status);
-                    return r.json();
+                    return cdnJson(r);
                 })
                 .then(function(meta) {
                     if (!meta.url) {

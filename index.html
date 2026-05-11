@@ -678,6 +678,10 @@
     </div>
 
     <script>
+        var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
+        var R2_CDN  = 'https://radar.floodforecast.co.uk';
+        function cdnJson(r) { return r.text().then(function(t) { return JSON.parse(t.replaceAll(R2_BASE, R2_CDN)); }); }
+
         var allFrames = [];
         var frames = []; // will be sliced by duration filter
         var currentFrameIdx = 0;
@@ -857,7 +861,7 @@
 
         function fetchMslpMeta() {
             fetch('mslp_meta.json?_cb=' + Date.now())
-                .then(function(r) { return r.json(); })
+                .then(cdnJson)
                 .then(function(data) { parseMslpMeta(data); })
                 .catch(function(err) { console.log('MSLP meta not available:', err); });
         }
@@ -924,7 +928,7 @@
         function fetchFrames(isInitial) {
             const fileName = currentFeed === 'standard' ? 'frames.json' : 'frames_parallel.json';
             fetch(fileName + '?_cb=' + Date.now())
-                .then(r => r.json())
+                .then(cdnJson)
                 .then(data => {
                     if (!data || data.length === 0) {
                         if (isInitial) document.getElementById('progressText').innerText = "No data available.";
