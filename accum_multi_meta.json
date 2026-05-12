@@ -1,52 +1,6 @@
 {
-  "generated_at": "2026-05-12T21:09:00.000Z",
+  "generated_at": "2026-05-12T21:24:00.000Z",
   "snapshots": [
-    {
-      "ts": "202605102100",
-      "time": "Sun 10 May 2026 21:00 UTC",
-      "1hr": {
-        "period_start": "Sun 10 May 2026 20:15 UTC",
-        "period_end": "Sun 10 May 2026 21:00 UTC",
-        "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_1hr_norm.png",
-        "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_1hr_high.png",
-        "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_1hr_met.png"
-      },
-      "3hr": {
-        "period_start": "Sun 10 May 2026 18:15 UTC",
-        "period_end": "Sun 10 May 2026 21:00 UTC",
-        "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_3hr_norm.png",
-        "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_3hr_high.png",
-        "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_3hr_met.png"
-      },
-      "6hr": {
-        "period_start": "Sun 10 May 2026 15:15 UTC",
-        "period_end": "Sun 10 May 2026 21:00 UTC",
-        "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_6hr_norm.png",
-        "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_6hr_high.png",
-        "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_6hr_met.png"
-      },
-      "12hr": {
-        "period_start": "Sun 10 May 2026 09:15 UTC",
-        "period_end": "Sun 10 May 2026 21:00 UTC",
-        "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_12hr_norm.png",
-        "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_12hr_high.png",
-        "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_12hr_met.png"
-      },
-      "24hr": {
-        "period_start": "Sat 09 May 2026 21:15 UTC",
-        "period_end": "Sun 10 May 2026 21:00 UTC",
-        "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_24hr_norm.png",
-        "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_24hr_high.png",
-        "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_24hr_met.png"
-      },
-      "48hr": {
-        "period_start": "Fri 08 May 2026 21:15 UTC",
-        "period_end": "Sun 10 May 2026 21:00 UTC",
-        "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_48hr_norm.png",
-        "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_48hr_high.png",
-        "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605102100_48hr_met.png"
-      }
-    },
     {
       "ts": "202605102115",
       "time": "Sun 10 May 2026 21:15 UTC",
@@ -8831,6 +8785,52 @@
         "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122100_48hr_norm.png",
         "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122100_48hr_high.png",
         "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122100_48hr_met.png"
+      }
+    },
+    {
+      "ts": "202605122115",
+      "time": "Tue 12 May 2026 21:15 UTC",
+      "1hr": {
+        "period_start": "Tue 12 May 2026 20:30 UTC",
+        "period_end": "Tue 12 May 2026 21:15 UTC",
+        "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_1hr_norm.png",
+        "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_1hr_high.png",
+        "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_1hr_met.png"
+      },
+      "3hr": {
+        "period_start": "Tue 12 May 2026 18:30 UTC",
+        "period_end": "Tue 12 May 2026 21:15 UTC",
+        "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_3hr_norm.png",
+        "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_3hr_high.png",
+        "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_3hr_met.png"
+      },
+      "6hr": {
+        "period_start": "Tue 12 May 2026 15:30 UTC",
+        "period_end": "Tue 12 May 2026 21:15 UTC",
+        "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_6hr_norm.png",
+        "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_6hr_high.png",
+        "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_6hr_met.png"
+      },
+      "12hr": {
+        "period_start": "Tue 12 May 2026 09:30 UTC",
+        "period_end": "Tue 12 May 2026 21:15 UTC",
+        "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_12hr_norm.png",
+        "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_12hr_high.png",
+        "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_12hr_met.png"
+      },
+      "24hr": {
+        "period_start": "Mon 11 May 2026 21:30 UTC",
+        "period_end": "Tue 12 May 2026 21:15 UTC",
+        "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_24hr_norm.png",
+        "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_24hr_high.png",
+        "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_24hr_met.png"
+      },
+      "48hr": {
+        "period_start": "Sun 10 May 2026 21:30 UTC",
+        "period_end": "Tue 12 May 2026 21:15 UTC",
+        "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_48hr_norm.png",
+        "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_48hr_high.png",
+        "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/accum_hist/202605122115_48hr_met.png"
       }
     }
   ]
