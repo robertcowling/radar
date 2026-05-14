@@ -409,10 +409,6 @@
       <input type="radio" name="boundaryLayer" value="counties" onchange="onBoundaryChange('counties')">
       Counties
     </label>
-    <label class="custom-checkbox" style="margin-bottom:0;">
-      <input type="radio" name="boundaryLayer" value="catchments" onchange="onBoundaryChange('catchments')">
-      Catchments
-    </label>
 
     <p class="section-label" style="margin-top:16px;">Polygon averages</p>
     <label class="toggle-row">
@@ -615,28 +611,24 @@ function toggleInfo() {
 // ── Geography boundaries ──────────────────────────────────────────────────────
 var regionLayer    = null;
 var countiesLayer  = null;
-var catchmentsLayer = null;
 var currentBoundary = 'regions';
 
-var LAYER_NAME_KEY = { regions: 'rgn19nm', counties: 'name', catchments: 'name' };
+var LAYER_NAME_KEY = { regions: 'rgn19nm', counties: 'name' };
 
 var BOUNDARY_STYLES = {
-  regions:    { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
-  counties:   { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
-  catchments: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
+  regions:  { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
+  counties: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
 };
 
 function getLayerObj(name) {
-  if (name === 'regions')    return regionLayer;
-  if (name === 'counties')   return countiesLayer;
-  if (name === 'catchments') return catchmentsLayer;
+  if (name === 'regions')  return regionLayer;
+  if (name === 'counties') return countiesLayer;
   return null;
 }
 
 function setLayerObj(name, layer) {
-  if (name === 'regions')    regionLayer    = layer;
-  if (name === 'counties')   countiesLayer  = layer;
-  if (name === 'catchments') catchmentsLayer = layer;
+  if (name === 'regions')  regionLayer  = layer;
+  if (name === 'counties') countiesLayer = layer;
 }
 
 function loadBoundary(val) {
@@ -657,7 +649,7 @@ function loadBoundary(val) {
 
 function onBoundaryChange(val) {
   clearPolyChoropleth();
-  ['regions','counties','catchments'].forEach(function(n) {
+  ['regions','counties'].forEach(function(n) {
     var l = getLayerObj(n);
     if (l && map.hasLayer(l)) map.removeLayer(l);
   });
@@ -730,7 +722,7 @@ function renderPolyChoropleth() {
 }
 
 function clearPolyChoropleth() {
-  ['regions','counties','catchments'].forEach(function(n) {
+  ['regions','counties'].forEach(function(n) {
     var l = getLayerObj(n);
     if (l) l.setStyle({ fillOpacity: 0 });
     if (l) l.eachLayer(function(f) { f.unbindTooltip(); });

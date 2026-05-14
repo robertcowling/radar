@@ -34,7 +34,7 @@ def main():
                 continue
             filename = os.path.basename(key)
             dest = filename
-            print(f'Downloading {key} → {dest} ...')
+            print(f'Downloading {key} -> {dest} ...')
             r2.download_file(R2_BUCKET, key, dest)
             size = os.path.getsize(dest)
             print(f'  Saved {size:,} bytes')
