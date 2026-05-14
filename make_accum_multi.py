@@ -245,7 +245,7 @@ def _build_pixel_masks(geojson_path, name_key, ll_to_merc, xmin, xmax, ymin_m, y
         if not name:
             continue
         geom = feat["geometry"]
-        img  = Image.new("1", (WIDTH, HEIGHT), 0)
+        img  = Image.new("L", (WIDTH, HEIGHT), 0)
         draw = ImageDraw.Draw(img)
 
         gtype = geom["type"]
@@ -259,7 +259,7 @@ def _build_pixel_masks(geojson_path, name_key, ll_to_merc, xmin, xmax, ymin_m, y
         for ring in rings:
             pts = _ring_to_pixels(ring, ll_to_merc, xmin, xmax, ymin_m, ymax_m)
             if len(pts) >= 3:
-                draw.polygon(pts, fill=1)
+                draw.polygon(pts, fill=255)
 
         arr = np.frombuffer(img.tobytes(), dtype=np.uint8).reshape(HEIGHT, WIDTH)
         rows, cols = np.where(arr > 0)
