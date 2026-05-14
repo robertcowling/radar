@@ -20,7 +20,7 @@ WIDTH,   HEIGHT  =  1725,    2175
 # ── Source ─────────────────────────────────────────────────────────────────────
 BUCKET       = "met-office-radar-obs-data"
 H5_DIR       = "data_h5"
-FRAMES_48H   = 192       # 48hr × 4 frames/hr
+FRAMES_MAX   = 480       # 5d × 96 frames/day
 INTERVAL_HRS = 0.25      # 15 min → hours; multiply rain rate by this for mm/frame
 
 # ── Periods ────────────────────────────────────────────────────────────────────
@@ -31,6 +31,7 @@ PERIODS = {
     "12hr":  48,
     "24hr":  96,
     "48hr":  192,
+    "5d":    480,
 }
 
 # ── Colour schemes ─────────────────────────────────────────────────────────────
@@ -115,14 +116,14 @@ def list_s3_keys_for_date(s3, date):
     return keys
 
 
-def collect_48h_keys(s3):
+def collect_max_keys(s3):
     keys, date = [], datetime.utcnow()
-    for _ in range(5):
+    for _ in range(7):
         keys.extend(list_s3_keys_for_date(s3, date))
         date -= timedelta(days=1)
-        if len(keys) >= FRAMES_48H * 2:
+        if len(keys) >= FRAMES_MAX * 2:
             break
-    return sorted(keys)[-FRAMES_48H:]
+    return sorted(keys)[-FRAMES_MAX:]
 
 
 # ── Coordinate mapping (built once, reused across all frames) ──────────────────
@@ -402,8 +403,8 @@ def main():
     s3 = boto3.client("s3", region_name="eu-west-2", config=Config(signature_version=UNSIGNED))
     r2 = get_r2()
 
-    print("Collecting S3 keys (48hr window)...")
-    s3_keys = collect_48h_keys(s3)
+    print("Collecting S3 keys (5-day window)...")
+    s3_keys = collect_max_keys(s3)
     if not s3_keys:
         print("No S3 keys found — aborting.")
         sys.exit(1)
