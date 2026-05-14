@@ -186,6 +186,15 @@
   /* Region boundary drop-shadow so lines read on dark tiles */
   .region-boundary { filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.75)); }
 
+  /* Polygon average tooltip */
+  .poly-tooltip {
+    background: white; border: none; border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    font-family: 'Roboto', sans-serif; font-size: 12px; font-weight: 500;
+    padding: 5px 10px; white-space: nowrap; color: #202124;
+  }
+  .poly-tooltip::before { display: none; }
+
   /* Bias swatch legend */
   .bias-legend {
     display: flex; align-items: center; gap: 6px;
@@ -396,10 +405,23 @@
       <input type="radio" name="boundaryLayer" value="regions" checked onchange="onBoundaryChange('regions')">
       UK Regions
     </label>
-    <label class="custom-checkbox" style="margin-bottom:0;">
+    <label class="custom-checkbox">
       <input type="radio" name="boundaryLayer" value="counties" onchange="onBoundaryChange('counties')">
       Counties
     </label>
+    <label class="custom-checkbox" style="margin-bottom:0;">
+      <input type="radio" name="boundaryLayer" value="catchments" onchange="onBoundaryChange('catchments')">
+      Catchments
+    </label>
+
+    <p class="section-label" style="margin-top:16px;">Polygon averages</p>
+    <label class="toggle-row">
+      <input type="checkbox" id="polyToggle" onchange="setPolyVisible(this.checked)">
+      <span>Fill by mean accumulation</span>
+    </label>
+    <p id="polyNote" style="font-size:10px;color:#94a3b8;margin:4px 0 0;display:none;">
+      Fill colour = polygon mean mm.<br>Select a boundary layer to enable.
+    </p>
 
     <p class="section-label" style="margin-top:16px;">Gauge bias</p>
     <label class="toggle-row">
@@ -550,17 +572,20 @@ function setSnapshot(idx) {
   currentIdx = idx;
   updateDisplay();
   if (biasVisible) renderBiasMarkers();
+  if (polyVisible) renderPolyChoropleth();
 }
 
 function setPeriod(period) {
   currentPeriod = period;
   updateDisplay();
   if (biasVisible) { updateBiasSensNote(); renderBiasMarkers(); }
+  if (polyVisible) renderPolyChoropleth();
 }
 
 function setScheme(scheme) {
   currentScheme = scheme;
   updateDisplay();
+  if (polyVisible) renderPolyChoropleth();
 }
 
 function setOpacity(val) {
@@ -588,48 +613,135 @@ function toggleInfo() {
 }
 
 // ── Geography boundaries ──────────────────────────────────────────────────────
-var regionLayer   = null;
-var countiesLayer = null;
+var regionLayer    = null;
+var countiesLayer  = null;
+var catchmentsLayer = null;
+var currentBoundary = 'regions';
+
+var LAYER_NAME_KEY = { regions: 'rgn19nm', counties: 'name', catchments: 'name' };
+
+var BOUNDARY_STYLES = {
+  regions:    { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
+  counties:   { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
+  catchments: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
+};
+
+function getLayerObj(name) {
+  if (name === 'regions')    return regionLayer;
+  if (name === 'counties')   return countiesLayer;
+  if (name === 'catchments') return catchmentsLayer;
+  return null;
+}
+
+function setLayerObj(name, layer) {
+  if (name === 'regions')    regionLayer    = layer;
+  if (name === 'counties')   countiesLayer  = layer;
+  if (name === 'catchments') catchmentsLayer = layer;
+}
 
 function loadBoundary(val) {
-  if (val === 'regions' && !regionLayer) {
-    fetch('uk_regions.geojson')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        regionLayer = L.geoJSON(data, {
-          style: { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' }
-        });
-        if (document.querySelector('input[name="boundaryLayer"]:checked').value === 'regions') {
-          regionLayer.addTo(map);
-        }
-      })
-      .catch(function(e) { console.log('Could not load regions:', e); });
-  } else if (val === 'counties' && !countiesLayer) {
-    fetch('uk-counties.geojson')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        countiesLayer = L.geoJSON(data, {
-          style: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' }
-        });
-        if (document.querySelector('input[name="boundaryLayer"]:checked').value === 'counties') {
-          countiesLayer.addTo(map);
-        }
-      })
-      .catch(function(e) { console.log('Could not load counties:', e); });
-  }
+  var files = { regions: 'uk_regions.geojson', counties: 'uk-counties.geojson', catchments: 'uk_catchments.geojson' };
+  if (!files[val] || getLayerObj(val)) return;
+  fetch(files[val])
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var layer = L.geoJSON(data, { style: BOUNDARY_STYLES[val] });
+      setLayerObj(val, layer);
+      if (document.querySelector('input[name="boundaryLayer"]:checked').value === val) {
+        layer.addTo(map);
+        if (polyVisible) renderPolyChoropleth();
+      }
+    })
+    .catch(function(e) { console.log('Could not load ' + val + ':', e); });
 }
 
 function onBoundaryChange(val) {
-  if (regionLayer   && map.hasLayer(regionLayer))   map.removeLayer(regionLayer);
-  if (countiesLayer && map.hasLayer(countiesLayer)) map.removeLayer(countiesLayer);
-
-  if (val === 'regions') {
-    if (regionLayer) regionLayer.addTo(map);
-    else loadBoundary('regions');
-  } else if (val === 'counties') {
-    if (countiesLayer) countiesLayer.addTo(map);
-    else loadBoundary('counties');
+  clearPolyChoropleth();
+  ['regions','counties','catchments'].forEach(function(n) {
+    var l = getLayerObj(n);
+    if (l && map.hasLayer(l)) map.removeLayer(l);
+  });
+  currentBoundary = val;
+  if (val !== 'none') {
+    var l = getLayerObj(val);
+    if (l) { l.addTo(map); if (polyVisible) renderPolyChoropleth(); }
+    else loadBoundary(val);
   }
+  // Grey out poly toggle when no boundary selected
+  document.getElementById('polyToggle').disabled = (val === 'none');
+}
+
+// ── Polygon choropleth ────────────────────────────────────────────────────────
+var polyVisible = false;
+var polyCache   = {};
+
+function mmToFillColor(mm, scheme) {
+  if (mm === null || mm === undefined) return 'transparent';
+  var s = SCHEMES[scheme];
+  if (mm < s.bounds[0]) return 'transparent';
+  // Walk bounds from highest down; return the color for the highest threshold met
+  for (var i = s.bounds.length - 1; i >= 0; i--) {
+    if (mm >= s.bounds[i]) return s.colors[i];
+  }
+  return 'transparent';
+}
+
+function loadPolySnapshot(ts, cb) {
+  if (polyCache[ts]) { cb(polyCache[ts]); return; }
+  fetch(R2_CDN + '/accum_poly/' + ts + '.json')
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(data) { polyCache[ts] = data; cb(data); })
+    .catch(function() { cb(null); });
+}
+
+function renderPolyChoropleth() {
+  if (!polyVisible || currentBoundary === 'none' || !snapshots.length) return;
+  var layer = getLayerObj(currentBoundary);
+  if (!layer) return;
+  var snap = snapshots[currentIdx];
+  if (!snap) return;
+  var nameKey = LAYER_NAME_KEY[currentBoundary];
+
+  loadPolySnapshot(snap.ts, function(polySnap) {
+    if (!polySnap || !polySnap[currentBoundary] || !polySnap[currentBoundary][currentPeriod]) {
+      return;
+    }
+    var vals = polySnap[currentBoundary][currentPeriod];
+    layer.setStyle(function(feature) {
+      var name = feature.properties[nameKey];
+      var mm   = vals[name];
+      return {
+        fillColor:   mmToFillColor(mm, currentScheme),
+        fillOpacity: (mm !== null && mm !== undefined) ? 0.55 : 0,
+        color: '#5f6368',
+        weight: BOUNDARY_STYLES[currentBoundary].weight,
+        className: 'region-boundary',
+      };
+    });
+    layer.eachLayer(function(l) {
+      var name = l.feature && l.feature.properties[nameKey];
+      var mm   = name !== undefined ? vals[name] : null;
+      var label = mm !== null && mm !== undefined
+        ? name + ': ' + mm.toFixed(1) + ' mm'
+        : name;
+      l.bindTooltip(label, { sticky: true, className: 'poly-tooltip' });
+    });
+  });
+}
+
+function clearPolyChoropleth() {
+  ['regions','counties','catchments'].forEach(function(n) {
+    var l = getLayerObj(n);
+    if (l) l.setStyle({ fillOpacity: 0 });
+    if (l) l.eachLayer(function(f) { f.unbindTooltip(); });
+  });
+}
+
+function setPolyVisible(checked) {
+  polyVisible = checked;
+  document.getElementById('polyNote').style.display = checked ? 'block' : 'none';
+  if (checked) renderPolyChoropleth();
+  else clearPolyChoropleth();
 }
 
 // ── Gauge bias ────────────────────────────────────────────────────────────────

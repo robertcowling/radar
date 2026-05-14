@@ -9,7 +9,7 @@ import h5py
 import numpy as np
 from botocore import UNSIGNED
 from botocore.client import Config
-from PIL import Image
+from PIL import Image, ImageDraw
 from pyproj import Transformer
 
 # ── Output domain (matches process_parallel.py / parallel feed viewer) ─────────
@@ -22,6 +22,14 @@ BUCKET       = "met-office-radar-obs-data"
 H5_DIR       = "data_h5"
 FRAMES_MAX   = 480       # 5d × 96 frames/day
 INTERVAL_HRS = 0.25      # 15 min → hours; multiply rain rate by this for mm/frame
+
+# ── Geography layers for polygon-average overlays ──────────────────────────────
+# (geojson_filename, property_key_for_name)
+GEOJSON_LAYERS = {
+    "regions":    ("uk_regions.geojson",    "rgn19nm"),
+    "counties":   ("uk-counties.geojson",   "name"),
+    "catchments": ("uk_catchments.geojson", "name"),   # name key confirmed after fetch_geo_assets.py
+}
 
 # ── Periods ────────────────────────────────────────────────────────────────────
 PERIODS = {
@@ -205,6 +213,133 @@ def json_to_r2(r2, key, data):
                   ContentType="application/json; charset=utf-8")
 
 
+# ── Polygon mask helpers ───────────────────────────────────────────────────────
+def _build_merc_axes():
+    """Return (ll_to_merc, xmin, xmax, ymin_m, ymax_m, merc_xs, merc_ys)."""
+    ll_to_merc = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
+    xmin, ymin_m = ll_to_merc.transform(LON_MIN, LAT_MIN)
+    xmax, ymax_m = ll_to_merc.transform(LON_MAX, LAT_MAX)
+    return ll_to_merc, xmin, xmax, ymin_m, ymax_m
+
+
+def _ring_to_pixels(ring, ll_to_merc, xmin, xmax, ymin_m, ymax_m):
+    """Convert [[lon,lat],...] ring to [(col,row),...] pixel coords."""
+    pts = []
+    for lon, lat in ring:
+        mx, my = ll_to_merc.transform(lon, lat)
+        col = (mx - xmin) / (xmax - xmin) * (WIDTH - 1)
+        row = (ymax_m - my) / (ymax_m - ymin_m) * (HEIGHT - 1)
+        pts.append((col, row))
+    return pts
+
+
+def _build_pixel_masks(geojson_path, name_key, ll_to_merc, xmin, xmax, ymin_m, ymax_m):
+    """Rasterise every feature in a GeoJSON into pixel index arrays.
+    Returns {name: (rows_uint16, cols_uint16)}."""
+    with open(geojson_path) as f:
+        gj = json.load(f)
+
+    masks = {}
+    for feat in gj.get("features", []):
+        name = feat["properties"].get(name_key, "")
+        if not name:
+            continue
+        geom = feat["geometry"]
+        img  = Image.new("1", (WIDTH, HEIGHT), 0)
+        draw = ImageDraw.Draw(img)
+
+        gtype = geom["type"]
+        if gtype == "Polygon":
+            rings = geom["coordinates"]
+        elif gtype == "MultiPolygon":
+            rings = [r for poly in geom["coordinates"] for r in poly]
+        else:
+            continue
+
+        for ring in rings:
+            pts = _ring_to_pixels(ring, ll_to_merc, xmin, xmax, ymin_m, ymax_m)
+            if len(pts) >= 3:
+                draw.polygon(pts, fill=1)
+
+        arr = np.frombuffer(img.tobytes(), dtype=np.uint8).reshape(HEIGHT, WIDTH)
+        rows, cols = np.where(arr > 0)
+        if len(rows):
+            masks[name] = (rows.astype(np.uint16), cols.astype(np.uint16))
+
+    return masks
+
+
+def _masks_to_npz_bytes(masks, names):
+    """Pack masks dict into a compressed NPZ bytes object."""
+    all_rows = np.concatenate([masks[n][0] for n in names]).astype(np.uint16)
+    all_cols = np.concatenate([masks[n][1] for n in names]).astype(np.uint16)
+    counts   = np.array([len(masks[n][0]) for n in names], dtype=np.int32)
+    offsets  = np.concatenate([[0], np.cumsum(counts[:-1])]).astype(np.int32)
+    buf = io.BytesIO()
+    np.savez_compressed(buf, rows=all_rows, cols=all_cols, counts=counts, offsets=offsets)
+    return buf.getvalue()
+
+
+def _npz_bytes_to_masks(npz_bytes, names):
+    """Unpack NPZ bytes + names list back to {name: (rows, cols)}."""
+    data    = np.load(io.BytesIO(npz_bytes))
+    rows_all, cols_all = data["rows"], data["cols"]
+    counts, offsets    = data["counts"], data["offsets"]
+    masks = {}
+    for i, name in enumerate(names):
+        s = int(offsets[i])
+        e = s + int(counts[i])
+        masks[name] = (rows_all[s:e], cols_all[s:e])
+    return masks
+
+
+def load_or_build_masks(r2, layer_name, geojson_path, name_key):
+    """Load cached pixel masks from R2, or build and upload them if missing."""
+    npz_key   = f"accum_masks/{layer_name}.npz"
+    names_key = f"accum_masks/{layer_name}_names.json"
+
+    names_data = json_from_r2(r2, names_key)
+    if names_data is not None:
+        try:
+            obj      = r2.get_object(Bucket=R2_BUCKET, Key=npz_key)
+            npz_bytes = obj["Body"].read()
+            print(f"  [{layer_name}] loaded masks from R2 ({len(names_data)} polygons)")
+            return _npz_bytes_to_masks(npz_bytes, names_data)
+        except Exception:
+            pass
+
+    print(f"  [{layer_name}] building pixel masks from {geojson_path}...")
+    ll_to_merc, xmin, xmax, ymin_m, ymax_m = _build_merc_axes()
+    masks = _build_pixel_masks(geojson_path, name_key, ll_to_merc, xmin, xmax, ymin_m, ymax_m)
+    names = list(masks.keys())
+    print(f"  [{layer_name}] {len(names)} polygons rasterised")
+
+    npz_bytes = _masks_to_npz_bytes(masks, names)
+    r2.put_object(Bucket=R2_BUCKET, Key=npz_key, Body=npz_bytes,
+                  ContentType="application/octet-stream")
+    json_to_r2(r2, names_key, names)
+    print(f"  [{layer_name}] masks uploaded to R2")
+    return masks
+
+
+def compute_poly_averages(sums, masks):
+    """Return {period: {name: mean_mm}} for all periods and polygons."""
+    result = {}
+    for period, arr in sums.items():
+        period_data = {}
+        for name, (rows, cols) in masks.items():
+            if len(rows) == 0:
+                period_data[name] = None
+            else:
+                period_data[name] = round(float(arr[rows, cols].mean()), 2)
+        result[period] = period_data
+    return result
+
+
+def upload_poly_snapshot(r2, ts, poly_snap):
+    json_to_r2(r2, f"accum_poly/{ts}.json", poly_snap)
+
+
 # ── Frame NPZ cache ────────────────────────────────────────────────────────────
 def list_frame_keys_in_r2(r2):
     """Return set of 12-char frame keys ('YYYYMMDDHHMM') present in accum_frames/."""
@@ -365,18 +500,19 @@ def render_and_upload(r2, sums, all_frame_keys):
 
 # ── Cleanup ────────────────────────────────────────────────────────────────────
 def cleanup_old_hist(r2, retention_days=14):
-    """Remove accum_hist/ PNGs older than retention_days (matches R2 retention policy)."""
+    """Remove accum_hist/ PNGs and accum_poly/ JSONs older than retention_days."""
     cutoff_str = (datetime.utcnow() - timedelta(days=retention_days)).strftime("%Y%m%d%H%M")
     deleted = 0
-    for page in r2.get_paginator("list_objects_v2").paginate(
-            Bucket=R2_BUCKET, Prefix="accum_hist/"):
-        for obj in page.get("Contents", []):
-            ts = os.path.basename(obj["Key"])[:12]
-            if ts.isdigit() and ts < cutoff_str:
-                r2.delete_object(Bucket=R2_BUCKET, Key=obj["Key"])
-                deleted += 1
+    for prefix in ("accum_hist/", "accum_poly/"):
+        for page in r2.get_paginator("list_objects_v2").paginate(
+                Bucket=R2_BUCKET, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                ts = os.path.basename(obj["Key"])[:12]
+                if ts.isdigit() and ts < cutoff_str:
+                    r2.delete_object(Bucket=R2_BUCKET, Key=obj["Key"])
+                    deleted += 1
     if deleted:
-        print(f"  Deleted {deleted} expired hist PNGs from R2")
+        print(f"  Deleted {deleted} expired objects from R2")
 
 
 def cleanup_old_frames(r2, all_frame_keys):
@@ -428,6 +564,18 @@ def main():
 
     print("Rendering and uploading images...")
     snap_ts_set = render_and_upload(r2, sums, all_frame_keys)
+
+    print("Computing polygon averages...")
+    snap_ts = all_frame_keys[-1]
+    poly_snap = {"ts": snap_ts}
+    for layer_name, (geojson_path, name_key) in GEOJSON_LAYERS.items():
+        if not os.path.exists(geojson_path):
+            print(f"  [{layer_name}] {geojson_path} not found — skipping")
+            continue
+        masks = load_or_build_masks(r2, layer_name, geojson_path, name_key)
+        poly_snap[layer_name] = compute_poly_averages(sums, masks)
+    upload_poly_snapshot(r2, snap_ts, poly_snap)
+    print(f"  Polygon snapshot uploaded: accum_poly/{snap_ts}.json")
 
     print("Cleaning up...")
     cleanup_old_frames(r2, all_frame_keys)
