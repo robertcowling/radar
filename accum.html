@@ -409,13 +409,17 @@
       <input type="radio" name="boundaryLayer" value="counties" onchange="onBoundaryChange('counties')">
       Counties
     </label>
-    <label class="custom-checkbox" style="margin-bottom:8px;">
+    <label class="custom-checkbox">
       <input type="radio" name="boundaryLayer" value="catchments" onchange="onBoundaryChange('catchments')">
       Catchments
     </label>
+    <label class="custom-checkbox" style="margin-bottom:8px;">
+      <input type="radio" name="boundaryLayer" value="grid" onchange="onBoundaryChange('grid')">
+      Grid (20km)
+    </label>
     <label class="toggle-row" id="polyToggleRow">
       <input type="checkbox" id="polyToggle" onchange="setPolyVisible(this.checked)">
-      <span>Fill by average mm</span>
+      <span>Show catchment average</span>
     </label>
 
     <p class="section-label" style="margin-top:16px;">Gauge bias</p>
@@ -612,20 +616,23 @@ function toggleInfo() {
 var regionLayer     = null;
 var countiesLayer   = null;
 var catchmentsLayer = null;
+var gridLayer       = null;
 var currentBoundary = 'regions';
 
-var LAYER_NAME_KEY = { regions: 'rgn19nm', counties: 'name', catchments: 'HA_NAME' };
+var LAYER_NAME_KEY = { regions: 'rgn19nm', counties: 'name', catchments: 'HA_NAME', grid: 'name' };
 
 var BOUNDARY_STYLES = {
   regions:    { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
   counties:   { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
   catchments: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
+  grid:       { color: '#5f6368', weight: 0.7, fillOpacity: 0, className: 'region-boundary' },
 };
 
 function getLayerObj(name) {
   if (name === 'regions')    return regionLayer;
   if (name === 'counties')   return countiesLayer;
   if (name === 'catchments') return catchmentsLayer;
+  if (name === 'grid')       return gridLayer;
   return null;
 }
 
@@ -633,10 +640,11 @@ function setLayerObj(name, layer) {
   if (name === 'regions')    regionLayer     = layer;
   if (name === 'counties')   countiesLayer   = layer;
   if (name === 'catchments') catchmentsLayer = layer;
+  if (name === 'grid')       gridLayer       = layer;
 }
 
 function loadBoundary(val) {
-  var files = { regions: 'uk_regions.geojson', counties: 'uk-counties.geojson', catchments: 'uk_catchments.geojson' };
+  var files = { regions: 'uk_regions.geojson', counties: 'uk-counties.geojson', catchments: 'uk_catchments.geojson', grid: 'uk_grid_20km.geojson' };
   if (!files[val] || getLayerObj(val)) return;
   fetch(files[val])
     .then(function(r) { return r.json(); })
@@ -653,7 +661,7 @@ function loadBoundary(val) {
 
 function onBoundaryChange(val) {
   clearPolyChoropleth();
-  ['regions','counties','catchments'].forEach(function(n) {
+  ['regions','counties','catchments','grid'].forEach(function(n) {
     var l = getLayerObj(n);
     if (l && map.hasLayer(l)) map.removeLayer(l);
   });
@@ -729,7 +737,7 @@ function renderPolyChoropleth() {
 }
 
 function clearPolyChoropleth() {
-  ['regions','counties','catchments'].forEach(function(n) {
+  ['regions','counties','catchments','grid'].forEach(function(n) {
     var l = getLayerObj(n);
     if (l) l.setStyle({ fillOpacity: 0 });
     if (l) l.eachLayer(function(f) { f.unbindTooltip(); });
@@ -799,14 +807,14 @@ function renderBiasMarkers() {
       if (!st) return;
       var vals = biasSnap.stations[sid];
       var g = vals[pi * 2], r = vals[pi * 2 + 1];
-      if (g === null || r === null) return;
+      if (g == null || r == null) return;
       var marker = L.circleMarker([st.lat, st.lon], {
         radius: 6, fillColor: biasColor(g - r, hours),
         color: '#fff', weight: 1.5, fillOpacity: 0.9
       });
       var rows = PERIODS_LIST.map(function(p, i) {
         var gv = vals[i*2], rv = vals[i*2+1];
-        if (gv === null || rv === null) return '<tr><td>' + p + '</td><td colspan="3" style="color:#94a3b8">—</td></tr>';
+        if (gv == null || rv == null) return '<tr><td>' + p + '</td><td colspan="3" style="color:#94a3b8">—</td></tr>';
         var dv = (gv - rv).toFixed(1);
         return '<tr><td>' + p + '</td><td>' + gv.toFixed(1) + '</td><td>' + rv.toFixed(1) + '</td>' +
           '<td style="color:' + (parseFloat(dv) >= 0 ? '#ef4444' : '#3b82f6') + ';font-weight:600;">' +

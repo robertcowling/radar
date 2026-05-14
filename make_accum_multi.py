@@ -29,6 +29,7 @@ GEOJSON_LAYERS = {
     "regions":    ("uk_regions.geojson",    "rgn19nm"),
     "counties":   ("uk-counties.geojson",   "name"),
     "catchments": ("uk_catchments.geojson", "HA_NAME"),
+    "grid":       ("uk_grid_20km.geojson",  "name"),
 }
 
 # ── Periods ────────────────────────────────────────────────────────────────────
