@@ -589,7 +589,7 @@ function setScheme(scheme) {
 }
 
 function setOpacity(val) {
-  accumOverlay.setOpacity(val / 100);
+  if (!polyVisible) accumOverlay.setOpacity(val / 100);
   document.getElementById('opacityLabel').textContent = val + '%';
 }
 
