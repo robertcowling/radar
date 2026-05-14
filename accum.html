@@ -627,6 +627,7 @@ var BOUNDARY_STYLES = {
   catchments: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
   grid:       { color: '#5f6368', weight: 0.7, fillOpacity: 0, className: 'region-boundary' },
 };
+var CATCHMENTS_GHOST = { color: '#1a73e8', weight: 1.2, fillOpacity: 0, opacity: 0.35 };
 
 function getLayerObj(name) {
   if (name === 'regions')    return regionLayer;
@@ -659,6 +660,21 @@ function loadBoundary(val) {
     .catch(function(e) { console.log('Could not load ' + val + ':', e); });
 }
 
+function showCatchmentsGhost() {
+  if (catchmentsLayer) {
+    catchmentsLayer.setStyle(CATCHMENTS_GHOST);
+    if (!map.hasLayer(catchmentsLayer)) catchmentsLayer.addTo(map);
+  } else {
+    fetch('uk_catchments.geojson')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        catchmentsLayer = L.geoJSON(data, { style: CATCHMENTS_GHOST });
+        if (currentBoundary === 'grid') catchmentsLayer.addTo(map);
+      })
+      .catch(function(e) { console.log('Could not load catchments ghost:', e); });
+  }
+}
+
 function onBoundaryChange(val) {
   clearPolyChoropleth();
   ['regions','counties','catchments','grid'].forEach(function(n) {
@@ -668,8 +684,12 @@ function onBoundaryChange(val) {
   currentBoundary = val;
   if (val !== 'none') {
     var l = getLayerObj(val);
-    if (l) { l.addTo(map); if (polyVisible) renderPolyChoropleth(); }
-    else loadBoundary(val);
+    if (l) {
+      l.setStyle(BOUNDARY_STYLES[val]);
+      l.addTo(map);
+      if (polyVisible) renderPolyChoropleth();
+    } else loadBoundary(val);
+    if (val === 'grid') showCatchmentsGhost();
   }
   // Grey out poly toggle when no boundary selected
   var isNone = (val === 'none');
