@@ -15,8 +15,8 @@ LON_MIN, LON_MAX = -17.9739, 16.1291
 LAT_MIN, LAT_MAX =  43.7009, 62.9207
 WIDTH,   HEIGHT  =  1725,    2175
 
-PERIODS = ["1hr", "3hr", "6hr", "12hr", "24hr", "48hr"]
-PERIOD_HOURS = {"1hr": 1, "3hr": 3, "6hr": 6, "12hr": 12, "24hr": 24, "48hr": 48}
+PERIODS = ["1hr", "3hr", "6hr", "12hr", "24hr", "48hr", "5d"]
+PERIOD_HOURS = {"1hr": 1, "3hr": 3, "6hr": 6, "12hr": 12, "24hr": 24, "48hr": 48, "5d": 120}
 HIST_RETENTION = 192   # 48hr × 4 runs/hr
 
 # ── R2 ─────────────────────────────────────────────────────────────────────────
