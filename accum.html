@@ -831,17 +831,19 @@ function renderBiasMarkers() {
       var st = stationsData[sid];
       if (!st) return;
       var vals = biasSnap.stations[sid];
-      var g = vals[pi * 2], r = vals[pi * 2 + 1];
+      var stride = vals.length === PERIODS_LIST.length * 3 ? 3 : 2;
+      var g = vals[pi * stride], r = vals[pi * stride + 1];
       if (g == null || r == null) return;
       var marker = L.circleMarker([st.lat, st.lon], {
         radius: 6, fillColor: biasColor(g - r, hours),
         color: '#fff', weight: 1.5, fillOpacity: 0.9
       });
       var rows = PERIODS_LIST.map(function(p, i) {
-        var gv = vals[i*2], rv = vals[i*2+1];
-        if (gv == null || rv == null) return '<tr><td>' + p + '</td><td colspan="3" style="color:#94a3b8">—</td></tr>';
+        var gv = vals[i*stride], rv = vals[i*stride+1], r5v = stride === 3 ? vals[i*stride+2] : null;
+        if (gv == null || rv == null) return '<tr><td>' + p + '</td><td colspan="4" style="color:#94a3b8">—</td></tr>';
         var dv = (gv - rv).toFixed(1);
         return '<tr><td>' + p + '</td><td>' + gv.toFixed(1) + '</td><td>' + rv.toFixed(1) + '</td>' +
+          '<td>' + (r5v != null ? r5v.toFixed(1) : '—') + '</td>' +
           '<td style="color:' + (parseFloat(dv) >= 0 ? '#ef4444' : '#3b82f6') + ';font-weight:600;">' +
           (parseFloat(dv) >= 0 ? '+' : '') + dv + '</td></tr>';
       }).join('');
@@ -849,8 +851,8 @@ function renderBiasMarkers() {
         '<div style="font-size:12px;font-family:Roboto,sans-serif;">' +
         '<b style="font-size:13px;">' + (st.name || sid) + '</b>' +
         '<table class="bias-popup" style="margin-top:6px;border-collapse:collapse;width:100%;">' +
-        '<tr><td>Period</td><td>Gauge</td><td>Radar</td><td>Diff</td></tr>' + rows + '</table></div>',
-        { maxWidth: 220 }
+        '<tr><td>Period</td><td>Gauge</td><td>Radar</td><td>5km avg</td><td>Diff</td></tr>' + rows + '</table></div>',
+        { maxWidth: 260 }
       );
       biasLayerGroup.addLayer(marker);
     });

@@ -1,5 +1,6 @@
 import io
 import json
+import math
 import os
 import sys
 from datetime import datetime, timedelta
@@ -80,6 +81,23 @@ def station_pixel(ll_to_merc, xmin, xmax, ymax, ymin_merc, lon, lat):
     return None
 
 
+def build_radius_mask(row, col, lat, xmin, xmax, ymin_m, ymax_m, radius_m=5000):
+    """Return (rows, cols) index arrays for all pixels within radius_m of (row, col).
+    Uses Mercator-space distance scaled by 1/cos(lat) to approximate true Earth distance."""
+    merc_r = radius_m / math.cos(math.radians(lat))
+    dx = (xmax - xmin) / WIDTH    # Mercator metres per pixel column
+    dy = (ymax_m - ymin_m) / HEIGHT  # Mercator metres per pixel row
+    r_col = merc_r / dx
+    r_row = merc_r / dy
+    c0 = max(0, int(col - r_col) - 1)
+    c1 = min(WIDTH - 1,  int(col + r_col) + 1)
+    r0 = max(0, int(row - r_row) - 1)
+    r1 = min(HEIGHT - 1, int(row + r_row) + 1)
+    rr, cc = np.meshgrid(np.arange(r0, r1 + 1), np.arange(c0, c1 + 1), indexing='ij')
+    inside = ((rr - row) / r_row) ** 2 + ((cc - col) / r_col) ** 2 <= 1.0
+    return rr[inside].ravel(), cc[inside].ravel()
+
+
 # ── Gauge data helpers ──────────────────────────────────────────────────────────
 def frame_label(fk):
     try:
@@ -136,14 +154,18 @@ def main():
     stations = sdata["stations"]
     print(f"  {len(stations)} stations loaded")
 
-    # Precompute pixel locations
-    print("Computing station pixel locations...")
+    # Precompute pixel locations and 5km radius masks
+    print("Computing station pixel locations and 5km masks...")
     ll_to_merc, xmin, xmax, ymin_merc, ymax = build_merc_bounds()
     station_pixels = {}
+    station_masks  = {}
     for sid, s in stations.items():
         px = station_pixel(ll_to_merc, xmin, xmax, ymax, ymin_merc, s["lon"], s["lat"])
         if px is not None:
             station_pixels[sid] = px
+            station_masks[sid]  = build_radius_mask(
+                px[0], px[1], s["lat"], xmin, xmax, ymin_merc, ymax
+            )
     print(f"  {len(station_pixels)} stations inside radar domain")
 
     station_ids = list(station_pixels.keys())
@@ -200,18 +222,21 @@ def main():
         }
         print(f"  [{period}] {len(period_gauge[period])} gauges with sufficient data")
 
-    # Build output: per station, array [g1,r1, g3,r3, g6,r6, g12,r12, g24,r24, g48,r48]
+    # Build output: per station, triplets [g, r_pt, r_5km] × len(PERIODS)
     result_stations = {}
     for sid, (row, col) in station_pixels.items():
         values = []
         has_any = False
+        mask_r, mask_c = station_masks.get(sid, (np.array([row]), np.array([col])))
         for period in PERIODS:
             arr = period_sums.get(period)
             gauge_dict = period_gauge.get(period, {})
-            g = round(gauge_dict[sid], 2) if sid in gauge_dict else None
-            r = round(float(arr[row, col]), 2) if arr is not None else None
+            g    = round(gauge_dict[sid], 2) if sid in gauge_dict else None
+            r_pt = round(float(arr[row, col]), 2) if arr is not None else None
+            r_5k = round(float(arr[mask_r, mask_c].mean()), 2) if arr is not None else None
             values.append(g)
-            values.append(r)
+            values.append(r_pt)
+            values.append(r_5k)
             if g is not None:
                 has_any = True
         if has_any:
