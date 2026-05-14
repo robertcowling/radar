@@ -613,11 +613,12 @@ function toggleInfo() {
 }
 
 // ── Geography boundaries ──────────────────────────────────────────────────────
-var regionLayer     = null;
-var countiesLayer   = null;
-var catchmentsLayer = null;
-var gridLayer       = null;
-var currentBoundary = 'regions';
+var regionLayer          = null;
+var countiesLayer        = null;
+var catchmentsLayer      = null;
+var catchmentsGhostLayer = null;
+var gridLayer            = null;
+var currentBoundary      = 'regions';
 
 var LAYER_NAME_KEY = { regions: 'rgn19nm', counties: 'name', catchments: 'HA_NAME', grid: 'name' };
 
@@ -661,22 +662,26 @@ function loadBoundary(val) {
 }
 
 function showCatchmentsGhost() {
-  if (catchmentsLayer) {
-    catchmentsLayer.setStyle(CATCHMENTS_GHOST);
-    if (!map.hasLayer(catchmentsLayer)) catchmentsLayer.addTo(map);
-  } else {
-    fetch('uk_catchments.geojson')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        catchmentsLayer = L.geoJSON(data, { style: CATCHMENTS_GHOST });
-        if (currentBoundary === 'grid') catchmentsLayer.addTo(map);
-      })
-      .catch(function(e) { console.log('Could not load catchments ghost:', e); });
+  if (catchmentsGhostLayer) {
+    if (!map.hasLayer(catchmentsGhostLayer)) catchmentsGhostLayer.addTo(map);
+    return;
   }
+  fetch('uk_catchments.geojson')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      catchmentsGhostLayer = L.geoJSON(data, { style: CATCHMENTS_GHOST, interactive: false });
+      if (currentBoundary === 'grid') catchmentsGhostLayer.addTo(map);
+    })
+    .catch(function(e) { console.log('Could not load catchments ghost:', e); });
+}
+
+function hideCatchmentsGhost() {
+  if (catchmentsGhostLayer && map.hasLayer(catchmentsGhostLayer)) map.removeLayer(catchmentsGhostLayer);
 }
 
 function onBoundaryChange(val) {
   clearPolyChoropleth();
+  hideCatchmentsGhost();
   ['regions','counties','catchments','grid'].forEach(function(n) {
     var l = getLayerObj(n);
     if (l && map.hasLayer(l)) map.removeLayer(l);
