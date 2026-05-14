@@ -409,19 +409,14 @@
       <input type="radio" name="boundaryLayer" value="counties" onchange="onBoundaryChange('counties')">
       Counties
     </label>
-    <label class="custom-checkbox" style="margin-bottom:0;">
+    <label class="custom-checkbox" style="margin-bottom:8px;">
       <input type="radio" name="boundaryLayer" value="catchments" onchange="onBoundaryChange('catchments')">
       Catchments
     </label>
-
-    <p class="section-label" style="margin-top:16px;">Polygon averages</p>
-    <label class="toggle-row">
+    <label class="toggle-row" id="polyToggleRow">
       <input type="checkbox" id="polyToggle" onchange="setPolyVisible(this.checked)">
-      <span>Fill by mean accumulation</span>
+      <span>Fill by average mm</span>
     </label>
-    <p id="polyNote" style="font-size:10px;color:#94a3b8;margin:4px 0 0;display:none;">
-      Fill colour = polygon mean mm.<br>Select a boundary layer to enable.
-    </p>
 
     <p class="section-label" style="margin-top:16px;">Gauge bias</p>
     <label class="toggle-row">
@@ -668,7 +663,9 @@ function onBoundaryChange(val) {
     else loadBoundary(val);
   }
   // Grey out poly toggle when no boundary selected
-  document.getElementById('polyToggle').disabled = (val === 'none');
+  var isNone = (val === 'none');
+  document.getElementById('polyToggle').disabled = isNone;
+  document.getElementById('polyToggleRow').style.opacity = isNone ? '0.4' : '1';
 }
 
 // ── Polygon choropleth ────────────────────────────────────────────────────────
@@ -739,7 +736,6 @@ function clearPolyChoropleth() {
 
 function setPolyVisible(checked) {
   polyVisible = checked;
-  document.getElementById('polyNote').style.display = checked ? 'block' : 'none';
   if (checked) renderPolyChoropleth();
   else clearPolyChoropleth();
 }
