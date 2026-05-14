@@ -550,6 +550,7 @@ function updateDisplay() {
   document.getElementById('noData').style.display = 'none';
 
   accumOverlay.setUrl(pdata[currentScheme] + '?_=' + generatedAt);
+  accumOverlay.setOpacity(polyVisible ? 0 : document.getElementById('opacitySlider').value / 100);
 
   var dt = splitSnapshotTime(snap.time);
   document.getElementById('playerDateLine').textContent = dt.date;
@@ -701,6 +702,7 @@ function renderPolyChoropleth() {
 
   loadPolySnapshot(snap.ts, function(polySnap) {
     if (!polySnap || !polySnap[currentBoundary] || !polySnap[currentBoundary][currentPeriod]) {
+      clearPolyChoropleth();
       return;
     }
     var vals = polySnap[currentBoundary][currentPeriod];
@@ -736,8 +738,13 @@ function clearPolyChoropleth() {
 
 function setPolyVisible(checked) {
   polyVisible = checked;
-  if (checked) renderPolyChoropleth();
-  else clearPolyChoropleth();
+  if (checked) {
+    accumOverlay.setOpacity(0);
+    renderPolyChoropleth();
+  } else {
+    accumOverlay.setOpacity(document.getElementById('opacitySlider').value / 100);
+    clearPolyChoropleth();
+  }
 }
 
 // ── Gauge bias ────────────────────────────────────────────────────────────────
