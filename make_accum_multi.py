@@ -26,9 +26,9 @@ INTERVAL_HRS = 0.25      # 15 min → hours; multiply rain rate by this for mm/f
 # ── Geography layers for polygon-average overlays ──────────────────────────────
 # (geojson_filename, property_key_for_name)
 GEOJSON_LAYERS = {
-    "regions":  ("uk_regions.geojson",  "rgn19nm"),
-    "counties": ("uk-counties.geojson", "name"),
-    # "catchments": not yet available — rivers.geojson in R2 is a line network, not polygons
+    "regions":    ("uk_regions.geojson",    "rgn19nm"),
+    "counties":   ("uk-counties.geojson",   "name"),
+    "catchments": ("uk_catchments.geojson", "HA_NAME"),
 }
 
 # ── Periods ────────────────────────────────────────────────────────────────────
