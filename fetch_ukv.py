@@ -229,37 +229,51 @@ def build_mapping(nc_path):
 
         attrs   = dict(ds[gm_var].attrs)
         gm_name = attrs.get("grid_mapping_name", "")
+        print(f"    grid_mapping: {gm_name}")
 
         if gm_name == "rotated_latitude_longitude":
+            pole_lat = float(attrs["grid_north_pole_latitude"])
+            pole_lon = float(attrs["grid_north_pole_longitude"])
+            print(f"    rotated north pole: lat={pole_lat}, lon={pole_lon}")
             src_crs = CRS.from_cf({
                 "grid_mapping_name": "rotated_latitude_longitude",
-                "grid_north_pole_latitude":  float(attrs["grid_north_pole_latitude"]),
-                "grid_north_pole_longitude": float(attrs["grid_north_pole_longitude"]),
+                "grid_north_pole_latitude":  pole_lat,
+                "grid_north_pole_longitude": pole_lon,
             })
             src_lats = src_lons = None
             for c in ["grid_latitude", "rlat", "latitude"]:
                 if c in ds.coords and ds[c].ndim == 1:
-                    src_lats = ds[c].values; break
+                    src_lats = ds[c].values
+                    print(f"    src_lats from '{c}': {len(src_lats)} pts [{src_lats[0]:.4f}..{src_lats[-1]:.4f}]")
+                    break
             for c in ["grid_longitude", "rlon", "longitude"]:
                 if c in ds.coords and ds[c].ndim == 1:
-                    src_lons = ds[c].values; break
+                    src_lons = ds[c].values
+                    print(f"    src_lons from '{c}': {len(src_lons)} pts [{src_lons[0]:.4f}..{src_lons[-1]:.4f}]")
+                    break
         elif gm_name in ("transverse_mercator", "lambert_azimuthal_equal_area"):
             src_crs  = CRS.from_epsg(27700)
             src_lats = src_lons = None
             for c in ["projection_y_coordinate", "northing", "y"]:
                 if c in ds.coords and ds[c].ndim == 1:
-                    src_lats = ds[c].values; break
+                    src_lats = ds[c].values
+                    print(f"    src_lats(y) from '{c}': {len(src_lats)} pts [{src_lats[0]:.1f}..{src_lats[-1]:.1f}]")
+                    break
             for c in ["projection_x_coordinate", "easting", "x"]:
                 if c in ds.coords and ds[c].ndim == 1:
-                    src_lons = ds[c].values; break
+                    src_lons = ds[c].values
+                    print(f"    src_lons(x) from '{c}': {len(src_lons)} pts [{src_lons[0]:.1f}..{src_lons[-1]:.1f}]")
+                    break
         else:
             raise ValueError(f"Unsupported grid_mapping_name: {gm_name!r}")
 
     if src_lats is None or src_lons is None:
         raise ValueError("Could not identify source coordinate arrays")
 
-    ll_to_merc  = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
-    merc_to_src = Transformer.from_crs("EPSG:3857", src_crs,     always_xy=True)
+    # Build output Mercator pixel grid
+    ll_to_merc = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
+    merc_to_ll = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
+    ll_to_src  = Transformer.from_crs("EPSG:4326", src_crs,     always_xy=True)
 
     merc_xmin, merc_ymin = ll_to_merc.transform(LON_MIN, LAT_MIN)
     merc_xmax, merc_ymax = ll_to_merc.transform(LON_MAX, LAT_MAX)
@@ -267,14 +281,23 @@ def build_mapping(nc_path):
     merc_ys = np.linspace(merc_ymax, merc_ymin, HEIGHT)  # top → bottom
     MX, MY  = np.meshgrid(merc_xs, merc_ys)
 
-    Xsrc, Ysrc = merc_to_src.transform(MX, MY)
+    # Two-step: Mercator → WGS84 → source CRS
+    # (direct 3857→rotated CRS is unreliable in pyproj)
+    Lon, Lat   = merc_to_ll.transform(MX, MY)
+    Xsrc, Ysrc = ll_to_src.transform(Lon, Lat)
+
+    print(f"    Xsrc range: [{np.nanmin(Xsrc):.4f}, {np.nanmax(Xsrc):.4f}]")
+    print(f"    Ysrc range: [{np.nanmin(Ysrc):.4f}, {np.nanmax(Ysrc):.4f}]")
 
     x_step = float(src_lons[1] - src_lons[0])
     y_step = float(src_lats[1] - src_lats[0])
     cols   = np.round((Xsrc - float(src_lons[0])) / x_step).astype(np.int32)
     rows   = np.round((Ysrc - float(src_lats[0])) / y_step).astype(np.int32)
-    valid  = (rows >= 0) & (rows < len(src_lats)) & (cols >= 0) & (cols < len(src_lons))
+    valid  = (np.isfinite(Xsrc) & np.isfinite(Ysrc) &
+              (rows >= 0) & (rows < len(src_lats)) &
+              (cols >= 0) & (cols < len(src_lons)))
 
+    print(f"    valid pixels: {valid.sum():,} / {valid.size:,} ({100*valid.mean():.1f}%)")
     return rows, cols, valid
 
 
@@ -304,6 +327,8 @@ def extract_array(nc_path, mapping):
     # kg m-2 s-1 → mm hr-1
     if "kg" in units and ("s-1" in units or "s**-1" in units):
         arr2d = arr2d * 3600.0
+
+    print(f"      raw arr2d shape={arr2d.shape} max={arr2d.max():.6f} nonzero={np.count_nonzero(arr2d)}")
 
     out = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
     out[valid] = arr2d[rows[valid], cols[valid]]
