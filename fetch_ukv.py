@@ -396,7 +396,8 @@ def main():
 
     existing_meta = json_from_r2(r2, "ukv_meta.json", {"runs": []})
     existing_runs = existing_meta.get("runs", [])
-    if not os.environ.get("FORCE_RERUN") and existing_runs and existing_runs[0].get("run_ts") == run_ts:
+    force = os.environ.get("FORCE_RERUN", "").lower() in ("1", "true", "yes")
+    if not force and existing_runs and existing_runs[0].get("run_ts") == run_ts:
         print(f"  {run_ts} already processed — done.")
         sys.exit(0)
 
@@ -459,9 +460,12 @@ def main():
 
         step_entries.append(entry)
 
-    # Prune runs older than 48 h from meta (PNGs left in R2 — cheap)
+    # Prune runs older than 48 h; also deduplicate this run_ts (handles force-reruns)
     cutoff = datetime.utcnow() - timedelta(hours=48)
-    kept_runs = [r for r in existing_runs if parse_run_dt(r["run_ts"]) >= cutoff]
+    kept_runs = [
+        r for r in existing_runs
+        if parse_run_dt(r["run_ts"]) >= cutoff and r.get("run_ts") != run_ts
+    ]
 
     new_run = {
         "run_ts":         run_ts,
