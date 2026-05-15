@@ -125,11 +125,25 @@ def png_to_r2(r2, key, img):
 
 # ── Run discovery ─────────────────────────────────────────────────────────────────
 def find_latest_run(s3):
-    resp = s3.list_objects_v2(Bucket=MET_BUCKET, Prefix=UKV_PREFIX, Delimiter="/")
-    prefixes = sorted(p["Prefix"] for p in resp.get("CommonPrefixes", []))
-    if not prefixes:
-        return None
-    return prefixes[-1].rstrip("/").split("/")[-1]
+    # Use StartAfter to skip years of old run folders — only need the last few days
+    start_after = UKV_PREFIX + (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d")
+    latest = None
+    cont   = None
+    while True:
+        kwargs = {"Bucket": MET_BUCKET, "Prefix": UKV_PREFIX, "Delimiter": "/",
+                  "StartAfter": start_after}
+        if cont:
+            kwargs["ContinuationToken"] = cont
+        resp = s3.list_objects_v2(**kwargs)
+        for p in resp.get("CommonPrefixes", []):
+            run_ts = p["Prefix"].rstrip("/").split("/")[-1]
+            if latest is None or run_ts > latest:
+                latest = run_ts
+        if resp.get("IsTruncated"):
+            cont = resp["NextContinuationToken"]
+        else:
+            break
+    return latest
 
 
 def parse_run_dt(run_ts):
