@@ -337,7 +337,10 @@ def load_arr(s3, run_ts, valid_ts, offset, param, mapping):
         tmp.write(nc_bytes)
         path = tmp.name
     try:
-        return extract_array(path, mapping)
+        arr = extract_array(path, mapping)
+        if arr is not None:
+            print(f"      max={arr.max():.4f}  nonzero={np.count_nonzero(arr)}")
+        return arr
     finally:
         os.unlink(path)
 
