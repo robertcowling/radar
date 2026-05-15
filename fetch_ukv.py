@@ -252,7 +252,7 @@ def build_mapping(nc_path):
                     print(f"    src_lons from '{c}': {len(src_lons)} pts [{src_lons[0]:.4f}..{src_lons[-1]:.4f}]")
                     break
         elif gm_name in ("transverse_mercator", "lambert_azimuthal_equal_area"):
-            src_crs  = CRS.from_epsg(27700)
+            src_crs  = CRS.from_cf(attrs)  # build from file attrs, not EPSG:27700
             src_lats = src_lons = None
             for c in ["projection_y_coordinate", "northing", "y"]:
                 if c in ds.coords and ds[c].ndim == 1:
@@ -324,11 +324,15 @@ def extract_array(nc_path, mapping):
     arr2d = np.where(np.isfinite(arr2d), arr2d, 0.0).astype(np.float32)
     arr2d = np.clip(arr2d, 0, None)
 
-    # kg m-2 s-1 → mm hr-1
+    pre_max = arr2d.max()
+    # kg m-2 s-1  or  kg m-2 (accumulation, no conversion needed)
     if "kg" in units and ("s-1" in units or "s**-1" in units):
         arr2d = arr2d * 3600.0
+    # m s-1 (rainfall rate in m/s) → mm/hr
+    elif "m s-1" in units or "m s**-1" in units:
+        arr2d = arr2d * 3_600_000.0
 
-    print(f"      raw arr2d shape={arr2d.shape} max={arr2d.max():.6f} nonzero={np.count_nonzero(arr2d)}")
+    print(f"      units={units!r} pre={pre_max:.8f} post={arr2d.max():.6f} nonzero={np.count_nonzero(arr2d>0)}")
 
     out = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
     out[valid] = arr2d[rows[valid], cols[valid]]
