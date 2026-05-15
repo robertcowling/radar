@@ -1,0 +1,49 @@
+name: Fetch UKV Forecast
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install boto3 botocore xarray netCDF4 numpy Pillow pyproj
+
+    - name: Fetch and render UKV forecast
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+      run: python fetch_ukv.py
+
+    - name: Commit metadata
+      run: |
+        git config --global user.name "Radar Automator"
+        git config --global user.email "radar-bot@github.com"
+        git add ukv_meta.json
+        git diff --cached --quiet && echo "No changes to commit" || {
+          git commit -m "Update UKV meta $(date -u +'%Y-%m-%d %H:%M UTC')" || exit 1
+          n=0
+          until git pull --rebase -X theirs origin main && git push origin main; do
+            n=$((n+1)); [ $n -ge 3 ] && exit 1
+            echo "Push attempt $n/3 failed, retrying in $((n*5))s..."
+            sleep $((n*5))
+          done
+        }
