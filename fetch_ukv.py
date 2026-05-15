@@ -25,14 +25,10 @@ from botocore.client import Config
 from PIL import Image
 from pyproj import CRS, Transformer
 
-# ── Output domain — tight bbox of the published UKV domain
-# Source: Met Office UKV 2019 data sheet, extreme corner lat/lons of the
-# 1,096 km × 1,408 km grid (NW 60.375N 13.643W, SW 47.926N 10.562W,
-# SE 48.081N 4.137E, NE 60.622N 6.371E; extreme lat reaches 60.884N).
-# A small buffer keeps the LAEA edge off the image border.
-LON_MIN, LON_MAX = -13.7,  6.4
-LAT_MIN, LAT_MAX =  47.9, 60.9
-WIDTH,   HEIGHT  =  1200, 1300
+# ── Output domain — covers full UKV LAEA extent (valid mask handles transparency)
+LON_MIN, LON_MAX = -26.0, 17.0
+LAT_MIN, LAT_MAX =  43.0, 63.0
+WIDTH,   HEIGHT  =  1725, 1800
 
 # ── Met Office S3 ────────────────────────────────────────────────────────────────
 MET_BUCKET = "met-office-atmospheric-model-data"
