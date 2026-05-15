@@ -25,10 +25,10 @@ from botocore.client import Config
 from PIL import Image
 from pyproj import CRS, Transformer
 
-# ── Output domain (matches make_accum_multi.py) ──────────────────────────────────
-LON_MIN, LON_MAX = -17.9739, 16.1291
-LAT_MIN, LAT_MAX =  43.7009, 62.9207
-WIDTH,   HEIGHT  =  1725,    2175
+# ── Output domain (UKV model extent) ─────────────────────────────────────────────
+LON_MIN, LON_MAX = -12.5,  5.0
+LAT_MIN, LAT_MAX =  47.5, 63.0
+WIDTH,   HEIGHT  =  1050, 1400
 
 # ── Met Office S3 ────────────────────────────────────────────────────────────────
 MET_BUCKET = "met-office-atmospheric-model-data"
@@ -49,34 +49,20 @@ _STD = np.array([
     [106,  27, 154, 255],
 ], dtype=np.uint8)
 
-_MET = np.array([
-    [  0,   0,   0,   0],   # transparent < 0.03
-    [ 58, 108, 255, 255],   # blue
-    [  0, 255,   0, 255],   # bright green
-    [255, 255, 149, 255],   # pale yellow
-    [255, 213,  99, 255],   # sand
-    [255, 150,  24, 255],   # orange
-    [232,  97,   0, 255],   # dark orange
-    [186,  32,   0, 255],   # red
-    [204,  83, 125, 255],   # rose
-    [219, 146, 220, 255],   # light purple
-    [255,   2, 255, 255],   # magenta
-    [255, 255, 255, 255],   # white
-    [200, 200, 200, 255],   # light grey
-    [191, 191,   0, 255],   # olive
-], dtype=np.uint8)
-
 RATE_SCHEMES = {
     "norm": {"bounds": np.array([0.1, 0.5, 1, 2, 4, 8, 16, 32, 64]),    "colors": _STD},
     "high": {"bounds": np.array([0.5, 2,   4, 8, 16, 32, 64, 100, 150]), "colors": _STD},
 }
 
-ACCUM_SCHEMES = {
-    "norm": {"bounds": np.array([0.5, 1, 2, 5, 10, 20, 40, 80, 160]),   "colors": _STD},
-    "high": {"bounds": np.array([2, 5, 10, 25, 50, 100, 150, 200, 350]), "colors": _STD},
-    "met":  {"bounds": np.array([0.03, 1, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160, 180]),
-             "colors": _MET},
-}
+# (period_hours, colour_bounds_in_mm)
+ACCUM_PERIODS = [
+    ( 1, np.array([0.5,  1,   2,   4,   8,  16,  32,  64, 100])),
+    ( 3, np.array([1,    2,   5,  10,  20,  40,  80, 120, 200])),
+    ( 6, np.array([2,    5,  10,  20,  40,  80, 120, 200, 300])),
+    (12, np.array([5,   10,  20,  40,  80, 120, 200, 300, 500])),
+    (24, np.array([5,   10,  20,  40,  80, 120, 200, 300, 500])),
+    (48, np.array([10,  20,  40,  80, 120, 200, 300, 500, 700])),
+]
 
 # ── R2 ───────────────────────────────────────────────────────────────────────────
 R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID", "")
@@ -440,8 +426,8 @@ def main():
     rlabel = run_label_str(run_ts)
     print(f"  Run: {rlabel} ({rtype})")
 
-    step_entries  = []
-    running_total = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
+    step_entries = []
+    accum_stack  = []  # rolling list of hourly accum arrays, max 48
 
     for i, (hours, offset, valid_ts) in enumerate(steps):
         vlabel = valid_label_str(valid_ts)
@@ -449,31 +435,27 @@ def main():
 
         entry = {"offset": offset, "offset_hours": hours, "valid_label": vlabel}
 
-        # Rainfall rate
+        # Precipitation rate
         arr  = load_arr(s3, run_ts, valid_ts, offset, "rainfall_rate", mapping)
-        urls = upload_schemes(r2, arr, RATE_SCHEMES, run_ts, offset, "rainfall_rate")
+        urls = upload_schemes(r2, arr, RATE_SCHEMES, run_ts, offset, "rate")
         if urls:
             entry["rainfall_rate"] = urls
 
-        # 1-hour accumulation + running total
-        arr = load_arr(s3, run_ts, valid_ts, offset, "rainfall_accumulation-PT01H", mapping)
-        if arr is not None:
-            running_total += arr
-            urls = upload_schemes(r2, arr, ACCUM_SCHEMES, run_ts, offset, "rainfall_accum")
-            if urls:
-                entry["rainfall_accum"] = urls
-            total_urls = upload_schemes(r2, running_total.copy(), ACCUM_SCHEMES,
-                                        run_ts, offset, "rainfall_total")
-            if total_urls:
-                entry["rainfall_total"] = total_urls
+        # Hourly accumulation → rolling multi-period sums
+        arr_1h = load_arr(s3, run_ts, valid_ts, offset, "rainfall_accumulation-PT01H", mapping)
+        if arr_1h is not None:
+            accum_stack.append(arr_1h)
+            if len(accum_stack) > 48:
+                accum_stack.pop(0)
 
-        # Snowfall rate
-        arr = load_arr(s3, run_ts, valid_ts, offset, "snowfall_rate", mapping)
-        if arr is not None:
-            urls = upload_schemes(r2, arr, {"norm": RATE_SCHEMES["norm"]},
-                                  run_ts, offset, "snowfall_rate")
-            if urls:
-                entry["snowfall_rate"] = urls
+            n_avail = len(accum_stack)
+            for (n, bounds) in ACCUM_PERIODS:
+                if n_avail >= n:
+                    arr_n = np.sum(accum_stack[-n:], axis=0).astype(np.float32)
+                    img   = render_png(arr_n, {"bounds": bounds, "colors": _STD})
+                    key   = f"ukv/{run_ts}/{offset}_accum_{n}h.png"
+                    png_to_r2(r2, key, img)
+                    entry[f"accum_{n}h"] = f"{R2_PUBLIC_URL}/{key}"
 
         step_entries.append(entry)
 

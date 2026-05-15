@@ -398,19 +398,21 @@
   <div class="control-group">
     <span class="control-label">Layer</span>
     <select id="layerSelect" onchange="setLayer(this.value)">
-      <option value="rainfall_rate" selected>Rainfall rate</option>
-      <option value="rainfall_accum">1-hour accumulation</option>
-      <option value="rainfall_total">Running total</option>
-      <option value="snowfall_rate">Snowfall rate</option>
+      <option value="rainfall_rate" selected>Precipitation rate</option>
+      <option value="accum_1h">1-hour accumulation</option>
+      <option value="accum_3h">3-hour accumulation</option>
+      <option value="accum_6h">6-hour accumulation</option>
+      <option value="accum_12h">12-hour accumulation</option>
+      <option value="accum_24h">24-hour accumulation</option>
+      <option value="accum_48h">48-hour accumulation</option>
     </select>
   </div>
 
-  <div class="control-group">
+  <div class="control-group" id="schemeGroup">
     <span class="control-label">Colour scale</span>
     <select id="schemeSelect" onchange="setScheme(this.value)">
-      <option value="norm" selected>Normal</option>
+      <option value="norm" selected>Standard</option>
       <option value="high">High events</option>
-      <option value="met" id="metOption">Alternative</option>
     </select>
   </div>
 </div>
@@ -422,27 +424,24 @@ function cdnJson(r) { return r.text().then(function(t) { return JSON.parse(t.rep
 
 // ── Colour schemes ────────────────────────────────────────────────────────────
 var _STD = ['#e0f3ff','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'];
-var _MET = ['#3A6CFF','#00FF00','#FFFF95','#FFD563','#FF9618','#E86100','#BA2000','#CC537D','#DB92DC','#FF02FF','#FFFFFF','#C8C8C8','#BFBF00'];
 
 var RATE_SCHEMES = {
   norm: { bounds: [0.1, 0.5, 1, 2, 4, 8, 16, 32, 64],    colors: _STD },
   high: { bounds: [0.5, 2,   4, 8, 16, 32, 64, 100, 150], colors: _STD },
 };
-var ACCUM_SCHEMES = {
-  norm: { bounds: [0.5, 1, 2, 5, 10, 20, 40, 80, 160],   colors: _STD },
-  high: { bounds: [2, 5, 10, 25, 50, 100, 150, 200, 350], colors: _STD },
-  met:  { bounds: [0.03, 1, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160, 180], colors: _MET },
-};
 
 var LAYER_INFO = {
-  rainfall_rate:  { label: 'Rainfall rate (mm/hr)',    schemes: RATE_SCHEMES,  hasAlt: false },
-  rainfall_accum: { label: '1-hour accumulation (mm)', schemes: ACCUM_SCHEMES, hasAlt: true  },
-  rainfall_total: { label: 'Running total (mm)',        schemes: ACCUM_SCHEMES, hasAlt: true  },
-  snowfall_rate:  { label: 'Snowfall rate (mm/hr)',     schemes: RATE_SCHEMES,  hasAlt: false },
+  rainfall_rate: { label: 'Precipitation rate (mm/hr)', rateLayer: true },
+  accum_1h:  { label: '1-hour accumulation (mm)',   bounds: [0.5,1,2,4,8,16,32,64,100],     colors: _STD },
+  accum_3h:  { label: '3-hour accumulation (mm)',   bounds: [1,2,5,10,20,40,80,120,200],    colors: _STD },
+  accum_6h:  { label: '6-hour accumulation (mm)',   bounds: [2,5,10,20,40,80,120,200,300],  colors: _STD },
+  accum_12h: { label: '12-hour accumulation (mm)',  bounds: [5,10,20,40,80,120,200,300,500],colors: _STD },
+  accum_24h: { label: '24-hour accumulation (mm)',  bounds: [5,10,20,40,80,120,200,300,500],colors: _STD },
+  accum_48h: { label: '48-hour accumulation (mm)',  bounds: [10,20,40,80,120,200,300,500,700],colors: _STD },
 };
 
 // ── Map setup ─────────────────────────────────────────────────────────────────
-var imgBounds = [[43.7009,-17.9739],[62.9207,16.1291]];
+var imgBounds = [[47.5,-12.5],[63.0,5.0]];
 var map = L.map('map', { zoomControl: false }).setView([54.5,-3.5], 5);
 L.control.zoom({ position: 'topleft' }).addTo(map);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -461,8 +460,10 @@ var generatedAt   = '';
 
 // ── Colour bar ────────────────────────────────────────────────────────────────
 function buildCbar() {
-  var info   = LAYER_INFO[currentLayer];
-  var scheme = info.schemes[currentScheme] || info.schemes['norm'];
+  var info = LAYER_INFO[currentLayer];
+  var scheme = info.rateLayer
+    ? (RATE_SCHEMES[currentScheme] || RATE_SCHEMES.norm)
+    : { bounds: info.bounds, colors: info.colors };
   var cbar   = document.getElementById('cbar');
   var labels = document.getElementById('cbarLabels');
   cbar.innerHTML = '';
@@ -504,8 +505,14 @@ function updateDisplay() {
   var step = run.steps[currentStep];
   if (!step) return;
 
-  var layerData = step[currentLayer];
-  var url = layerData && (layerData[currentScheme] || layerData['norm']);
+  var info = LAYER_INFO[currentLayer];
+  var url;
+  if (info && info.rateLayer) {
+    var ld = step.rainfall_rate;
+    url = ld && (ld[currentScheme] || ld.norm);
+  } else {
+    url = step[currentLayer];
+  }
 
   if (!url) {
     document.getElementById('noData').style.display = 'block';
@@ -545,15 +552,9 @@ function setRun(idx) {
 
 function setLayer(layer) {
   currentLayer = layer;
-  var info     = LAYER_INFO[layer];
-  // "Alternative" option only valid for accumulation layers
-  var metOpt = document.getElementById('metOption');
-  metOpt.disabled = !info.hasAlt;
-  metOpt.style.display = info.hasAlt ? '' : 'none';
-  if (currentScheme === 'met' && !info.hasAlt) {
-    currentScheme = 'norm';
-    document.getElementById('schemeSelect').value = 'norm';
-  }
+  var info = LAYER_INFO[layer];
+  var schemeGroup = document.getElementById('schemeGroup');
+  if (schemeGroup) schemeGroup.style.display = (info && info.rateLayer) ? '' : 'none';
   updateDisplay();
 }
 
