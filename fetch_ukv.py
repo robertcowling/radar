@@ -132,6 +132,16 @@ def png_to_r2(r2, key, img):
 
 
 # ── Run discovery ─────────────────────────────────────────────────────────────────
+_STANDARD_HOURS = {0, 3, 6, 9, 12, 15, 18, 21}
+
+def _is_standard_run(run_ts):
+    """True if the run is at a standard 3-hourly init time (00/03/06/09/12/15/18/21Z)."""
+    try:
+        return parse_run_dt(run_ts).hour in _STANDARD_HOURS
+    except Exception:
+        return False
+
+
 def find_latest_run(s3):
     """Find the latest run that has T+1h data available.
 
@@ -147,11 +157,13 @@ def find_latest_run(s3):
             Prefix=f"{UKV_PREFIX}{date}",
             Delimiter="/",
         )
+        all_folders = [p["Prefix"].rstrip("/").split("/")[-1] for p in resp.get("CommonPrefixes", [])]
+        # Only consider runs at standard 3-hourly init times (00, 03, 06, 09, 12, 15, 18, 21Z)
         run_folders = sorted(
-            [p["Prefix"].rstrip("/").split("/")[-1] for p in resp.get("CommonPrefixes", [])],
+            [f for f in all_folders if _is_standard_run(f)],
             reverse=True,
         )
-        print(f"  {date}: {len(run_folders)} run folders found")
+        print(f"  {date}: {len(run_folders)} standard run folders ({len(all_folders)} total)")
         for run_ts in run_folders:
             run_dt   = parse_run_dt(run_ts)
             valid_dt = run_dt + timedelta(hours=1)
