@@ -406,7 +406,7 @@ def main():
 
     existing_meta = json_from_r2(r2, "ukv_meta.json", {"runs": []})
     existing_runs = existing_meta.get("runs", [])
-    if existing_runs and existing_runs[0].get("run_ts") == run_ts:
+    if not os.environ.get("FORCE_RERUN") and existing_runs and existing_runs[0].get("run_ts") == run_ts:
         print(f"  {run_ts} already processed — done.")
         sys.exit(0)
 
