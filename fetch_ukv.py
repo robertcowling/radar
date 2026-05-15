@@ -125,19 +125,34 @@ def png_to_r2(r2, key, img):
 
 # ── Run discovery ─────────────────────────────────────────────────────────────────
 def find_latest_run(s3):
-    """Probe hourly run slots (newest first) using list_objects_v2 with MaxKeys=1.
-    Runs are produced every hour (0-23Z); check the last 72 hours."""
+    """Find the latest run that has T+1h data available.
+
+    Files are named {valid_time}-{offset}-{param}.nc (not {run_time}-...).
+    List run folders by date (today first) and verify the T+1h rainfall_rate
+    file exists under the correct valid-time filename.
+    """
     now = datetime.utcnow()
-    print(f"  Probing from {now.strftime('%Y%m%dT%H%MZ')} backwards...")
-    for hours_back in range(72):
-        dt     = (now - timedelta(hours=hours_back)).replace(minute=0, second=0, microsecond=0)
-        run_ts = dt.strftime("%Y%m%dT%H%MZ")
-        prefix = f"{UKV_PREFIX}{run_ts}/{run_ts}-PT0001H00M-rainfall_rate.nc"
-        resp   = s3.list_objects_v2(Bucket=MET_BUCKET, Prefix=prefix, MaxKeys=1)
-        if resp.get("Contents"):
-            return run_ts
-        if hours_back < 6:
-            print(f"  {run_ts}: not found")
+    for days_back in range(7):
+        date = (now - timedelta(days=days_back)).strftime("%Y%m%d")
+        resp = s3.list_objects_v2(
+            Bucket=MET_BUCKET,
+            Prefix=f"{UKV_PREFIX}{date}",
+            Delimiter="/",
+        )
+        run_folders = sorted(
+            [p["Prefix"].rstrip("/").split("/")[-1] for p in resp.get("CommonPrefixes", [])],
+            reverse=True,
+        )
+        print(f"  {date}: {len(run_folders)} run folders found")
+        for run_ts in run_folders:
+            run_dt   = parse_run_dt(run_ts)
+            valid_dt = run_dt + timedelta(hours=1)
+            valid_ts = valid_dt.strftime("%Y%m%dT%H%MZ")
+            prefix   = f"{UKV_PREFIX}{run_ts}/{valid_ts}-PT0001H00M-rainfall_rate.nc"
+            chk = s3.list_objects_v2(Bucket=MET_BUCKET, Prefix=prefix, MaxKeys=1)
+            if chk.get("Contents"):
+                return run_ts
+            print(f"    {run_ts}: T+1h not available yet")
     return None
 
 
@@ -163,33 +178,37 @@ WHOLE_HOUR_RE = re.compile(r"^PT(\d{4})H00M$")
 
 
 def discover_steps(s3, run_ts):
+    """Return list of (offset_hours, offset_str, valid_ts) for whole-hour forecast steps.
+
+    Filenames: {valid_time}-{offset}-{param}.nc — valid_time is NOT the run time.
+    """
     prefix = f"{UKV_PREFIX}{run_ts}/"
-    keys, cont = [], None
+    steps, cont = [], None
     while True:
         kwargs = {"Bucket": MET_BUCKET, "Prefix": prefix}
         if cont:
             kwargs["ContinuationToken"] = cont
         resp = s3.list_objects_v2(**kwargs)
         for obj in resp.get("Contents", []):
-            if obj["Key"].endswith("-rainfall_rate.nc"):
-                keys.append(obj["Key"])
+            if not obj["Key"].endswith("-rainfall_rate.nc"):
+                continue
+            fname = os.path.basename(obj["Key"])
+            parts = fname.split("-")
+            if len(parts) < 3:
+                continue
+            valid_ts   = parts[0]   # e.g. "20260514T0700Z"
+            offset_str = parts[1]   # e.g. "PT0001H00M"
+            m = WHOLE_HOUR_RE.match(offset_str)
+            if not m:
+                continue
+            hours = int(m.group(1))
+            if hours == 0:
+                continue
+            steps.append((hours, offset_str, valid_ts))
         if resp.get("IsTruncated"):
             cont = resp["NextContinuationToken"]
         else:
             break
-
-    steps = []
-    for key in keys:
-        parts = os.path.basename(key).split("-")
-        if len(parts) < 3:
-            continue
-        m = WHOLE_HOUR_RE.match(parts[1])
-        if not m:
-            continue
-        hours = int(m.group(1))
-        if hours == 0:
-            continue
-        steps.append((hours, parts[1]))
 
     steps.sort()
     return steps
@@ -298,8 +317,9 @@ def render_png(arr, scheme):
 
 
 # ── S3 download → temp file ───────────────────────────────────────────────────────
-def download_nc(s3, run_ts, offset, param):
-    key = f"{UKV_PREFIX}{run_ts}/{run_ts}-{offset}-{param}.nc"
+def download_nc(s3, run_ts, valid_ts, offset, param):
+    """Key format: {prefix}{run_ts}/{valid_ts}-{offset}-{param}.nc"""
+    key = f"{UKV_PREFIX}{run_ts}/{valid_ts}-{offset}-{param}.nc"
     try:
         obj = s3.get_object(Bucket=MET_BUCKET, Key=key)
         return obj["Body"].read()
@@ -308,9 +328,9 @@ def download_nc(s3, run_ts, offset, param):
         return None
 
 
-def load_arr(s3, run_ts, offset, param, mapping):
+def load_arr(s3, run_ts, valid_ts, offset, param, mapping):
     """Download NC, write temp file, extract array. Returns None on failure."""
-    nc_bytes = download_nc(s3, run_ts, offset, param)
+    nc_bytes = download_nc(s3, run_ts, valid_ts, offset, param)
     if nc_bytes is None:
         return None
     with tempfile.NamedTemporaryFile(suffix=".nc", delete=False) as tmp:
@@ -336,10 +356,8 @@ def upload_schemes(r2, arr, schemes, run_ts, offset, prefix):
 
 
 # ── Valid time label ──────────────────────────────────────────────────────────────
-def valid_label_str(run_ts, offset_hours):
-    run_dt   = parse_run_dt(run_ts).replace(tzinfo=timezone.utc)
-    valid_dt = run_dt + timedelta(hours=offset_hours)
-    return valid_dt.strftime("%-d %b %Y %H:%M UTC")
+def valid_label_str(valid_ts):
+    return parse_run_dt(valid_ts).strftime("%-d %b %Y %H:%M UTC")
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────────
@@ -372,7 +390,8 @@ def main():
     print(f"  {len(steps)} steps: T+{steps[0][0]}h → T+{steps[-1][0]}h")
 
     print("Building coordinate mapping from T+1h file...")
-    nc_bytes = download_nc(s3, run_ts, steps[0][1], "rainfall_rate")
+    first_hours, first_offset, first_valid = steps[0]
+    nc_bytes = download_nc(s3, run_ts, first_valid, first_offset, "rainfall_rate")
     if nc_bytes is None:
         print("  Cannot build mapping — aborting.")
         sys.exit(1)
@@ -392,20 +411,20 @@ def main():
     step_entries  = []
     running_total = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
 
-    for i, (hours, offset) in enumerate(steps):
-        vlabel = valid_label_str(run_ts, hours)
+    for i, (hours, offset, valid_ts) in enumerate(steps):
+        vlabel = valid_label_str(valid_ts)
         print(f"  [{i+1}/{len(steps)}] {offset}  {vlabel}", flush=True)
 
         entry = {"offset": offset, "offset_hours": hours, "valid_label": vlabel}
 
         # Rainfall rate
-        arr  = load_arr(s3, run_ts, offset, "rainfall_rate", mapping)
+        arr  = load_arr(s3, run_ts, valid_ts, offset, "rainfall_rate", mapping)
         urls = upload_schemes(r2, arr, RATE_SCHEMES, run_ts, offset, "rainfall_rate")
         if urls:
             entry["rainfall_rate"] = urls
 
         # 1-hour accumulation + running total
-        arr = load_arr(s3, run_ts, offset, "rainfall_accumulation-PT01H", mapping)
+        arr = load_arr(s3, run_ts, valid_ts, offset, "rainfall_accumulation-PT01H", mapping)
         if arr is not None:
             running_total += arr
             urls = upload_schemes(r2, arr, ACCUM_SCHEMES, run_ts, offset, "rainfall_accum")
@@ -416,8 +435,8 @@ def main():
             if total_urls:
                 entry["rainfall_total"] = total_urls
 
-        # Snowfall rate (norm only — typically small files)
-        arr = load_arr(s3, run_ts, offset, "snowfall_rate", mapping)
+        # Snowfall rate
+        arr = load_arr(s3, run_ts, valid_ts, offset, "snowfall_rate", mapping)
         if arr is not None:
             urls = upload_schemes(r2, arr, {"norm": RATE_SCHEMES["norm"]},
                                   run_ts, offset, "snowfall_rate")
