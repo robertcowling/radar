@@ -125,25 +125,23 @@ def png_to_r2(r2, key, img):
 
 # ── Run discovery ─────────────────────────────────────────────────────────────────
 def find_latest_run(s3):
-    # Use StartAfter to skip years of old run folders — only need the last few days
-    start_after = UKV_PREFIX + (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d")
-    latest = None
-    cont   = None
-    while True:
-        kwargs = {"Bucket": MET_BUCKET, "Prefix": UKV_PREFIX, "Delimiter": "/",
-                  "StartAfter": start_after}
-        if cont:
-            kwargs["ContinuationToken"] = cont
-        resp = s3.list_objects_v2(**kwargs)
-        for p in resp.get("CommonPrefixes", []):
-            run_ts = p["Prefix"].rstrip("/").split("/")[-1]
-            if latest is None or run_ts > latest:
-                latest = run_ts
-        if resp.get("IsTruncated"):
-            cont = resp["NextContinuationToken"]
-        else:
-            break
-    return latest
+    """Probe known run slots (newest first) via head_object until we find available data."""
+    now = datetime.utcnow()
+    run_hours = [21, 18, 15, 12, 9, 6, 3, 0]  # descending
+    for days_back in range(3):
+        date = now - timedelta(days=days_back)
+        for h in run_hours:
+            dt = date.replace(hour=h, minute=0, second=0, microsecond=0)
+            if dt > now:
+                continue
+            run_ts = dt.strftime("%Y%m%dT%H%MZ")
+            key = f"{UKV_PREFIX}{run_ts}/{run_ts}-PT0001H00M-rainfall_rate.nc"
+            try:
+                s3.head_object(Bucket=MET_BUCKET, Key=key)
+                return run_ts  # T+1H file exists — run is available
+            except Exception:
+                pass
+    return None
 
 
 def parse_run_dt(run_ts):
