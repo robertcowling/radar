@@ -451,7 +451,8 @@ var LAYER_INFO = {
 };
 
 // ── Map setup ─────────────────────────────────────────────────────────────────
-var imgBounds = [[43.0,-26.0],[63.0,17.0]];
+// Tight UKV domain bbox (matches LON_MIN/MAX, LAT_MIN/MAX in fetch_ukv.py).
+var imgBounds = [[47.9, -13.7], [60.9, 6.4]];
 var map = L.map('map', { zoomControl: false }).setView([54.5,-3.5], 5);
 L.control.zoom({ position: 'topleft' }).addTo(map);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
