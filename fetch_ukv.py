@@ -125,22 +125,18 @@ def png_to_r2(r2, key, img):
 
 # ── Run discovery ─────────────────────────────────────────────────────────────────
 def find_latest_run(s3):
-    """Probe known run slots (newest first) via head_object until we find available data."""
+    """Probe hourly run slots (newest first) via head_object until we find available data.
+    Runs are produced every hour (0-23Z); check the last 72 hours."""
     now = datetime.utcnow()
-    run_hours = [21, 18, 15, 12, 9, 6, 3, 0]  # descending
-    for days_back in range(3):
-        date = now - timedelta(days=days_back)
-        for h in run_hours:
-            dt = date.replace(hour=h, minute=0, second=0, microsecond=0)
-            if dt > now:
-                continue
-            run_ts = dt.strftime("%Y%m%dT%H%MZ")
-            key = f"{UKV_PREFIX}{run_ts}/{run_ts}-PT0001H00M-rainfall_rate.nc"
-            try:
-                s3.head_object(Bucket=MET_BUCKET, Key=key)
-                return run_ts  # T+1H file exists — run is available
-            except Exception:
-                pass
+    for hours_back in range(72):
+        dt     = (now - timedelta(hours=hours_back)).replace(minute=0, second=0, microsecond=0)
+        run_ts = dt.strftime("%Y%m%dT%H%MZ")
+        key    = f"{UKV_PREFIX}{run_ts}/{run_ts}-PT0001H00M-rainfall_rate.nc"
+        try:
+            s3.head_object(Bucket=MET_BUCKET, Key=key)
+            return run_ts
+        except Exception:
+            pass
     return None
 
 
