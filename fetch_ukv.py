@@ -36,6 +36,8 @@ MET_REGION = "eu-west-2"
 UKV_PREFIX = "uk-deterministic-2km/"
 
 # ── Colour schemes ───────────────────────────────────────────────────────────────
+# Same colours and bounds as /radar (make_accum_multi.py) so /ukv and /radar are
+# directly comparable, regardless of which accumulation duration is selected.
 _STD = np.array([
     [  0,   0,   0,   0],   # transparent (index 0 — no rain)
     [224, 243, 255, 255],
@@ -49,20 +51,40 @@ _STD = np.array([
     [106,  27, 154, 255],
 ], dtype=np.uint8)
 
+_MET_COLORS = np.array([
+    [  0,   0,   0,   0],   # transparent  < 0.03
+    [ 58, 108, 255, 255],   # blue          0.03–1
+    [  0, 255,   0, 255],   # bright green  1–5
+    [255, 255, 149, 255],   # pale yellow   5–10
+    [255, 213,  99, 255],   # sand          10–20
+    [255, 150,  24, 255],   # orange        20–40
+    [232,  97,   0, 255],   # dark orange   40–60
+    [186,  32,   0, 255],   # red           60–80
+    [204,  83, 125, 255],   # rose          80–100
+    [219, 146, 220, 255],   # light purple  100–120
+    [255,   2, 255, 255],   # magenta       120–140
+    [255, 255, 255, 255],   # white         140–160
+    [200, 200, 200, 255],   # light grey    160–180
+    [191, 191,   0, 255],   # olive         > 180
+], dtype=np.uint8)
+
+# Rate schemes (mm/hr) — unchanged
 RATE_SCHEMES = {
     "norm": {"bounds": np.array([0.1, 0.5, 1, 2, 4, 8, 16, 32, 64]),    "colors": _STD},
     "high": {"bounds": np.array([0.5, 2,   4, 8, 16, 32, 64, 100, 150]), "colors": _STD},
 }
 
-# (period_hours, colour_bounds_in_mm)
-ACCUM_PERIODS = [
-    ( 1, np.array([0.5,  1,   2,   4,   8,  16,  32,  64, 100])),
-    ( 3, np.array([1,    2,   5,  10,  20,  40,  80, 120, 200])),
-    ( 6, np.array([2,    5,  10,  20,  40,  80, 120, 200, 300])),
-    (12, np.array([5,   10,  20,  40,  80, 120, 200, 300, 500])),
-    (24, np.array([5,   10,  20,  40,  80, 120, 200, 300, 500])),
-    (48, np.array([10,  20,  40,  80, 120, 200, 300, 500, 700])),
-]
+# Accumulation schemes (mm) — shared across all durations, mirrors /radar.
+ACCUM_SCHEMES = {
+    "norm": {"bounds": np.array([0.5,  1,   2,   5,  10,  20,  40,  80,  160]),
+             "colors": _STD},
+    "high": {"bounds": np.array([2,    5,  10,  25,  50, 100, 150, 200,  350]),
+             "colors": _STD},
+    "met":  {"bounds": np.array([0.03, 1,   5,  10,  20,  40,  60,  80, 100, 120, 140, 160, 180]),
+             "colors": _MET_COLORS},
+}
+
+ACCUM_PERIODS = [1, 3, 6, 12, 24, 48]
 
 # ── R2 ───────────────────────────────────────────────────────────────────────────
 R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID", "")
@@ -311,12 +333,16 @@ def extract_array(nc_path, mapping):
     arr2d = np.clip(arr2d, 0, None)
 
     pre_max = arr2d.max()
-    # kg m-2 s-1  or  kg m-2 (accumulation, no conversion needed)
-    if "kg" in units and ("s-1" in units or "s**-1" in units):
-        arr2d = arr2d * 3600.0
-    # m s-1 (rainfall rate in m/s) → mm/hr
-    elif "m s-1" in units or "m s**-1" in units:
-        arr2d = arr2d * 3_600_000.0
+    u = units.strip()
+    # Rate → mm/hr
+    if "kg" in u and ("s-1" in u or "s**-1" in u):
+        arr2d *= 3600.0
+    elif u in ("m s-1", "m s**-1"):
+        arr2d *= 3_600_000.0
+    # Accumulation (m of water depth) → mm
+    elif u == "m":
+        arr2d *= 1000.0
+    # kg m-2 (= mm) and dimensionless: no conversion
 
     print(f"      units={units!r} pre={pre_max:.8f} post={arr2d.max():.6f} nonzero={np.count_nonzero(arr2d>0)}")
 
@@ -397,7 +423,13 @@ def main():
     existing_meta = json_from_r2(r2, "ukv_meta.json", {"runs": []})
     existing_runs = existing_meta.get("runs", [])
     force = os.environ.get("FORCE_RERUN", "").lower() in ("1", "true", "yes")
-    if not force and existing_runs and existing_runs[0].get("run_ts") == run_ts:
+    # During testing each run supersedes the previous one (KEEP_RUNS=0 / default).
+    # Set KEEP_RUNS=N to retain up to N older runs alongside the new one.
+    try:
+        keep_runs = int(os.environ.get("KEEP_RUNS", "0"))
+    except ValueError:
+        keep_runs = 0
+    if not force and keep_runs > 0 and existing_runs and existing_runs[0].get("run_ts") == run_ts:
         print(f"  {run_ts} already processed — done.")
         sys.exit(0)
 
@@ -442,7 +474,10 @@ def main():
         if urls:
             entry["rainfall_rate"] = urls
 
-        # Hourly accumulation → rolling multi-period sums
+        # Hourly accumulation → rolling multi-period sums.
+        # Each duration is rendered with the same three schemes used in /radar
+        # (norm / high / met), so the colour scale only depends on the scheme,
+        # not on the accumulation period.
         arr_1h = load_arr(s3, run_ts, valid_ts, offset, "rainfall_accumulation-PT01H", mapping)
         if arr_1h is not None:
             accum_stack.append(arr_1h)
@@ -450,22 +485,19 @@ def main():
                 accum_stack.pop(0)
 
             n_avail = len(accum_stack)
-            for (n, bounds) in ACCUM_PERIODS:
-                if n_avail >= n:
-                    arr_n = np.sum(accum_stack[-n:], axis=0).astype(np.float32)
-                    img   = render_png(arr_n, {"bounds": bounds, "colors": _STD})
-                    key   = f"ukv/{run_ts}/{offset}_accum_{n}h.png"
+            for n in ACCUM_PERIODS:
+                if n_avail < n:
+                    continue
+                arr_n = np.sum(accum_stack[-n:], axis=0).astype(np.float32)
+                urls = {}
+                for sname, scheme in ACCUM_SCHEMES.items():
+                    img = render_png(arr_n, scheme)
+                    key = f"ukv/{run_ts}/{offset}_accum_{n}h_{sname}.png"
                     png_to_r2(r2, key, img)
-                    entry[f"accum_{n}h"] = f"{R2_PUBLIC_URL}/{key}"
+                    urls[sname] = f"{R2_PUBLIC_URL}/{key}"
+                entry[f"accum_{n}h"] = urls
 
         step_entries.append(entry)
-
-    # Prune runs older than 48 h; also deduplicate this run_ts (handles force-reruns)
-    cutoff = datetime.utcnow() - timedelta(hours=48)
-    kept_runs = [
-        r for r in existing_runs
-        if parse_run_dt(r["run_ts"]) >= cutoff and r.get("run_ts") != run_ts
-    ]
 
     new_run = {
         "run_ts":         run_ts,
@@ -475,9 +507,27 @@ def main():
         "steps":          step_entries,
     }
 
+    # Keep at most KEEP_RUNS older runs (default 0 → each run supersedes).
+    # Deduplicate by run_ts and prune anything older than 48 h.
+    cutoff = datetime.utcnow() - timedelta(hours=48)
+    seen   = {run_ts}
+    older  = []
+    for r in existing_runs:
+        rt = r.get("run_ts")
+        if not rt or rt in seen:
+            continue
+        try:
+            if parse_run_dt(rt) < cutoff:
+                continue
+        except Exception:
+            continue
+        seen.add(rt)
+        older.append(r)
+    older = older[:max(0, keep_runs)]
+
     meta = {
         "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:00.000Z"),
-        "runs": [new_run] + kept_runs,
+        "runs": [new_run] + older,
     }
 
     with open("ukv_meta.json", "w") as f:
