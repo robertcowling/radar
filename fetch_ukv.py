@@ -444,10 +444,10 @@ def main():
     # During testing each run supersedes the previous one (KEEP_RUNS=0 / default).
     # Set KEEP_RUNS=N to retain up to N older runs alongside the new one.
     try:
-        keep_runs = int(os.environ.get("KEEP_RUNS", "0"))
+        keep_runs = int(os.environ.get("KEEP_RUNS", "10"))
     except ValueError:
-        keep_runs = 0
-    if not force and keep_runs > 0 and existing_runs and existing_runs[0].get("run_ts") == run_ts:
+        keep_runs = 10
+    if not force and existing_runs and existing_runs[0].get("run_ts") == run_ts:
         print(f"  {run_ts} already processed — done.")
         sys.exit(0)
 
