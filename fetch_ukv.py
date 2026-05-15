@@ -25,10 +25,10 @@ from botocore.client import Config
 from PIL import Image
 from pyproj import CRS, Transformer
 
-# ── Output domain (UKV model extent) ─────────────────────────────────────────────
-LON_MIN, LON_MAX = -12.5,  5.0
-LAT_MIN, LAT_MAX =  47.5, 63.0
-WIDTH,   HEIGHT  =  1050, 1400
+# ── Output domain — covers full UKV LAEA extent (valid mask handles transparency)
+LON_MIN, LON_MAX = -26.0, 17.0
+LAT_MIN, LAT_MAX =  43.0, 63.0
+WIDTH,   HEIGHT  =  1725, 1800
 
 # ── Met Office S3 ────────────────────────────────────────────────────────────────
 MET_BUCKET = "met-office-atmospheric-model-data"
