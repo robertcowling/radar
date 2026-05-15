@@ -556,6 +556,35 @@ function updateDisplay() {
   buildCbar();
 }
 
+// ── Slider helpers ────────────────────────────────────────────────────────────
+// Returns the first and last step indices that have data for the given layer.
+function validStepRange(runIdx, layer) {
+  var run   = meta && meta.runs && meta.runs[runIdx];
+  var steps = run ? (run.steps || []) : [];
+  var first = -1, last = steps.length - 1;
+  for (var i = 0; i < steps.length; i++) {
+    if (steps[i][layer]) {
+      if (first === -1) first = i;
+      last = i;
+    }
+  }
+  if (first === -1) first = 0; // no data at all — fallback to start
+  return { first: first, last: last };
+}
+
+// Applies the valid step range for the current run + layer to the slider,
+// clamping currentStep into the valid window.
+function applyStepRange() {
+  if (!meta) return;
+  var slider = document.getElementById('timeSlider');
+  var range  = validStepRange(currentRun, currentLayer);
+  slider.min = range.first;
+  slider.max = range.last;
+  if (currentStep < range.first) currentStep = range.first;
+  if (currentStep > range.last)  currentStep = range.last;
+  slider.value = currentStep;
+}
+
 // ── Controls ──────────────────────────────────────────────────────────────────
 function setStep(idx) {
   currentStep = idx;
@@ -568,10 +597,7 @@ function setRun(idx) {
   stopPlay();
   currentRun  = idx;
   currentStep = 0;
-  var run = meta.runs[idx];
-  var slider = document.getElementById('timeSlider');
-  slider.max   = Math.max(0, (run.steps || []).length - 1);
-  slider.value = 0;
+  applyStepRange();
   updateDisplay();
 }
 
@@ -580,6 +606,7 @@ function setLayer(layer) {
   // Sync the scheme dropdown to whatever this layer's kind remembers.
   var sel = document.getElementById('schemeSelect');
   if (sel) sel.value = schemeBy[layerKind(layer)];
+  applyStepRange();
   updateDisplay();
 }
 
@@ -633,12 +660,13 @@ function scheduleAdvance() {
   if (!playing) return;
   playTimer = setTimeout(function() {
     if (!playing || !meta) return;
-    var run   = meta.runs[currentRun];
-    var steps = run ? run.steps : [];
-    var next  = currentStep + 1;
-    if (next >= steps.length) {
-      // Loop: pause at end then restart
-      next = 0;
+    var slider  = document.getElementById('timeSlider');
+    var minStep = parseInt(slider.min) || 0;
+    var maxStep = parseInt(slider.max) || 0;
+    var next    = currentStep + 1;
+    if (next > maxStep) {
+      // Loop: pause at end then restart from the first valid step for this layer
+      next = minStep;
       playTimer = setTimeout(function() {
         if (!playing) return;
         setStep(next);
@@ -733,10 +761,7 @@ function loadMeta() {
       meta        = data;
       generatedAt = data.generated_at || '';
 
-      var run    = meta.runs[currentRun] || meta.runs[0];
-      var slider = document.getElementById('timeSlider');
-      slider.max   = Math.max(0, (run.steps || []).length - 1);
-      slider.value = currentStep;
+      applyStepRange();
 
       if (data.generated_at) {
         var d   = new Date(data.generated_at);

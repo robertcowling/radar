@@ -177,30 +177,34 @@ def run_label_str(run_ts):
     return parse_run_dt(run_ts).strftime("%-d %b %Y %H:%M UTC")
 
 
-def run_type_str(run_ts):
-    return "Medium" if parse_run_dt(run_ts).hour in (3, 15) else "Short"
-
 
 # ── Step discovery ────────────────────────────────────────────────────────────────
 WHOLE_HOUR_RE = re.compile(r"^PT(\d{4})H00M$")
+# rainfall_rate may only cover T+1..T+36/38; accumulation typically extends further.
+# Discover from either so we don't miss the longer tail of the forecast.
+_DISCOVER_SUFFIXES = ("-rainfall_rate.nc", "-rainfall_accumulation-PT01H.nc")
 
 
 def discover_steps(s3, run_ts):
     """Return list of (offset_hours, offset_str, valid_ts) for whole-hour forecast steps.
 
     Filenames: {valid_time}-{offset}-{param}.nc — valid_time is NOT the run time.
+    Uses both rainfall_rate and rainfall_accumulation files for step discovery so
+    that extended forecast periods (e.g. T+39–T+54) are not missed if rainfall_rate
+    is only archived for the short range.
     """
     prefix = f"{UKV_PREFIX}{run_ts}/"
-    steps, cont = [], None
+    steps_dict, cont = {}, None
     while True:
         kwargs = {"Bucket": MET_BUCKET, "Prefix": prefix}
         if cont:
             kwargs["ContinuationToken"] = cont
         resp = s3.list_objects_v2(**kwargs)
         for obj in resp.get("Contents", []):
-            if not obj["Key"].endswith("-rainfall_rate.nc"):
+            key = obj["Key"]
+            if not any(key.endswith(s) for s in _DISCOVER_SUFFIXES):
                 continue
-            fname = os.path.basename(obj["Key"])
+            fname = os.path.basename(key)
             parts = fname.split("-")
             if len(parts) < 3:
                 continue
@@ -212,12 +216,14 @@ def discover_steps(s3, run_ts):
             hours = int(m.group(1))
             if hours == 0:
                 continue
-            steps.append((hours, offset_str, valid_ts))
+            if hours not in steps_dict:
+                steps_dict[hours] = (offset_str, valid_ts)
         if resp.get("IsTruncated"):
             cont = resp["NextContinuationToken"]
         else:
             break
 
+    steps = [(h, o, v) for h, (o, v) in steps_dict.items()]
     steps.sort()
     return steps
 
@@ -455,8 +461,8 @@ def main():
         os.unlink(sample_path)
     print("  Mapping ready.")
 
-    rtype  = run_type_str(run_ts)
     rlabel = run_label_str(run_ts)
+    rtype  = "Medium" if steps[-1][0] > 48 else "Short"
     print(f"  Run: {rlabel} ({rtype})")
 
     step_entries = []
