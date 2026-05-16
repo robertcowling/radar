@@ -493,29 +493,60 @@ function buildBiasCbar() {
 }
 
 // ── Valid snapshot filtering ──────────────────────────────────────
-function computeValidSnapIndices(goToEnd) {
+function _snapsForPeriod(run, ukvPeriodKey) {
+  var result = [];
+  snapshots.forEach(function(snap, i) {
+    var dt = radarTsToDt(snap.ts);
+    if (dt.getUTCMinutes() !== 0) return;
+    var step = findMatchedUKVStep(run, dt);
+    if (!step || !step[ukvPeriodKey]) return;
+    result.push(i);
+  });
+  return result;
+}
+
+// autoPickPeriod: true on init / run change so a period with actual data is chosen;
+// false when the user has explicitly selected a period (slider simply stops at boundary).
+function computeValidSnapIndices(goToEnd, autoPickPeriod) {
   var run = ukvMeta && ukvMeta.runs && ukvMeta.runs[currentRunIdx];
   if (!run || !snapshots.length) {
     validSnapIndices = snapshots.map(function(_, i) { return i; });
+    document.getElementById('noCompare').style.display = 'none';
   } else {
-    var ukvPeriodKey = PERIOD_UKV_KEY[currentPeriod];
-    validSnapIndices = [];
-    snapshots.forEach(function(snap, i) {
-      var dt = radarTsToDt(snap.ts);
-      if (dt.getUTCMinutes() !== 0) return;   // only on-the-hour snapshots align with UKV steps
-      var step = findMatchedUKVStep(run, dt);
-      if (!step || !step[ukvPeriodKey]) return;  // UKV step must have data for the selected period
-      validSnapIndices.push(i);
-    });
-  }
+    validSnapIndices = _snapsForPeriod(run, PERIOD_UKV_KEY[currentPeriod]);
 
-  var noOverlap = !validSnapIndices.length;
-  document.getElementById('noCompare').style.display = noOverlap ? 'block' : 'none';
-  if (noOverlap) validSnapIndices = snapshots.map(function(_, i) { return i; });
+    // On init / run change: auto-pick a period that actually has data
+    if (!validSnapIndices.length && autoPickPeriod) {
+      var tryOrder = ['12hr','6hr','24hr','3hr','1hr','48hr'];
+      for (var pi = 0; pi < tryOrder.length; pi++) {
+        if (tryOrder[pi] === currentPeriod) continue;
+        var snaps = _snapsForPeriod(run, PERIOD_UKV_KEY[tryOrder[pi]]);
+        if (snaps.length) {
+          currentPeriod = tryOrder[pi];
+          document.getElementById('periodSelect').value = currentPeriod;
+          validSnapIndices = snaps;
+          break;
+        }
+      }
+    }
+
+    // Warning: only when there is truly no temporal overlap (run entirely future/past)
+    var anyHourMatch = snapshots.some(function(snap) {
+      var dt = radarTsToDt(snap.ts);
+      return dt.getUTCMinutes() === 0 && !!findMatchedUKVStep(run, dt);
+    });
+    document.getElementById('noCompare').style.display = anyHourMatch ? 'none' : 'block';
+
+    // Fallback: on-the-hour snapshots only (never step at 15-min intervals)
+    if (!validSnapIndices.length) {
+      snapshots.forEach(function(snap, i) {
+        if (radarTsToDt(snap.ts).getUTCMinutes() === 0) validSnapIndices.push(i);
+      });
+    }
+  }
 
   var slider = document.getElementById('timeSlider');
   slider.max = Math.max(0, validSnapIndices.length - 1);
-
   var newPos = goToEnd ? validSnapIndices.length - 1 : validSnapIndices.lastIndexOf(currentIdx);
   if (newPos < 0) newPos = validSnapIndices.length - 1;
   newPos = Math.max(0, newPos);
@@ -756,8 +787,8 @@ function setSnapshot(sliderPos) {
   currentIdx = validSnapIndices.length > sliderPos ? validSnapIndices[sliderPos] : sliderPos;
   refreshDisplay();
 }
-function setPeriod(p)  { currentPeriod = p; computeValidSnapIndices(false); refreshDisplay(); }
-function setRun(idx)   { currentRunIdx = idx; computeValidSnapIndices(false); refreshDisplay(); }
+function setPeriod(p)  { currentPeriod = p; computeValidSnapIndices(false, false); refreshDisplay(); }
+function setRun(idx)   { currentRunIdx = idx; computeValidSnapIndices(false, true); refreshDisplay(); }
 function setScheme(s)  { currentScheme = s; buildAccumCbar(); updateImageOverlays(snapshots[currentIdx], _lastUKVStep, PERIOD_UKV_KEY[currentPeriod]); renderAll(); }
 
 // Cache the last UKV step so setScheme can update the image without a full refresh
@@ -809,7 +840,7 @@ function loadRadarMeta() {
       if (!data.snapshots || !data.snapshots.length) return;
       var wasAtEnd = !snapshots.length || currentIdx >= snapshots.length - 1;
       snapshots = data.snapshots;
-      computeValidSnapIndices(wasAtEnd);
+      computeValidSnapIndices(wasAtEnd, true);
       if (data.generated_at) {
         var d = new Date(data.generated_at), p = function(n) { return n < 10 ? '0' + n : '' + n; };
         document.getElementById('generatedAt').textContent = 'Radar updated ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ' UTC';
@@ -824,7 +855,7 @@ function loadUKVMeta() {
     .then(function(data) {
       ukvMeta = data;
       buildRunSelect();
-      if (snapshots.length) { computeValidSnapIndices(false); refreshDisplay(); }
+      if (snapshots.length) { computeValidSnapIndices(false, true); refreshDisplay(); }
     }).catch(function(e) { console.error('ukv meta', e); });
 }
 
