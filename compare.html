@@ -498,10 +498,13 @@ function _snapsForPeriod(run, ukvPeriodKey) {
   var runDt = parseRunDt(run.run_ts);
   if (!runDt) return [];
 
+  var latestSnapMs = radarTsToDt(snapshots[snapshots.length - 1].ts).getTime();
   var result = [], usedSet = {};
   run.steps.forEach(function(step) {
     if (!step[ukvPeriodKey]) return;
     var validMs = runDt.getTime() + step.offset_hours * 3600000;
+    // Only compare periods that have already closed (valid time ≤ latest radar snapshot)
+    if (validMs > latestSnapMs) return;
     // Find the latest radar snapshot within the 60-min window before (or at) the UKV valid time
     var bestIdx = -1, bestSnapMs = -Infinity;
     snapshots.forEach(function(snap, i) {
@@ -762,13 +765,29 @@ function updateUKVBadge(step) {
   if (b) b.textContent = step ? 'UKV FORECAST  T+' + step.offset_hours + 'h' : 'UKV FORECAST';
 }
 
+var _MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var _DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function _pad(n) { return n < 10 ? '0'+n : ''+n; }
+
+function updatePlayerTimeFromUKV(step, runDt) {
+  var validDt = new Date(runDt.getTime() + step.offset_hours * 3600000);
+  document.getElementById('playerDateLine').textContent =
+    _DAYS[validDt.getUTCDay()] + ' ' + validDt.getUTCDate() + ' ' + _MONTHS[validDt.getUTCMonth()] + ' ' + validDt.getUTCFullYear();
+  document.getElementById('playerTimeLine').textContent =
+    _pad(validDt.getUTCHours()) + ':' + _pad(validDt.getUTCMinutes()) + ' UTC';
+}
+
 function refreshDisplay() {
   if (!snapshots.length) return;
   var snap    = snapshots[currentIdx];
-  updatePlayerTime(snap);
 
   var run     = ukvMeta && ukvMeta.runs && ukvMeta.runs[currentRunIdx];
   var ukvStep = run ? findMatchedUKVStep(run, radarTsToDt(snap.ts)) : null;
+
+  // Show UKV valid time (always on the hour) rather than the radar snapshot timestamp
+  var runDt = run ? parseRunDt(run.run_ts) : null;
+  if (ukvStep && runDt) updatePlayerTimeFromUKV(ukvStep, runDt);
+  else                  updatePlayerTime(snap);
 
   updatePeriodSelect(ukvStep);                         // may change currentPeriod
   var ukvPeriodKey = PERIOD_UKV_KEY[currentPeriod];   // recompute after period update
