@@ -215,13 +215,10 @@ select option:disabled { color: #bbb; }
 .info-panel.panel-leaving  { animation: panelDismiss 0.18s cubic-bezier(0.4,0,1,1) forwards; pointer-events: none; overflow: hidden; }
 
 @media (max-width: 900px) {
-  .maps-row { flex-direction: column; }
-  .map-wrap + .map-wrap { border-left: none; border-top: 2px solid #374151; }
-  .map-wrap { min-height: 33vh; }
-  .info-panel { top: 44px; right: 8px; width: calc(100% - 16px); left: 8px; box-sizing: border-box; }
-  .map-header-cell { font-size: 10px; letter-spacing: 0.3px; }
-  .player-panel { bottom: 8px; width: calc(100% - 16px); padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
-  #playerDateTime { width: 90px; }
+  .map-header-cell { font-size: 9px; letter-spacing: 0.2px; padding: 0 4px; }
+  .info-panel { top: 44px; right: 6px; width: 200px; }
+  .player-panel { bottom: 6px; width: calc(100% - 12px); padding: 8px 10px; gap: 6px; flex-wrap: wrap; }
+  #playerDateTime { width: 80px; }
 }
 </style>
 </head>
