@@ -145,6 +145,23 @@
 
   .region-boundary { filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.75)); }
 
+  .toggle-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: #3c4043; cursor: pointer; padding: 4px 0;
+  }
+  .toggle-row input[type="checkbox"] {
+    accent-color: #202124; width: 15px; height: 15px;
+    cursor: pointer; flex-shrink: 0;
+  }
+
+  .poly-tooltip {
+    background: white; border: none; border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    font-family: 'Roboto', sans-serif; font-size: 12px; font-weight: 500;
+    padding: 5px 10px; white-space: nowrap; color: #202124;
+  }
+  .poly-tooltip::before { display: none; }
+
   @keyframes panelReveal {
     from { opacity: 0; transform: scale(0.08); }
     to   { opacity: 1; transform: scale(1); }
@@ -245,22 +262,6 @@
     transform: scale(1.15);
     box-shadow: 0 3px 6px rgba(0,0,0,0.4);
   }
-
-  /* Play button */
-  #playBtn {
-    background: #202124;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 36px; height: 36px;
-    font-size: 13px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    transition: background 0.2s;
-    margin-top: 13px;
-  }
-  #playBtn:hover { background: #3c4043; }
 
   #playerDateTime {
     flex-shrink: 0;
@@ -375,9 +376,13 @@
       <input type="radio" name="boundaryLayer" value="catchments" onchange="onBoundaryChange('catchments')">
       Catchments
     </label>
-    <label class="custom-checkbox" style="margin-bottom:8px;">
+    <label class="custom-checkbox">
       <input type="radio" name="boundaryLayer" value="grid" onchange="onBoundaryChange('grid')">
       Grid (20km)
+    </label>
+    <label class="toggle-row" id="polyToggleRow" style="margin-top:6px; margin-bottom:8px; opacity:0.4;">
+      <input type="checkbox" id="polyToggle" disabled onchange="setPolyVisible(this.checked)">
+      <span>Show area average</span>
     </label>
 
     <p id="generatedAt"></p>
@@ -394,8 +399,6 @@
     </select>
   </div>
 
-  <button id="playBtn" onclick="togglePlay()" title="Play / Pause">&#9654;</button>
-
   <div class="timeline-container">
     <div class="timeline-track">
       <div id="loadedProgress" class="loaded-progress"></div>
@@ -411,7 +414,7 @@
   </div>
 
   <div class="control-group">
-    <span class="control-label">Layer</span>
+    <span class="control-label">Period</span>
     <select id="layerSelect" onchange="setLayer(this.value)">
       <option value="rainfall_rate" selected>Precipitation rate</option>
       <option value="accum_1h">1-hour accumulation</option>
@@ -556,6 +559,100 @@ function preloadVisibleFrames() {
   });
 }
 
+// ── Polygon choropleth ────────────────────────────────────────────────────────
+var polyVisible = false;
+var polyCache   = {};
+
+var LAYER_NAME_KEY = {
+  regions: 'rgn19nm', counties: 'name', catchments: 'HA_NAME', grid: 'name'
+};
+
+function mmToFillColor(mm, schemeName) {
+  if (mm === null || mm === undefined) return 'transparent';
+  var schemes = schemesFor(layerKind(currentLayer));
+  var s = schemes[schemeName] || schemes.norm;
+  if (mm < s.bounds[0]) return 'transparent';
+  for (var i = s.bounds.length - 1; i >= 0; i--) {
+    if (mm >= s.bounds[i]) return s.colors[i];
+  }
+  return 'transparent';
+}
+
+function loadPolySnapshot(runTs, offset, cb) {
+  var url = R2_CDN + '/ukv_poly/' + runTs + '/' + offset + '.json';
+  if (polyCache[url]) { cb(polyCache[url]); return; }
+  fetch(url)
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(d) { polyCache[url] = d; cb(d); })
+    .catch(function() { cb(null); });
+}
+
+function renderPolyChoropleth() {
+  if (!polyVisible || currentBoundary === 'none') return;
+  if (layerKind(currentLayer) !== 'accum') return;
+  if (!meta) return;
+  var run  = meta.runs[currentRun];
+  var step = run && run.steps[currentStep];
+  if (!step) return;
+  var gLayer  = getLayerObj(currentBoundary);
+  if (!gLayer) return;
+  var nameKey = LAYER_NAME_KEY[currentBoundary];
+
+  loadPolySnapshot(run.run_ts, step.offset, function(polySnap) {
+    if (!polySnap || !polySnap[currentBoundary] || !polySnap[currentBoundary][currentLayer]) {
+      clearPolyChoropleth();
+      return;
+    }
+    var vals = polySnap[currentBoundary][currentLayer];
+    gLayer.setStyle(function(feature) {
+      var name = feature.properties[nameKey];
+      var mm   = vals[name];
+      return {
+        fillColor:   mmToFillColor(mm, currentScheme),
+        fillOpacity: (mm !== null && mm !== undefined) ? 0.55 : 0,
+        color:  '#5f6368',
+        weight: BOUNDARY_STYLES[currentBoundary].weight,
+        className: 'region-boundary',
+      };
+    });
+    gLayer.eachLayer(function(l) {
+      var name = l.feature && l.feature.properties[nameKey];
+      var mm   = (name !== undefined) ? vals[name] : null;
+      var tip  = (mm !== null && mm !== undefined)
+        ? name + ': ' + mm.toFixed(1) + ' mm'
+        : name;
+      l.bindTooltip(tip, { sticky: true, className: 'poly-tooltip' });
+    });
+  });
+}
+
+function clearPolyChoropleth() {
+  ['regions','counties','catchments','grid'].forEach(function(n) {
+    var l = getLayerObj(n);
+    if (l) { l.setStyle({ fillOpacity: 0 }); l.eachLayer(function(f) { f.unbindTooltip(); }); }
+  });
+}
+
+function setPolyVisible(checked) {
+  polyVisible = checked;
+  if (checked) {
+    ukvOverlay.setOpacity(0);
+    renderPolyChoropleth();
+  } else {
+    ukvOverlay.setOpacity(document.getElementById('opacitySlider').value / 100);
+    clearPolyChoropleth();
+  }
+}
+
+function _updatePolyToggle() {
+  var isAccum = layerKind(currentLayer) === 'accum';
+  var enabled = isAccum && currentBoundary !== 'none';
+  var toggle  = document.getElementById('polyToggle');
+  var row     = document.getElementById('polyToggleRow');
+  if (toggle) toggle.disabled = !enabled;
+  if (row)    row.style.opacity = enabled ? '1' : '0.4';
+}
+
 // ── Colour bar ────────────────────────────────────────────────────────────────
 function buildCbar() {
   var info   = LAYER_INFO[currentLayer];
@@ -616,7 +713,7 @@ function updateDisplay() {
   } else {
     document.getElementById('noData').style.display = 'none';
     ukvOverlay.setUrl(url + '?_=' + generatedAt);
-    ukvOverlay.setOpacity(document.getElementById('opacitySlider').value / 100);
+    ukvOverlay.setOpacity(polyVisible ? 0 : document.getElementById('opacitySlider').value / 100);
   }
 
   var dt = splitValidLabel(step.valid_label);
@@ -661,6 +758,7 @@ function setStep(idx) {
   currentStep = idx;
   document.getElementById('timeSlider').value = idx;
   updateDisplay();
+  if (polyVisible) renderPolyChoropleth();
 }
 
 function setRun(idx) {
@@ -669,20 +767,27 @@ function setRun(idx) {
   currentRun  = idx;
   currentStep = 0;
   applyStepRange();
+  clearPolyChoropleth();
   updateDisplay();
   preloadVisibleFrames();
 }
 
 function setLayer(layer) {
   currentLayer = layer;
+  var isAccum  = layerKind(layer) === 'accum';
+  if (!isAccum && polyVisible) setPolyVisible(false);
+  _updatePolyToggle();
   applyStepRange();
+  clearPolyChoropleth();
   updateDisplay();
+  if (polyVisible) renderPolyChoropleth();
   preloadVisibleFrames();
 }
 
 function setScheme(scheme) {
   currentScheme = scheme;
   updateDisplay();
+  if (polyVisible) renderPolyChoropleth();
   preloadVisibleFrames();
 }
 
@@ -717,13 +822,11 @@ var PLAY_MS   = 350;
 
 function togglePlay() {
   playing = !playing;
-  document.getElementById('playBtn').innerHTML = playing ? '&#9646;&#9646;' : '&#9654;';
   if (playing) scheduleAdvance();
 }
 
 function stopPlay() {
   playing = false;
-  document.getElementById('playBtn').innerHTML = '&#9654;';
   if (playTimer) { clearTimeout(playTimer); playTimer = null; }
 }
 
@@ -800,6 +903,7 @@ function loadBoundary(val) {
 }
 
 function onBoundaryChange(val) {
+  clearPolyChoropleth();
   ['regions','counties','catchments','grid'].forEach(function(n) {
     var l = getLayerObj(n);
     if (l && map.hasLayer(l)) map.removeLayer(l);
@@ -809,7 +913,9 @@ function onBoundaryChange(val) {
     var l = getLayerObj(val);
     if (l) { l.setStyle(BOUNDARY_STYLES[val]); l.addTo(map); }
     else loadBoundary(val);
+    if (polyVisible) renderPolyChoropleth();
   }
+  _updatePolyToggle();
 }
 
 // ── Run dropdown ──────────────────────────────────────────────────────────────
@@ -848,6 +954,7 @@ function loadMeta() {
 
       populateRunSelect();
       updateDisplay();
+      _updatePolyToggle();
       preloadVisibleFrames();
     })
     .catch(function() {

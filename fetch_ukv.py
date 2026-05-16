@@ -25,6 +25,15 @@ from botocore.client import Config
 from PIL import Image
 from pyproj import CRS, Transformer
 
+from poly_utils import (
+    GEOJSON_LAYERS,
+    build_merc_axes,
+    build_pixel_masks,
+    masks_to_npz_bytes,
+    npz_bytes_to_masks,
+    compute_poly_averages,
+)
+
 # ── Output domain — covers full UKV LAEA extent (valid mask handles transparency)
 LON_MIN, LON_MAX = -26.0, 17.0
 LAT_MIN, LAT_MAX =  43.0, 63.0
@@ -418,6 +427,61 @@ def upload_schemes(r2, arr, schemes, run_ts, offset, prefix):
     return urls
 
 
+# ── Polygon masks (UKV grid) ──────────────────────────────────────────────────────
+UKV_MASKS_PREFIX = "ukv_masks"
+
+
+def load_or_build_ukv_masks(r2):
+    """Load cached UKV pixel masks from R2, or rasterise and cache if absent.
+
+    UKV output grid (1725×1800, lon -26..17, lat 43..63) differs from the radar
+    accum grid so we maintain a separate mask cache under ukv_masks/.
+    Returns {layer_name: {poly_name: (rows, cols)}}.
+    """
+    ll_to_merc, xmin, xmax, ymin_m, ymax_m = build_merc_axes(
+        WIDTH, HEIGHT, LON_MIN, LON_MAX, LAT_MIN, LAT_MAX
+    )
+
+    all_masks = {}
+    for layer_name, (geojson_path, name_key) in GEOJSON_LAYERS.items():
+        if not os.path.exists(geojson_path):
+            print(f"  [ukv_masks/{layer_name}] {geojson_path} not found — skipping")
+            continue
+
+        npz_key   = f"{UKV_MASKS_PREFIX}/{layer_name}.npz"
+        names_key = f"{UKV_MASKS_PREFIX}/{layer_name}_names.json"
+
+        # Try loading from R2 cache
+        try:
+            names_obj = r2.get_object(Bucket=R2_BUCKET, Key=names_key)
+            names     = json.loads(names_obj["Body"].read())
+            npz_obj   = r2.get_object(Bucket=R2_BUCKET, Key=npz_key)
+            masks     = npz_bytes_to_masks(npz_obj["Body"].read(), names)
+            print(f"  [ukv_masks/{layer_name}] loaded from R2 ({len(names)} polygons)")
+            all_masks[layer_name] = masks
+            continue
+        except Exception:
+            pass
+
+        # Build from GeoJSON and cache
+        print(f"  [ukv_masks/{layer_name}] building from {geojson_path}...")
+        masks = build_pixel_masks(geojson_path, name_key, WIDTH, HEIGHT,
+                                  ll_to_merc, xmin, xmax, ymin_m, ymax_m)
+        names = list(masks.keys())
+        print(f"  [ukv_masks/{layer_name}] {len(names)} polygons rasterised")
+
+        npz_bytes = masks_to_npz_bytes(masks, names)
+        r2.put_object(Bucket=R2_BUCKET, Key=npz_key, Body=npz_bytes,
+                      ContentType="application/octet-stream")
+        r2.put_object(Bucket=R2_BUCKET, Key=names_key,
+                      Body=json.dumps(names).encode(),
+                      ContentType="application/json; charset=utf-8")
+        print(f"  [ukv_masks/{layer_name}] cached to R2")
+        all_masks[layer_name] = masks
+
+    return all_masks
+
+
 # ── Valid time label ──────────────────────────────────────────────────────────────
 def valid_label_str(valid_ts):
     return parse_run_dt(valid_ts).strftime("%-d %b %Y %H:%M GMT")
@@ -478,6 +542,10 @@ def main():
     rtype  = "Medium" if steps[-1][0] > 48 else "Short"
     print(f"  Run: {rlabel} ({rtype})")
 
+    print("Loading polygon masks...")
+    ukv_masks = load_or_build_ukv_masks(r2)
+    print(f"  Masks ready for {len(ukv_masks)} boundary layer(s)")
+
     step_entries = []
     accum_stack  = []  # rolling list of hourly accum arrays, max 48
 
@@ -504,6 +572,7 @@ def main():
                 accum_stack.pop(0)
 
             n_avail = len(accum_stack)
+            arrays_for_poly = {}
             for n in ACCUM_PERIODS:
                 if n_avail < n:
                     continue
@@ -515,6 +584,17 @@ def main():
                     png_to_r2(r2, key, img)
                     urls[sname] = f"{R2_PUBLIC_URL}/{key}"
                 entry[f"accum_{n}h"] = urls
+                arrays_for_poly[f"accum_{n}h"] = arr_n
+
+            # Polygon area averages for all boundary layers
+            if arrays_for_poly and ukv_masks:
+                poly_data = compute_poly_averages(arrays_for_poly, ukv_masks)
+                r2.put_object(
+                    Bucket=R2_BUCKET,
+                    Key=f"ukv_poly/{run_ts}/{offset}.json",
+                    Body=json.dumps(poly_data).encode(),
+                    ContentType="application/json; charset=utf-8",
+                )
 
         step_entries.append(entry)
 

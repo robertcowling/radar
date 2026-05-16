@@ -12,6 +12,15 @@ from botocore.client import Config
 from PIL import Image, ImageDraw
 from pyproj import Transformer
 
+from poly_utils import (
+    GEOJSON_LAYERS as _GEOJSON_LAYERS,
+    build_merc_axes as _build_merc_axes_util,
+    build_pixel_masks as _build_pixel_masks_util,
+    masks_to_npz_bytes as _masks_to_npz_bytes_util,
+    npz_bytes_to_masks as _npz_bytes_to_masks_util,
+    compute_poly_averages as _compute_poly_averages_util,
+)
+
 # ── Output domain (matches process_parallel.py / parallel feed viewer) ─────────
 LON_MIN, LON_MAX = -17.9739, 16.1291
 LAT_MIN, LAT_MAX =  43.7009, 62.9207
@@ -24,13 +33,7 @@ FRAMES_MAX   = 480       # 5d × 96 frames/day
 INTERVAL_HRS = 0.25      # 15 min → hours; multiply rain rate by this for mm/frame
 
 # ── Geography layers for polygon-average overlays ──────────────────────────────
-# (geojson_filename, property_key_for_name)
-GEOJSON_LAYERS = {
-    "regions":    ("uk_regions.geojson",    "rgn19nm"),
-    "counties":   ("uk-counties.geojson",   "name"),
-    "catchments": ("uk_catchments.geojson", "HA_NAME"),
-    "grid":       ("uk_grid_20km.geojson",  "name"),
-}
+GEOJSON_LAYERS = _GEOJSON_LAYERS
 
 # ── Periods ────────────────────────────────────────────────────────────────────
 PERIODS = {
@@ -214,84 +217,9 @@ def json_to_r2(r2, key, data):
                   ContentType="application/json; charset=utf-8")
 
 
-# ── Polygon mask helpers ───────────────────────────────────────────────────────
+# ── Polygon mask helpers (delegated to poly_utils) ────────────────────────────
 def _build_merc_axes():
-    """Return (ll_to_merc, xmin, xmax, ymin_m, ymax_m, merc_xs, merc_ys)."""
-    ll_to_merc = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
-    xmin, ymin_m = ll_to_merc.transform(LON_MIN, LAT_MIN)
-    xmax, ymax_m = ll_to_merc.transform(LON_MAX, LAT_MAX)
-    return ll_to_merc, xmin, xmax, ymin_m, ymax_m
-
-
-def _ring_to_pixels(ring, ll_to_merc, xmin, xmax, ymin_m, ymax_m):
-    """Convert [[lon,lat],...] ring to [(col,row),...] pixel coords."""
-    pts = []
-    for lon, lat in ring:
-        mx, my = ll_to_merc.transform(lon, lat)
-        col = (mx - xmin) / (xmax - xmin) * (WIDTH - 1)
-        row = (ymax_m - my) / (ymax_m - ymin_m) * (HEIGHT - 1)
-        pts.append((col, row))
-    return pts
-
-
-def _build_pixel_masks(geojson_path, name_key, ll_to_merc, xmin, xmax, ymin_m, ymax_m):
-    """Rasterise every feature in a GeoJSON into pixel index arrays.
-    Returns {name: (rows_uint16, cols_uint16)}."""
-    with open(geojson_path) as f:
-        gj = json.load(f)
-
-    masks = {}
-    for feat in gj.get("features", []):
-        name = feat["properties"].get(name_key, "")
-        if not name:
-            continue
-        geom = feat["geometry"]
-        img  = Image.new("L", (WIDTH, HEIGHT), 0)
-        draw = ImageDraw.Draw(img)
-
-        gtype = geom["type"]
-        if gtype == "Polygon":
-            rings = geom["coordinates"]
-        elif gtype == "MultiPolygon":
-            rings = [r for poly in geom["coordinates"] for r in poly]
-        else:
-            continue
-
-        for ring in rings:
-            pts = _ring_to_pixels(ring, ll_to_merc, xmin, xmax, ymin_m, ymax_m)
-            if len(pts) >= 3:
-                draw.polygon(pts, fill=255)
-
-        arr = np.frombuffer(img.tobytes(), dtype=np.uint8).reshape(HEIGHT, WIDTH)
-        rows, cols = np.where(arr > 0)
-        if len(rows):
-            masks[name] = (rows.astype(np.uint16), cols.astype(np.uint16))
-
-    return masks
-
-
-def _masks_to_npz_bytes(masks, names):
-    """Pack masks dict into a compressed NPZ bytes object."""
-    all_rows = np.concatenate([masks[n][0] for n in names]).astype(np.uint16)
-    all_cols = np.concatenate([masks[n][1] for n in names]).astype(np.uint16)
-    counts   = np.array([len(masks[n][0]) for n in names], dtype=np.int32)
-    offsets  = np.concatenate([[0], np.cumsum(counts[:-1])]).astype(np.int32)
-    buf = io.BytesIO()
-    np.savez_compressed(buf, rows=all_rows, cols=all_cols, counts=counts, offsets=offsets)
-    return buf.getvalue()
-
-
-def _npz_bytes_to_masks(npz_bytes, names):
-    """Unpack NPZ bytes + names list back to {name: (rows, cols)}."""
-    data    = np.load(io.BytesIO(npz_bytes))
-    rows_all, cols_all = data["rows"], data["cols"]
-    counts, offsets    = data["counts"], data["offsets"]
-    masks = {}
-    for i, name in enumerate(names):
-        s = int(offsets[i])
-        e = s + int(counts[i])
-        masks[name] = (rows_all[s:e], cols_all[s:e])
-    return masks
+    return _build_merc_axes_util(WIDTH, HEIGHT, LON_MIN, LON_MAX, LAT_MIN, LAT_MAX)
 
 
 def load_or_build_masks(r2, layer_name, geojson_path, name_key):
@@ -302,20 +230,21 @@ def load_or_build_masks(r2, layer_name, geojson_path, name_key):
     names_data = json_from_r2(r2, names_key)
     if names_data is not None:
         try:
-            obj      = r2.get_object(Bucket=R2_BUCKET, Key=npz_key)
+            obj       = r2.get_object(Bucket=R2_BUCKET, Key=npz_key)
             npz_bytes = obj["Body"].read()
             print(f"  [{layer_name}] loaded masks from R2 ({len(names_data)} polygons)")
-            return _npz_bytes_to_masks(npz_bytes, names_data)
+            return _npz_bytes_to_masks_util(npz_bytes, names_data)
         except Exception:
             pass
 
     print(f"  [{layer_name}] building pixel masks from {geojson_path}...")
     ll_to_merc, xmin, xmax, ymin_m, ymax_m = _build_merc_axes()
-    masks = _build_pixel_masks(geojson_path, name_key, ll_to_merc, xmin, xmax, ymin_m, ymax_m)
+    masks = _build_pixel_masks_util(geojson_path, name_key, WIDTH, HEIGHT,
+                                    ll_to_merc, xmin, xmax, ymin_m, ymax_m)
     names = list(masks.keys())
     print(f"  [{layer_name}] {len(names)} polygons rasterised")
 
-    npz_bytes = _masks_to_npz_bytes(masks, names)
+    npz_bytes = _masks_to_npz_bytes_util(masks, names)
     r2.put_object(Bucket=R2_BUCKET, Key=npz_key, Body=npz_bytes,
                   ContentType="application/octet-stream")
     json_to_r2(r2, names_key, names)
@@ -324,17 +253,16 @@ def load_or_build_masks(r2, layer_name, geojson_path, name_key):
 
 
 def compute_poly_averages(sums, masks):
-    """Return {period: {name: mean_mm}} for all periods and polygons."""
-    result = {}
-    for period, arr in sums.items():
-        period_data = {}
-        for name, (rows, cols) in masks.items():
-            if len(rows) == 0:
-                period_data[name] = None
-            else:
-                period_data[name] = round(float(arr[rows, cols].mean()), 2)
-        result[period] = period_data
-    return result
+    """Return {period: {name: mean_mm}} for all periods and polygons.
+
+    Thin wrapper kept for backward compatibility; delegates to poly_utils.
+    sums:  {period_str: np.ndarray}
+    masks: {name: (rows, cols)}
+    """
+    # poly_utils.compute_poly_averages expects {layer: masks}; here we have a
+    # single layer's masks dict, so wrap and unwrap accordingly.
+    result_nested = _compute_poly_averages_util(sums, {"_": masks})
+    return result_nested["_"]
 
 
 def upload_poly_snapshot(r2, ts, poly_snap):
