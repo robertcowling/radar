@@ -317,9 +317,9 @@ select option:disabled { color: #bbb; }
     <span class="control-label">Period</span>
     <select id="periodSelect" onchange="setPeriod(this.value)">
       <option value="1hr">1 Hour</option>
-      <option value="3hr">3 Hours</option>
+      <option value="3hr" selected>3 Hours</option>
       <option value="6hr">6 Hours</option>
-      <option value="12hr" selected>12 Hours</option>
+      <option value="12hr">12 Hours</option>
       <option value="24hr">24 Hours</option>
       <option value="48hr">48 Hours</option>
     </select>
@@ -388,7 +388,7 @@ var UKV_BOUNDS   = [[43.0,  -26.0],   [63.0,   17.0  ]];
 var snapshots        = [];
 var validSnapIndices = [];   // positions in snapshots[] that match current UKV run
 var currentIdx       = 0;   // absolute index into snapshots[]
-var currentPeriod    = '12hr';
+var currentPeriod    = '3hr';
 var currentRunIdx    = 0;
 var currentScheme    = 'met';
 var currentBoundary  = 'catchments';
@@ -517,7 +517,7 @@ function computeValidSnapIndices(goToEnd, autoPickPeriod) {
 
     // On init / run change: auto-pick a period that actually has data
     if (!validSnapIndices.length && autoPickPeriod) {
-      var tryOrder = ['12hr','6hr','24hr','3hr','1hr','48hr'];
+      var tryOrder = ['3hr','6hr','12hr','1hr','24hr','48hr'];
       for (var pi = 0; pi < tryOrder.length; pi++) {
         if (tryOrder[pi] === currentPeriod) continue;
         var snaps = _snapsForPeriod(run, PERIOD_UKV_KEY[tryOrder[pi]]);

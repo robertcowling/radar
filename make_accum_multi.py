@@ -390,8 +390,14 @@ def render_and_upload(r2, sums, all_frame_keys):
 
     for period, n_frames in PERIODS.items():
         target_keys  = all_frame_keys[-n_frames:]
-        period_start = frame_label(target_keys[0])  if target_keys else ""
-        period_end   = frame_label(target_keys[-1]) if target_keys else ""
+        # period_start: one frame interval (15 min) before the first frame label,
+        # because each frame label is the END of its 15-min observation window.
+        if target_keys:
+            start_dt = datetime.strptime(target_keys[0], "%Y%m%d%H%M") - timedelta(minutes=15)
+            period_start = start_dt.strftime("%a %d %b %Y %H:%M UTC")
+        else:
+            period_start = ""
+        period_end = frame_label(target_keys[-1]) if target_keys else ""
         arr = sums[period]
 
         period_data = {"period_start": period_start, "period_end": period_end}
