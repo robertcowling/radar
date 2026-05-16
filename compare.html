@@ -494,14 +494,28 @@ function buildBiasCbar() {
 
 // ── Valid snapshot filtering ──────────────────────────────────────
 function _snapsForPeriod(run, ukvPeriodKey) {
-  var result = [];
-  snapshots.forEach(function(snap, i) {
-    var dt = radarTsToDt(snap.ts);
-    if (dt.getUTCMinutes() !== 0) return;
-    var step = findMatchedUKVStep(run, dt);
-    if (!step || !step[ukvPeriodKey]) return;
-    result.push(i);
+  if (!run || !run.steps) return [];
+  var runDt = parseRunDt(run.run_ts);
+  if (!runDt) return [];
+
+  var result = [], usedSet = {};
+  run.steps.forEach(function(step) {
+    if (!step[ukvPeriodKey]) return;
+    var validMs = runDt.getTime() + step.offset_hours * 3600000;
+    // Find the latest radar snapshot within the 60-min window before (or at) the UKV valid time
+    var bestIdx = -1, bestSnapMs = -Infinity;
+    snapshots.forEach(function(snap, i) {
+      var snapMs = radarTsToDt(snap.ts).getTime();
+      var diff = validMs - snapMs;
+      if (diff >= 0 && diff < 3600000 && snapMs > bestSnapMs) {
+        bestSnapMs = snapMs; bestIdx = i;
+      }
+    });
+    if (bestIdx >= 0 && !usedSet[bestIdx]) {
+      usedSet[bestIdx] = true; result.push(bestIdx);
+    }
   });
+  result.sort(function(a, b) { return a - b; });
   return result;
 }
 
@@ -531,17 +545,14 @@ function computeValidSnapIndices(goToEnd, autoPickPeriod) {
     }
 
     // Warning: only when there is truly no temporal overlap (run entirely future/past)
-    var anyHourMatch = snapshots.some(function(snap) {
-      var dt = radarTsToDt(snap.ts);
-      return dt.getUTCMinutes() === 0 && !!findMatchedUKVStep(run, dt);
+    var anyMatch = snapshots.some(function(snap) {
+      return !!findMatchedUKVStep(run, radarTsToDt(snap.ts));
     });
-    document.getElementById('noCompare').style.display = anyHourMatch ? 'none' : 'block';
+    document.getElementById('noCompare').style.display = anyMatch ? 'none' : 'block';
 
-    // Fallback: on-the-hour snapshots only (never step at 15-min intervals)
+    // Fallback: show all snapshots if no period-specific match found
     if (!validSnapIndices.length) {
-      snapshots.forEach(function(snap, i) {
-        if (radarTsToDt(snap.ts).getUTCMinutes() === 0) validSnapIndices.push(i);
-      });
+      validSnapIndices = snapshots.map(function(_, i) { return i; });
     }
   }
 
