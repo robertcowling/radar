@@ -547,7 +547,11 @@ def main():
     print(f"  Masks ready for {len(ukv_masks)} boundary layer(s)")
 
     step_entries = []
-    accum_stack  = []  # rolling list of hourly accum arrays, max 48
+    # Stack of {'arr': ndarray, 'hours': int, 'estimated': bool}.
+    # Real 1h accumulation files are used for T+1..T+54; beyond that the Met
+    # Office publishes only 3-hourly rate files, so we approximate accumulation
+    # as rate_mm_hr × step_interval_hours and flag those slots as estimated.
+    accum_stack = []
 
     for i, (hours, offset, valid_ts) in enumerate(steps):
         vlabel = valid_label_str(valid_ts)
@@ -561,23 +565,48 @@ def main():
         if urls:
             entry["rainfall_rate"] = urls
 
-        # Hourly accumulation → rolling multi-period sums.
-        # Each duration is rendered with the same three schemes used in /radar
-        # (norm / high / met), so the colour scale only depends on the scheme,
-        # not on the accumulation period.
+        # Accumulation: real 1h file if available, else approximate from rate.
         arr_1h = load_arr(s3, run_ts, valid_ts, offset, "rainfall_accumulation-PT01H", mapping)
         if arr_1h is not None:
-            accum_stack.append(arr_1h)
-            if len(accum_stack) > 48:
-                accum_stack.pop(0)
+            accum_stack.append({"arr": arr_1h, "hours": 1, "estimated": False})
+        elif arr is not None:
+            step_h = hours - steps[i - 1][0] if i > 0 else hours
+            print(f"      [estimated] rate×{step_h}h as accum proxy")
+            accum_stack.append({"arr": arr * step_h, "hours": step_h, "estimated": True})
 
-            n_avail = len(accum_stack)
+        # Trim stack to last 48h
+        total_stk = sum(s["hours"] for s in accum_stack)
+        while total_stk > 48 and accum_stack:
+            total_stk -= accum_stack.pop(0)["hours"]
+
+        if accum_stack:
+            total_stk   = sum(s["hours"] for s in accum_stack)
             arrays_for_poly = {}
+            any_estimated   = False
+
             for n in ACCUM_PERIODS:
-                if n_avail < n:
+                if total_stk < n:
                     continue
-                arr_n = np.sum(accum_stack[-n:], axis=0).astype(np.float32)
-                urls = {}
+                # Walk backwards through the stack, accumulating whole slots until
+                # n hours are covered. If a slot is too large for the remaining
+                # budget, stop — this prevents bridging across a temporal gap
+                # (e.g. a 3h slot can't contribute to a 1h accumulation).
+                covered, arrs, is_est = 0, [], False
+                for slot in reversed(accum_stack):
+                    if covered >= n:
+                        break
+                    if slot["hours"] <= n - covered:
+                        arrs.append(slot["arr"])
+                        covered += slot["hours"]
+                        if slot["estimated"]:
+                            is_est = True
+                    else:
+                        break
+                if covered < n:
+                    continue
+
+                arr_n = np.sum(arrs, axis=0).astype(np.float32)
+                urls  = {}
                 for sname, scheme in ACCUM_SCHEMES.items():
                     img = render_png(arr_n, scheme)
                     key = f"ukv/{run_ts}/{offset}_accum_{n}h_{sname}.png"
@@ -585,8 +614,12 @@ def main():
                     urls[sname] = f"{R2_PUBLIC_URL}/{key}"
                 entry[f"accum_{n}h"] = urls
                 arrays_for_poly[f"accum_{n}h"] = arr_n
+                if is_est:
+                    any_estimated = True
 
-            # Polygon area averages for all boundary layers
+            if any_estimated:
+                entry["accum_estimated"] = True
+
             if arrays_for_poly and ukv_masks:
                 poly_data = compute_poly_averages(arrays_for_poly, ukv_masks)
                 r2.put_object(

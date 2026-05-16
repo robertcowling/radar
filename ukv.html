@@ -315,6 +315,14 @@
 <body>
 <div id="map"></div>
 <div id="noData"><p>No data for this layer at this forecast step.<br>Try a different layer or step.</p></div>
+<div id="estimateNotice" style="
+  position:fixed; bottom:102px; left:50%; transform:translateX(-50%);
+  background:rgba(255,171,0,0.93); color:#212529;
+  padding:5px 18px; border-radius:20px;
+  font-family:'Roboto',sans-serif; font-size:11px; font-weight:600;
+  display:none; z-index:999; white-space:nowrap;
+  box-shadow:0 2px 8px rgba(0,0,0,0.18); pointer-events:none;
+">&#9888; Coarse estimate beyond T+54h &mdash; extrapolated from forecast rate</div>
 
 <!-- Info panel -->
 <div class="info-panel surface" id="infoPanel">
@@ -718,6 +726,9 @@ function updateDisplay() {
   document.getElementById('playerDateLine').textContent   = dt.date;
   document.getElementById('playerTimeLine').textContent   = dt.time;
   document.getElementById('playerOffsetLine').textContent = 'T+' + step.offset_hours + 'h';
+
+  var en = document.getElementById('estimateNotice');
+  if (en) en.style.display = (step.accum_estimated && layerKind(currentLayer) === 'accum') ? 'block' : 'none';
 
   buildCbar();
 }
