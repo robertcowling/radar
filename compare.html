@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Model Comparison – Radar vs UKV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+html { height: 100%; }
+body {
+  margin: 0; padding: 0;
+  font-family: 'Roboto', sans-serif;
+  background: #1e293b;
+  color: #3c4043;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.maps-row {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.map-wrap {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+.map-wrap + .map-wrap {
+  border-left: 2px solid #374151;
+}
+.map-pane {
+  width: 100%;
+  height: 100%;
+}
+
+.map-badge {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 500;
+  background: rgba(30,41,59,0.92);
+  color: #f1f5f9;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 16px;
+  border-radius: 20px;
+  letter-spacing: 0.6px;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+/* Surface card */
+.surface {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+  transition: box-shadow 0.3s ease;
+}
+
+/* ── Info panel ──────────────────────────────────────────────────────── */
+.info-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 24px;
+  z-index: 1000;
+  width: 270px;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  transform-origin: top right;
+}
+.info-panel.collapsed {
+  width: 230px;
+  height: auto;
+  padding: 0;
+  overflow: hidden;
+}
+.info-panel.collapsed .collapsed-top-row {
+  background: #1e293b;
+  padding: 9px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.info-panel.collapsed .cbar-container { padding: 6px 13px 8px; }
+.info-panel.collapsed .cbar-container p { font-size: 9px; font-weight: 600; color: #475569; margin-bottom: 3px; }
+.info-panel.collapsed .cbar { height: 6px; border-radius: 3px; }
+.info-panel.collapsed .hide-collapsed { display: none !important; }
+
+.collapsed-top-row { display: none; }
+.info-panel.collapsed .collapsed-top-row { display: flex; }
+.info-panel:not(.collapsed) .collapsed-top-row { display: none; }
+
+.collapsed-title { font-size: 10px; font-weight: 600; color: #f1f5f9; letter-spacing: 0.2px; }
+.chip-open-btn {
+  background: transparent; border: none; cursor: pointer; padding: 0;
+  display: flex; align-items: center; color: #94a3b8; transition: transform 0.2s;
+}
+.chip-open-btn:hover { transform: scale(1.1); }
+
+.panel-header {
+  background: #1e293b;
+  color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 20px;
+  border-radius: 12px 12px 0 0;
+  margin: 0 -24px 16px -24px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.info-panel:not(.collapsed)::-webkit-scrollbar { width: 6px; }
+.info-panel:not(.collapsed)::-webkit-scrollbar-track { background: transparent; }
+.info-panel:not(.collapsed)::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+.info-panel:not(.collapsed) { padding-top: 0; }
+
+.panel-header-title { font-size: 14px; font-weight: 600; letter-spacing: 0.3px; }
+.panel-close-btn {
+  background: transparent; border: none; cursor: pointer; padding: 0;
+  color: #94a3b8; display: flex; align-items: center; transition: color 0.2s;
+}
+.panel-close-btn:hover { color: #f1f5f9; }
+
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #3c4043;
+  margin: 16px 0 6px;
+}
+.section-label:first-of-type { margin-top: 4px; }
+
+.cbar-container { margin-top: 4px; }
+.cbar-container p { font-size: 12px; font-weight: 500; color: #3c4043; margin-bottom: 8px; }
+.cbar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; }
+.cbar-block { flex: 1; }
+.cbar-labels { position: relative; height: 13px; margin-top: 3px; font-size: 10px; color: #5f6368; font-weight: 500; }
+.cbar-label { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+
+.custom-checkbox {
+  display: flex; align-items: center; cursor: pointer;
+  font-size: 12px; font-weight: 500; color: #3c4043; margin-bottom: 3px;
+}
+.custom-checkbox input {
+  cursor: pointer; width: 14px; height: 14px;
+  margin-right: 8px; accent-color: #1a73e8; flex-shrink: 0;
+}
+
+.region-boundary { filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.75)); }
+
+.poly-tooltip {
+  background: white; border: none; border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  font-family: 'Roboto', sans-serif; font-size: 12px; font-weight: 500;
+  padding: 5px 10px; white-space: nowrap; color: #202124;
+}
+.poly-tooltip::before { display: none; }
+
+/* Pill selects */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #f1f3f4;
+  border: none;
+  padding: 9px 34px 9px 16px;
+  border-radius: 24px;
+  font-family: 'Roboto', sans-serif;
+  font-size: 13px;
+  color: #202124;
+  font-weight: 500;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  outline: none;
+  transition: background 0.2s;
+  width: 100%;
+}
+select:hover { background-color: #e8eaed; }
+
+/* ── Player panel ─────────────────────────────────────────────────────── */
+.player-panel {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  z-index: 1000;
+  width: 95%;
+  max-width: 1100px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.control-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #3c4043;
+  letter-spacing: 0.5px;
+  padding-left: 8px;
+}
+
+.timeline-container {
+  position: relative;
+  flex-grow: 1;
+  height: 48px;
+  display: flex;
+  align-items: center;
+}
+.timeline-track {
+  position: absolute;
+  top: 50%; left: 9px; right: 9px;
+  height: 6px;
+  margin-top: -3px;
+  background: #e8eaed;
+  border-radius: 3px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+#timeSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  background: transparent;
+  z-index: 3;
+  margin: 0;
+  position: relative;
+}
+#timeSlider:focus { outline: none; }
+#timeSlider::-webkit-slider-runnable-track { height: 6px; background: transparent; border-radius: 3px; }
+#timeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 18px; width: 18px;
+  border-radius: 50%;
+  background: #202124;
+  border: 2px solid white;
+  cursor: pointer;
+  margin-top: -6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+#timeSlider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+}
+
+#playerDateTime {
+  flex-shrink: 0;
+  width: 110px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 12px;
+  border-left: 1px solid #e8eaed;
+  overflow: hidden;
+}
+#playerDateLine { font-size: 10px; color: #3c4043; font-weight: 500; white-space: nowrap; overflow: hidden; }
+#playerTimeLine { font-size: 16px; font-weight: 700; color: #202124; white-space: nowrap; overflow: hidden; }
+
+#generatedAt { font-size: 10px; color: #94a3b8; margin: 14px 0 0; }
+
+@keyframes panelReveal {
+  from { opacity: 0; transform: scale(0.08); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes panelDismiss {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.08); }
+}
+.info-panel.panel-entering { animation: panelReveal 0.22s cubic-bezier(0.34,1.2,0.64,1) forwards; }
+.info-panel.panel-leaving {
+  animation: panelDismiss 0.18s cubic-bezier(0.4,0,1,1) forwards;
+  pointer-events: none; overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .maps-row { flex-direction: column; }
+  .map-wrap + .map-wrap { border-left: none; border-top: 2px solid #374151; }
+  .map-wrap { min-height: 33vh; }
+  .info-panel { top: 8px; right: 8px; width: calc(100% - 16px); left: 8px; box-sizing: border-box; }
+  .player-panel { bottom: 8px; width: calc(100% - 16px); padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
+  #playerDateTime { width: 90px; }
+}
+</style>
+</head>
+<body>
+
+<div class="maps-row">
+  <div class="map-wrap">
+    <div class="map-badge">RADAR OBS</div>
+    <div id="radarMap" class="map-pane"></div>
+  </div>
+  <div class="map-wrap">
+    <div class="map-badge" id="ukvBadge">UKV FORECAST</div>
+    <div id="ukvMap" class="map-pane"></div>
+  </div>
+  <div class="map-wrap">
+    <div class="map-badge">BIAS (UKV − Radar)</div>
+    <div id="biasMap" class="map-pane"></div>
+  </div>
+</div>
+
+<!-- Info panel -->
+<div class="info-panel surface" id="infoPanel">
+
+  <div class="collapsed-top-row">
+    <span class="collapsed-title">Comparison</span>
+    <button class="chip-open-btn" onclick="toggleInfo()" title="Open">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+
+  <div class="panel-header hide-collapsed">
+    <span class="panel-header-title">Comparison</span>
+    <button class="panel-close-btn" onclick="toggleInfo()" title="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Accum cbar (visible collapsed too) -->
+  <div class="cbar-container">
+    <p>Accumulation — Radar &amp; UKV (mm)</p>
+    <div class="cbar" id="accumCbar"></div>
+    <div class="cbar-labels" id="accumCbarLabels"></div>
+  </div>
+
+  <div class="hide-collapsed">
+    <!-- Bias cbar -->
+    <div class="cbar-container" style="margin-top:14px;">
+      <p>Bias — UKV minus Radar (mm)</p>
+      <div class="cbar" id="biasCbar"></div>
+      <div class="cbar-labels" id="biasCbarLabels"></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#5f6368;margin-top:3px;">
+        <span>&#9664; Under-forecast</span><span>Over-forecast &#9654;</span>
+      </div>
+    </div>
+
+    <p class="section-label">Boundaries</p>
+    <label class="custom-checkbox">
+      <input type="radio" name="boundaryLayer" value="regions" onchange="onBoundaryChange('regions')">
+      UK Regions
+    </label>
+    <label class="custom-checkbox">
+      <input type="radio" name="boundaryLayer" value="counties" onchange="onBoundaryChange('counties')">
+      Counties
+    </label>
+    <label class="custom-checkbox">
+      <input type="radio" name="boundaryLayer" value="catchments" checked onchange="onBoundaryChange('catchments')">
+      Catchments
+    </label>
+    <label class="custom-checkbox" style="margin-bottom:8px;">
+      <input type="radio" name="boundaryLayer" value="grid" onchange="onBoundaryChange('grid')">
+      Grid (20km)
+    </label>
+
+    <p id="generatedAt"></p>
+  </div>
+</div>
+
+<!-- Player panel -->
+<div class="player-panel surface">
+  <div class="control-group">
+    <span class="control-label">Period</span>
+    <select id="periodSelect" onchange="setPeriod(this.value)">
+      <option value="1hr">1 Hour</option>
+      <option value="3hr">3 Hours</option>
+      <option value="6hr">6 Hours</option>
+      <option value="12hr" selected>12 Hours</option>
+      <option value="24hr">24 Hours</option>
+      <option value="48hr">48 Hours</option>
+    </select>
+  </div>
+
+  <div class="timeline-container">
+    <div class="timeline-track"></div>
+    <input type="range" id="timeSlider" min="0" max="0" step="1" value="0"
+           oninput="setSnapshot(parseInt(this.value))">
+  </div>
+
+  <div id="playerDateTime">
+    <div id="playerDateLine">—</div>
+    <div id="playerTimeLine">—</div>
+  </div>
+
+  <div class="control-group">
+    <span class="control-label">UKV Run</span>
+    <select id="runSelect" onchange="setRun(parseInt(this.value))">
+      <option>Loading…</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <span class="control-label">Colour scale</span>
+    <select id="schemeSelect" onchange="setScheme(this.value)">
+      <option value="norm">Normal</option>
+      <option value="high">High events</option>
+      <option value="met">Alternative</option>
+    </select>
+  </div>
+</div>
+
+<script>
+var R2_CDN = 'https://radar.floodforecast.co.uk';
+
+// ── Colour schemes ─────────────────────────────────────────────────
+var _STD = ['#e0f3ff','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'];
+var SCHEMES = {
+  norm: { bounds: [0.5,1,2,5,10,20,40,80,160],   colors: _STD },
+  high: { bounds: [2,5,10,25,50,100,150,200,350], colors: _STD },
+  met:  {
+    bounds: [0.03,1,5,10,20,40,60,80,100,120,140,160,180],
+    colors: ['#3A6CFF','#00FF00','#FFFF95','#FFD563','#FF9618','#E86100','#BA2000','#CC537D','#DB92DC','#FF02FF','#FFFFFF','#C8C8C8','#BFBF00']
+  }
+};
+
+// ── Bias colour scale (diverging) ────────────────────────────────
+// 8 bounds → 9 bins: (<−20) … (−2 to +2) … (>+20)
+var BIAS_BOUNDS = [-20, -10, -5, -2, 2, 5, 10, 20];
+var BIAS_COLORS = ['#023858','#2166ac','#74add1','#e0f3f8','#f7f7f7','#fdae61','#d73027','#a50026','#67001f'];
+
+// ── Period key mapping ───────────────────────────────────────────
+var PERIOD_UKV_KEY = {
+  '1hr':'accum_1h', '3hr':'accum_3h', '6hr':'accum_6h',
+  '12hr':'accum_12h', '24hr':'accum_24h', '48hr':'accum_48h'
+};
+
+// ── State ────────────────────────────────────────────────────────
+var snapshots        = [];
+var currentIdx       = 0;
+var currentPeriod    = '12hr';
+var currentRunIdx    = 0;
+var currentScheme    = 'norm';
+var currentBoundary  = 'catchments';
+var ukvMeta          = null;
+var polyCache        = {};
+var currentRadarVals = null;   // {polyName: mm}
+var currentUKVVals   = null;   // {polyName: mm}
+
+// ── Boundary config ──────────────────────────────────────────────
+var BOUNDARY_FILES = {
+  regions:    'uk_regions.geojson',
+  counties:   'uk-counties.geojson',
+  catchments: 'uk_catchments.geojson',
+  grid:       'uk_grid_20km.geojson'
+};
+var LAYER_NAME_KEY = {
+  regions: 'rgn19nm', counties: 'name', catchments: 'HA_NAME', grid: 'name'
+};
+var BOUNDARY_STYLES = {
+  regions:    { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
+  counties:   { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
+  catchments: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
+  grid:       { color: '#5f6368', weight: 0.7, fillOpacity: 0, className: 'region-boundary' }
+};
+
+// ── Map initialisation ──────────────────────────────────────────
+var INIT_CENTER = [54.5, -3.5], INIT_ZOOM = 5;
+var radarMap = L.map('radarMap', { zoomControl: false }).setView(INIT_CENTER, INIT_ZOOM);
+var ukvMap   = L.map('ukvMap',   { zoomControl: false }).setView(INIT_CENTER, INIT_ZOOM);
+var biasMap  = L.map('biasMap',  { zoomControl: false }).setView(INIT_CENTER, INIT_ZOOM);
+
+L.control.zoom({ position: 'topleft' }).addTo(radarMap);
+
+var TILE_URL  = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+var TILE_OPTS = {
+  maxZoom: 20,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+};
+[radarMap, ukvMap, biasMap].forEach(function(m) { L.tileLayer(TILE_URL, TILE_OPTS).addTo(m); });
+
+var MAPS = { radar: radarMap, ukv: ukvMap, bias: biasMap };
+
+// ── Map synchronisation ─────────────────────────────────────────
+var _syncing = false;
+function syncMaps(src) {
+  if (_syncing) return;
+  _syncing = true;
+  var c = src.getCenter(), z = src.getZoom();
+  [radarMap, ukvMap, biasMap].forEach(function(m) {
+    if (m !== src) m.setView(c, z, { animate: false });
+  });
+  _syncing = false;
+}
+radarMap.on('moveend', function() { syncMaps(radarMap); });
+ukvMap.on('moveend',   function() { syncMaps(ukvMap); });
+biasMap.on('moveend',  function() { syncMaps(biasMap); });
+
+// ── Colour utilities ─────────────────────────────────────────────
+function mmToFillColor(mm, scheme) {
+  if (mm == null) return null;
+  var s = SCHEMES[scheme];
+  if (mm < s.bounds[0]) return null;
+  for (var i = s.bounds.length - 1; i >= 0; i--) {
+    if (mm >= s.bounds[i]) return s.colors[i];
+  }
+  return null;
+}
+
+function biasFillColor(mm) {
+  if (mm == null) return null;
+  for (var i = 0; i < BIAS_BOUNDS.length; i++) {
+    if (mm < BIAS_BOUNDS[i]) return BIAS_COLORS[i];
+  }
+  return BIAS_COLORS[BIAS_BOUNDS.length];
+}
+
+function buildAccumCbar() {
+  var s = SCHEMES[currentScheme];
+  var cbar   = document.getElementById('accumCbar');
+  var labels = document.getElementById('accumCbarLabels');
+  cbar.innerHTML = ''; labels.innerHTML = '';
+  s.colors.forEach(function(c) {
+    var b = document.createElement('div');
+    b.className = 'cbar-block'; b.style.background = c; cbar.appendChild(b);
+  });
+  s.bounds.forEach(function(v, i) {
+    var pct = ((i + 1) / s.colors.length * 100).toFixed(1);
+    var el = document.createElement('span');
+    el.className = 'cbar-label'; el.style.left = pct + '%'; el.textContent = v;
+    labels.appendChild(el);
+  });
+}
+
+function buildBiasCbar() {
+  var cbar   = document.getElementById('biasCbar');
+  var labels = document.getElementById('biasCbarLabels');
+  cbar.innerHTML = ''; labels.innerHTML = '';
+  BIAS_COLORS.forEach(function(c) {
+    var b = document.createElement('div');
+    b.className = 'cbar-block'; b.style.background = c; cbar.appendChild(b);
+  });
+  BIAS_BOUNDS.forEach(function(v, i) {
+    var pct = ((i + 1) / BIAS_COLORS.length * 100).toFixed(1);
+    var el = document.createElement('span');
+    el.className = 'cbar-label'; el.style.left = pct + '%';
+    el.textContent = (v > 0 ? '+' : '') + v;
+    labels.appendChild(el);
+  });
+}
+
+// ── Boundary / GeoJSON layer management ─────────────────────────
+var geojsonData = {};                         // {type: raw GeoJSON}
+var layers = { radar: {}, ukv: {}, bias: {} }; // {mid: {type: L.geoJSON}}
+
+function createBoundaryLayer(data, type, mid) {
+  var nameKey = LAYER_NAME_KEY[type];
+  return L.geoJSON(data, {
+    style: BOUNDARY_STYLES[type],
+    onEachFeature: function(feature, lyr) {
+      lyr.on('click', function(e) {
+        showPolyPopup(feature.properties[nameKey], e.latlng, MAPS[mid]);
+      });
+    }
+  });
+}
+
+function showPolyPopup(name, latlng, map) {
+  var rMm  = currentRadarVals ? currentRadarVals[name] : null;
+  var uMm  = currentUKVVals  ? currentUKVVals[name]   : null;
+  var bias = (rMm != null && uMm != null) ? (uMm - rMm) : null;
+
+  function fmm(mm) {
+    return mm != null
+      ? '<span style="font-weight:700;">' + mm.toFixed(1) + ' mm</span>'
+      : '<span style="color:#94a3b8;">—</span>';
+  }
+  var html = '<div style="font-size:12px;font-family:Roboto,sans-serif;min-width:175px;">' +
+    '<b style="font-size:13px;">' + name + '</b>' +
+    '<table style="margin-top:8px;border-collapse:collapse;width:100%;">' +
+    '<tr><td colspan="2" style="color:#666;font-size:10px;font-weight:600;padding-bottom:5px;">' +
+    currentPeriod + ' accumulation</td></tr>' +
+    '<tr><td style="padding:3px 12px 3px 0;color:#1e3a5f;font-weight:500;">Radar</td><td>' + fmm(rMm) + '</td></tr>' +
+    '<tr><td style="padding:3px 12px 3px 0;color:#7f1d1d;font-weight:500;">UKV</td><td>' + fmm(uMm) + '</td></tr>';
+
+  if (bias != null) {
+    var sign   = bias >= 0 ? '+' : '';
+    var arrow  = bias > 1 ? '&#9650; over' : bias < -1 ? '&#9660; under' : '&#8776; neutral';
+    var bcolor = bias > 0.5 ? '#c62828' : bias < -0.5 ? '#1565c0' : '#5f6368';
+    html += '<tr><td style="padding:6px 12px 3px 0;border-top:1px solid #e8eaed;color:#5f6368;font-weight:500;">Bias</td>' +
+      '<td style="border-top:1px solid #e8eaed;font-weight:700;color:' + bcolor + ';">' +
+      sign + bias.toFixed(1) + ' mm <small>' + arrow + '</small></td></tr>';
+  }
+  html += '</table></div>';
+  L.popup({ maxWidth: 270 }).setLatLng(latlng).setContent(html).openOn(map);
+}
+
+function removeAllBoundaryLayers() {
+  Object.keys(MAPS).forEach(function(mid) {
+    Object.keys(layers[mid]).forEach(function(type) {
+      var l = layers[mid][type];
+      if (l && MAPS[mid].hasLayer(l)) MAPS[mid].removeLayer(l);
+    });
+  });
+}
+
+function applyBoundary(type) {
+  removeAllBoundaryLayers();
+  if (type === 'none') return;
+  var data = geojsonData[type];
+  Object.keys(MAPS).forEach(function(mid) {
+    if (!layers[mid][type]) {
+      layers[mid][type] = createBoundaryLayer(data, type, mid);
+    }
+    layers[mid][type].addTo(MAPS[mid]);
+  });
+  renderAll();
+}
+
+function ensureBoundary(type, cb) {
+  if (geojsonData[type]) { cb(); return; }
+  fetch(BOUNDARY_FILES[type])
+    .then(function(r) { return r.json(); })
+    .then(function(data) { geojsonData[type] = data; cb(); })
+    .catch(function(e) { console.error('boundary load failed:', type, e); });
+}
+
+function onBoundaryChange(val) {
+  currentBoundary = val;
+  if (val === 'none') { removeAllBoundaryLayers(); return; }
+  ensureBoundary(val, function() { applyBoundary(val); });
+}
+
+// ── Choropleth rendering ─────────────────────────────────────────
+function renderAll() {
+  var type = currentBoundary;
+  if (type === 'none') return;
+  var nameKey = LAYER_NAME_KEY[type];
+
+  ['radar', 'ukv', 'bias'].forEach(function(mid) {
+    var layer = layers[mid][type];
+    if (!layer) return;
+
+    layer.setStyle(function(f) {
+      var name = f.properties[nameKey];
+      var mm, fc;
+      if (mid === 'bias') {
+        var r = currentRadarVals ? currentRadarVals[name] : null;
+        var u = currentUKVVals  ? currentUKVVals[name]   : null;
+        mm = (r != null && u != null) ? (u - r) : null;
+        fc = biasFillColor(mm);
+      } else {
+        var vals = mid === 'radar' ? currentRadarVals : currentUKVVals;
+        mm = vals ? vals[name] : null;
+        fc = mmToFillColor(mm, currentScheme);
+      }
+      return {
+        fillColor:   fc || '#cccccc',
+        fillOpacity: mm != null ? 0.65 : 0,
+        color:       '#5f6368',
+        weight:      BOUNDARY_STYLES[type].weight,
+        className:   'region-boundary'
+      };
+    });
+
+    layer.eachLayer(function(l) {
+      var name = l.feature.properties[nameKey];
+      var mm, txt;
+      if (mid === 'bias') {
+        var r = currentRadarVals ? currentRadarVals[name] : null;
+        var u = currentUKVVals  ? currentUKVVals[name]   : null;
+        mm = (r != null && u != null) ? (u - r) : null;
+        txt = name + (mm != null ? ': ' + (mm >= 0 ? '+' : '') + mm.toFixed(1) + ' mm' : '');
+      } else {
+        var vals = mid === 'radar' ? currentRadarVals : currentUKVVals;
+        mm = vals ? vals[name] : null;
+        txt = name + (mm != null ? ': ' + mm.toFixed(1) + ' mm' : '');
+      }
+      l.bindTooltip(txt, { sticky: true, className: 'poly-tooltip' });
+    });
+  });
+}
+
+// ── JSON loading with cache ──────────────────────────────────────
+function loadCachedJson(url, cb) {
+  if (polyCache[url]) { cb(polyCache[url]); return; }
+  fetch(url)
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(data) { polyCache[url] = data; cb(data); })
+    .catch(function() { cb(null); });
+}
+
+// ── Time parsing ─────────────────────────────────────────────────
+function radarTsToDt(ts) {
+  return new Date(Date.UTC(
+    +ts.slice(0,4), +ts.slice(4,6) - 1, +ts.slice(6,8),
+    +ts.slice(8,10), +ts.slice(10,12)
+  ));
+}
+
+function parseRunDt(runTs) {
+  var m = runTs.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})Z$/);
+  if (!m) return null;
+  return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]));
+}
+
+function findMatchedUKVStep(run, radarDt) {
+  // Round radar time to nearest hour for alignment
+  var targetMs = Math.round(radarDt.getTime() / 3600000) * 3600000;
+  var runDt = parseRunDt(run.run_ts);
+  if (!runDt) return null;
+  for (var i = 0; i < run.steps.length; i++) {
+    var step = run.steps[i];
+    if (runDt.getTime() + step.offset_hours * 3600000 === targetMs) return step;
+  }
+  return null;
+}
+
+// ── Display ──────────────────────────────────────────────────────
+function updatePlayerTime(snap) {
+  if (!snap || !snap.time) {
+    document.getElementById('playerDateLine').textContent = '—';
+    document.getElementById('playerTimeLine').textContent = '—';
+    return;
+  }
+  var parts = snap.time.split(' ');
+  document.getElementById('playerDateLine').textContent = parts.slice(0, -2).join(' ');
+  document.getElementById('playerTimeLine').textContent = parts.slice(-2).join(' ');
+}
+
+function updateUKVBadge(step) {
+  var badge = document.getElementById('ukvBadge');
+  if (!badge) return;
+  badge.textContent = step ? 'UKV FORECAST  T+' + step.offset_hours + 'h' : 'UKV FORECAST';
+}
+
+function refreshDisplay() {
+  if (!snapshots.length) return;
+  var snap         = snapshots[currentIdx];
+  var ukvPeriodKey = PERIOD_UKV_KEY[currentPeriod];
+
+  updatePlayerTime(snap);
+
+  var run     = ukvMeta && ukvMeta.runs && ukvMeta.runs[currentRunIdx];
+  var ukvStep = run ? findMatchedUKVStep(run, radarTsToDt(snap.ts)) : null;
+
+  var radarPolyUrl = R2_CDN + '/accum_poly/' + snap.ts + '.json';
+
+  loadCachedJson(radarPolyUrl, function(radarPoly) {
+    currentRadarVals = (radarPoly &&
+      radarPoly[currentBoundary] &&
+      radarPoly[currentBoundary][currentPeriod])
+        ? radarPoly[currentBoundary][currentPeriod]
+        : null;
+
+    if (!ukvStep || !ukvStep[ukvPeriodKey]) {
+      currentUKVVals = null;
+      updateUKVBadge(ukvStep);
+      renderAll();
+      return;
+    }
+
+    var ukvPolyUrl = R2_CDN + '/ukv_poly/' + run.run_ts + '/' + ukvStep.offset + '.json';
+    loadCachedJson(ukvPolyUrl, function(ukvPoly) {
+      currentUKVVals = (ukvPoly &&
+        ukvPoly[currentBoundary] &&
+        ukvPoly[currentBoundary][ukvPeriodKey])
+          ? ukvPoly[currentBoundary][ukvPeriodKey]
+          : null;
+      updateUKVBadge(ukvStep);
+      renderAll();
+    });
+  });
+}
+
+// ── Controls ─────────────────────────────────────────────────────
+function setSnapshot(idx) { currentIdx = idx; refreshDisplay(); }
+function setPeriod(p)     { currentPeriod = p; refreshDisplay(); }
+function setRun(idx)      { currentRunIdx = idx; refreshDisplay(); }
+
+function setScheme(s) {
+  currentScheme = s;
+  buildAccumCbar();
+  renderAll();
+}
+
+function toggleInfo() {
+  var panel = document.getElementById('infoPanel');
+  if (panel.classList.contains('collapsed')) {
+    panel.classList.remove('collapsed');
+    panel.classList.add('panel-entering');
+    panel.addEventListener('animationend', function h() {
+      panel.classList.remove('panel-entering');
+      panel.removeEventListener('animationend', h);
+    });
+  } else {
+    panel.classList.add('panel-leaving');
+    panel.addEventListener('animationend', function h() {
+      panel.classList.remove('panel-leaving');
+      panel.classList.add('collapsed');
+      panel.removeEventListener('animationend', h);
+    });
+  }
+}
+
+// ── UKV run select ───────────────────────────────────────────────
+function buildRunSelect() {
+  var sel = document.getElementById('runSelect');
+  sel.innerHTML = '';
+  if (!ukvMeta || !ukvMeta.runs || !ukvMeta.runs.length) {
+    sel.innerHTML = '<option>No data</option>';
+    return;
+  }
+  ukvMeta.runs.forEach(function(run, i) {
+    var opt = document.createElement('option');
+    opt.value = i;
+    var label = run.run_label || run.run_ts;
+    var rtype = run.run_type ? ' (' + run.run_type + ')' : '';
+    opt.textContent = label + rtype;
+    sel.appendChild(opt);
+  });
+  sel.value = currentRunIdx;
+}
+
+// ── Meta loading ─────────────────────────────────────────────────
+function loadRadarMeta() {
+  fetch(R2_CDN + '/accum_multi_meta.json?_=' + Date.now())
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(data) {
+      if (!data.snapshots || !data.snapshots.length) return;
+      var wasAtEnd = !snapshots.length || currentIdx >= snapshots.length - 1;
+      snapshots = data.snapshots;
+      var slider = document.getElementById('timeSlider');
+      slider.max = snapshots.length - 1;
+      currentIdx = wasAtEnd
+        ? snapshots.length - 1
+        : Math.min(currentIdx, snapshots.length - 1);
+      slider.value = currentIdx;
+      if (data.generated_at) {
+        var d = new Date(data.generated_at);
+        var p = function(n) { return n < 10 ? '0' + n : '' + n; };
+        document.getElementById('generatedAt').textContent =
+          'Radar updated ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ' UTC';
+      }
+      refreshDisplay();
+    })
+    .catch(function(e) { console.error('radar meta load failed', e); });
+}
+
+function loadUKVMeta() {
+  fetch(R2_CDN + '/ukv_meta.json?_=' + Date.now())
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(data) {
+      ukvMeta = data;
+      buildRunSelect();
+      if (snapshots.length) refreshDisplay();
+    })
+    .catch(function(e) { console.error('ukv meta load failed', e); });
+}
+
+// ── Init ─────────────────────────────────────────────────────────
+buildAccumCbar();
+buildBiasCbar();
+
+ensureBoundary('catchments', function() { applyBoundary('catchments'); });
+ensureBoundary('regions', function() {});  // pre-warm
+
+loadRadarMeta();
+loadUKVMeta();
+
+setInterval(loadRadarMeta, 5 * 60 * 1000);
+setInterval(loadUKVMeta,   5 * 60 * 1000);
+
+window.addEventListener('load', function() {
+  [radarMap, ukvMap, biasMap].forEach(function(m) { m.invalidateSize(); });
+});
+</script>
+</body>
+</html>

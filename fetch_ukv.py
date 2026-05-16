@@ -509,9 +509,9 @@ def main():
     # During testing each run supersedes the previous one (KEEP_RUNS=0 / default).
     # Set KEEP_RUNS=N to retain up to N older runs alongside the new one.
     try:
-        keep_runs = int(os.environ.get("KEEP_RUNS", "10"))
+        keep_runs = int(os.environ.get("KEEP_RUNS", "30"))
     except ValueError:
-        keep_runs = 10
+        keep_runs = 30
     if not force and existing_runs and existing_runs[0].get("run_ts") == run_ts:
         print(f"  {run_ts} already processed — done.")
         sys.exit(0)
@@ -639,17 +639,25 @@ def main():
         "steps":          step_entries,
     }
 
-    # Keep at most KEEP_RUNS older runs (default 0 → each run supersedes).
-    # Deduplicate by run_ts and prune anything older than 48 h.
-    cutoff = datetime.utcnow() - timedelta(hours=48)
-    seen   = {run_ts}
-    older  = []
+    # Keep at most KEEP_RUNS older runs.
+    # Medium runs (03Z, 15Z — T+120h) are retained 6 days; all others 48h.
+    _MEDIUM_RUN_HOURS = {3, 15}
+
+    def _retention_hours(rt):
+        try:
+            return 144 if parse_run_dt(rt).hour in _MEDIUM_RUN_HOURS else 48
+        except Exception:
+            return 48
+
+    now  = datetime.utcnow()
+    seen = {run_ts}
+    older = []
     for r in existing_runs:
         rt = r.get("run_ts")
         if not rt or rt in seen:
             continue
         try:
-            if parse_run_dt(rt) < cutoff:
+            if parse_run_dt(rt) < now - timedelta(hours=_retention_hours(rt)):
                 continue
         except Exception:
             continue
