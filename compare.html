@@ -216,6 +216,16 @@ select option:disabled { color: #bbb; }
     </div>
   </div>
 
+  <div class="control-group" id="boundaryControl" style="display:none">
+    <span class="control-label">Areas</span>
+    <select id="boundarySelect" onchange="onBoundaryChange(this.value)">
+      <option value="catchments" selected>Catchments</option>
+      <option value="regions">UK Regions</option>
+      <option value="counties">Counties</option>
+      <option value="grid">Grid (20km)</option>
+    </select>
+  </div>
+
   <div class="control-group">
     <span class="control-label">Period</span>
     <select id="periodSelect" onchange="setPeriod(this.value)">
@@ -255,15 +265,6 @@ select option:disabled { color: #bbb; }
     </select>
   </div>
 
-  <div class="control-group" id="boundaryControl" style="display:none">
-    <span class="control-label">Areas</span>
-    <select id="boundarySelect" onchange="onBoundaryChange(this.value)">
-      <option value="catchments" selected>Catchments</option>
-      <option value="regions">UK Regions</option>
-      <option value="counties">Counties</option>
-      <option value="grid">Grid (20km)</option>
-    </select>
-  </div>
 
 </div>
 
