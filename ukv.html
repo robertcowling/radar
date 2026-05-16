@@ -536,9 +536,8 @@ function preloadVisibleFrames() {
     if (_imgCache[url]) {
       loadedCount++;
       if (pb) pb.style.width = ((loadedCount / total) * 100) + '%';
-      if (loadedCount === total && !playing) {
+      if (loadedCount === total) {
         if (pb) setTimeout(function() { if (pb && gen === _preloadGeneration) pb.style.opacity = '0'; }, 1500);
-        togglePlay();
       }
       return;
     }
@@ -548,7 +547,6 @@ function preloadVisibleFrames() {
       loadedCount++;
       if (pb) pb.style.width = ((loadedCount / total) * 100) + '%';
       if (loadedCount === total) {
-        if (!playing) togglePlay();
         setTimeout(function() { if (pb && gen === _preloadGeneration) pb.style.opacity = '0'; }, 1500);
       }
     };
