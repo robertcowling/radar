@@ -500,7 +500,9 @@ function computeValidSnapIndices(goToEnd) {
   } else {
     validSnapIndices = [];
     snapshots.forEach(function(snap, i) {
-      if (findMatchedUKVStep(run, radarTsToDt(snap.ts))) validSnapIndices.push(i);
+      var dt = radarTsToDt(snap.ts);
+      if (dt.getUTCMinutes() !== 0) return;   // only on-the-hour snapshots align with UKV steps
+      if (findMatchedUKVStep(run, dt)) validSnapIndices.push(i);
     });
   }
 
