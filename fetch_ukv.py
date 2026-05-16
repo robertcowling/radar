@@ -559,7 +559,7 @@ def main():
     print("  Mapping ready.")
 
     rlabel = run_label_str(run_ts)
-    rtype  = "Medium" if steps[-1][0] > 48 else "Short"
+    rtype  = "Long" if parse_run_dt(run_ts).hour in _MEDIUM_HOURS else "Short"
     print(f"  Run: {rlabel} ({rtype})")
 
     print("Loading polygon masks...")

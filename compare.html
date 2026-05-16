@@ -46,71 +46,25 @@ body {
   transition: box-shadow 0.3s ease;
 }
 
-/* ── Info panel ───────────────────────────────────────────────────── */
-.info-panel {
-  position: fixed; top: 48px; right: 20px;
-  padding: 24px; z-index: 1000;
-  width: 270px; max-height: calc(100vh - 172px);
-  overflow-y: auto; transform-origin: top right;
+/* ── In-map colour bar overlays ──────────────────────────────────── */
+.map-cbar {
+  position: absolute; top: 10px; right: 10px; z-index: 500;
+  background: rgba(255,255,255,0.93); border-radius: 8px;
+  padding: 7px 10px 6px; pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.14); min-width: 150px;
 }
-.info-panel.collapsed { width: 230px; height: auto; padding: 0; overflow: hidden; }
-.info-panel.collapsed .collapsed-top-row {
-  background: #1e293b; padding: 9px 16px;
-  display: flex; align-items: center; justify-content: space-between;
+.map-cbar p {
+  font-size: 10px; font-weight: 600; color: #5f6368;
+  margin: 0 0 4px; white-space: nowrap;
 }
-.info-panel.collapsed .cbar-container { padding: 6px 13px 8px; }
-.info-panel.collapsed .cbar-container p { font-size: 9px; font-weight: 600; color: #475569; margin-bottom: 3px; }
-.info-panel.collapsed .cbar { height: 6px; border-radius: 3px; }
-.info-panel.collapsed .hide-collapsed { display: none !important; }
-
-.collapsed-top-row { display: none; }
-.info-panel.collapsed .collapsed-top-row { display: flex; }
-.info-panel:not(.collapsed) .collapsed-top-row { display: none; }
-
-.collapsed-title { font-size: 10px; font-weight: 600; color: #f1f5f9; letter-spacing: 0.2px; }
-.chip-open-btn {
-  background: transparent; border: none; cursor: pointer; padding: 0;
-  display: flex; align-items: center; color: #94a3b8; transition: transform 0.2s;
+.map-cbar .bias-arrows {
+  display: flex; justify-content: space-between;
+  font-size: 9px; color: #5f6368; margin-top: 2px;
 }
-.chip-open-btn:hover { transform: scale(1.1); }
-
-.panel-header {
-  background: #1e293b; color: #f1f5f9;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 13px 20px; border-radius: 12px 12px 0 0;
-  margin: 0 -24px 16px -24px;
-  position: sticky; top: 0; z-index: 10;
-}
-.info-panel:not(.collapsed)::-webkit-scrollbar { width: 6px; }
-.info-panel:not(.collapsed)::-webkit-scrollbar-track { background: transparent; }
-.info-panel:not(.collapsed)::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
-.info-panel:not(.collapsed) { padding-top: 0; }
-
-.panel-header-title { font-size: 14px; font-weight: 600; letter-spacing: 0.3px; }
-.panel-close-btn {
-  background: transparent; border: none; cursor: pointer; padding: 0;
-  color: #94a3b8; display: flex; align-items: center; transition: color 0.2s;
-}
-.panel-close-btn:hover { color: #f1f5f9; }
-
-.section-label { font-size: 11px; font-weight: 700; color: #3c4043; margin: 16px 0 6px; }
-.section-label:first-of-type { margin-top: 4px; }
-
-.cbar-container { margin-top: 4px; }
-.cbar-container p { font-size: 12px; font-weight: 500; color: #3c4043; margin-bottom: 8px; }
-.cbar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; }
+.cbar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; }
 .cbar-block { flex: 1; }
-.cbar-labels { position: relative; height: 13px; margin-top: 3px; font-size: 10px; color: #5f6368; font-weight: 500; }
+.cbar-labels { position: relative; height: 12px; margin-top: 2px; font-size: 9px; color: #5f6368; font-weight: 500; }
 .cbar-label  { position: absolute; transform: translateX(-50%); white-space: nowrap; }
-
-.custom-checkbox {
-  display: flex; align-items: center; cursor: pointer;
-  font-size: 12px; font-weight: 500; color: #3c4043; margin-bottom: 3px;
-}
-.custom-checkbox input {
-  cursor: pointer; width: 14px; height: 14px;
-  margin-right: 8px; accent-color: #1a73e8; flex-shrink: 0;
-}
 
 .region-boundary { filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.75)); }
 .leaflet-image-layer { image-rendering: pixelated; }
@@ -197,8 +151,6 @@ select option:disabled { color: #bbb; }
 #playerDateLine { font-size: 10px; color: #3c4043; font-weight: 500; white-space: nowrap; overflow: hidden; }
 #playerTimeLine { font-size: 16px; font-weight: 700; color: #202124; white-space: nowrap; overflow: hidden; }
 
-#generatedAt { font-size: 10px; color: #94a3b8; margin: 14px 0 0; }
-
 /* No-comparison notice */
 #noCompare {
   position: fixed; top: 50%; left: 33.3%;
@@ -209,14 +161,8 @@ select option:disabled { color: #bbb; }
   pointer-events: none; display: none; text-align: center;
 }
 
-@keyframes panelReveal { from { opacity: 0; transform: scale(0.08); } to { opacity: 1; transform: scale(1); } }
-@keyframes panelDismiss { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.08); } }
-.info-panel.panel-entering { animation: panelReveal 0.22s cubic-bezier(0.34,1.2,0.64,1) forwards; }
-.info-panel.panel-leaving  { animation: panelDismiss 0.18s cubic-bezier(0.4,0,1,1) forwards; pointer-events: none; overflow: hidden; }
-
 @media (max-width: 900px) {
   .map-header-cell { font-size: 9px; letter-spacing: 0.2px; padding: 0 4px; }
-  .info-panel { top: 44px; right: 6px; width: 200px; }
   .player-panel { bottom: 6px; width: calc(100% - 12px); padding: 8px 10px; gap: 6px; flex-wrap: wrap; }
   #playerDateTime { width: 80px; }
 }
@@ -232,75 +178,32 @@ select option:disabled { color: #bbb; }
 <div class="maps-row">
   <div class="map-wrap">
     <div id="radarMap" class="map-pane"></div>
+    <div class="map-cbar" id="accumCbarRadar">
+      <p>Accumulation (mm)</p>
+      <div class="cbar" id="accumCbarR"></div>
+      <div class="cbar-labels" id="accumCbarRLabels"></div>
+    </div>
   </div>
   <div class="map-wrap">
     <div id="ukvMap" class="map-pane"></div>
+    <div class="map-cbar" id="accumCbarUKV">
+      <p>Accumulation (mm)</p>
+      <div class="cbar" id="accumCbarU"></div>
+      <div class="cbar-labels" id="accumCbarULabels"></div>
+    </div>
   </div>
   <div class="map-wrap">
     <div id="biasMap" class="map-pane"></div>
+    <div class="map-cbar" id="biasCbarOverlay">
+      <p>Bias &mdash; UKV minus Radar (mm)</p>
+      <div class="cbar" id="biasCbar"></div>
+      <div class="cbar-labels" id="biasCbarLabels"></div>
+      <div class="bias-arrows"><span>&#9664; Under</span><span>Over &#9654;</span></div>
+    </div>
   </div>
 </div>
 
 <div id="noCompare">No radar data overlaps this UKV run's valid time range.</div>
-
-<!-- Info panel -->
-<div class="info-panel surface collapsed" id="infoPanel">
-
-  <div class="collapsed-top-row">
-    <span class="collapsed-title">Comparison</span>
-    <button class="chip-open-btn" onclick="toggleInfo()" title="Open">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-        <line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line>
-      </svg>
-    </button>
-  </div>
-
-  <div class="panel-header hide-collapsed">
-    <span class="panel-header-title">Comparison</span>
-    <button class="panel-close-btn" onclick="toggleInfo()" title="Close">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
-      </svg>
-    </button>
-  </div>
-
-  <div class="cbar-container">
-    <p>Accumulation &mdash; Radar &amp; UKV (mm)</p>
-    <div class="cbar" id="accumCbar"></div>
-    <div class="cbar-labels" id="accumCbarLabels"></div>
-  </div>
-
-  <div class="cbar-container">
-    <p>Bias &mdash; UKV minus Radar (mm)</p>
-    <div class="cbar" id="biasCbar"></div>
-    <div class="cbar-labels" id="biasCbarLabels"></div>
-    <div class="hide-collapsed" style="display:flex;justify-content:space-between;font-size:10px;color:#5f6368;margin-top:3px;">
-      <span>&#9664; Under-forecast</span><span>Over-forecast &#9654;</span>
-    </div>
-  </div>
-
-  <div class="hide-collapsed">
-    <p class="section-label">Boundaries</p>
-    <label class="custom-checkbox">
-      <input type="radio" name="boundaryLayer" value="regions" onchange="onBoundaryChange('regions')">
-      UK Regions
-    </label>
-    <label class="custom-checkbox">
-      <input type="radio" name="boundaryLayer" value="counties" onchange="onBoundaryChange('counties')">
-      Counties
-    </label>
-    <label class="custom-checkbox">
-      <input type="radio" name="boundaryLayer" value="catchments" checked onchange="onBoundaryChange('catchments')">
-      Catchments
-    </label>
-    <label class="custom-checkbox" style="margin-bottom:8px;">
-      <input type="radio" name="boundaryLayer" value="grid" onchange="onBoundaryChange('grid')">
-      Grid (20km)
-    </label>
-
-    <p id="generatedAt"></p>
-  </div>
-</div>
 
 <!-- Player panel -->
 <div class="player-panel surface">
@@ -349,6 +252,16 @@ select option:disabled { color: #bbb; }
       <option value="norm">Normal</option>
       <option value="high">High events</option>
       <option value="met" selected>Alternative</option>
+    </select>
+  </div>
+
+  <div class="control-group" id="boundaryControl" style="display:none">
+    <span class="control-label">Areas</span>
+    <select id="boundarySelect" onchange="onBoundaryChange(this.value)">
+      <option value="catchments" selected>Catchments</option>
+      <option value="regions">UK Regions</option>
+      <option value="counties">Counties</option>
+      <option value="grid">Grid (20km)</option>
     </select>
   </div>
 
@@ -470,26 +383,28 @@ function biasFillColor(mm) {
   return BIAS_COLORS[BIAS_BOUNDS.length];
 }
 
-function buildAccumCbar() {
-  var s = SCHEMES[currentScheme];
-  var cbar = document.getElementById('accumCbar'), labels = document.getElementById('accumCbarLabels');
-  cbar.innerHTML = ''; labels.innerHTML = '';
-  s.colors.forEach(function(c) { var b = document.createElement('div'); b.className = 'cbar-block'; b.style.background = c; cbar.appendChild(b); });
-  s.bounds.forEach(function(v, i) {
+function _buildCbar(cbarId, labelsId, colors, bounds) {
+  var cbar = document.getElementById(cbarId), labels = document.getElementById(labelsId);
+  if (!cbar || !labels) return;
+  cbar.innerHTML = '';
+  colors.forEach(function(c) { var b = document.createElement('div'); b.className = 'cbar-block'; b.style.background = c; cbar.appendChild(b); });
+  labels.innerHTML = '';
+  bounds.forEach(function(v, i) {
     var el = document.createElement('span'); el.className = 'cbar-label';
-    el.style.left = ((i + 1) / s.colors.length * 100).toFixed(1) + '%'; el.textContent = v; labels.appendChild(el);
+    el.style.left = ((i + 1) / colors.length * 100).toFixed(1) + '%';
+    el.textContent = (typeof v === 'number' && v > 0 && bounds[0] < 0 ? '+' : '') + v;
+    labels.appendChild(el);
   });
 }
 
+function buildAccumCbar() {
+  var s = SCHEMES[currentScheme];
+  _buildCbar('accumCbarR', 'accumCbarRLabels', s.colors, s.bounds);
+  _buildCbar('accumCbarU', 'accumCbarULabels', s.colors, s.bounds);
+}
+
 function buildBiasCbar() {
-  var cbar = document.getElementById('biasCbar'), labels = document.getElementById('biasCbarLabels');
-  cbar.innerHTML = ''; labels.innerHTML = '';
-  BIAS_COLORS.forEach(function(c) { var b = document.createElement('div'); b.className = 'cbar-block'; b.style.background = c; cbar.appendChild(b); });
-  BIAS_BOUNDS.forEach(function(v, i) {
-    var el = document.createElement('span'); el.className = 'cbar-label';
-    el.style.left = ((i + 1) / BIAS_COLORS.length * 100).toFixed(1) + '%';
-    el.textContent = (v > 0 ? '+' : '') + v; labels.appendChild(el);
-  });
+  _buildCbar('biasCbar', 'biasCbarLabels', BIAS_COLORS, BIAS_BOUNDS);
 }
 
 // ── Valid snapshot filtering ──────────────────────────────────────
@@ -835,18 +750,8 @@ function setViewMode(mode) {
   currentViewMode = mode;
   document.getElementById('btnGrid').classList.toggle('seg-active', mode === 'grid');
   document.getElementById('btnArea').classList.toggle('seg-active', mode === 'area');
+  document.getElementById('boundaryControl').style.display = mode === 'area' ? '' : 'none';
   if (snapshots.length) refreshDisplay();
-}
-
-function toggleInfo() {
-  var panel = document.getElementById('infoPanel');
-  if (panel.classList.contains('collapsed')) {
-    panel.classList.remove('collapsed'); panel.classList.add('panel-entering');
-    panel.addEventListener('animationend', function h() { panel.classList.remove('panel-entering'); panel.removeEventListener('animationend', h); });
-  } else {
-    panel.classList.add('panel-leaving');
-    panel.addEventListener('animationend', function h() { panel.classList.remove('panel-leaving'); panel.classList.add('collapsed'); panel.removeEventListener('animationend', h); });
-  }
 }
 
 // ── Run select ───────────────────────────────────────────────────
@@ -856,7 +761,9 @@ function buildRunSelect() {
   if (!ukvMeta || !ukvMeta.runs || !ukvMeta.runs.length) { sel.innerHTML = '<option>No data</option>'; return; }
   ukvMeta.runs.forEach(function(run, i) {
     var opt = document.createElement('option'); opt.value = i;
-    opt.textContent = (run.run_label || run.run_ts) + (run.run_type ? ' (' + run.run_type + ')' : '');
+    var rdt = parseRunDt(run.run_ts);
+    var suffix = rdt && (rdt.getUTCHours() === 3 || rdt.getUTCHours() === 15) ? 'Long' : 'Short';
+    opt.textContent = (run.run_label || run.run_ts) + ' (' + suffix + ')';
     sel.appendChild(opt);
   });
   sel.value = currentRunIdx;
@@ -871,10 +778,6 @@ function loadRadarMeta() {
       var wasAtEnd = !snapshots.length || currentIdx >= snapshots.length - 1;
       snapshots = data.snapshots;
       computeValidSnapIndices(wasAtEnd, true);
-      if (data.generated_at) {
-        var d = new Date(data.generated_at), p = function(n) { return n < 10 ? '0' + n : '' + n; };
-        document.getElementById('generatedAt').textContent = 'Radar updated ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ' UTC';
-      }
       refreshDisplay();
     }).catch(function(e) { console.error('radar meta', e); });
 }
@@ -893,7 +796,6 @@ function loadUKVMeta() {
 buildAccumCbar();
 buildBiasCbar();
 ensureBoundary('catchments', function() { applyBoundary('catchments'); });
-ensureBoundary('regions', function() {});
 
 loadRadarMeta();
 loadUKVMeta();
