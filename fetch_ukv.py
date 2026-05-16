@@ -68,10 +68,11 @@ _MET_COLORS = np.array([
     [191, 191,   0, 255],   # olive         > 180
 ], dtype=np.uint8)
 
-# Rate schemes (mm/hr) — unchanged
+# Rate schemes (mm/hr)
 RATE_SCHEMES = {
     "norm": {"bounds": np.array([0.1, 0.5, 1, 2, 4, 8, 16, 32, 64]),    "colors": _STD},
     "high": {"bounds": np.array([0.5, 2,   4, 8, 16, 32, 64, 100, 150]), "colors": _STD},
+    "met":  {"bounds": np.array([0.1, 0.5, 1, 2, 4, 8, 16, 32, 64]),    "colors": _MET_COLORS},
 }
 
 # Accumulation schemes (mm) — shared across all durations, mirrors /radar.
@@ -186,7 +187,7 @@ def parse_run_dt(run_ts):
 
 
 def run_label_str(run_ts):
-    return parse_run_dt(run_ts).strftime("%-d %b %Y %H:%M UTC")
+    return parse_run_dt(run_ts).strftime("%-d %b %Y %H:%M GMT")
 
 
 
@@ -419,7 +420,7 @@ def upload_schemes(r2, arr, schemes, run_ts, offset, prefix):
 
 # ── Valid time label ──────────────────────────────────────────────────────────────
 def valid_label_str(valid_ts):
-    return parse_run_dt(valid_ts).strftime("%-d %b %Y %H:%M UTC")
+    return parse_run_dt(valid_ts).strftime("%-d %b %Y %H:%M GMT")
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────────

@@ -362,13 +362,17 @@
       <input type="radio" name="boundaryLayer" value="counties" onchange="onBoundaryChange('counties')">
       Counties
     </label>
-    <label class="custom-checkbox" style="margin-bottom:8px;">
+    <label class="custom-checkbox">
       <input type="radio" name="boundaryLayer" value="catchments" onchange="onBoundaryChange('catchments')">
       Catchments
     </label>
+    <label class="custom-checkbox" style="margin-bottom:8px;">
+      <input type="radio" name="boundaryLayer" value="grid" onchange="onBoundaryChange('grid')">
+      Grid (20km)
+    </label>
 
     <p id="generatedAt"></p>
-    <p id="attribution">Met Office data &copy; British Crown copyright, CC BY-SA</p>
+    <p id="attribution">Met Office data &copy; Crown copyright and database rights &mdash; <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" style="color:inherit;">OGL v3</a></p>
   </div>
 </div>
 
@@ -432,6 +436,7 @@ var _MET = ['#3a6cff','#00ff00','#ffff95','#ffd563','#ff9618','#e86100','#ba2000
 var RATE_SCHEMES = {
   norm: { bounds: [0.1, 0.5, 1, 2, 4, 8, 16, 32, 64],     colors: _STD },
   high: { bounds: [0.5, 2,   4, 8, 16, 32, 64, 100, 150], colors: _STD },
+  met:  { bounds: [0.1, 0.5, 1, 2, 4, 8, 16, 32, 64],     colors: _MET.slice(0, 9) },
 };
 
 var ACCUM_SCHEMES = {
@@ -461,13 +466,12 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 var ukvOverlay = L.imageOverlay('', imgBounds, { opacity: 0.85, interactive: false }).addTo(map);
 
 // ── State ─────────────────────────────────────────────────────────────────────
-var meta        = null;
-var currentRun  = 0;
-var currentStep = 0;
-var currentLayer = 'rainfall_rate';
-// Scheme is tracked per layer kind so rate/accum each remember their own pick.
-var schemeBy    = { rate: 'norm', accum: 'norm' };
-var generatedAt = '';
+var meta          = null;
+var currentRun    = 0;
+var currentStep   = 0;
+var currentLayer  = 'rainfall_rate';
+var currentScheme = 'norm';   // persists across layer switches
+var generatedAt   = '';
 
 function layerKind(layer) {
   var info = LAYER_INFO[layer];
@@ -479,9 +483,33 @@ function schemesFor(kind) {
 }
 
 function activeScheme() {
-  var kind    = layerKind(currentLayer);
-  var schemes = schemesFor(kind);
-  return schemes[schemeBy[kind]] || schemes.norm;
+  var schemes = schemesFor(layerKind(currentLayer));
+  return schemes[currentScheme] || schemes.norm;
+}
+
+// ── Image precache ────────────────────────────────────────────────────────────
+var _imgCache = {};
+var PRECACHE_AHEAD = 6;
+
+function precacheImages() {
+  if (!meta) return;
+  var run = meta.runs[currentRun];
+  if (!run || !run.steps) return;
+  var maxStep = parseInt(document.getElementById('timeSlider').max) || 0;
+  var sname   = currentScheme;
+
+  for (var i = 1; i <= PRECACHE_AHEAD; i++) {
+    var idx   = currentStep + i;
+    if (idx > maxStep) break;
+    var step  = run.steps[idx];
+    var entry = step && step[currentLayer];
+    var url   = entry && (typeof entry === 'string' ? entry : (entry[sname] || entry.norm));
+    if (url && !_imgCache[url]) {
+      var img = new Image();
+      img.src = url;
+      _imgCache[url] = img;
+    }
+  }
 }
 
 // ── Colour bar ────────────────────────────────────────────────────────────────
@@ -512,9 +540,9 @@ function buildCbar() {
 
 // ── Date/time display ─────────────────────────────────────────────────────────
 function splitValidLabel(label) {
-  // "13 May 2024 19:00 UTC" → { date: "13 May 2024", time: "19:00 UTC" }
   if (!label) return { date: '—', time: '—' };
-  var parts = label.split(' ');
+  var s = label.replace('UTC', 'GMT');
+  var parts = s.split(' ');
   return {
     date: parts.slice(0, -2).join(' '),
     time: parts.slice(-2).join(' '),
@@ -529,8 +557,7 @@ function updateDisplay() {
   var step = run.steps[currentStep];
   if (!step) return;
 
-  var kind  = layerKind(currentLayer);
-  var sname = schemeBy[kind];
+  var sname = currentScheme;
   var entry = step[currentLayer];
   var url   = null;
   if (entry) {
@@ -554,6 +581,7 @@ function updateDisplay() {
   document.getElementById('playerOffsetLine').textContent = 'T+' + step.offset_hours + 'h';
 
   buildCbar();
+  precacheImages();
 }
 
 // ── Slider helpers ────────────────────────────────────────────────────────────
@@ -603,15 +631,12 @@ function setRun(idx) {
 
 function setLayer(layer) {
   currentLayer = layer;
-  // Sync the scheme dropdown to whatever this layer's kind remembers.
-  var sel = document.getElementById('schemeSelect');
-  if (sel) sel.value = schemeBy[layerKind(layer)];
   applyStepRange();
   updateDisplay();
 }
 
 function setScheme(scheme) {
-  schemeBy[layerKind(currentLayer)] = scheme;
+  currentScheme = scheme;
   updateDisplay();
 }
 
@@ -683,25 +708,29 @@ function scheduleAdvance() {
 var regionLayer     = null;
 var countiesLayer   = null;
 var catchmentsLayer = null;
+var gridLayer       = null;
 var currentBoundary = 'regions';
 
 var BOUNDARY_STYLES = {
   regions:    { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
   counties:   { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
   catchments: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
+  grid:       { color: '#5f6368', weight: 0.7, fillOpacity: 0, className: 'region-boundary' },
 };
 
 function getLayerObj(name) {
   if (name === 'regions')    return regionLayer;
   if (name === 'counties')   return countiesLayer;
   if (name === 'catchments') return catchmentsLayer;
+  if (name === 'grid')       return gridLayer;
   return null;
 }
 
 function setLayerObj(name, layer) {
-  if (name === 'regions')    regionLayer    = layer;
-  if (name === 'counties')   countiesLayer  = layer;
+  if (name === 'regions')    regionLayer     = layer;
+  if (name === 'counties')   countiesLayer   = layer;
   if (name === 'catchments') catchmentsLayer = layer;
+  if (name === 'grid')       gridLayer       = layer;
 }
 
 function loadBoundary(val) {
@@ -709,6 +738,7 @@ function loadBoundary(val) {
     regions:    'uk_regions.geojson',
     counties:   'uk-counties.geojson',
     catchments: 'uk_catchments.geojson',
+    grid:       'uk_grid_20km.geojson',
   };
   if (!files[val] || getLayerObj(val)) return;
   fetch(files[val])
@@ -724,7 +754,7 @@ function loadBoundary(val) {
 }
 
 function onBoundaryChange(val) {
-  ['regions','counties','catchments'].forEach(function(n) {
+  ['regions','counties','catchments','grid'].forEach(function(n) {
     var l = getLayerObj(n);
     if (l && map.hasLayer(l)) map.removeLayer(l);
   });
@@ -767,7 +797,7 @@ function loadMeta() {
         var d   = new Date(data.generated_at);
         var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
         document.getElementById('generatedAt').textContent =
-          'Updated ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' UTC';
+          'Updated ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' GMT';
       }
 
       populateRunSelect();
