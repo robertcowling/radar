@@ -216,9 +216,9 @@ select option:disabled { color: #bbb; }
     </div>
   </div>
 
-  <div class="control-group" id="boundaryControl" style="display:none">
+  <div class="control-group" id="boundaryControl">
     <span class="control-label">Areas</span>
-    <select id="boundarySelect" onchange="onBoundaryChange(this.value)">
+    <select id="boundarySelect" onchange="onBoundaryChange(this.value)" disabled>
       <option value="catchments" selected>Catchments</option>
       <option value="regions">UK Regions</option>
       <option value="counties">Counties</option>
@@ -751,7 +751,7 @@ function setViewMode(mode) {
   currentViewMode = mode;
   document.getElementById('btnGrid').classList.toggle('seg-active', mode === 'grid');
   document.getElementById('btnArea').classList.toggle('seg-active', mode === 'area');
-  document.getElementById('boundaryControl').style.display = mode === 'area' ? '' : 'none';
+  document.getElementById('boundarySelect').disabled = mode !== 'area';
   if (snapshots.length) refreshDisplay();
 }
 
