@@ -143,6 +143,7 @@ def png_to_r2(r2, key, img):
 
 # ── Run discovery ─────────────────────────────────────────────────────────────────
 _STANDARD_HOURS = {0, 3, 6, 9, 12, 15, 18, 21}
+_MEDIUM_HOURS   = {3, 15}   # 03Z and 15Z extend to T+120h
 
 def _is_standard_run(run_ts):
     """True if the run is at a standard 3-hourly init time (00/03/06/09/12/15/18/21Z)."""
@@ -184,6 +185,21 @@ def find_latest_run(s3):
                 return run_ts
             print(f"    {run_ts}: T+1h not available yet")
     return None
+
+
+def is_run_complete(s3, run_ts):
+    """Return True only when the run's final expected forecast step is on S3.
+
+    Medium runs (03Z, 15Z) must reach T+120h; all others T+54h.
+    We check for the rainfall_rate file at that offset, which arrives last.
+    """
+    run_dt      = parse_run_dt(run_ts)
+    final_hours = 120 if run_dt.hour in _MEDIUM_HOURS else 54
+    final_off   = f"PT{final_hours:04d}H00M"
+    valid_ts    = (run_dt + timedelta(hours=final_hours)).strftime("%Y%m%dT%H%MZ")
+    prefix      = f"{UKV_PREFIX}{run_ts}/{valid_ts}-{final_off}-rainfall_rate.nc"
+    chk = s3.list_objects_v2(Bucket=MET_BUCKET, Prefix=prefix, MaxKeys=1)
+    return bool(chk.get("Contents"))
 
 
 def parse_run_dt(run_ts):
@@ -503,6 +519,10 @@ def main():
         sys.exit(0)
     print(f"  Latest: {run_ts}")
 
+    if not is_run_complete(s3, run_ts):
+        print(f"  {run_ts}: run not yet complete on S3 — skipping until next trigger.")
+        sys.exit(0)
+
     existing_meta = json_from_r2(r2, "ukv_meta.json", {"runs": []})
     existing_runs = existing_meta.get("runs", [])
     force = os.environ.get("FORCE_RERUN", "").lower() in ("1", "true", "yes")
@@ -641,11 +661,9 @@ def main():
 
     # Keep at most KEEP_RUNS older runs.
     # Medium runs (03Z, 15Z — T+120h) are retained 6 days; all others 48h.
-    _MEDIUM_RUN_HOURS = {3, 15}
-
     def _retention_hours(rt):
         try:
-            return 144 if parse_run_dt(rt).hour in _MEDIUM_RUN_HOURS else 48
+            return 144 if parse_run_dt(rt).hour in _MEDIUM_HOURS else 48
         except Exception:
             return 48
 
