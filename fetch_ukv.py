@@ -81,7 +81,7 @@ _MET_COLORS = np.array([
 RATE_SCHEMES = {
     "norm": {"bounds": np.array([0.1, 0.5, 1, 2, 4, 8, 16, 32, 64]),    "colors": _STD},
     "high": {"bounds": np.array([0.5, 2,   4, 8, 16, 32, 64, 100, 150]), "colors": _STD},
-    "met":  {"bounds": np.array([0.1, 0.5, 1, 2, 4, 8, 16, 32, 64]),    "colors": _MET_COLORS},
+    "met":  {"bounds": np.array([0.03, 0.1, 0.5, 1, 2, 4, 8, 16, 32, 64, 100, 150, 200]), "colors": _MET_COLORS},
 }
 
 # Accumulation schemes (mm) — shared across all durations, mirrors /radar.
