@@ -689,7 +689,10 @@ function _buildBiasGrid(radarUrl, ukvUrl) {
   function loadImg(url) {
     return new Promise(function(ok,err){
       var img=new Image(); img.crossOrigin='anonymous';
-      img.onload=function(){ok(img);}; img.onerror=err; img.src=url;
+      img.onload=function(){ok(img);}; img.onerror=err;
+      // Suffix bypasses browser cache so this request gets CORS headers
+      // (Leaflet's non-crossOrigin load of the same URL taints the cache entry)
+      img.src = url + (url.indexOf('?')>=0 ? '&' : '?') + '_cx=1';
     });
   }
   Promise.all([loadImg(radarUrl), loadImg(ukvUrl)]).then(function(imgs) {
@@ -821,14 +824,14 @@ function updateUKVBadge(step) {
 
 function refreshDisplay() {
   if (!snapshots.length) return;
-  var snap         = snapshots[currentIdx];
-  var ukvPeriodKey = PERIOD_UKV_KEY[currentPeriod];
+  var snap    = snapshots[currentIdx];
   updatePlayerTime(snap);
 
   var run     = ukvMeta && ukvMeta.runs && ukvMeta.runs[currentRunIdx];
   var ukvStep = run ? findMatchedUKVStep(run, radarTsToDt(snap.ts)) : null;
 
-  updatePeriodSelect(ukvStep);
+  updatePeriodSelect(ukvStep);                         // may change currentPeriod
+  var ukvPeriodKey = PERIOD_UKV_KEY[currentPeriod];   // recompute after period update
   updateUKVBadge(ukvStep);
   updateImageOverlays(snap, ukvStep, ukvPeriodKey);
 
