@@ -244,7 +244,7 @@ select option:disabled { color: #bbb; }
 <div id="noCompare">No radar data overlaps this UKV run's valid time range.</div>
 
 <!-- Info panel -->
-<div class="info-panel surface" id="infoPanel">
+<div class="info-panel surface collapsed" id="infoPanel">
 
   <div class="collapsed-top-row">
     <span class="collapsed-title">Comparison</span>
@@ -270,16 +270,16 @@ select option:disabled { color: #bbb; }
     <div class="cbar-labels" id="accumCbarLabels"></div>
   </div>
 
-  <div class="hide-collapsed">
-    <div class="cbar-container" style="margin-top:14px;">
-      <p>Bias &mdash; UKV minus Radar (mm)</p>
-      <div class="cbar" id="biasCbar"></div>
-      <div class="cbar-labels" id="biasCbarLabels"></div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:#5f6368;margin-top:3px;">
-        <span>&#9664; Under-forecast</span><span>Over-forecast &#9654;</span>
-      </div>
+  <div class="cbar-container">
+    <p>Bias &mdash; UKV minus Radar (mm)</p>
+    <div class="cbar" id="biasCbar"></div>
+    <div class="cbar-labels" id="biasCbarLabels"></div>
+    <div class="hide-collapsed" style="display:flex;justify-content:space-between;font-size:10px;color:#5f6368;margin-top:3px;">
+      <span>&#9664; Under-forecast</span><span>Over-forecast &#9654;</span>
     </div>
+  </div>
 
+  <div class="hide-collapsed">
     <p class="section-label">Boundaries</p>
     <label class="custom-checkbox">
       <input type="radio" name="boundaryLayer" value="regions" onchange="onBoundaryChange('regions')">
@@ -348,7 +348,7 @@ select option:disabled { color: #bbb; }
     <select id="schemeSelect" onchange="setScheme(this.value)">
       <option value="norm">Normal</option>
       <option value="high">High events</option>
-      <option value="met">Alternative</option>
+      <option value="met" selected>Alternative</option>
     </select>
   </div>
 
@@ -390,7 +390,7 @@ var validSnapIndices = [];   // positions in snapshots[] that match current UKV 
 var currentIdx       = 0;   // absolute index into snapshots[]
 var currentPeriod    = '12hr';
 var currentRunIdx    = 0;
-var currentScheme    = 'norm';
+var currentScheme    = 'met';
 var currentBoundary  = 'catchments';
 var currentViewMode  = 'grid';
 var ukvMeta          = null;
