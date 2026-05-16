@@ -498,11 +498,14 @@ function computeValidSnapIndices(goToEnd) {
   if (!run || !snapshots.length) {
     validSnapIndices = snapshots.map(function(_, i) { return i; });
   } else {
+    var ukvPeriodKey = PERIOD_UKV_KEY[currentPeriod];
     validSnapIndices = [];
     snapshots.forEach(function(snap, i) {
       var dt = radarTsToDt(snap.ts);
       if (dt.getUTCMinutes() !== 0) return;   // only on-the-hour snapshots align with UKV steps
-      if (findMatchedUKVStep(run, dt)) validSnapIndices.push(i);
+      var step = findMatchedUKVStep(run, dt);
+      if (!step || !step[ukvPeriodKey]) return;  // UKV step must have data for the selected period
+      validSnapIndices.push(i);
     });
   }
 
@@ -524,7 +527,6 @@ function computeValidSnapIndices(goToEnd) {
 function updatePeriodSelect(ukvStep) {
   var snap = snapshots[currentIdx];
   var sel  = document.getElementById('periodSelect');
-  var available = [];
 
   Array.from(sel.options).forEach(function(opt) {
     var p      = opt.value;
@@ -532,15 +534,8 @@ function updatePeriodSelect(ukvStep) {
     var ok     = !!(snap && snap[p] && ukvStep && ukvStep[ukvKey]);
     opt.disabled    = !ok;
     opt.textContent = PERIOD_LABELS[p] + (ok ? '' : ' —');
-    if (ok) available.push(p);
   });
-
-  // Auto-switch to best available period if current is no longer valid
-  if (available.length && !available.includes(currentPeriod)) {
-    var fallback = ['12hr','6hr','24hr','3hr','1hr','48hr'].find(function(p) { return available.includes(p); });
-    currentPeriod = fallback || available[0];
-    sel.value = currentPeriod;
-  }
+  // Period never auto-switches; slider is already constrained to steps where currentPeriod has data.
 }
 
 // ── Boundary / GeoJSON layer management ─────────────────────────
@@ -761,7 +756,7 @@ function setSnapshot(sliderPos) {
   currentIdx = validSnapIndices.length > sliderPos ? validSnapIndices[sliderPos] : sliderPos;
   refreshDisplay();
 }
-function setPeriod(p)  { currentPeriod = p; refreshDisplay(); }
+function setPeriod(p)  { currentPeriod = p; computeValidSnapIndices(false); refreshDisplay(); }
 function setRun(idx)   { currentRunIdx = idx; computeValidSnapIndices(false); refreshDisplay(); }
 function setScheme(s)  { currentScheme = s; buildAccumCbar(); updateImageOverlays(snapshots[currentIdx], _lastUKVStep, PERIOD_UKV_KEY[currentPeriod]); renderAll(); }
 
