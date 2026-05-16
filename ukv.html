@@ -208,6 +208,15 @@
     border-radius: 3px;
     z-index: 1;
     pointer-events: none;
+    overflow: hidden;
+  }
+
+  .loaded-progress {
+    height: 100%;
+    width: 0%;
+    background: #bdc1c6;
+    transition: width 0.2s ease, opacity 0.5s;
+    opacity: 0;
   }
 
   #timeSlider {
@@ -388,7 +397,9 @@
   <button id="playBtn" onclick="togglePlay()" title="Play / Pause">&#9654;</button>
 
   <div class="timeline-container">
-    <div class="timeline-track"></div>
+    <div class="timeline-track">
+      <div id="loadedProgress" class="loaded-progress"></div>
+    </div>
     <input type="range" id="timeSlider" min="0" max="0" step="1" value="0"
            oninput="setStep(parseInt(this.value))">
   </div>
@@ -487,29 +498,62 @@ function activeScheme() {
   return schemes[currentScheme] || schemes.norm;
 }
 
-// ── Image precache ────────────────────────────────────────────────────────────
-var _imgCache = {};
-var PRECACHE_AHEAD = 6;
+// ── Image preload (all frames, matching /radar behaviour) ─────────────────────
+var _imgCache           = {};
+var _preloadGeneration  = 0;
 
-function precacheImages() {
+function preloadVisibleFrames() {
+  _preloadGeneration++;
+  var gen = _preloadGeneration;
+  var pb  = document.getElementById('loadedProgress');
+  if (pb) { pb.style.opacity = '1'; pb.style.width = '0%'; }
+
   if (!meta) return;
   var run = meta.runs[currentRun];
   if (!run || !run.steps) return;
-  var maxStep = parseInt(document.getElementById('timeSlider').max) || 0;
-  var sname   = currentScheme;
 
-  for (var i = 1; i <= PRECACHE_AHEAD; i++) {
-    var idx   = currentStep + i;
-    if (idx > maxStep) break;
-    var step  = run.steps[idx];
+  var slider  = document.getElementById('timeSlider');
+  var minStep = parseInt(slider.min) || 0;
+  var maxStep = parseInt(slider.max) || 0;
+  var sname   = currentScheme;
+  var urls    = [];
+
+  for (var i = minStep; i <= maxStep; i++) {
+    var step  = run.steps[i];
     var entry = step && step[currentLayer];
     var url   = entry && (typeof entry === 'string' ? entry : (entry[sname] || entry.norm));
-    if (url && !_imgCache[url]) {
-      var img = new Image();
-      img.src = url;
-      _imgCache[url] = img;
-    }
+    if (url) urls.push(url);
   }
+
+  var total = urls.length;
+  if (total === 0) return;
+  var loadedCount = 0;
+
+  urls.forEach(function(url) {
+    if (_imgCache[url]) {
+      loadedCount++;
+      if (pb) pb.style.width = ((loadedCount / total) * 100) + '%';
+      if (loadedCount === total && !playing) {
+        if (pb) setTimeout(function() { if (pb && gen === _preloadGeneration) pb.style.opacity = '0'; }, 1500);
+        togglePlay();
+      }
+      return;
+    }
+    var img = new Image();
+    var done = function() {
+      if (gen !== _preloadGeneration) return;
+      loadedCount++;
+      if (pb) pb.style.width = ((loadedCount / total) * 100) + '%';
+      if (loadedCount === total) {
+        if (!playing) togglePlay();
+        setTimeout(function() { if (pb && gen === _preloadGeneration) pb.style.opacity = '0'; }, 1500);
+      }
+    };
+    img.onload = done;
+    img.onerror = done;
+    img.src = url;
+    _imgCache[url] = img;
+  });
 }
 
 // ── Colour bar ────────────────────────────────────────────────────────────────
@@ -581,7 +625,6 @@ function updateDisplay() {
   document.getElementById('playerOffsetLine').textContent = 'T+' + step.offset_hours + 'h';
 
   buildCbar();
-  precacheImages();
 }
 
 // ── Slider helpers ────────────────────────────────────────────────────────────
@@ -627,17 +670,20 @@ function setRun(idx) {
   currentStep = 0;
   applyStepRange();
   updateDisplay();
+  preloadVisibleFrames();
 }
 
 function setLayer(layer) {
   currentLayer = layer;
   applyStepRange();
   updateDisplay();
+  preloadVisibleFrames();
 }
 
 function setScheme(scheme) {
   currentScheme = scheme;
   updateDisplay();
+  preloadVisibleFrames();
 }
 
 function setOpacity(val) {
@@ -802,6 +848,7 @@ function loadMeta() {
 
       populateRunSelect();
       updateDisplay();
+      preloadVisibleFrames();
     })
     .catch(function() {
       document.getElementById('noData').style.display = 'block';
