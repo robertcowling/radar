@@ -582,6 +582,7 @@ def main():
                 station_pixels_ukv[sid] = (row, col)
         print(f"  {len(station_pixels_ukv)} gauge stations mapped to UKV grid")
 
+    area_ts_steps = []
     step_entries = []
     # Stack of {'arr': ndarray, 'hours': int, 'estimated': bool}.
     # Real 1h accumulation files are used for T+1..T+54; beyond that the Met
@@ -667,6 +668,10 @@ def main():
                     Body=json.dumps(poly_data).encode(),
                     ContentType="application/json; charset=utf-8",
                 )
+                ts_entry = {'hours': hours}
+                for layer_name in ukv_masks:
+                    ts_entry[layer_name] = poly_data.get(layer_name, {}).get('accum_1h', {})
+                area_ts_steps.append(ts_entry)
 
             if arrays_for_poly and station_pixels_ukv:
                 gauge_data = {}
@@ -685,6 +690,21 @@ def main():
                     )
 
         step_entries.append(entry)
+
+    if area_ts_steps:
+        area_ts = {'step_hours': [s['hours'] for s in area_ts_steps]}
+        for layer_name in ukv_masks:
+            area_ts[layer_name] = {}
+            for area_name in {a for s in area_ts_steps for a in s.get(layer_name, {})}:
+                area_ts[layer_name][area_name] = [
+                    s.get(layer_name, {}).get(area_name) for s in area_ts_steps
+                ]
+        r2.put_object(
+            Bucket=R2_BUCKET,
+            Key=f'ukv_area_ts/{run_ts}.json',
+            Body=json.dumps(area_ts, separators=(',', ':')).encode(),
+            ContentType='application/json; charset=utf-8',
+        )
 
     new_run = {
         "run_ts":         run_ts,

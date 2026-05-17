@@ -536,16 +536,26 @@ function createBoundaryLayer(data, type, mid) {
 // ── Popup (persistent, updates with slider) ──────────────────────
 var _openPopup   = null;  // {name, latlng, map}
 var _activePopup = null;  // L.popup instance
+var _chartData   = null;  // {runTs, runMs, endMs, ukvPoints, radarPoints, maxY}
 
-function _popupHtml(name) {
+function _popupShell(name) {
+  return '<div style="font-size:12px;font-family:Roboto,sans-serif;width:480px;">' +
+    '<b style="font-size:13px;">' + name + '</b>' +
+    '<div id="popup-stats" style="margin-top:6px;"></div>' +
+    '<div id="popup-chart-wrap" style="margin-top:10px;">' +
+      '<svg id="popup-chart" xmlns="http://www.w3.org/2000/svg" width="460" height="190" style="display:block;"></svg>' +
+      '<div id="popup-chart-msg" style="text-align:center;font-size:11px;color:#94a3b8;padding:4px 0;">Loading chart…</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function _popupStatsHtml(name) {
   var rMm  = currentRadarVals ? currentRadarVals[name] : null;
   var uMm  = currentUKVVals  ? currentUKVVals[name]   : null;
   var bias = (rMm != null && uMm != null) ? (uMm - rMm) : null;
   var timeStr = document.getElementById('playerTimeLine').textContent || '—';
   function fmm(mm) { return mm != null ? '<b>' + mm.toFixed(1) + ' mm</b>' : '<span style="color:#94a3b8">—</span>'; }
-  var html = '<div style="font-size:12px;font-family:Roboto,sans-serif;min-width:190px;">' +
-    '<b style="font-size:13px;">' + name + '</b>' +
-    '<table style="margin-top:8px;border-collapse:collapse;width:100%;">' +
+  var html = '<table style="border-collapse:collapse;width:100%;">' +
     '<tr><td colspan="2" style="color:#666;font-size:10px;font-weight:600;padding-bottom:5px;">' +
       currentPeriod + ' accumulation ending ' + timeStr +
     '</td></tr>' +
@@ -558,21 +568,222 @@ function _popupHtml(name) {
     html += '<tr><td style="padding:6px 12px 3px 0;border-top:1px solid #e8eaed;color:#5f6368;font-weight:500;">Bias</td>' +
       '<td style="border-top:1px solid #e8eaed;font-weight:700;color:' + bc + ';">' + sign + bias.toFixed(1) + ' mm <small>' + arrow + '</small></td></tr>';
   }
-  html += '</table></div>';
+  html += '</table>';
   return html;
 }
 
+function _updatePopupStats(name) {
+  var el = _activePopup && _activePopup.getElement();
+  var statsEl = el && el.querySelector('#popup-stats');
+  if (statsEl) statsEl.innerHTML = _popupStatsHtml(name);
+}
+
 function refreshOpenPopup() {
-  if (_openPopup && _activePopup) _activePopup.setContent(_popupHtml(_openPopup.name));
+  if (!_openPopup || !_activePopup) return;
+  var el = _activePopup.getElement();
+  if (!el) return;
+  _updatePopupStats(_openPopup.name);
+  var run = ukvMeta && ukvMeta.runs && ukvMeta.runs[currentRunIdx];
+  var curRunTs = run && run.run_ts;
+  if (_chartData && _chartData.runTs !== curRunTs) {
+    _chartData = null;
+    var msg = el.querySelector('#popup-chart-msg');
+    if (msg) { msg.textContent = 'Loading chart…'; msg.style.display = ''; }
+    var svgEl = el.querySelector('#popup-chart');
+    if (svgEl) svgEl.innerHTML = '';
+    setTimeout(function() { if (_openPopup) _loadChartData(_openPopup.name); }, 0);
+    return;
+  }
+  _redrawChart();
 }
 
 function showPolyPopup(name, latlng, map) {
+  var newArea = !_openPopup || _openPopup.name !== name;
   _openPopup = {name: name, latlng: latlng, map: map};
   if (!_activePopup) {
-    _activePopup = L.popup({ maxWidth: 290 });
-    _activePopup.on('remove', function() { _openPopup = null; _activePopup = null; });
+    _activePopup = L.popup({ maxWidth: 520, minWidth: 490 });
+    _activePopup.on('remove', function() { _openPopup = null; _activePopup = null; _chartData = null; });
   }
-  _activePopup.setLatLng(latlng).setContent(_popupHtml(name)).openOn(map);
+  if (newArea) {
+    _chartData = null;
+    _activePopup.setContent(_popupShell(name)).openOn(map);
+    _updatePopupStats(name);
+    setTimeout(function() { _loadChartData(name); }, 0);
+  } else {
+    _activePopup.setLatLng(latlng);
+    _updatePopupStats(name);
+    _redrawChart();
+  }
+}
+
+function _loadChartData(name) {
+  var run = ukvMeta && ukvMeta.runs && ukvMeta.runs[currentRunIdx];
+  if (!run) return;
+  var loadRunTs = run.run_ts;
+  var ukvTsUrl  = R2_CDN + '/ukv_area_ts/' + loadRunTs + '.json';
+  var matchedIdxs = _snapsForPeriod(run, 'accum_1h');
+  loadCachedJson(ukvTsUrl, function(ukvAreaTs) {
+    if (!_openPopup || _openPopup.name !== name) return;
+    var curRun = ukvMeta && ukvMeta.runs && ukvMeta.runs[currentRunIdx];
+    if (!curRun || curRun.run_ts !== loadRunTs) return;
+    _loadRadarPolyBatch(matchedIdxs, function(radarPolys) {
+      if (!_openPopup || _openPopup.name !== name) return;
+      var curRun2 = ukvMeta && ukvMeta.runs && ukvMeta.runs[currentRunIdx];
+      if (!curRun2 || curRun2.run_ts !== loadRunTs) return;
+      _buildChartData(name, run, ukvAreaTs, matchedIdxs, radarPolys);
+      _redrawChart();
+      var el = _activePopup && _activePopup.getElement();
+      var msg = el && el.querySelector('#popup-chart-msg');
+      if (msg) msg.style.display = 'none';
+    });
+  });
+}
+
+function _loadRadarPolyBatch(indices, cb) {
+  if (!indices.length) { cb({}); return; }
+  var results = {}, pending = indices.length;
+  indices.forEach(function(idx) {
+    var snap = snapshots[idx];
+    var url = R2_CDN + '/accum_poly/' + snap.ts + '.json';
+    loadCachedJson(url, function(data) {
+      results[snap.ts] = data;
+      if (--pending === 0) cb(results);
+    });
+  });
+}
+
+function _niceMax(v) {
+  if (v <= 0) return 1;
+  var mag = Math.pow(10, Math.floor(Math.log10(v)));
+  var frac = v / mag;
+  var nice = frac <= 1 ? 1 : frac <= 2 ? 2 : frac <= 5 ? 5 : 10;
+  return nice * mag;
+}
+
+function _buildChartData(name, run, ukvAreaTs, matchedIdxs, radarPolys) {
+  var runDt = parseRunDt(run.run_ts);
+  if (!runDt) return;
+  var runMs = runDt.getTime();
+  var endMs = runMs + run.forecast_hours * 3600000;
+
+  var ukvPoints = [];
+  var ukvCum = 0;
+  if (ukvAreaTs) {
+    var stepHours = ukvAreaTs.step_hours || [];
+    var areaVals  = ukvAreaTs[currentBoundary] && ukvAreaTs[currentBoundary][name];
+    if (areaVals) {
+      for (var i = 0; i < stepHours.length; i++) {
+        var v = areaVals[i];
+        if (v != null) { ukvCum += v; ukvPoints.push([runMs + stepHours[i] * 3600000, ukvCum]); }
+      }
+    }
+  }
+
+  var radarPoints = [];
+  var radarCum = 0;
+  var sortedIdxs = matchedIdxs.slice().sort(function(a, b) {
+    return radarTsToDt(snapshots[a].ts).getTime() - radarTsToDt(snapshots[b].ts).getTime();
+  });
+  sortedIdxs.forEach(function(idx) {
+    var snap = snapshots[idx];
+    var poly = radarPolys[snap.ts];
+    if (!poly) return;
+    var v = poly[currentBoundary] && poly[currentBoundary]['1hr'] && poly[currentBoundary]['1hr'][name];
+    if (v == null) return;
+    radarCum += v;
+    radarPoints.push([radarTsToDt(snap.ts).getTime(), radarCum]);
+  });
+
+  var maxRaw = Math.max(
+    ukvPoints.length  ? ukvPoints[ukvPoints.length - 1][1]   : 0,
+    radarPoints.length ? radarPoints[radarPoints.length - 1][1] : 0
+  );
+  _chartData = { runTs: run.run_ts, runMs: runMs, endMs: endMs, ukvPoints: ukvPoints, radarPoints: radarPoints, maxY: _niceMax(maxRaw) };
+}
+
+function _redrawChart() {
+  if (!_chartData) return;
+  var el = _activePopup && _activePopup.getElement();
+  var svgEl = el && el.querySelector('#popup-chart');
+  if (!svgEl) return;
+  svgEl.innerHTML = _buildChartSVG();
+}
+
+function _buildChartSVG() {
+  var d = _chartData;
+  var W = 460, H = 190;
+  var pL = 44, pR = 10, pT = 8, pB = 36;
+  var plotW = W - pL - pR, plotH = H - pT - pB;
+
+  function xp(ms) { return pL + (ms - d.runMs) / (d.endMs - d.runMs) * plotW; }
+  function yp(mm) { return pT + plotH - (mm / d.maxY) * plotH; }
+
+  var s = '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#f8fafc" rx="4"/>';
+
+  // Y gridlines and labels
+  var nT = 4;
+  for (var ti = 0; ti <= nT; ti++) {
+    var mm = d.maxY * ti / nT;
+    var y  = yp(mm);
+    s += '<line x1="' + pL + '" y1="' + y + '" x2="' + (pL + plotW) + '" y2="' + y + '" stroke="#e2e8f0" stroke-width="0.5"/>';
+    s += '<text x="' + (pL - 4) + '" y="' + (y + 3.5) + '" text-anchor="end" font-size="8" font-family="Roboto,sans-serif" fill="#94a3b8">' +
+      (mm < 10 ? mm.toFixed(1) : mm.toFixed(0)) + '</text>';
+  }
+
+  // Axes
+  s += '<line x1="' + pL + '" y1="' + pT + '" x2="' + pL + '" y2="' + (pT + plotH) + '" stroke="#cbd5e1" stroke-width="1"/>';
+  s += '<line x1="' + pL + '" y1="' + (pT + plotH) + '" x2="' + (pL + plotW) + '" y2="' + (pT + plotH) + '" stroke="#cbd5e1" stroke-width="1"/>';
+
+  // X ticks and labels
+  var durationH = (d.endMs - d.runMs) / 3600000;
+  var tickH = durationH <= 54 ? 6 : 12;
+  for (var h = 0; h <= durationH; h += tickH) {
+    var xms = d.runMs + h * 3600000;
+    var x   = xp(xms);
+    var dt  = new Date(xms);
+    var lbl = _pad(dt.getUTCHours()) + ':' + _pad(dt.getUTCMinutes());
+    s += '<line x1="' + x + '" y1="' + (pT + plotH) + '" x2="' + x + '" y2="' + (pT + plotH + 4) + '" stroke="#cbd5e1" stroke-width="1"/>';
+    s += '<text x="' + x + '" y="' + (pT + plotH + 13) + '" text-anchor="middle" font-size="8" font-family="Roboto,sans-serif" fill="#94a3b8">' + lbl + '</text>';
+  }
+  s += '<text x="' + (pL + plotW / 2) + '" y="' + (H - 1) + '" text-anchor="middle" font-size="8" font-family="Roboto,sans-serif" fill="#94a3b8">GMT</text>';
+
+  // Y axis label
+  s += '<text transform="translate(8,' + (pT + plotH / 2) + ') rotate(-90)" text-anchor="middle" font-size="8" font-family="Roboto,sans-serif" fill="#94a3b8">mm</text>';
+
+  // UKV polyline (dashed red)
+  if (d.ukvPoints.length >= 2) {
+    var pts = d.ukvPoints.map(function(p) { return xp(p[0]).toFixed(1) + ',' + yp(p[1]).toFixed(1); }).join(' ');
+    s += '<polyline points="' + pts + '" fill="none" stroke="#e53935" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.9"/>';
+  }
+
+  // Radar polyline (solid blue)
+  if (d.radarPoints.length >= 2) {
+    var rpts = d.radarPoints.map(function(p) { return xp(p[0]).toFixed(1) + ',' + yp(p[1]).toFixed(1); }).join(' ');
+    s += '<polyline points="' + rpts + '" fill="none" stroke="#1565c0" stroke-width="1.5" opacity="0.9"/>';
+  }
+
+  // Current time marker
+  var run = ukvMeta && ukvMeta.runs && ukvMeta.runs[currentRunIdx];
+  if (_lastUKVStep && run) {
+    var runDt = parseRunDt(run.run_ts);
+    if (runDt) {
+      var nowMs = runDt.getTime() + _lastUKVStep.offset_hours * 3600000;
+      var nx = xp(nowMs);
+      if (nx >= pL && nx <= pL + plotW) {
+        s += '<line x1="' + nx.toFixed(1) + '" y1="' + pT + '" x2="' + nx.toFixed(1) + '" y2="' + (pT + plotH) + '" stroke="#64748b" stroke-width="1" stroke-dasharray="3,3" opacity="0.7"/>';
+      }
+    }
+  }
+
+  // Legend
+  var lx = pL + plotW - 4, ly = pT + 7;
+  s += '<line x1="' + (lx-52) + '" y1="' + ly + '" x2="' + (lx-36) + '" y2="' + ly + '" stroke="#e53935" stroke-width="1.5" stroke-dasharray="5,3"/>';
+  s += '<text x="' + (lx-33) + '" y="' + (ly+4) + '" font-size="8" font-family="Roboto,sans-serif" fill="#e53935">UKV</text>';
+  ly += 12;
+  s += '<line x1="' + (lx-52) + '" y1="' + ly + '" x2="' + (lx-36) + '" y2="' + ly + '" stroke="#1565c0" stroke-width="1.5"/>';
+  s += '<text x="' + (lx-33) + '" y="' + (ly+4) + '" font-size="8" font-family="Roboto,sans-serif" fill="#1565c0">Radar</text>';
+
+  return s;
 }
 
 function removeAllBoundaryLayers() {
