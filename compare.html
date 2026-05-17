@@ -606,7 +606,7 @@ function showPolyPopup(name, latlng, map) {
   }
   if (newArea) {
     _chartData = null;
-    _activePopup.setContent(_popupShell(name)).openOn(map);
+    _activePopup.setLatLng(latlng).setContent(_popupShell(name)).openOn(map);
     _updatePopupStats(name);
     setTimeout(function() { _loadChartData(name); }, 0);
   } else {
