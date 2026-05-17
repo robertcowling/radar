@@ -539,14 +539,21 @@ var _activePopup = null;  // L.popup instance
 var _chartData   = null;  // {runTs, runMs, endMs, ukvPoints, radarPoints, maxY}
 
 function _popupShell(name) {
-  return '<div style="font-size:12px;font-family:Roboto,sans-serif;width:480px;">' +
+  return '<div style="font-size:12px;font-family:Roboto,sans-serif;width:384px;">' +
     '<b style="font-size:13px;">' + name + '</b>' +
     '<div id="popup-stats" style="margin-top:6px;"></div>' +
     '<div id="popup-chart-wrap" style="margin-top:10px;">' +
-      '<svg id="popup-chart" xmlns="http://www.w3.org/2000/svg" width="460" height="190" style="display:block;"></svg>' +
+      '<svg id="popup-chart" xmlns="http://www.w3.org/2000/svg" width="364" height="210" style="display:block;"></svg>' +
       '<div id="popup-chart-msg" style="text-align:center;font-size:11px;color:#94a3b8;padding:4px 0;">Loading chart…</div>' +
     '</div>' +
   '</div>';
+}
+
+function _shortRunLabel(runTs) {
+  var m = runTs.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})Z$/);
+  if (!m) return '';
+  var mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return +m[3] + ' ' + mon[+m[2]-1] + ' ' + m[4] + 'Z';
 }
 
 function _popupStatsHtml(name) {
@@ -601,7 +608,7 @@ function showPolyPopup(name, latlng, map) {
   var newArea = !_openPopup || _openPopup.name !== name;
   _openPopup = {name: name, latlng: latlng, map: map};
   if (!_activePopup) {
-    _activePopup = L.popup({ maxWidth: 520, minWidth: 490 });
+    _activePopup = L.popup({ maxWidth: 420, minWidth: 400 });
     _activePopup.on('remove', function() { _openPopup = null; _activePopup = null; _chartData = null; });
   }
   if (newArea) {
@@ -698,7 +705,7 @@ function _buildChartData(name, run, ukvAreaTs, matchedIdxs, radarPolys) {
     ukvPoints.length  ? ukvPoints[ukvPoints.length - 1][1]   : 0,
     radarPoints.length ? radarPoints[radarPoints.length - 1][1] : 0
   );
-  _chartData = { runTs: run.run_ts, runMs: runMs, endMs: endMs, ukvPoints: ukvPoints, radarPoints: radarPoints, maxY: _niceMax(maxRaw) };
+  _chartData = { runTs: run.run_ts, runLabel: _shortRunLabel(run.run_ts), runMs: runMs, endMs: endMs, ukvPoints: ukvPoints, radarPoints: radarPoints, maxY: _niceMax(maxRaw) };
 }
 
 function _redrawChart() {
@@ -711,14 +718,17 @@ function _redrawChart() {
 
 function _buildChartSVG() {
   var d = _chartData;
-  var W = 460, H = 190;
-  var pL = 44, pR = 10, pT = 8, pB = 36;
-  var plotW = W - pL - pR, plotH = H - pT - pB;
+  var W = 364, H = 210;
+  var pL = 40, pR = 8, pT = 20, pB = 46;
+  var plotW = W - pL - pR, plotH = H - pT - pB;  // 316, 144
 
   function xp(ms) { return pL + (ms - d.runMs) / (d.endMs - d.runMs) * plotW; }
   function yp(mm) { return pT + plotH - (mm / d.maxY) * plotH; }
 
   var s = '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#f8fafc" rx="4"/>';
+
+  // Header
+  s += '<text x="' + (W/2) + '" y="13" text-anchor="middle" font-size="9" font-weight="600" font-family="Roboto,sans-serif" fill="#475569">1hr cumulative rainfall</text>';
 
   // Y gridlines and labels
   var nT = 4;
@@ -734,18 +744,25 @@ function _buildChartSVG() {
   s += '<line x1="' + pL + '" y1="' + pT + '" x2="' + pL + '" y2="' + (pT + plotH) + '" stroke="#cbd5e1" stroke-width="1"/>';
   s += '<line x1="' + pL + '" y1="' + (pT + plotH) + '" x2="' + (pL + plotW) + '" y2="' + (pT + plotH) + '" stroke="#cbd5e1" stroke-width="1"/>';
 
-  // X ticks and labels
+  // X ticks, time labels, day labels (shown whenever the day changes)
+  var DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   var durationH = (d.endMs - d.runMs) / 3600000;
   var tickH = durationH <= 54 ? 6 : 12;
+  var prevDay = -1;
   for (var h = 0; h <= durationH; h += tickH) {
     var xms = d.runMs + h * 3600000;
     var x   = xp(xms);
     var dt  = new Date(xms);
-    var lbl = _pad(dt.getUTCHours()) + ':' + _pad(dt.getUTCMinutes());
     s += '<line x1="' + x + '" y1="' + (pT + plotH) + '" x2="' + x + '" y2="' + (pT + plotH + 4) + '" stroke="#cbd5e1" stroke-width="1"/>';
-    s += '<text x="' + x + '" y="' + (pT + plotH + 13) + '" text-anchor="middle" font-size="8" font-family="Roboto,sans-serif" fill="#94a3b8">' + lbl + '</text>';
+    s += '<text x="' + x + '" y="' + (pT + plotH + 13) + '" text-anchor="middle" font-size="8" font-family="Roboto,sans-serif" fill="#94a3b8">' +
+      _pad(dt.getUTCHours()) + ':' + _pad(dt.getUTCMinutes()) + '</text>';
+    var curDay = dt.getUTCDay();
+    if (curDay !== prevDay) {
+      s += '<text x="' + x + '" y="' + (pT + plotH + 25) + '" text-anchor="middle" font-size="8" font-family="Roboto,sans-serif" fill="#64748b">' +
+        DAY_NAMES[curDay] + ' ' + dt.getUTCDate() + '</text>';
+      prevDay = curDay;
+    }
   }
-  s += '<text x="' + (pL + plotW / 2) + '" y="' + (H - 1) + '" text-anchor="middle" font-size="8" font-family="Roboto,sans-serif" fill="#94a3b8">GMT</text>';
 
   // Y axis label
   s += '<text transform="translate(8,' + (pT + plotH / 2) + ') rotate(-90)" text-anchor="middle" font-size="8" font-family="Roboto,sans-serif" fill="#94a3b8">mm</text>';
@@ -775,13 +792,18 @@ function _buildChartSVG() {
     }
   }
 
-  // Legend
-  var lx = pL + plotW - 4, ly = pT + 7;
-  s += '<line x1="' + (lx-52) + '" y1="' + ly + '" x2="' + (lx-36) + '" y2="' + ly + '" stroke="#e53935" stroke-width="1.5" stroke-dasharray="5,3"/>';
-  s += '<text x="' + (lx-33) + '" y="' + (ly+4) + '" font-size="8" font-family="Roboto,sans-serif" fill="#e53935">UKV</text>';
-  ly += 12;
-  s += '<line x1="' + (lx-52) + '" y1="' + ly + '" x2="' + (lx-36) + '" y2="' + ly + '" stroke="#1565c0" stroke-width="1.5"/>';
-  s += '<text x="' + (lx-33) + '" y="' + (ly+4) + '" font-size="8" font-family="Roboto,sans-serif" fill="#1565c0">Radar</text>';
+  // Legend (text right-aligns before coloured line, anchored at right edge of plot)
+  var lgX2 = pL + plotW - 4;  // right edge of line: 352
+  var lgX1 = lgX2 - 16;       // left edge of line: 336
+  var lgTX = lgX1 - 4;        // right edge of text: 332
+  var lgY  = pT + 6;
+  s += '<rect x="' + (lgTX - 78) + '" y="' + (lgY - 7) + '" width="' + (lgX2 - lgTX + 82) + '" height="28" fill="rgba(248,250,252,0.88)" rx="2"/>';
+  var ukvLbl = 'UKV' + (d.runLabel ? ' ' + d.runLabel : '');
+  s += '<line x1="' + lgX1 + '" y1="' + lgY + '" x2="' + lgX2 + '" y2="' + lgY + '" stroke="#e53935" stroke-width="1.5" stroke-dasharray="5,3"/>';
+  s += '<text x="' + lgTX + '" y="' + (lgY + 4) + '" text-anchor="end" font-size="8" font-family="Roboto,sans-serif" fill="#e53935">' + ukvLbl + '</text>';
+  lgY += 13;
+  s += '<line x1="' + lgX1 + '" y1="' + lgY + '" x2="' + lgX2 + '" y2="' + lgY + '" stroke="#1565c0" stroke-width="1.5"/>';
+  s += '<text x="' + lgTX + '" y="' + (lgY + 4) + '" text-anchor="end" font-size="8" font-family="Roboto,sans-serif" fill="#1565c0">Radar</text>';
 
   return s;
 }
