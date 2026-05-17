@@ -324,8 +324,9 @@ var currentUKVVals       = null;
 
 // ── Gauge state ──────────────────────────────────────────────────
 var gaugeStations    = null;   // {stationId: {lat, lon, name}}
-var gaugeMarkerGroup = null;   // L.layerGroup on radarMap
-var biasMarkerGroup  = null;   // L.layerGroup on biasMap
+var gaugeMarkerGroup = null;   // L.layerGroup on radarMap (gauge values)
+var ukvMarkerGroup   = null;   // L.layerGroup on ukvMap   (UKV values at gauges)
+var biasMarkerGroup  = null;   // L.layerGroup on biasMap  (UKV − gauge bias)
 
 // Byte offset into gauge_bias station values array per period
 // (triplets [gauge, radar_pt, radar_5km] for 1hr,3hr,6hr,12hr,24hr,48hr,5d)
@@ -1070,6 +1071,7 @@ function setCompareSource(src) {
 // ── Gauge point markers ──────────────────────────────────────────
 function clearGaugeMarkers() {
   if (gaugeMarkerGroup) { radarMap.removeLayer(gaugeMarkerGroup); gaugeMarkerGroup = null; }
+  if (ukvMarkerGroup)   { ukvMap.removeLayer(ukvMarkerGroup);     ukvMarkerGroup   = null; }
   if (biasMarkerGroup)  { biasMap.removeLayer(biasMarkerGroup);   biasMarkerGroup  = null; }
 }
 
@@ -1089,13 +1091,14 @@ function renderGaugeMarkers(gaugeSnap, ukvGaugeData) {
   var ukvKey = PERIOD_UKV_KEY[currentPeriod];
 
   gaugeMarkerGroup = L.layerGroup();
+  ukvMarkerGroup   = L.layerGroup();
   biasMarkerGroup  = L.layerGroup();
 
   var stationVals = gaugeSnap && gaugeSnap.stations ? gaugeSnap.stations : {};
 
   Object.keys(gaugeStations).forEach(function(sid) {
-    var s      = gaugeStations[sid];
-    var latlng = [s.lat, s.lon];
+    var st     = gaugeStations[sid];
+    var latlng = [st.lat, st.lon];
 
     // Gauge accumulation
     var gVal = null;
@@ -1109,30 +1112,42 @@ function renderGaugeMarkers(gaugeSnap, ukvGaugeData) {
 
     // Left map: gauge accumulation dot
     var gColor = gVal != null ? mmToFillColor(gVal, currentScheme) : null;
-    if (gColor || gVal === 0) {
+    if (gVal != null) {
       L.circleMarker(latlng, {
         radius: 5, fillColor: gColor || '#e8eaed',
         color: 'white', weight: 1, fillOpacity: 0.92, pane: 'overlayPane'
-      }).bindTooltip(s.name + ': ' + (gVal != null ? gVal.toFixed(1) + ' mm' : '—'),
+      }).bindTooltip(st.name + ': ' + gVal.toFixed(1) + ' mm',
         { sticky: true, className: 'poly-tooltip' })
         .addTo(gaugeMarkerGroup);
     }
 
-    // Bias map: UKV − gauge dot
+    // Middle map: UKV forecast value at gauge location
+    var uColor = uVal != null ? mmToFillColor(uVal, currentScheme) : null;
+    if (uVal != null) {
+      L.circleMarker(latlng, {
+        radius: 5, fillColor: uColor || '#e8eaed',
+        color: 'white', weight: 1, fillOpacity: 0.92, pane: 'overlayPane'
+      }).bindTooltip(st.name + ' UKV: ' + uVal.toFixed(1) + ' mm',
+        { sticky: true, className: 'poly-tooltip' })
+        .addTo(ukvMarkerGroup);
+    }
+
+    // Right map: bias (UKV − gauge) dot
     var bias   = (gVal != null && uVal != null) ? (uVal - gVal) : null;
     var bColor = bias != null ? biasFillColor(bias) : null;
-    if (bColor) {
+    if (bias != null) {
       var sign = bias >= 0 ? '+' : '';
       L.circleMarker(latlng, {
-        radius: 5, fillColor: bColor,
+        radius: 5, fillColor: bColor || '#d4d4d4',
         color: 'white', weight: 1, fillOpacity: 0.92, pane: 'overlayPane'
-      }).bindTooltip(s.name + ' (' + currentPeriod + '): ' + sign + bias.toFixed(1) + ' mm',
+      }).bindTooltip(st.name + ' (' + currentPeriod + '): ' + sign + bias.toFixed(1) + ' mm',
         { sticky: true, className: 'poly-tooltip' })
         .addTo(biasMarkerGroup);
     }
   });
 
   gaugeMarkerGroup.addTo(radarMap);
+  ukvMarkerGroup.addTo(ukvMap);
   biasMarkerGroup.addTo(biasMap);
 }
 
