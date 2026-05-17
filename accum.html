@@ -391,6 +391,13 @@
     <div class="cbar-labels" id="cbarLabels"></div>
   </div>
 
+  <!-- Gauge vs radar key (visible in both states when active) -->
+  <div class="bias-legend" id="biasKey" style="display:none;margin-top:8px;">
+    <span class="bias-swatch"><span class="bias-dot" style="background:#ef4444;"></span>Gauge &gt; radar</span>
+    <span class="bias-swatch"><span class="bias-dot" style="background:#3b82f6;"></span>Radar &gt; gauge</span>
+    <span class="bias-swatch"><span class="bias-dot" style="background:#e2e8f0;"></span>Close match</span>
+  </div>
+
   <!-- Rest hidden when collapsed -->
   <div class="hide-collapsed">
     <p class="section-label" style="margin-top:12px;">Opacity</p>
@@ -442,11 +449,6 @@
     <span class="control-label">Gauge vs radar</span>
     <div class="seg-control">
       <button id="btnBias" class="seg-btn" onclick="toggleBias()">Show markers</button>
-    </div>
-    <div id="biasKey" style="display:none;flex-direction:column;gap:2px;margin-top:4px;">
-      <span style="font-size:10px;color:#5f6368;display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;display:inline-block;"></span>Gauge &gt; radar</span>
-      <span style="font-size:10px;color:#5f6368;display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#3b82f6;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;display:inline-block;"></span>Radar &gt; gauge</span>
-      <span style="font-size:10px;color:#5f6368;display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#e2e8f0;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;display:inline-block;"></span>Close match</span>
     </div>
   </div>
 
@@ -555,10 +557,6 @@ function updateDisplay() {
   document.getElementById('playerDateLine').textContent = dt.date;
   document.getElementById('playerTimeLine').textContent = dt.time;
 
-  document.getElementById('periodName').textContent  = currentPeriod + ' accumulation';
-  document.getElementById('periodStart').textContent = '▶ ' + (pdata.period_start || '—');
-  document.getElementById('periodEnd').textContent   = '■ ' + (pdata.period_end   || '—');
-
   buildCbar(currentScheme);
 }
 
@@ -573,7 +571,7 @@ function setSnapshot(idx) {
 function setPeriod(period) {
   currentPeriod = period;
   updateDisplay();
-  if (biasVisible) { updateBiasSensNote(); renderBiasMarkers(); }
+  if (biasVisible) renderBiasMarkers();
   if (polyVisible) renderPolyChoropleth();
 }
 
