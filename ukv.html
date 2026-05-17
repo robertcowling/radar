@@ -934,7 +934,7 @@ function populateRunSelect() {
   (meta.runs || []).forEach(function(run, i) {
     var opt  = document.createElement('option');
     opt.value = i;
-    opt.textContent = run.run_label + ' — ' + run.run_type + ' (T+' + run.forecast_hours + 'h)';
+    opt.textContent = run.run_label + ' (T+' + run.forecast_hours + 'h)';
     sel.appendChild(opt);
   });
   sel.value = '0';
