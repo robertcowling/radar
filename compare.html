@@ -533,15 +533,22 @@ function createBoundaryLayer(data, type, mid) {
   });
 }
 
-function showPolyPopup(name, latlng, map) {
+// ── Popup (persistent, updates with slider) ──────────────────────
+var _openPopup   = null;  // {name, latlng, map}
+var _activePopup = null;  // L.popup instance
+
+function _popupHtml(name) {
   var rMm  = currentRadarVals ? currentRadarVals[name] : null;
   var uMm  = currentUKVVals  ? currentUKVVals[name]   : null;
   var bias = (rMm != null && uMm != null) ? (uMm - rMm) : null;
+  var timeStr = document.getElementById('playerTimeLine').textContent || '—';
   function fmm(mm) { return mm != null ? '<b>' + mm.toFixed(1) + ' mm</b>' : '<span style="color:#94a3b8">—</span>'; }
-  var html = '<div style="font-size:12px;font-family:Roboto,sans-serif;min-width:175px;">' +
+  var html = '<div style="font-size:12px;font-family:Roboto,sans-serif;min-width:190px;">' +
     '<b style="font-size:13px;">' + name + '</b>' +
     '<table style="margin-top:8px;border-collapse:collapse;width:100%;">' +
-    '<tr><td colspan="2" style="color:#666;font-size:10px;font-weight:600;padding-bottom:5px;">' + currentPeriod + ' accumulation</td></tr>' +
+    '<tr><td colspan="2" style="color:#666;font-size:10px;font-weight:600;padding-bottom:5px;">' +
+      currentPeriod + ' accumulation ending ' + timeStr +
+    '</td></tr>' +
     '<tr><td style="padding:3px 12px 3px 0;color:#1e3a5f;font-weight:500;">' + (currentCompareSource === 'gauge' ? 'Gauges' : 'Radar') + '</td><td>' + fmm(rMm) + '</td></tr>' +
     '<tr><td style="padding:3px 12px 3px 0;color:#7f1d1d;font-weight:500;">UKV</td><td>' + fmm(uMm) + '</td></tr>';
   if (bias != null) {
@@ -552,7 +559,20 @@ function showPolyPopup(name, latlng, map) {
       '<td style="border-top:1px solid #e8eaed;font-weight:700;color:' + bc + ';">' + sign + bias.toFixed(1) + ' mm <small>' + arrow + '</small></td></tr>';
   }
   html += '</table></div>';
-  L.popup({ maxWidth: 270 }).setLatLng(latlng).setContent(html).openOn(map);
+  return html;
+}
+
+function refreshOpenPopup() {
+  if (_openPopup && _activePopup) _activePopup.setContent(_popupHtml(_openPopup.name));
+}
+
+function showPolyPopup(name, latlng, map) {
+  _openPopup = {name: name, latlng: latlng, map: map};
+  if (!_activePopup) {
+    _activePopup = L.popup({ maxWidth: 290 });
+    _activePopup.on('remove', function() { _openPopup = null; _activePopup = null; });
+  }
+  _activePopup.setLatLng(latlng).setContent(_popupHtml(name)).openOn(map);
 }
 
 function removeAllBoundaryLayers() {
@@ -735,13 +755,13 @@ function refreshDisplay() {
     currentRadarVals = null;
     clearGaugeMarkers();
     if (!ukvStep || !ukvStep[ukvPeriodKey]) {
-      currentUKVVals = null; renderAll(); return;
+      currentUKVVals = null; renderAll(); refreshOpenPopup(); return;
     }
     var ukvPolyUrl2 = R2_CDN + '/ukv_poly/' + run.run_ts + '/' + ukvStep.offset + '.json';
     loadCachedJson(ukvPolyUrl2, function(ukvPoly) {
       currentUKVVals = (ukvPoly && ukvPoly[currentBoundary] && ukvPoly[currentBoundary][ukvPeriodKey])
         ? ukvPoly[currentBoundary][ukvPeriodKey] : null;
-      renderAll();
+      renderAll(); refreshOpenPopup();
       var gaugeSnapUrl = R2_CDN + '/gauge_bias/' + snap.ts + '.json';
       var ukvGaugeUrl  = R2_CDN + '/ukv_gauge/' + run.run_ts + '/' + ukvStep.offset + '.json';
       loadCachedJson(gaugeSnapUrl, function(gaugeSnap) {
@@ -757,13 +777,13 @@ function refreshDisplay() {
       currentRadarVals = (radarPoly && radarPoly[currentBoundary] && radarPoly[currentBoundary][currentPeriod])
         ? radarPoly[currentBoundary][currentPeriod] : null;
       if (!ukvStep || !ukvStep[ukvPeriodKey]) {
-        currentUKVVals = null; renderAll(); return;
+        currentUKVVals = null; renderAll(); refreshOpenPopup(); return;
       }
       var ukvPolyUrl = R2_CDN + '/ukv_poly/' + run.run_ts + '/' + ukvStep.offset + '.json';
       loadCachedJson(ukvPolyUrl, function(ukvPoly) {
         currentUKVVals = (ukvPoly && ukvPoly[currentBoundary] && ukvPoly[currentBoundary][ukvPeriodKey])
           ? ukvPoly[currentBoundary][ukvPeriodKey] : null;
-        renderAll();
+        renderAll(); refreshOpenPopup();
       });
     });
   }
@@ -776,7 +796,7 @@ function setSnapshot(sliderPos) {
 }
 function setPeriod(p)  { currentPeriod = p; computeValidSnapIndices(false, false); refreshDisplay(); }
 function setRun(idx)   { currentRunIdx = idx; computeValidSnapIndices(false, true); refreshDisplay(); }
-function setScheme(s)  { currentScheme = s; buildAccumCbar(); updateImageOverlays(snapshots[currentIdx], _lastUKVStep, PERIOD_UKV_KEY[currentPeriod]); renderAll(); }
+function setScheme(s)  { currentScheme = s; buildAccumCbar(); updateImageOverlays(snapshots[currentIdx], _lastUKVStep, PERIOD_UKV_KEY[currentPeriod]); renderAll(); refreshOpenPopup(); }
 
 // Cache the last UKV step so setScheme can update the image without a full refresh
 var _lastUKVStep = null;
