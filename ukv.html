@@ -303,6 +303,20 @@
 
   .leaflet-image-layer { image-rendering: pixelated; }
 
+  /* ── Segmented controls (shared with /compare) ──────────────────────────────── */
+  .seg-control { display: flex; background: #f1f3f4; border-radius: 24px; padding: 3px; gap: 0; }
+  .seg-btn {
+    flex: 1; border: none; background: transparent;
+    padding: 7px 16px; border-radius: 21px;
+    font-family: 'Roboto', sans-serif; font-size: 13px;
+    font-weight: 500; color: #5f6368; cursor: pointer;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+  }
+  .seg-btn.seg-active { background: white; color: #202124; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+  .seg-btn:disabled   { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+  #barBoundarySelect  { width: auto; min-width: 130px; }
+
   @media (max-width: 768px) {
     .info-panel { top: 8px; right: 8px; width: calc(100% - 24px); left: 12px; box-sizing: border-box; }
     .player-panel { bottom: 8px; width: calc(100% - 16px); padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
@@ -404,6 +418,24 @@
     <span class="control-label">Run</span>
     <select id="runSelect" onchange="setRun(parseInt(this.value))">
       <option>Loading...</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <span class="control-label">View</span>
+    <div class="seg-control">
+      <button id="btnGrid" class="seg-btn seg-active" onclick="setViewMode('grid')">Grid</button>
+      <button id="btnArea" class="seg-btn" onclick="setViewMode('area')">Areas</button>
+    </div>
+  </div>
+
+  <div class="control-group" id="barBoundaryControl" style="display:none;">
+    <span class="control-label">Areas</span>
+    <select id="barBoundarySelect" onchange="onBoundarySelectChange(this.value)">
+      <option value="catchments">Catchments</option>
+      <option value="regions" selected>Regions</option>
+      <option value="counties">Counties</option>
+      <option value="grid">Grid (20km)</option>
     </select>
   </div>
 
@@ -657,6 +689,43 @@ function _updatePolyToggle() {
   var row     = document.getElementById('polyToggleRow');
   if (toggle) toggle.disabled = !enabled;
   if (row)    row.style.opacity = enabled ? '1' : '0.4';
+  var btnArea = document.getElementById('btnArea');
+  if (btnArea) btnArea.disabled = !isAccum;
+  if (!isAccum && currentViewMode === 'area') setViewMode('grid');
+}
+
+var currentViewMode = 'grid';
+
+function setViewMode(mode) {
+  currentViewMode = mode;
+  document.getElementById('btnGrid').classList.toggle('seg-active', mode === 'grid');
+  document.getElementById('btnArea').classList.toggle('seg-active', mode === 'area');
+  document.getElementById('barBoundaryControl').style.display = mode === 'area' ? '' : 'none';
+  if (mode === 'area') {
+    var bv = document.getElementById('barBoundarySelect').value;
+    onBoundarySelectChange(bv);
+    if (ukvOverlay && layerKind(currentLayer) === 'accum') {
+      polyVisible = true;
+      ukvOverlay.setOpacity(0);
+      renderPolyChoropleth();
+      var t = document.getElementById('polyToggle');
+      if (t) { t.checked = true; t.disabled = false; }
+      var row = document.getElementById('polyToggleRow');
+      if (row) row.style.opacity = '1';
+    }
+  } else {
+    polyVisible = false;
+    clearPolyChoropleth();
+    if (ukvOverlay) ukvOverlay.setOpacity(document.getElementById('opacitySlider').value / 100);
+    var t = document.getElementById('polyToggle');
+    if (t) t.checked = false;
+  }
+}
+
+function onBoundarySelectChange(val) {
+  var radio = document.querySelector('input[name="boundaryLayer"][value="' + val + '"]');
+  if (radio) radio.checked = true;
+  onBoundaryChange(val);
 }
 
 // ── Colour bar ────────────────────────────────────────────────────────────────
