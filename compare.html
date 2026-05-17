@@ -317,10 +317,19 @@ var currentScheme    = 'met';
 var currentBoundary      = 'catchments';
 var currentViewMode      = 'grid';
 var currentCompareSource = 'radar'; // 'radar' | 'gauge'
-var ukvMeta          = null;
-var polyCache        = {};
-var currentRadarVals = null;
-var currentUKVVals   = null;
+var ukvMeta              = null;
+var polyCache            = {};
+var currentRadarVals     = null;
+var currentUKVVals       = null;
+
+// ── Gauge state ──────────────────────────────────────────────────
+var gaugeStations    = null;   // {stationId: {lat, lon, name}}
+var gaugeMarkerGroup = null;   // L.layerGroup on radarMap
+var biasMarkerGroup  = null;   // L.layerGroup on biasMap
+
+// Byte offset into gauge_bias station values array per period
+// (triplets [gauge, radar_pt, radar_5km] for 1hr,3hr,6hr,12hr,24hr,48hr,5d)
+var GAUGE_PERIOD_IDX = { '1hr': 0, '3hr': 3, '6hr': 6, '12hr': 9, '24hr': 12, '48hr': 15 };
 
 // ── Boundary config ──────────────────────────────────────────────
 var BOUNDARY_FILES = {
@@ -721,23 +730,43 @@ function refreshDisplay() {
   updateUKVBadge(ukvStep);
   updateImageOverlays(snap, ukvStep, ukvPeriodKey);
 
-  // Poly data (needed for bias map always, and obs/ukv in area mode)
-  var obsFolder    = currentCompareSource === 'gauge' ? 'gauge_poly' : 'accum_poly';
-  var obsPolyUrl   = R2_CDN + '/' + obsFolder + '/' + snap.ts + '.json';
-  loadCachedJson(obsPolyUrl, function(radarPoly) {
-    currentRadarVals = (radarPoly && radarPoly[currentBoundary] && radarPoly[currentBoundary][currentPeriod])
-      ? radarPoly[currentBoundary][currentPeriod] : null;
-
+  if (currentCompareSource === 'gauge') {
+    // Gauge mode: left + bias maps use point markers; UKV middle map still uses poly
+    currentRadarVals = null;
+    clearGaugeMarkers();
     if (!ukvStep || !ukvStep[ukvPeriodKey]) {
       currentUKVVals = null; renderAll(); return;
     }
-    var ukvPolyUrl = R2_CDN + '/ukv_poly/' + run.run_ts + '/' + ukvStep.offset + '.json';
-    loadCachedJson(ukvPolyUrl, function(ukvPoly) {
+    var ukvPolyUrl2 = R2_CDN + '/ukv_poly/' + run.run_ts + '/' + ukvStep.offset + '.json';
+    loadCachedJson(ukvPolyUrl2, function(ukvPoly) {
       currentUKVVals = (ukvPoly && ukvPoly[currentBoundary] && ukvPoly[currentBoundary][ukvPeriodKey])
         ? ukvPoly[currentBoundary][ukvPeriodKey] : null;
       renderAll();
+      var gaugeSnapUrl = R2_CDN + '/gauge_bias/' + snap.ts + '.json';
+      var ukvGaugeUrl  = R2_CDN + '/ukv_gauge/' + run.run_ts + '/' + ukvStep.offset + '.json';
+      loadCachedJson(gaugeSnapUrl, function(gaugeSnap) {
+        loadCachedJson(ukvGaugeUrl, function(ukvGaugeData) {
+          ensureGaugeStations(function() { renderGaugeMarkers(gaugeSnap, ukvGaugeData); });
+        });
+      });
     });
-  });
+  } else {
+    // Radar mode: choropleth
+    var radarPolyUrl = R2_CDN + '/accum_poly/' + snap.ts + '.json';
+    loadCachedJson(radarPolyUrl, function(radarPoly) {
+      currentRadarVals = (radarPoly && radarPoly[currentBoundary] && radarPoly[currentBoundary][currentPeriod])
+        ? radarPoly[currentBoundary][currentPeriod] : null;
+      if (!ukvStep || !ukvStep[ukvPeriodKey]) {
+        currentUKVVals = null; renderAll(); return;
+      }
+      var ukvPolyUrl = R2_CDN + '/ukv_poly/' + run.run_ts + '/' + ukvStep.offset + '.json';
+      loadCachedJson(ukvPolyUrl, function(ukvPoly) {
+        currentUKVVals = (ukvPoly && ukvPoly[currentBoundary] && ukvPoly[currentBoundary][ukvPeriodKey])
+          ? ukvPoly[currentBoundary][ukvPeriodKey] : null;
+        renderAll();
+      });
+    });
+  }
 }
 
 // ── Controls ─────────────────────────────────────────────────────
@@ -780,8 +809,78 @@ function setCompareSource(src) {
   currentCompareSource = src;
   document.getElementById('btnRadarSrc').classList.toggle('seg-active', src === 'radar');
   document.getElementById('btnGaugeSrc').classList.toggle('seg-active', src === 'gauge');
+  if (src === 'radar') clearGaugeMarkers();
   updateSourceLabels();
   if (snapshots.length) refreshDisplay();
+}
+
+// ── Gauge point markers ──────────────────────────────────────────
+function clearGaugeMarkers() {
+  if (gaugeMarkerGroup) { radarMap.removeLayer(gaugeMarkerGroup); gaugeMarkerGroup = null; }
+  if (biasMarkerGroup)  { biasMap.removeLayer(biasMarkerGroup);   biasMarkerGroup  = null; }
+}
+
+function ensureGaugeStations(cb) {
+  if (gaugeStations) { cb(); return; }
+  fetch('rain/stations.json')
+    .then(function(r) { return r.json(); })
+    .then(function(d) { gaugeStations = d.stations || {}; cb(); })
+    .catch(function()  { gaugeStations = {}; cb(); });
+}
+
+function renderGaugeMarkers(gaugeSnap, ukvGaugeData) {
+  clearGaugeMarkers();
+  if (!gaugeStations) return;
+
+  var gIdx   = GAUGE_PERIOD_IDX[currentPeriod];
+  var ukvKey = PERIOD_UKV_KEY[currentPeriod];
+
+  gaugeMarkerGroup = L.layerGroup();
+  biasMarkerGroup  = L.layerGroup();
+
+  var stationVals = gaugeSnap && gaugeSnap.stations ? gaugeSnap.stations : {};
+
+  Object.keys(gaugeStations).forEach(function(sid) {
+    var s      = gaugeStations[sid];
+    var latlng = [s.lat, s.lon];
+
+    // Gauge accumulation
+    var gVal = null;
+    var raw  = stationVals[sid];
+    if (raw && typeof raw[gIdx] === 'number' && raw[gIdx] >= 0) gVal = raw[gIdx];
+
+    // UKV value at station pixel
+    var uVal = null;
+    if (ukvGaugeData && ukvGaugeData[sid] && ukvGaugeData[sid][ukvKey] != null)
+      uVal = ukvGaugeData[sid][ukvKey];
+
+    // Left map: gauge accumulation dot
+    var gColor = gVal != null ? mmToFillColor(gVal, currentScheme) : null;
+    if (gColor || gVal === 0) {
+      L.circleMarker(latlng, {
+        radius: 5, fillColor: gColor || '#e8eaed',
+        color: 'white', weight: 1, fillOpacity: 0.92, pane: 'overlayPane'
+      }).bindTooltip(s.name + ': ' + (gVal != null ? gVal.toFixed(1) + ' mm' : '—'),
+        { sticky: true, className: 'poly-tooltip' })
+        .addTo(gaugeMarkerGroup);
+    }
+
+    // Bias map: UKV − gauge dot
+    var bias   = (gVal != null && uVal != null) ? (uVal - gVal) : null;
+    var bColor = bias != null ? biasFillColor(bias) : null;
+    if (bColor) {
+      var sign = bias >= 0 ? '+' : '';
+      L.circleMarker(latlng, {
+        radius: 5, fillColor: bColor,
+        color: 'white', weight: 1, fillOpacity: 0.92, pane: 'overlayPane'
+      }).bindTooltip(s.name + ' (' + currentPeriod + '): ' + sign + bias.toFixed(1) + ' mm',
+        { sticky: true, className: 'poly-tooltip' })
+        .addTo(biasMarkerGroup);
+    }
+  });
+
+  gaugeMarkerGroup.addTo(radarMap);
+  biasMarkerGroup.addTo(biasMap);
 }
 
 // ── Run select ───────────────────────────────────────────────────

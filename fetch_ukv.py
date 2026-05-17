@@ -566,6 +566,22 @@ def main():
     ukv_masks = load_or_build_ukv_masks(r2)
     print(f"  Masks ready for {len(ukv_masks)} boundary layer(s)")
 
+    # Build station pixel positions on the UKV output Mercator grid
+    station_pixels_ukv = {}
+    if os.path.exists("rain/stations.json"):
+        with open("rain/stations.json") as f:
+            _st = json.load(f).get("stations", {})
+        ll_to_merc_st = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
+        _mx0, _my0 = ll_to_merc_st.transform(LON_MIN, LAT_MIN)
+        _mx1, _my1 = ll_to_merc_st.transform(LON_MAX, LAT_MAX)
+        for sid, s in _st.items():
+            mx, my = ll_to_merc_st.transform(s["lon"], s["lat"])
+            col = round((mx - _mx0) / (_mx1 - _mx0) * (WIDTH  - 1))
+            row = round((_my1 - my) / (_my1 - _my0) * (HEIGHT - 1))
+            if 0 <= row < HEIGHT and 0 <= col < WIDTH:
+                station_pixels_ukv[sid] = (row, col)
+        print(f"  {len(station_pixels_ukv)} gauge stations mapped to UKV grid")
+
     step_entries = []
     # Stack of {'arr': ndarray, 'hours': int, 'estimated': bool}.
     # Real 1h accumulation files are used for T+1..T+54; beyond that the Met
@@ -651,6 +667,22 @@ def main():
                     Body=json.dumps(poly_data).encode(),
                     ContentType="application/json; charset=utf-8",
                 )
+
+            if arrays_for_poly and station_pixels_ukv:
+                gauge_data = {}
+                for sid, (row, col) in station_pixels_ukv.items():
+                    vals = {k: round(float(arr[row, col]), 2)
+                            for k, arr in arrays_for_poly.items()
+                            if float(arr[row, col]) >= 0}
+                    if vals:
+                        gauge_data[sid] = vals
+                if gauge_data:
+                    r2.put_object(
+                        Bucket=R2_BUCKET,
+                        Key=f"ukv_gauge/{run_ts}/{offset}.json",
+                        Body=json.dumps(gauge_data, separators=(",", ":")).encode(),
+                        ContentType="application/json; charset=utf-8",
+                    )
 
         step_entries.append(entry)
 
