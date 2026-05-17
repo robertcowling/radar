@@ -172,9 +172,9 @@ select option:disabled { color: #bbb; }
 <body>
 
 <div class="map-header-row">
-  <div class="map-header-cell">Radar obs</div>
+  <div class="map-header-cell" id="obsHeader">Radar obs</div>
   <div class="map-header-cell" id="ukvBadge">UKV forecast</div>
-  <div class="map-header-cell">Bias (UKV &minus; Radar)</div>
+  <div class="map-header-cell" id="biasHeader">Bias (UKV &minus; Radar)</div>
 </div>
 <div class="maps-row">
   <div class="map-wrap">
@@ -214,6 +214,14 @@ select option:disabled { color: #bbb; }
     <div class="seg-control">
       <button id="btnGrid" class="seg-btn seg-active" onclick="setViewMode('grid')">Grid</button>
       <button id="btnArea" class="seg-btn" onclick="setViewMode('area')">Areas</button>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <span class="control-label">Compare vs</span>
+    <div class="seg-control">
+      <button id="btnRadarSrc" class="seg-btn seg-active" onclick="setCompareSource('radar')">Radar</button>
+      <button id="btnGaugeSrc" class="seg-btn" onclick="setCompareSource('gauge')">Gauges</button>
     </div>
   </div>
 
@@ -306,8 +314,9 @@ var currentIdx       = 0;   // absolute index into snapshots[]
 var currentPeriod    = '3hr';
 var currentRunIdx    = 0;
 var currentScheme    = 'met';
-var currentBoundary  = 'catchments';
-var currentViewMode  = 'grid';
+var currentBoundary      = 'catchments';
+var currentViewMode      = 'grid';
+var currentCompareSource = 'radar'; // 'radar' | 'gauge'
 var ukvMeta          = null;
 var polyCache        = {};
 var currentRadarVals = null;
@@ -493,7 +502,8 @@ function updatePeriodSelect(ukvStep) {
   Array.from(sel.options).forEach(function(opt) {
     var p      = opt.value;
     var ukvKey = PERIOD_UKV_KEY[p];
-    var ok     = !!(snap && snap[p] && ukvStep && ukvStep[ukvKey]);
+    var obsOk  = currentCompareSource === 'gauge' ? true : !!(snap && snap[p]);
+    var ok     = !!(obsOk && ukvStep && ukvStep[ukvKey]);
     opt.disabled    = !ok;
     opt.textContent = PERIOD_LABELS[p] + (ok ? '' : ' —');
   });
@@ -523,7 +533,7 @@ function showPolyPopup(name, latlng, map) {
     '<b style="font-size:13px;">' + name + '</b>' +
     '<table style="margin-top:8px;border-collapse:collapse;width:100%;">' +
     '<tr><td colspan="2" style="color:#666;font-size:10px;font-weight:600;padding-bottom:5px;">' + currentPeriod + ' accumulation</td></tr>' +
-    '<tr><td style="padding:3px 12px 3px 0;color:#1e3a5f;font-weight:500;">Radar</td><td>' + fmm(rMm) + '</td></tr>' +
+    '<tr><td style="padding:3px 12px 3px 0;color:#1e3a5f;font-weight:500;">' + (currentCompareSource === 'gauge' ? 'Gauges' : 'Radar') + '</td><td>' + fmm(rMm) + '</td></tr>' +
     '<tr><td style="padding:3px 12px 3px 0;color:#7f1d1d;font-weight:500;">UKV</td><td>' + fmm(uMm) + '</td></tr>';
   if (bias != null) {
     var sign = bias >= 0 ? '+' : '';
@@ -619,7 +629,7 @@ function renderAll() {
 // ── Image overlay management ─────────────────────────────────────
 function updateImageOverlays(snap, ukvStep, ukvPeriodKey) {
   var radarUrl = null, ukvUrl = null;
-  if (currentViewMode === 'grid') {
+  if (currentViewMode === 'grid' && currentCompareSource === 'radar') {
     if (snap && snap[currentPeriod] && snap[currentPeriod][currentScheme])
       radarUrl = toCDN(snap[currentPeriod][currentScheme]);
     if (ukvStep && ukvStep[ukvPeriodKey] && ukvStep[ukvPeriodKey][currentScheme])
@@ -711,9 +721,10 @@ function refreshDisplay() {
   updateUKVBadge(ukvStep);
   updateImageOverlays(snap, ukvStep, ukvPeriodKey);
 
-  // Poly data (needed for bias map always, and radar/ukv in area mode)
-  var radarPolyUrl = R2_CDN + '/accum_poly/' + snap.ts + '.json';
-  loadCachedJson(radarPolyUrl, function(radarPoly) {
+  // Poly data (needed for bias map always, and obs/ukv in area mode)
+  var obsFolder    = currentCompareSource === 'gauge' ? 'gauge_poly' : 'accum_poly';
+  var obsPolyUrl   = R2_CDN + '/' + obsFolder + '/' + snap.ts + '.json';
+  loadCachedJson(obsPolyUrl, function(radarPoly) {
     currentRadarVals = (radarPoly && radarPoly[currentBoundary] && radarPoly[currentBoundary][currentPeriod])
       ? radarPoly[currentBoundary][currentPeriod] : null;
 
@@ -752,6 +763,24 @@ function setViewMode(mode) {
   currentViewMode = mode;
   document.getElementById('btnGrid').classList.toggle('seg-active', mode === 'grid');
   document.getElementById('btnArea').classList.toggle('seg-active', mode === 'area');
+  if (snapshots.length) refreshDisplay();
+}
+
+function updateSourceLabels() {
+  var isGauge = currentCompareSource === 'gauge';
+  document.getElementById('obsHeader').textContent = isGauge ? 'Rain gauges' : 'Radar obs';
+  document.getElementById('biasHeader').innerHTML  = isGauge ? 'Bias (UKV &minus; Gauges)' : 'Bias (UKV &minus; Radar)';
+  var biasCbarP = document.querySelector('#biasCbarOverlay p');
+  if (biasCbarP) biasCbarP.textContent = isGauge ? 'Bias — UKV minus Gauges (mm)' : 'Bias — UKV minus Radar (mm)';
+  var accumCbarP = document.querySelector('#accumCbarRadar p');
+  if (accumCbarP) accumCbarP.textContent = isGauge ? 'Gauges (mm)' : 'Accumulation (mm)';
+}
+
+function setCompareSource(src) {
+  currentCompareSource = src;
+  document.getElementById('btnRadarSrc').classList.toggle('seg-active', src === 'radar');
+  document.getElementById('btnGaugeSrc').classList.toggle('seg-active', src === 'gauge');
+  updateSourceLabels();
   if (snapshots.length) refreshDisplay();
 }
 
