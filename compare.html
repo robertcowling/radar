@@ -109,6 +109,9 @@ select option:disabled { color: #bbb; }
   background: white; color: #202124;
   box-shadow: 0 1px 3px rgba(0,0,0,0.18);
 }
+.seg-btn:disabled {
+  opacity: 0.35; cursor: not-allowed; pointer-events: none;
+}
 
 /* ── Player panel ─────────────────────────────────────────────────── */
 .player-panel {
@@ -855,7 +858,7 @@ function renderAll() {
     var gridMap = currentViewMode === 'grid' && (mid === 'radar' || mid === 'ukv');
 
     layer.setStyle(function(f) {
-      if (gridMap) {
+      if (gridMap || (currentCompareSource === 'gauge' && mid === 'ukv')) {
         return { fillOpacity: 0, color: '#5f6368', weight: BOUNDARY_STYLES[type].weight };
       }
       var name = f.properties[nameKey];
@@ -1063,7 +1066,10 @@ function setCompareSource(src) {
   currentCompareSource = src;
   document.getElementById('btnRadarSrc').classList.toggle('seg-active', src === 'radar');
   document.getElementById('btnGaugeSrc').classList.toggle('seg-active', src === 'gauge');
-  if (src === 'radar') clearGaugeMarkers();
+  var isGauge = src === 'gauge';
+  document.getElementById('btnGrid').disabled = isGauge;
+  document.getElementById('btnArea').disabled = isGauge;
+  if (!isGauge) clearGaugeMarkers();
   updateSourceLabels();
   if (snapshots.length) refreshDisplay();
 }
