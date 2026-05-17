@@ -381,32 +381,6 @@
       <span id="opacityLabel" style="font-size:11px; color:#64748b; width:30px; text-align:right;">85%</span>
     </div>
 
-    <p class="section-label" style="margin-top:16px;">Boundaries</p>
-    <label class="custom-checkbox">
-      <input type="radio" name="boundaryLayer" value="none" onchange="onBoundaryChange('none')">
-      None
-    </label>
-    <label class="custom-checkbox">
-      <input type="radio" name="boundaryLayer" value="regions" checked onchange="onBoundaryChange('regions')">
-      UK Regions
-    </label>
-    <label class="custom-checkbox">
-      <input type="radio" name="boundaryLayer" value="counties" onchange="onBoundaryChange('counties')">
-      Counties
-    </label>
-    <label class="custom-checkbox">
-      <input type="radio" name="boundaryLayer" value="catchments" onchange="onBoundaryChange('catchments')">
-      Catchments
-    </label>
-    <label class="custom-checkbox">
-      <input type="radio" name="boundaryLayer" value="grid" onchange="onBoundaryChange('grid')">
-      Grid (20km)
-    </label>
-    <label class="toggle-row" id="polyToggleRow" style="margin-top:6px; margin-bottom:8px; opacity:0.4;">
-      <input type="checkbox" id="polyToggle" disabled onchange="setPolyVisible(this.checked)">
-      <span>Show area average</span>
-    </label>
-
     <p id="generatedAt"></p>
     <p id="attribution">Met Office data &copy; Crown copyright and database rights &mdash; <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" style="color:inherit;">OGL v3</a></p>
   </div>
@@ -456,13 +430,13 @@
   <div class="control-group">
     <span class="control-label">Period</span>
     <select id="layerSelect" onchange="setLayer(this.value)">
-      <option value="rainfall_rate" selected>Precipitation rate</option>
-      <option value="accum_1h">1-hour accumulation</option>
-      <option value="accum_3h">3-hour accumulation</option>
-      <option value="accum_6h">6-hour accumulation</option>
-      <option value="accum_12h">12-hour accumulation</option>
-      <option value="accum_24h">24-hour accumulation</option>
-      <option value="accum_48h">48-hour accumulation</option>
+      <option value="rainfall_rate" selected>Rate</option>
+      <option value="accum_1h">1 Hour</option>
+      <option value="accum_3h">3 Hours</option>
+      <option value="accum_6h">6 Hours</option>
+      <option value="accum_12h">12 Hours</option>
+      <option value="accum_24h">24 Hours</option>
+      <option value="accum_48h">48 Hours</option>
     </select>
   </div>
 
@@ -684,11 +658,6 @@ function setPolyVisible(checked) {
 
 function _updatePolyToggle() {
   var isAccum = layerKind(currentLayer) === 'accum';
-  var enabled = isAccum && currentBoundary !== 'none';
-  var toggle  = document.getElementById('polyToggle');
-  var row     = document.getElementById('polyToggleRow');
-  if (toggle) toggle.disabled = !enabled;
-  if (row)    row.style.opacity = enabled ? '1' : '0.4';
   var btnArea = document.getElementById('btnArea');
   if (btnArea) btnArea.disabled = !isAccum;
   if (!isAccum && currentViewMode === 'area') setViewMode('grid');
@@ -703,28 +672,20 @@ function setViewMode(mode) {
   document.getElementById('barBoundaryControl').style.display = mode === 'area' ? '' : 'none';
   if (mode === 'area') {
     var bv = document.getElementById('barBoundarySelect').value;
-    onBoundarySelectChange(bv);
+    onBoundaryChange(bv);
     if (ukvOverlay && layerKind(currentLayer) === 'accum') {
       polyVisible = true;
       ukvOverlay.setOpacity(0);
       renderPolyChoropleth();
-      var t = document.getElementById('polyToggle');
-      if (t) { t.checked = true; t.disabled = false; }
-      var row = document.getElementById('polyToggleRow');
-      if (row) row.style.opacity = '1';
     }
   } else {
     polyVisible = false;
     clearPolyChoropleth();
     if (ukvOverlay) ukvOverlay.setOpacity(document.getElementById('opacitySlider').value / 100);
-    var t = document.getElementById('polyToggle');
-    if (t) t.checked = false;
   }
 }
 
 function onBoundarySelectChange(val) {
-  var radio = document.querySelector('input[name="boundaryLayer"][value="' + val + '"]');
-  if (radio) radio.checked = true;
   onBoundaryChange(val);
 }
 
@@ -973,9 +934,7 @@ function loadBoundary(val) {
     .then(function(data) {
       var layer = L.geoJSON(data, { style: BOUNDARY_STYLES[val] });
       setLayerObj(val, layer);
-      if (document.querySelector('input[name="boundaryLayer"]:checked').value === val) {
-        layer.addTo(map);
-      }
+      if (currentBoundary === val) layer.addTo(map);
     })
     .catch(function(e) { console.log('Could not load ' + val + ':', e); });
 }
