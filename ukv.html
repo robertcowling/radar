@@ -443,9 +443,9 @@
   <div class="control-group" id="schemeGroup">
     <span class="control-label">Colour scale</span>
     <select id="schemeSelect" onchange="setScheme(this.value)">
-      <option value="norm">Normal</option>
+      <option value="norm" selected>Normal</option>
       <option value="high">High events</option>
-      <option value="met" selected>Alternative</option>
+      <option value="met">Alternative</option>
     </select>
   </div>
 </div>
@@ -498,7 +498,7 @@ var meta          = null;
 var currentRun    = 0;
 var currentStep   = 0;
 var currentLayer  = 'rainfall_rate';
-var currentScheme = 'met';   // persists across layer switches
+var currentScheme = 'norm';   // persists across layer switches
 var generatedAt   = '';
 
 function layerKind(layer) {
