@@ -335,6 +335,17 @@
 
   .leaflet-image-layer { image-rendering: pixelated; }
 
+  /* Segmented view toggle */
+  .seg-control { display: flex; background: #f1f3f4; border-radius: 20px; padding: 2px; }
+  .seg-btn {
+    background: transparent; border: none; padding: 6px 12px; border-radius: 18px;
+    font-family: 'Roboto', sans-serif; font-size: 12px; font-weight: 500; color: #5f6368;
+    cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap;
+  }
+  .seg-btn:hover { background: rgba(0,0,0,0.06); }
+  .seg-active { background: white !important; color: #202124 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+  .seg-btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+
   @media (max-width: 768px) {
     .info-panel { top: 8px; right: 8px; width: calc(100% - 24px); left: 12px; box-sizing: border-box; }
     .player-panel { bottom: 8px; width: calc(100% - 16px); padding: 10px 14px; gap: 10px; }
@@ -396,32 +407,6 @@
       <span id="opacityLabel" style="font-size:11px; color:#64748b; width:30px; text-align:right;">85%</span>
     </div>
 
-    <p class="section-label" style="margin-top:16px;">Boundaries</p>
-    <label class="custom-checkbox">
-      <input type="radio" name="boundaryLayer" value="none" onchange="onBoundaryChange('none')">
-      None
-    </label>
-    <label class="custom-checkbox">
-      <input type="radio" name="boundaryLayer" value="regions" checked onchange="onBoundaryChange('regions')">
-      UK Regions
-    </label>
-    <label class="custom-checkbox">
-      <input type="radio" name="boundaryLayer" value="counties" onchange="onBoundaryChange('counties')">
-      Counties
-    </label>
-    <label class="custom-checkbox">
-      <input type="radio" name="boundaryLayer" value="catchments" onchange="onBoundaryChange('catchments')">
-      Catchments
-    </label>
-    <label class="custom-checkbox" style="margin-bottom:8px;">
-      <input type="radio" name="boundaryLayer" value="grid" onchange="onBoundaryChange('grid')">
-      Grid (20km)
-    </label>
-    <label class="toggle-row" id="polyToggleRow">
-      <input type="checkbox" id="polyToggle" onchange="setPolyVisible(this.checked)">
-      <span>Show catchment average</span>
-    </label>
-
     <p class="section-label" style="margin-top:16px;">Gauge bias</p>
     <label class="toggle-row">
       <input type="checkbox" id="biasToggle" onchange="setBiasVisible(this.checked)">
@@ -452,6 +437,24 @@
       <option value="24hr">24 Hours</option>
       <option value="48hr">48 Hours</option>
       <option value="5d">5 Days</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <span class="control-label">View</span>
+    <div class="seg-control">
+      <button id="btnGrid" class="seg-btn seg-active" onclick="setViewMode('grid')">Grid</button>
+      <button id="btnArea" class="seg-btn" onclick="setViewMode('area')">Areas</button>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <span class="control-label">Areas</span>
+    <select id="barBoundarySelect" onchange="onBoundarySelectChange(this.value)">
+      <option value="catchments" selected>Catchments</option>
+      <option value="regions">Regions</option>
+      <option value="counties">Counties</option>
+      <option value="grid">Grid (20km)</option>
     </select>
   </div>
 
@@ -618,7 +621,7 @@ var countiesLayer        = null;
 var catchmentsLayer      = null;
 var catchmentsGhostLayer = null;
 var gridLayer            = null;
-var currentBoundary      = 'regions';
+var currentBoundary      = 'catchments';
 
 var LAYER_NAME_KEY = { regions: 'rgn19nm', counties: 'name', catchments: 'HA_NAME', grid: 'name' };
 
@@ -653,7 +656,7 @@ function loadBoundary(val) {
     .then(function(data) {
       var layer = L.geoJSON(data, { style: BOUNDARY_STYLES[val] });
       setLayerObj(val, layer);
-      if (document.querySelector('input[name="boundaryLayer"]:checked').value === val) {
+      if (currentBoundary === val) {
         layer.addTo(map);
         if (polyVisible) renderPolyChoropleth();
       }
@@ -696,10 +699,33 @@ function onBoundaryChange(val) {
     } else loadBoundary(val);
     if (val === 'grid') showCatchmentsGhost();
   }
-  // Grey out poly toggle when no boundary selected
-  var isNone = (val === 'none');
-  document.getElementById('polyToggle').disabled = isNone;
-  document.getElementById('polyToggleRow').style.opacity = isNone ? '0.4' : '1';
+}
+
+var currentViewMode = 'grid';
+
+function setViewMode(mode) {
+  currentViewMode = mode;
+  document.getElementById('btnGrid').classList.toggle('seg-active', mode === 'grid');
+  document.getElementById('btnArea').classList.toggle('seg-active', mode === 'area');
+  if (mode === 'area') {
+    var bv = document.getElementById('barBoundarySelect').value;
+    onBoundaryChange(bv);
+    polyVisible = true;
+    accumOverlay.setOpacity(0);
+    renderPolyChoropleth();
+  } else {
+    polyVisible = false;
+    clearPolyChoropleth();
+    accumOverlay.setOpacity(document.getElementById('opacitySlider').value / 100);
+  }
+}
+
+function onBoundarySelectChange(val) {
+  onBoundaryChange(val);
+  if (currentViewMode === 'area') {
+    polyVisible = true;
+    renderPolyChoropleth();
+  }
 }
 
 // ── Polygon choropleth ────────────────────────────────────────────────────────
@@ -919,7 +945,7 @@ function loadMeta() {
 
 loadMeta();
 loadBiasMeta();
-loadBoundary('regions');
+loadBoundary('catchments');
 setInterval(loadMeta, 5 * 60 * 1000);
 </script>
 </body>
