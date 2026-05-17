@@ -403,11 +403,11 @@
     </div>
   </div>
 
-  <div class="control-group" id="barBoundaryControl" style="display:none;">
+  <div class="control-group" id="barBoundaryControl">
     <span class="control-label">Areas</span>
     <select id="barBoundarySelect" onchange="onBoundarySelectChange(this.value)">
-      <option value="catchments">Catchments</option>
-      <option value="regions" selected>Regions</option>
+      <option value="catchments" selected>Catchments</option>
+      <option value="regions">Regions</option>
       <option value="counties">Counties</option>
       <option value="grid">Grid (20km)</option>
     </select>
@@ -669,7 +669,6 @@ function setViewMode(mode) {
   currentViewMode = mode;
   document.getElementById('btnGrid').classList.toggle('seg-active', mode === 'grid');
   document.getElementById('btnArea').classList.toggle('seg-active', mode === 'area');
-  document.getElementById('barBoundaryControl').style.display = mode === 'area' ? '' : 'none';
   if (mode === 'area') {
     var bv = document.getElementById('barBoundarySelect').value;
     onBoundaryChange(bv);
@@ -897,7 +896,7 @@ var regionLayer     = null;
 var countiesLayer   = null;
 var catchmentsLayer = null;
 var gridLayer       = null;
-var currentBoundary = 'regions';
+var currentBoundary = 'catchments';
 
 var BOUNDARY_STYLES = {
   regions:    { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
@@ -1000,7 +999,7 @@ function loadMeta() {
 }
 
 loadMeta();
-loadBoundary('regions');
+loadBoundary('catchments');
 </script>
 </body>
 </html>
