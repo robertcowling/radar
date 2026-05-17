@@ -363,7 +363,7 @@
 
   <!-- Collapsed chip state -->
   <div class="collapsed-top-row">
-    <span class="collapsed-title">Accumulation</span>
+    <span class="collapsed-title">Radar Accumulation</span>
     <button class="chip-open-btn" onclick="toggleInfo()" title="Open">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
         <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -375,7 +375,7 @@
 
   <!-- Full panel header -->
   <div class="panel-header hide-collapsed">
-    <span class="panel-header-title">Accumulation</span>
+    <span class="panel-header-title">Radar Accumulation</span>
     <button class="panel-close-btn" onclick="toggleInfo()" title="Close">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -393,13 +393,7 @@
 
   <!-- Rest hidden when collapsed -->
   <div class="hide-collapsed">
-    <div class="time-box">
-      <div class="period-name" id="periodName">—</div>
-      <div class="time-row" id="periodStart">—</div>
-      <div class="time-row" id="periodEnd">—</div>
-    </div>
-
-    <p class="section-label">Opacity</p>
+    <p class="section-label" style="margin-top:12px;">Opacity</p>
     <div style="display:flex; align-items:center; gap:8px;">
       <input type="range" id="opacitySlider" min="0" max="100" value="85"
              style="flex:1; accent-color:#202124; cursor:pointer;"
@@ -445,9 +439,14 @@
   </div>
 
   <div class="control-group">
-    <span class="control-label">Gauge bias</span>
+    <span class="control-label">Gauge vs radar</span>
     <div class="seg-control">
       <button id="btnBias" class="seg-btn" onclick="toggleBias()">Show markers</button>
+    </div>
+    <div id="biasKey" style="display:none;flex-direction:column;gap:2px;margin-top:4px;">
+      <span style="font-size:10px;color:#5f6368;display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;display:inline-block;"></span>Gauge &gt; radar</span>
+      <span style="font-size:10px;color:#5f6368;display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#3b82f6;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;display:inline-block;"></span>Radar &gt; gauge</span>
+      <span style="font-size:10px;color:#5f6368;display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#e2e8f0;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;display:inline-block;"></span>Close match</span>
     </div>
   </div>
 
@@ -881,6 +880,7 @@ function renderBiasMarkers() {
 function toggleBias() {
   var checked = !biasVisible;
   document.getElementById('btnBias').classList.toggle('seg-active', checked);
+  document.getElementById('biasKey').style.display = checked ? 'flex' : 'none';
   setBiasVisible(checked);
 }
 
