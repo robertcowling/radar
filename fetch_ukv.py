@@ -559,8 +559,8 @@ def main():
     print("  Mapping ready.")
 
     rlabel = run_label_str(run_ts)
-    rtype  = "Long" if parse_run_dt(run_ts).hour in _MEDIUM_HOURS else "Short"
-    print(f"  Run: {rlabel} ({rtype})")
+    is_long = parse_run_dt(run_ts).hour in _MEDIUM_HOURS
+    print(f"  Run: {rlabel} ({'Long' if is_long else 'Short'})")
 
     print("Loading polygon masks...")
     ukv_masks = load_or_build_ukv_masks(r2)
@@ -606,6 +606,9 @@ def main():
 
             for n in ACCUM_PERIODS:
                 if total_stk < n:
+                    continue
+                # Beyond T+54 on long runs, only 1hr accumulation is reliable
+                if hours > 54 and n > 1:
                     continue
                 # Walk backwards through the stack, accumulating whole slots until
                 # n hours are covered. If a slot is too large for the remaining
@@ -654,7 +657,6 @@ def main():
     new_run = {
         "run_ts":         run_ts,
         "run_label":      rlabel,
-        "run_type":       rtype,
         "forecast_hours": steps[-1][0],
         "steps":          step_entries,
     }

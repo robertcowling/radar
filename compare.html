@@ -34,8 +34,8 @@ body {
 }
 .map-header-cell {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: #f1f5f9;
-  letter-spacing: 0.6px; white-space: nowrap;
+  font-size: 12px; font-weight: 600; color: #f1f5f9;
+  letter-spacing: 0.2px; white-space: nowrap;
   border-left: 2px solid #374151;
 }
 .map-header-cell:first-child { border-left: none; }
@@ -172,9 +172,9 @@ select option:disabled { color: #bbb; }
 <body>
 
 <div class="map-header-row">
-  <div class="map-header-cell">RADAR OBS</div>
-  <div class="map-header-cell" id="ukvBadge">UKV FORECAST</div>
-  <div class="map-header-cell">BIAS (UKV &minus; Radar)</div>
+  <div class="map-header-cell">Radar obs</div>
+  <div class="map-header-cell" id="ukvBadge">UKV forecast</div>
+  <div class="map-header-cell">Bias (UKV &minus; Radar)</div>
 </div>
 <div class="maps-row">
   <div class="map-wrap">
@@ -219,7 +219,7 @@ select option:disabled { color: #bbb; }
 
   <div class="control-group" id="boundaryControl">
     <span class="control-label">Areas</span>
-    <select id="boundarySelect" onchange="onBoundaryChange(this.value)" disabled>
+    <select id="boundarySelect" onchange="onBoundaryChange(this.value)">
       <option value="catchments" selected>Catchments</option>
       <option value="regions">UK Regions</option>
       <option value="counties">Counties</option>
@@ -674,12 +674,12 @@ function updatePlayerTime(snap) {
   if (!snap || !snap.time) { document.getElementById('playerDateLine').textContent = '—'; document.getElementById('playerTimeLine').textContent = '—'; return; }
   var parts = snap.time.split(' ');
   document.getElementById('playerDateLine').textContent = parts.slice(0,-2).join(' ');
-  document.getElementById('playerTimeLine').textContent = parts.slice(-2).join(' ');
+  document.getElementById('playerTimeLine').textContent = parts.slice(-2).join(' ').replace('UTC', 'GMT');
 }
 
 function updateUKVBadge(step) {
   var b = document.getElementById('ukvBadge');
-  if (b) b.textContent = step ? 'UKV FORECAST  T+' + step.offset_hours + 'h' : 'UKV FORECAST';
+  if (b) b.textContent = step ? 'UKV forecast  T+' + step.offset_hours + 'h' : 'UKV forecast';
 }
 
 var _MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -691,7 +691,7 @@ function updatePlayerTimeFromUKV(step, runDt) {
   document.getElementById('playerDateLine').textContent =
     _DAYS[validDt.getUTCDay()] + ' ' + validDt.getUTCDate() + ' ' + _MONTHS[validDt.getUTCMonth()] + ' ' + validDt.getUTCFullYear();
   document.getElementById('playerTimeLine').textContent =
-    _pad(validDt.getUTCHours()) + ':' + _pad(validDt.getUTCMinutes()) + ' UTC';
+    _pad(validDt.getUTCHours()) + ':' + _pad(validDt.getUTCMinutes()) + ' GMT';
 }
 
 function refreshDisplay() {
@@ -752,7 +752,6 @@ function setViewMode(mode) {
   currentViewMode = mode;
   document.getElementById('btnGrid').classList.toggle('seg-active', mode === 'grid');
   document.getElementById('btnArea').classList.toggle('seg-active', mode === 'area');
-  document.getElementById('boundarySelect').disabled = mode !== 'area';
   if (snapshots.length) refreshDisplay();
 }
 
@@ -763,9 +762,7 @@ function buildRunSelect() {
   if (!ukvMeta || !ukvMeta.runs || !ukvMeta.runs.length) { sel.innerHTML = '<option>No data</option>'; return; }
   ukvMeta.runs.forEach(function(run, i) {
     var opt = document.createElement('option'); opt.value = i;
-    var rdt = parseRunDt(run.run_ts);
-    var suffix = rdt && (rdt.getUTCHours() === 3 || rdt.getUTCHours() === 15) ? 'Long' : 'Short';
-    opt.textContent = (run.run_label || run.run_ts) + ' (' + suffix + ')';
+    opt.textContent = run.run_label || run.run_ts;
     sel.appendChild(opt);
   });
   sel.value = currentRunIdx;
