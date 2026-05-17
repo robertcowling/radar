@@ -407,20 +407,6 @@
       <span id="opacityLabel" style="font-size:11px; color:#64748b; width:30px; text-align:right;">85%</span>
     </div>
 
-    <p class="section-label" style="margin-top:16px;">Gauge bias</p>
-    <label class="toggle-row">
-      <input type="checkbox" id="biasToggle" onchange="setBiasVisible(this.checked)">
-      <span>Show gauge markers</span>
-    </label>
-    <div class="bias-legend" id="biasLegend" style="display:none;">
-      <span class="bias-swatch"><span class="bias-dot" style="background:#ef4444;"></span>Gauge &gt; radar</span>
-      <span class="bias-swatch"><span class="bias-dot" style="background:#3b82f6;"></span>Radar &gt; gauge</span>
-      <span class="bias-swatch"><span class="bias-dot" style="background:#e2e8f0;"></span>Close match</span>
-    </div>
-    <p id="biasSensNote" style="font-size:10px;color:#94a3b8;margin:4px 0 0;display:none;">
-      Full colour at &plusmn;<span id="biasSatMm">—</span>mm difference
-    </p>
-
     <p id="generatedAt"></p>
   </div>
 </div>
@@ -456,6 +442,13 @@
       <option value="counties">Counties</option>
       <option value="grid">Grid (20km)</option>
     </select>
+  </div>
+
+  <div class="control-group">
+    <span class="control-label">Gauge bias</span>
+    <div class="seg-control">
+      <button id="btnBias" class="seg-btn" onclick="toggleBias()">Show markers</button>
+    </div>
   </div>
 
   <div class="timeline-container">
@@ -885,18 +878,15 @@ function renderBiasMarkers() {
   });
 }
 
-function updateBiasSensNote() {
-  var pi    = PERIODS_LIST.indexOf(currentPeriod);
-  var hours = PERIOD_H[pi];
-  document.getElementById('biasSatMm').textContent = hours;
+function toggleBias() {
+  var checked = !biasVisible;
+  document.getElementById('btnBias').classList.toggle('seg-active', checked);
+  setBiasVisible(checked);
 }
 
 function setBiasVisible(checked) {
   biasVisible = checked;
-  document.getElementById('biasLegend').style.display   = checked ? 'flex' : 'none';
-  document.getElementById('biasSensNote').style.display = checked ? 'block' : 'none';
   if (checked) {
-    updateBiasSensNote();
     biasLayerGroup.addTo(map);
     loadStations(renderBiasMarkers);
   } else {
