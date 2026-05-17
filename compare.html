@@ -213,18 +213,18 @@ select option:disabled { color: #bbb; }
 <div class="player-panel surface">
 
   <div class="control-group">
-    <span class="control-label">View</span>
-    <div class="seg-control">
-      <button id="btnGrid" class="seg-btn seg-active" onclick="setViewMode('grid')">Grid</button>
-      <button id="btnArea" class="seg-btn" onclick="setViewMode('area')">Areas</button>
-    </div>
-  </div>
-
-  <div class="control-group">
     <span class="control-label">Compare vs</span>
     <div class="seg-control">
       <button id="btnRadarSrc" class="seg-btn seg-active" onclick="setCompareSource('radar')">Radar</button>
       <button id="btnGaugeSrc" class="seg-btn" onclick="setCompareSource('gauge')">Gauges</button>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <span class="control-label">View</span>
+    <div class="seg-control">
+      <button id="btnGrid" class="seg-btn seg-active" onclick="setViewMode('grid')">Grid</button>
+      <button id="btnArea" class="seg-btn" onclick="setViewMode('area')">Areas</button>
     </div>
   </div>
 
