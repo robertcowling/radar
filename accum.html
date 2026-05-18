@@ -608,8 +608,15 @@ function setScheme(scheme) {
 }
 
 function setOpacity(val) {
-  if (!polyVisible) accumOverlay.setOpacity(val / 100);
   document.getElementById('opacityLabel').textContent = val + '%';
+  if (polyVisible) {
+    var layer = getLayerObj(currentBoundary);
+    if (layer) layer.eachLayer(function(f) {
+      if (f.options.fillColor && f.options.fillColor !== 'transparent') f.setStyle({ fillOpacity: val / 100 });
+    });
+  } else {
+    accumOverlay.setOpacity(val / 100);
+  }
 }
 
 function toggleInfo() {
@@ -786,7 +793,7 @@ function renderPolyChoropleth() {
       var mm   = vals[name];
       return {
         fillColor:   mmToFillColor(mm, currentScheme),
-        fillOpacity: (mm !== null && mm !== undefined) ? 0.55 : 0,
+        fillOpacity: (mm !== null && mm !== undefined) ? document.getElementById('opacitySlider').value / 100 : 0,
         color: '#5f6368',
         weight: BOUNDARY_STYLES[currentBoundary].weight,
         className: 'region-boundary',
