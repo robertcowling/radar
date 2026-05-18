@@ -3,6 +3,8 @@ name: Check Satellite Image Dimensions
 on:
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   check:
     runs-on: ubuntu-latest

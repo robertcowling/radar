@@ -1,7 +1,7 @@
-boto3
-h5py
-numpy
-Pillow
-pyproj
-botocore
-requests
+boto3>=1.35.0
+botocore>=1.35.0
+requests>=2.32.0
+Pillow>=10.4.0
+numpy>=1.26.0
+h5py>=3.11.0
+pyproj>=3.6.0

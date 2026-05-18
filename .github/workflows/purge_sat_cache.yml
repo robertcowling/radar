@@ -3,6 +3,8 @@ name: Purge Satellite Image Cache
 on:
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   purge:
     runs-on: ubuntu-latest

@@ -3,6 +3,8 @@ name: Purge Last 6 Hours (Radar + Sat + MSLP)
 on:
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   purge:
     runs-on: ubuntu-latest

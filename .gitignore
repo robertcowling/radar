@@ -4,6 +4,7 @@ __pycache__/
 *.h5
 .claude/
 .env
+diag.py
 accum_24hr.png
 .wrangler/
 data_mslp/

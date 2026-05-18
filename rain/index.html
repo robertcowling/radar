@@ -676,6 +676,8 @@
             return total;
         }
 
+        function htmlEsc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
         function getAccumStyle(val) {
             var breaks = SCALE_MODES[scaleMode];
             if (val < 0.05) return {nodata: true, fill: ''};
@@ -1151,11 +1153,10 @@
                 var s = stations[x.id];
                 var name = (s && s.name) || x.id;
                 var style = getAccumStyle(x.val);
-                var sid = x.id.replace(/'/g, "\\'");
-                html += '<div class="thresh-row" onclick="panToStation(\'' + sid + '\')">';
+                html += '<div class="thresh-row" data-sid="' + htmlEsc(x.id) + '" onclick="panToStation(this.dataset.sid)">';
                 html += '<span class="event-time" style="min-width:20px;text-align:right;color:#3c4043;font-weight:700">' + (i + 1) + '</span>';
-                html += '<span class="thresh-name-wrap"><span class="thresh-name">' + name + '</span>';
-                if (s && s.county) html += '<span class="thresh-county">' + s.county + '</span>';
+                html += '<span class="thresh-name-wrap"><span class="thresh-name">' + htmlEsc(name) + '</span>';
+                if (s && s.county) html += '<span class="thresh-county">' + htmlEsc(s.county) + '</span>';
                 html += '</span>';
                 html += '<span class="thresh-val" style="background:' + style.fill + ';color:' + style.text + '">' + x.val.toFixed(1) + 'mm</span>';
                 html += '</div>';
@@ -1211,12 +1212,11 @@
                 var s = stations[ev.id];
                 var name = (s && s.name) || ev.id;
                 var style = getAccumStyle(ev.val);
-                var sid = ev.id.replace(/'/g, "\\'");
                 var timeStr = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-                html += '<div class="thresh-row" onclick="panToStation(\'' + sid + '\')">';
+                html += '<div class="thresh-row" data-sid="' + htmlEsc(ev.id) + '" onclick="panToStation(this.dataset.sid)">';
                 html += '<span class="event-time">' + timeStr + '</span>';
-                html += '<span class="thresh-name-wrap"><span class="thresh-name">' + name + '</span>';
-                if (s && s.county) html += '<span class="thresh-county">' + s.county + '</span>';
+                html += '<span class="thresh-name-wrap"><span class="thresh-name">' + htmlEsc(name) + '</span>';
+                if (s && s.county) html += '<span class="thresh-county">' + htmlEsc(s.county) + '</span>';
                 html += '</span>';
                                 var lvlColor = ev.thresh.level === 'extreme' ? '#c62828' : '#ef6c00';
                 html += '<span style="font-size:10px;font-weight:700;color:' + lvlColor + ';flex-shrink:0;padding-right:2px;min-width:60px;text-align:right">' + (ev.thresh.label || ev.thresh.level || '') + '</span>';

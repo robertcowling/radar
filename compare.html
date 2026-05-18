@@ -6,8 +6,10 @@
 <title>Model Comparison – Radar vs UKV</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN2GqnA=" crossorigin=""></script>
 <style>
 html { height: 100%; }
 body {
@@ -323,6 +325,7 @@ select option:disabled { color: #bbb; }
 </div>
 
 <script>
+function htmlEsc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
 var R2_CDN  = 'https://radar.floodforecast.co.uk';
 function toCDN(url) { return url ? url.replace(R2_BASE, R2_CDN) : url; }
@@ -588,7 +591,7 @@ var _chartData   = null;  // {runTs, runMs, endMs, ukvPoints, radarPoints, maxY}
 
 function _popupShell(name) {
   return '<div style="font-size:12px;font-family:Roboto,sans-serif;width:384px;">' +
-    '<b style="font-size:13px;">' + name + '</b>' +
+    '<b style="font-size:13px;">' + htmlEsc(name) + '</b>' +
     '<div id="popup-stats" style="margin-top:6px;"></div>' +
     '<div id="popup-chart-wrap" style="margin-top:10px;">' +
       '<svg id="popup-chart" xmlns="http://www.w3.org/2000/svg" width="364" height="210" style="display:block;"></svg>' +
