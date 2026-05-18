@@ -522,7 +522,7 @@ function buildCbar(scheme) {
   });
   var n = s.colors.length;
   s.bounds.forEach(function(v, i) {
-    var pct = (i + 1) / n * 100;
+    var pct = (i + 0.5) / n * 100;
     var el = document.createElement('span');
     el.className = 'cbar-label';
     el.style.left = pct.toFixed(1) + '%';

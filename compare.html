@@ -416,7 +416,7 @@ function _buildCbar(cbarId, labelsId, colors, bounds) {
   labels.innerHTML = '';
   var n = colors.length;
   bounds.forEach(function(v, i) {
-    var pct = (i + 1) / n * 100;
+    var pct = (i + 0.5) / n * 100;
     var el = document.createElement('span'); el.className = 'cbar-label';
     el.style.left = pct.toFixed(1) + '%';
     el.textContent = (typeof v === 'number' && v > 0 && bounds[0] < 0 ? '+' : '') + (Math.abs(v) < 1 ? v : Math.round(v));
