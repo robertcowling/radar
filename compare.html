@@ -247,6 +247,7 @@ select option:disabled { color: #bbb; }
       <option value="12hr">12 Hours</option>
       <option value="24hr">24 Hours</option>
       <option value="48hr">48 Hours</option>
+      <option value="run">Run so far</option>
     </select>
   </div>
 
@@ -303,8 +304,8 @@ var BIAS_BOUNDS = [-20, -10, -5, -2, -1, 1, 2, 5, 10, 20];
 var BIAS_COLORS = ['#023858','#2166ac','#74add1','#abd9e9','#c6e2f0','#d4d4d4','#fdd9a0','#fdae61','#d73027','#a50026','#67001f'];
 
 // ── Period key mapping ───────────────────────────────────────────
-var PERIOD_LABELS  = { '1hr':'1 Hour', '3hr':'3 Hours', '6hr':'6 Hours', '12hr':'12 Hours', '24hr':'24 Hours', '48hr':'48 Hours' };
-var PERIOD_UKV_KEY = { '1hr':'accum_1h', '3hr':'accum_3h', '6hr':'accum_6h', '12hr':'accum_12h', '24hr':'accum_24h', '48hr':'accum_48h' };
+var PERIOD_LABELS  = { '1hr':'1 Hour', '3hr':'3 Hours', '6hr':'6 Hours', '12hr':'12 Hours', '24hr':'24 Hours', '48hr':'48 Hours', 'run':'Run so far' };
+var PERIOD_UKV_KEY = { '1hr':'accum_1h', '3hr':'accum_3h', '6hr':'accum_6h', '12hr':'accum_12h', '24hr':'accum_24h', '48hr':'accum_48h', 'run':'accum_1h' };
 
 // ── Image bounds ─────────────────────────────────────────────────
 var RADAR_BOUNDS = [[43.7009,-17.9739],[62.9207,16.1291]];
@@ -515,8 +516,8 @@ function updatePeriodSelect(ukvStep) {
   Array.from(sel.options).forEach(function(opt) {
     var p      = opt.value;
     var ukvKey = PERIOD_UKV_KEY[p];
-    var obsOk  = currentCompareSource === 'gauge' ? true : !!(snap && snap[p]);
-    var ok     = !!(obsOk && ukvStep && ukvStep[ukvKey]);
+    var obsOk  = (p === 'run') ? true : (currentCompareSource === 'gauge' ? true : !!(snap && snap[p]));
+    var ok     = !!(obsOk && ukvStep && ukvStep[ukvKey]) && (p !== 'run' || currentCompareSource !== 'gauge');
     opt.disabled    = !ok;
     opt.textContent = PERIOD_LABELS[p] + (ok ? '' : ' —');
   });
@@ -895,7 +896,7 @@ function renderAll() {
 // ── Image overlay management ─────────────────────────────────────
 function updateImageOverlays(snap, ukvStep, ukvPeriodKey) {
   var radarUrl = null, ukvUrl = null;
-  if (currentViewMode === 'grid' && currentCompareSource === 'radar') {
+  if (currentViewMode === 'grid' && currentCompareSource === 'radar' && currentPeriod !== 'run') {
     if (snap && snap[currentPeriod] && snap[currentPeriod][currentScheme])
       radarUrl = toCDN(snap[currentPeriod][currentScheme]);
     if (ukvStep && ukvStep[ukvPeriodKey] && ukvStep[ukvPeriodKey][currentScheme])
@@ -1007,6 +1008,12 @@ function refreshDisplay() {
         });
       });
     });
+  } else if (currentPeriod === 'run') {
+    loadRunSoFarValues(run, ukvStep, function(radarVals, ukvVals) {
+      currentRadarVals = radarVals;
+      currentUKVVals   = ukvVals;
+      renderAll(); refreshOpenPopup();
+    });
   } else {
     // Radar mode: choropleth
     var radarPolyUrl = R2_CDN + '/accum_poly/' + snap.ts + '.json';
@@ -1026,12 +1033,48 @@ function refreshDisplay() {
   }
 }
 
+function loadRunSoFarValues(run, ukvStep, cb) {
+  if (!run || !ukvStep) { cb(null, null); return; }
+  var boundary = currentBoundary;
+  loadCachedJson(R2_CDN + '/ukv_area_ts/' + run.run_ts + '.json', function(ukvAreaTs) {
+    var ukvVals = {};
+    if (ukvAreaTs && ukvAreaTs[boundary]) {
+      var stepHours = ukvAreaTs.step_hours || [];
+      var areas = ukvAreaTs[boundary] || {};
+      Object.keys(areas).forEach(function(name) {
+        var vals = areas[name], cum = 0;
+        for (var i = 0; i < stepHours.length && stepHours[i] <= ukvStep.offset_hours; i++) {
+          if (vals[i] != null) cum += vals[i];
+        }
+        ukvVals[name] = Math.round(cum * 10) / 10;
+      });
+    }
+    var pos  = validSnapIndices.indexOf(currentIdx);
+    var idxs = pos >= 0 ? validSnapIndices.slice(0, pos + 1) : [];
+    _loadRadarPolyBatch(idxs, function(radarPolys) {
+      var radarVals = {};
+      idxs.forEach(function(i) {
+        var poly = radarPolys[snapshots[i].ts];
+        if (!poly || !poly[boundary] || !poly[boundary]['1hr']) return;
+        Object.keys(poly[boundary]['1hr']).forEach(function(name) {
+          var v = poly[boundary]['1hr'][name];
+          if (v != null) radarVals[name] = (radarVals[name] || 0) + v;
+        });
+      });
+      Object.keys(radarVals).forEach(function(k) {
+        radarVals[k] = Math.round(radarVals[k] * 10) / 10;
+      });
+      cb(radarVals, ukvVals);
+    });
+  });
+}
+
 // ── Controls ─────────────────────────────────────────────────────
 function setSnapshot(sliderPos) {
   currentIdx = validSnapIndices.length > sliderPos ? validSnapIndices[sliderPos] : sliderPos;
   refreshDisplay();
 }
-function setPeriod(p)  { currentPeriod = p; computeValidSnapIndices(false, false); refreshDisplay(); }
+function setPeriod(p)  { currentPeriod = p; _syncControlState(); computeValidSnapIndices(false, false); refreshDisplay(); }
 function setRun(idx)   { currentRunIdx = idx; computeValidSnapIndices(false, true); refreshDisplay(); }
 function setScheme(s)  { currentScheme = s; buildAccumCbar(); updateImageOverlays(snapshots[currentIdx], _lastUKVStep, PERIOD_UKV_KEY[currentPeriod]); renderAll(); refreshOpenPopup(); }
 
@@ -1062,14 +1105,29 @@ function updateSourceLabels() {
   if (accumCbarP) accumCbarP.textContent = isGauge ? 'Gauges (mm)' : 'Accumulation (mm)';
 }
 
+function _syncControlState() {
+  var isGauge = currentCompareSource === 'gauge';
+  var isRun   = currentPeriod === 'run';
+  document.getElementById('btnGrid').disabled     = isGauge || isRun;
+  document.getElementById('btnArea').disabled     = isGauge;
+  document.getElementById('btnGaugeSrc').disabled = isRun;
+  if ((isGauge || isRun) && currentViewMode === 'grid') {
+    currentViewMode = 'area';
+    document.getElementById('btnGrid').classList.remove('seg-active');
+    document.getElementById('btnArea').classList.add('seg-active');
+  }
+}
+
 function setCompareSource(src) {
+  if (src === 'gauge' && currentPeriod === 'run') {
+    currentPeriod = '3hr';
+    document.getElementById('periodSelect').value = '3hr';
+  }
   currentCompareSource = src;
   document.getElementById('btnRadarSrc').classList.toggle('seg-active', src === 'radar');
   document.getElementById('btnGaugeSrc').classList.toggle('seg-active', src === 'gauge');
-  var isGauge = src === 'gauge';
-  document.getElementById('btnGrid').disabled = isGauge;
-  document.getElementById('btnArea').disabled = isGauge;
-  if (!isGauge) clearGaugeMarkers();
+  _syncControlState();
+  if (src === 'radar') clearGaugeMarkers();
   updateSourceLabels();
   if (snapshots.length) refreshDisplay();
 }
