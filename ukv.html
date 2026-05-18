@@ -815,6 +815,31 @@ function applyStepRange() {
   slider.value = currentStep;
 }
 
+// Absolute valid time (ms since epoch) for a given step within a run.
+// Uses run_ts (e.g. "20260518T0300Z") + step.offset_hours.
+function stepValidMs(run, stepIdx) {
+  if (!run || !run.run_ts || !run.steps || !run.steps[stepIdx]) return NaN;
+  var ts = run.run_ts;
+  var runMs = Date.UTC(
+    +ts.slice(0, 4), +ts.slice(4, 6) - 1, +ts.slice(6, 8),
+    +ts.slice(9, 11), +ts.slice(11, 13)
+  );
+  return runMs + run.steps[stepIdx].offset_hours * 3600 * 1000;
+}
+
+// Find the step index in `run` whose valid time is closest to targetMs and
+// which has data for `layer`. Returns -1 if no step in the run carries layer.
+function closestStepForLayer(run, layer, targetMs) {
+  if (!run || !run.steps) return -1;
+  var bestIdx = -1, bestDiff = Infinity;
+  for (var i = 0; i < run.steps.length; i++) {
+    if (!run.steps[i][layer]) continue;
+    var diff = Math.abs(stepValidMs(run, i) - targetMs);
+    if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+  }
+  return bestIdx;
+}
+
 // ── Controls ──────────────────────────────────────────────────────────────────
 function setStep(idx) {
   currentStep = idx;
@@ -826,8 +851,25 @@ function setStep(idx) {
 function setRun(idx) {
   if (!meta || !meta.runs || idx >= meta.runs.length) return;
   stopPlay();
-  currentRun  = idx;
-  currentStep = 0;
+
+  // Remember the user's intended valid time so we can stay near it after switching.
+  var prevRun  = meta.runs[currentRun];
+  var targetMs = prevRun ? stepValidMs(prevRun, currentStep) : NaN;
+
+  currentRun = idx;
+
+  var newRun  = meta.runs[idx];
+  var newStep = isFinite(targetMs)
+    ? closestStepForLayer(newRun, currentLayer, targetMs)
+    : -1;
+  if (newStep < 0) {
+    // currentLayer not available in this run — fall back to the first step
+    // with any data for the layer (validStepRange will then clamp).
+    var range = validStepRange(idx, currentLayer);
+    newStep = range.first;
+  }
+  currentStep = newStep;
+
   applyStepRange();
   clearPolyChoropleth();
   updateDisplay();
@@ -835,10 +877,21 @@ function setRun(idx) {
 }
 
 function setLayer(layer) {
+  // Preserve the current valid time when switching layer so the user stays
+  // on the same forecast moment if data exists for it.
+  var run      = meta && meta.runs && meta.runs[currentRun];
+  var targetMs = run ? stepValidMs(run, currentStep) : NaN;
+
   currentLayer = layer;
   var isAccum  = layerKind(layer) === 'accum';
   if (!isAccum && polyVisible) setPolyVisible(false);
   _updatePolyToggle();
+
+  if (isFinite(targetMs)) {
+    var snap = closestStepForLayer(run, layer, targetMs);
+    if (snap >= 0) currentStep = snap;
+  }
+
   applyStepRange();
   clearPolyChoropleth();
   updateDisplay();
