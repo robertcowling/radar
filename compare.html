@@ -167,8 +167,60 @@ select option:disabled { color: #bbb; }
 
 @media (max-width: 900px) {
   .map-header-cell { font-size: 9px; letter-spacing: 0.2px; padding: 0 4px; }
-  .player-panel { bottom: 6px; width: calc(100% - 12px); padding: 8px 10px; gap: 6px; flex-wrap: wrap; }
-  #playerDateTime { width: 80px; }
+  .map-cbar { width: calc(100% - 20px); max-width: 320px; }
+  .player-panel {
+    bottom: 6px;
+    width: calc(100% - 12px);
+    padding: 8px 10px;
+    gap: 6px 8px;
+    flex-wrap: wrap;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+  .player-panel .control-group { flex: 1 1 calc(50% - 8px); min-width: 130px; }
+  .player-panel .control-group select { font-size: 12px; padding: 8px 28px 8px 12px; }
+  .player-panel .control-group .seg-control { width: 100%; }
+  .player-panel .control-group .seg-control .seg-btn { flex: 1; padding: 7px 10px; font-size: 12px; }
+  .timeline-container { flex: 1 1 100%; order: 10; height: 36px; }
+  #playerDateTime {
+    flex: 1 1 100%;
+    order: 11;
+    width: auto;
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px solid #e8eaed;
+    padding-top: 6px;
+    flex-direction: row;
+    gap: 8px;
+    align-items: baseline;
+    justify-content: center;
+  }
+  #playerDateLine { font-size: 11px; }
+  #playerTimeLine { font-size: 14px; }
+}
+
+/* Stack the three comparison maps vertically on phones — side-by-side is unreadable */
+@media (max-width: 720px) {
+  .maps-row { flex-direction: column; }
+  .map-wrap + .map-wrap { border-left: none; border-top: 2px solid #374151; }
+  .map-header-row { display: none; }
+  .map-cbar { top: 6px; right: 6px; padding: 5px 8px 4px; width: calc(100% - 16px); max-width: 280px; }
+  .map-cbar p { font-size: 9px; margin-bottom: 2px; }
+  .map-cbar::before {
+    content: attr(data-pane-label);
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    color: #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 3px;
+  }
+}
+
+@media (max-width: 420px) {
+  .player-panel .control-group { flex: 1 1 100%; min-width: 0; }
 }
 </style>
 </head>
@@ -182,7 +234,7 @@ select option:disabled { color: #bbb; }
 <div class="maps-row">
   <div class="map-wrap">
     <div id="radarMap" class="map-pane"></div>
-    <div class="map-cbar" id="accumCbarRadar">
+    <div class="map-cbar" id="accumCbarRadar" data-pane-label="Radar obs">
       <p>Accumulation (mm)</p>
       <div class="cbar" id="accumCbarR"></div>
       <div class="cbar-labels" id="accumCbarRLabels"></div>
@@ -190,7 +242,7 @@ select option:disabled { color: #bbb; }
   </div>
   <div class="map-wrap">
     <div id="ukvMap" class="map-pane"></div>
-    <div class="map-cbar" id="accumCbarUKV">
+    <div class="map-cbar" id="accumCbarUKV" data-pane-label="UKV forecast">
       <p>Accumulation (mm)</p>
       <div class="cbar" id="accumCbarU"></div>
       <div class="cbar-labels" id="accumCbarULabels"></div>
@@ -198,7 +250,7 @@ select option:disabled { color: #bbb; }
   </div>
   <div class="map-wrap">
     <div id="biasMap" class="map-pane"></div>
-    <div class="map-cbar" id="biasCbarOverlay">
+    <div class="map-cbar" id="biasCbarOverlay" data-pane-label="Bias (UKV − Radar)">
       <p>Bias &mdash; UKV minus Radar (mm)</p>
       <div class="cbar" id="biasCbar"></div>
       <div class="cbar-labels" id="biasCbarLabels"></div>
@@ -1263,9 +1315,12 @@ loadUKVMeta();
 setInterval(loadRadarMeta, 5 * 60 * 1000);
 setInterval(loadUKVMeta,   5 * 60 * 1000);
 
-window.addEventListener('load', function() {
+function invalidateAllMaps() {
   [radarMap, ukvMap, biasMap].forEach(function(m) { m.invalidateSize(); });
-});
+}
+window.addEventListener('load', invalidateAllMaps);
+window.addEventListener('resize', invalidateAllMaps);
+window.addEventListener('orientationchange', function() { setTimeout(invalidateAllMaps, 200); });
 </script>
 </body>
 </html>

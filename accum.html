@@ -347,10 +347,43 @@
   .seg-btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 
   @media (max-width: 768px) {
-    .info-panel { top: 8px; right: 8px; width: calc(100% - 24px); left: 12px; box-sizing: border-box; }
-    .player-panel { bottom: 8px; width: calc(100% - 16px); padding: 10px 14px; gap: 10px; }
-    #playerDateTime { width: 80px; }
-    .control-group select { font-size: 12px; padding: 8px 28px 8px 12px; }
+    .info-panel,
+    .info-panel.collapsed { top: 8px; right: 8px; width: calc(100% - 24px); left: 12px; box-sizing: border-box; }
+    .info-panel:not(.collapsed) { max-height: calc(100vh - 260px); }
+    .player-panel {
+      bottom: 8px;
+      width: calc(100% - 16px);
+      padding: 10px 12px;
+      gap: 8px 10px;
+      flex-wrap: wrap;
+      max-height: calc(100vh - 24px);
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+    .player-panel .control-group { flex: 1 1 calc(50% - 10px); min-width: 130px; }
+    .player-panel .control-group select { font-size: 12px; padding: 8px 28px 8px 12px; }
+    .player-panel .control-group .seg-control { width: 100%; }
+    .player-panel .control-group .seg-control .seg-btn { flex: 1; padding: 7px 10px; }
+    .timeline-container { flex: 1 1 100%; order: 10; height: 36px; }
+    #playerDateTime {
+      flex: 1 1 100%;
+      order: 11;
+      width: auto;
+      padding-left: 0;
+      border-left: none;
+      border-top: 1px solid #e8eaed;
+      padding-top: 6px;
+      flex-direction: row;
+      gap: 8px;
+      align-items: baseline;
+      justify-content: center;
+    }
+    #playerDateLine { font-size: 11px; }
+    #playerTimeLine { font-size: 14px; }
+  }
+
+  @media (max-width: 420px) {
+    .player-panel .control-group { flex: 1 1 100%; min-width: 0; }
   }
 </style>
 </head>
