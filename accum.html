@@ -3,7 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radar Accumulation</title>
+
+<!-- SEO -->
+<title>Radar Accumulation | Flood Forecast</title>
+<meta name="description" content="Animated UK radar rainfall accumulation maps — view rainfall totals over 1, 3, 6, 12, 24 and 48 hour periods on an interactive map. Standard, high-sensitivity, and Met Office colour scales available. British Crown copyright Met Office data.">
+<meta name="keywords" content="rainfall accumulation, UK rain totals, radar accumulation map, 24 hour rainfall UK, catchment rainfall, Met Office radar, UK rainfall totals, flood forecast, England Wales rainfall">
+<meta name="author" content="Flood Forecast">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://floodforecast.co.uk/accum">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://floodforecast.co.uk/accum">
+<meta property="og:title" content="Radar Accumulation Maps | Flood Forecast">
+<meta property="og:description" content="Animated UK radar rainfall accumulation maps with selectable time periods (1–48 hrs) and colour scales. Met Office data updated every 15 minutes.">
+<meta property="og:image" content="https://floodforecast.co.uk/static/images/og_image.png">
+<meta property="og:site_name" content="Flood Forecast">
+<meta property="og:locale" content="en_GB">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Radar Accumulation Maps | Flood Forecast">
+<meta name="twitter:description" content="Animated UK radar rainfall accumulation maps with selectable time periods (1–48 hrs) and colour scales. Met Office data updated every 15 minutes.">
+<meta name="twitter:image" content="https://floodforecast.co.uk/static/images/og_image.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="https://floodforecast.co.uk/static/images/avatar.png">
+
+<!-- JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Radar Accumulation Maps | Flood Forecast",
+  "url": "https://floodforecast.co.uk/accum",
+  "description": "Animated UK radar rainfall accumulation maps showing rainfall totals over 1, 3, 6, 12, 24 and 48 hour periods.",
+  "isPartOf": { "@type": "WebSite", "url": "https://floodforecast.co.uk" },
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Flood Forecast", "item": "https://floodforecast.co.uk" },
+      { "@type": "ListItem", "position": 2, "name": "Radar Accumulation", "item": "https://floodforecast.co.uk/accum" }
+    ]
+  }
+}
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -382,6 +427,7 @@
 </style>
 </head>
 <body>
+<h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">UK Radar Rainfall Accumulation</h1>
 <div id="map"></div>
 <div id="noData"><p>Accumulation data not yet available.<br>Run the workflow to generate images.</p></div>
 

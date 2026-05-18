@@ -3,7 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UKV Rainfall Forecast</title>
+
+<!-- SEO -->
+<title>UKV Rainfall Forecast | Flood Forecast</title>
+<meta name="description" content="Explore the Met Office UKV high-resolution rainfall forecast alongside live radar observations. View forecast accumulations and rain rates across UK catchments, counties and regions on an interactive map.">
+<meta name="keywords" content="UKV forecast, Met Office UKV, rainfall forecast UK, high-resolution weather model, UK forecast rainfall, catchment forecast, flood forecast, England Wales rainfall, radar vs forecast">
+<meta name="author" content="Flood Forecast">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://floodforecast.co.uk/ukv">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://floodforecast.co.uk/ukv">
+<meta property="og:title" content="UKV Rainfall Forecast | Flood Forecast">
+<meta property="og:description" content="Interactive Met Office UKV rainfall forecast map. Compare forecast accumulations and rain rates against live radar across UK catchments and regions.">
+<meta property="og:image" content="https://floodforecast.co.uk/static/images/og_image.png">
+<meta property="og:site_name" content="Flood Forecast">
+<meta property="og:locale" content="en_GB">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="UKV Rainfall Forecast | Flood Forecast">
+<meta name="twitter:description" content="Interactive Met Office UKV rainfall forecast map. Compare forecast accumulations and rain rates against live radar across UK catchments and regions.">
+<meta name="twitter:image" content="https://floodforecast.co.uk/static/images/og_image.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="https://floodforecast.co.uk/static/images/avatar.png">
+
+<!-- JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "UKV Rainfall Forecast | Flood Forecast",
+  "url": "https://floodforecast.co.uk/ukv",
+  "description": "Interactive Met Office UKV high-resolution rainfall forecast map with live radar comparison across UK catchments, counties and regions.",
+  "isPartOf": { "@type": "WebSite", "url": "https://floodforecast.co.uk" },
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Flood Forecast", "item": "https://floodforecast.co.uk" },
+      { "@type": "ListItem", "position": 2, "name": "UKV Rainfall Forecast", "item": "https://floodforecast.co.uk/ukv" }
+    ]
+  }
+}
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -353,6 +398,7 @@
 </style>
 </head>
 <body>
+<h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">Met Office UKV Rainfall Forecast</h1>
 <div id="map"></div>
 <div id="noData"><p>No data for this layer at this forecast step.<br>Try a different layer or step.</p></div>
 <div id="estimateNotice" style="

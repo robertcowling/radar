@@ -3,7 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Model Comparison – Radar vs UKV</title>
+
+<!-- SEO -->
+<title>Radar vs UKV Comparison | Flood Forecast</title>
+<meta name="description" content="Side-by-side comparison of live UK radar rainfall against Met Office UKV forecast. Analyse accumulation totals and forecast bias across UK catchments, counties and regions on synchronised interactive maps.">
+<meta name="keywords" content="radar vs forecast, UKV bias, forecast accuracy UK, rainfall model comparison, Met Office UKV radar, catchment accumulation, flood forecast, UK rainfall comparison, model verification">
+<meta name="author" content="Flood Forecast">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://floodforecast.co.uk/compare">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://floodforecast.co.uk/compare">
+<meta property="og:title" content="Radar vs UKV Comparison | Flood Forecast">
+<meta property="og:description" content="Synchronised side-by-side maps comparing live UK radar rainfall totals against Met Office UKV forecast. Catchment, county and region analysis with bias indicators.">
+<meta property="og:image" content="https://floodforecast.co.uk/static/images/og_image.png">
+<meta property="og:site_name" content="Flood Forecast">
+<meta property="og:locale" content="en_GB">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Radar vs UKV Comparison | Flood Forecast">
+<meta name="twitter:description" content="Synchronised side-by-side maps comparing live UK radar rainfall totals against Met Office UKV forecast. Catchment, county and region analysis with bias indicators.">
+<meta name="twitter:image" content="https://floodforecast.co.uk/static/images/og_image.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="https://floodforecast.co.uk/static/images/avatar.png">
+
+<!-- JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Radar vs UKV Comparison | Flood Forecast",
+  "url": "https://floodforecast.co.uk/compare",
+  "description": "Synchronised side-by-side maps comparing live UK radar rainfall totals against Met Office UKV forecast across catchments, counties and regions.",
+  "isPartOf": { "@type": "WebSite", "url": "https://floodforecast.co.uk" },
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Flood Forecast", "item": "https://floodforecast.co.uk" },
+      { "@type": "ListItem", "position": 2, "name": "Radar vs UKV", "item": "https://floodforecast.co.uk/compare" }
+    ]
+  }
+}
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -222,6 +267,7 @@ select option:disabled { color: #bbb; }
   <div class="map-header-cell" id="ukvBadge">UKV forecast</div>
   <div class="map-header-cell" id="biasHeader">Bias (UKV &minus; Radar)</div>
 </div>
+<h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">UK Radar vs UKV Rainfall Comparison</h1>
 <div class="maps-row">
   <div class="map-wrap">
     <div id="radarMap" class="map-pane"></div>
