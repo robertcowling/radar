@@ -113,6 +113,37 @@
     display: flex; align-items: center; color: #94a3b8; transition: transform 0.2s;
   }
   .chip-open-btn:hover { transform: scale(1.1); }
+  .info-icon-btn {
+    background: transparent; border: none; cursor: pointer; padding: 0;
+    display: flex; align-items: center; color: #94a3b8; transition: color 0.2s; flex-shrink: 0;
+  }
+  .info-icon-btn:hover { color: #f1f5f9; }
+  .info-modal-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 3000; align-items: center; justify-content: center;
+  }
+  .info-modal-backdrop.open { display: flex; }
+  .info-modal {
+    background: white; border-radius: 14px; padding: 22px 24px 18px; max-width: 380px; width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative;
+  }
+  .info-modal h3 {
+    font-size: 13px; font-weight: 700; color: #1e293b; margin: 0 0 12px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .info-modal ul { margin: 0; padding: 0; list-style: none; }
+  .info-modal li {
+    font-size: 12px; color: #475569; line-height: 1.6; padding: 7px 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .info-modal li:last-child { border-bottom: none; padding-bottom: 0; }
+  .info-modal li strong { color: #1e293b; font-weight: 600; }
+  .info-modal a { color: #1a73e8; }
+  .info-modal-close {
+    position: absolute; top: 14px; right: 16px; background: transparent; border: none;
+    cursor: pointer; padding: 4px; color: #94a3b8; font-size: 18px; line-height: 1;
+  }
+  .info-modal-close:hover { color: #475569; }
 
   /* Panel header (dark bar) */
   .panel-header {
@@ -437,24 +468,34 @@
   <!-- Collapsed chip state -->
   <div class="collapsed-top-row">
     <span class="collapsed-title">Radar Accumulation</span>
-    <button class="chip-open-btn" onclick="toggleInfo()" title="Open">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <line x1="3" y1="12" x2="21" y2="12"></line>
-        <line x1="3" y1="18" x2="21" y2="18"></line>
-      </svg>
-    </button>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button class="info-icon-btn" onclick="toggleInfoModal()" title="About this data">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      </button>
+      <button class="chip-open-btn" onclick="toggleInfo()" title="Open">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
   </div>
 
   <!-- Full panel header -->
   <div class="panel-header hide-collapsed">
     <span class="panel-header-title">Radar Accumulation</span>
-    <button class="panel-close-btn" onclick="toggleInfo()" title="Close">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"></line>
-        <line x1="6" y1="6" x2="18" y2="18"></line>
-      </svg>
-    </button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="info-icon-btn" onclick="toggleInfoModal()" title="About this data">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      </button>
+      <button class="panel-close-btn" onclick="toggleInfo()" title="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
   </div>
 
   <!-- Colour bar (visible in both states) -->
@@ -486,6 +527,23 @@
     </div>
 
     <p id="generatedAt"></p>
+  </div>
+</div>
+
+<!-- Data info modal -->
+<div id="infoModalBackdrop" class="info-modal-backdrop" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="info-modal">
+    <button class="info-modal-close" onclick="toggleInfoModal()" title="Close">&times;</button>
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      About this data
+    </h3>
+    <ul>
+      <li><strong>Radar:</strong> Met Office ODIM H5 1km composite. Updated every 15 minutes. <a href="https://www.metoffice.gov.uk/services/data/share-your-data" target="_blank">British Crown copyright Met Office</a> — <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank">CC BY-SA 4.0</a>.</li>
+      <li><strong>Rain gauges:</strong> Natural Resources Wales (NRW) and Environment Agency 15-minute tipping-bucket readings.</li>
+      <li><strong>Catchment boundaries:</strong> National River Flow Archive (2014). NERC Environmental Information Data Centre. <a href="https://doi.org/10.5285/1957166d-7523-44f4-b279-aa5314163237" target="_blank">doi:10.5285/1957166d</a>.</li>
+      <li><strong>Region / county boundaries:</strong> Office for National Statistics (ONS). Open Government Licence.</li>
+    </ul>
   </div>
 </div>
 
@@ -669,6 +727,11 @@ function setOpacity(val) {
     accumOverlay.setOpacity(val / 100);
   }
 }
+
+function toggleInfoModal() {
+  document.getElementById('infoModalBackdrop').classList.toggle('open');
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') document.getElementById('infoModalBackdrop').classList.remove('open'); });
 
 function toggleInfo() {
   var panel = document.getElementById('infoPanel');
