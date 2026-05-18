@@ -336,14 +336,17 @@
   .leaflet-image-layer { image-rendering: pixelated; }
 
   /* Segmented view toggle */
-  .seg-control { display: flex; background: #f1f3f4; border-radius: 20px; padding: 2px; }
+  .seg-control { display: flex; background: #f1f3f4; border-radius: 24px; padding: 3px; gap: 0; }
   .seg-btn {
-    background: transparent; border: none; padding: 6px 12px; border-radius: 18px;
-    font-family: 'Roboto', sans-serif; font-size: 12px; font-weight: 500; color: #5f6368;
-    cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap;
+    flex: 1; border: none; background: transparent;
+    padding: 7px 16px; border-radius: 21px;
+    font-family: 'Roboto', sans-serif; font-size: 13px;
+    font-weight: 500; color: #5f6368; cursor: pointer;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
   }
   .seg-btn:hover { background: rgba(0,0,0,0.06); }
-  .seg-active { background: white !important; color: #202124 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+  .seg-btn.seg-active { background: white; color: #202124; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
   .seg-btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 
   @media (max-width: 768px) {

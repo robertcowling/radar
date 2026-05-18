@@ -54,16 +54,16 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.14); width: 340px;
 }
 .map-cbar p {
-  font-size: 10px; font-weight: 600; color: #5f6368;
+  font-size: 12px; font-weight: 500; color: #3c4043;
   margin: 0 0 4px; white-space: nowrap;
 }
 .map-cbar .bias-arrows {
   display: flex; justify-content: space-between;
   font-size: 9px; color: #5f6368; margin-top: 2px;
 }
-.cbar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; }
+.cbar { display: flex; height: 10px; border-radius: 4px; overflow: hidden; }
 .cbar-block { flex: 1; }
-.cbar-labels { position: relative; height: 12px; margin-top: 2px; font-size: 9px; color: #5f6368; font-weight: 500; }
+.cbar-labels { position: relative; height: 13px; margin-top: 2px; font-size: 10px; color: #5f6368; font-weight: 500; }
 .cbar-label  { position: absolute; transform: translateX(-50%); white-space: nowrap; }
 
 .region-boundary { filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.75)); }
@@ -273,7 +273,7 @@ select option:disabled { color: #bbb; }
     <span class="control-label">Areas</span>
     <select id="boundarySelect" onchange="onBoundaryChange(this.value)">
       <option value="catchments" selected>Catchments</option>
-      <option value="regions">UK Regions</option>
+      <option value="regions">Regions</option>
       <option value="counties">Counties</option>
       <option value="grid">Grid (20km)</option>
     </select>

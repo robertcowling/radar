@@ -454,10 +454,10 @@
   <div class="control-group">
     <span class="control-label">Period</span>
     <select id="layerSelect" onchange="setLayer(this.value)">
-      <option value="rainfall_rate" selected>Rate</option>
+      <option value="rainfall_rate">Rate</option>
       <option value="accum_1h">1 Hour</option>
       <option value="accum_3h">3 Hours</option>
-      <option value="accum_6h">6 Hours</option>
+      <option value="accum_6h" selected>6 Hours</option>
       <option value="accum_12h">12 Hours</option>
       <option value="accum_24h">24 Hours</option>
       <option value="accum_48h">48 Hours</option>
@@ -521,7 +521,7 @@ var ukvOverlay = L.imageOverlay('', imgBounds, { opacity: 0.85, interactive: fal
 var meta          = null;
 var currentRun    = 0;
 var currentStep   = 0;
-var currentLayer  = 'rainfall_rate';
+var currentLayer  = 'accum_6h';
 var currentScheme = 'norm';   // persists across layer switches
 var generatedAt   = '';
 
