@@ -171,33 +171,26 @@ select option:disabled { color: #bbb; }
   .player-panel {
     bottom: 6px;
     width: calc(100% - 12px);
-    padding: 8px 10px;
-    gap: 6px 8px;
+    padding: 7px 10px;
+    gap: 4px 6px;
     flex-wrap: wrap;
-    max-height: calc(100vh - 24px);
-    overflow-y: auto;
     box-sizing: border-box;
+    align-items: flex-end;
   }
-  .player-panel .control-group { flex: 1 1 calc(50% - 8px); min-width: 130px; }
-  .player-panel .control-group select { font-size: 12px; padding: 8px 28px 8px 12px; }
-  .player-panel .control-group .seg-control { width: 100%; }
-  .player-panel .control-group .seg-control .seg-btn { flex: 1; padding: 7px 10px; font-size: 12px; }
-  .timeline-container { flex: 1 1 100%; order: 10; height: 36px; }
+  .player-panel .control-group { flex-shrink: 1; min-width: 0; }
+  .control-label { font-size: 9px; padding-left: 6px; }
+  .player-panel .control-group select { font-size: 11px; padding: 5px 22px 5px 9px; background-position: right 9px center; }
+  .player-panel .control-group .seg-btn { font-size: 11px; padding: 5px 8px; }
+  .timeline-container { flex: 1 1 100%; order: 10; height: 28px; }
   #playerDateTime {
-    flex: 1 1 100%;
+    flex: 0 0 auto;
     order: 11;
     width: auto;
-    padding-left: 0;
-    border-left: none;
-    border-top: 1px solid #e8eaed;
-    padding-top: 6px;
-    flex-direction: row;
-    gap: 8px;
-    align-items: baseline;
-    justify-content: center;
+    padding-left: 8px;
+    border-left: 1px solid #e8eaed;
   }
-  #playerDateLine { font-size: 11px; }
-  #playerTimeLine { font-size: 14px; }
+  #playerDateLine { font-size: 9px; }
+  #playerTimeLine { font-size: 13px; }
 }
 
 /* Stack the three comparison maps vertically on phones — side-by-side is unreadable */
@@ -217,10 +210,6 @@ select option:disabled { color: #bbb; }
     letter-spacing: 0.3px;
     margin-bottom: 3px;
   }
-}
-
-@media (max-width: 420px) {
-  .player-panel .control-group { flex: 1 1 100%; min-width: 0; }
 }
 </style>
 </head>
