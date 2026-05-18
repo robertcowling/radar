@@ -29,14 +29,14 @@
     right: 20px;
     padding: 24px;
     z-index: 1000;
-    width: 300px;
+    width: 380px;
     max-height: calc(100vh - 140px);
     overflow-y: auto;
     transform-origin: top right;
   }
 
   .info-panel.collapsed {
-    width: 300px;
+    width: 380px;
     height: auto;
     padding: 0;
     overflow: hidden;
@@ -703,13 +703,8 @@ function buildCbar() {
     cbar.appendChild(b);
   });
   var n = scheme.colors.length;
-  var w = cbar.offsetWidth || 252;
-  var lastPx = -24;
   scheme.bounds.forEach(function(v, i) {
     var pct = (i + 1) / n * 100;
-    var px  = pct / 100 * w;
-    if (px - lastPx < 22) return;
-    lastPx = px;
     var el  = document.createElement('span');
     el.className = 'cbar-label';
     el.style.left = pct.toFixed(1) + '%';
