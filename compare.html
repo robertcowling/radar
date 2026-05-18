@@ -51,7 +51,7 @@ body {
   position: absolute; top: 10px; right: 10px; z-index: 500;
   background: rgba(255,255,255,0.93); border-radius: 8px;
   padding: 7px 10px 6px; pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.14); min-width: 150px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.14); width: 230px;
 }
 .map-cbar p {
   font-size: 10px; font-weight: 600; color: #5f6368;
@@ -414,10 +414,17 @@ function _buildCbar(cbarId, labelsId, colors, bounds) {
   cbar.innerHTML = '';
   colors.forEach(function(c) { var b = document.createElement('div'); b.className = 'cbar-block'; b.style.background = c; cbar.appendChild(b); });
   labels.innerHTML = '';
+  var n = colors.length;
+  var w = cbar.offsetWidth || 206;
+  var lastPx = -24;
   bounds.forEach(function(v, i) {
+    var pct = (i + 1) / n * 100;
+    var px  = pct / 100 * w;
+    if (px - lastPx < 22) return;
+    lastPx = px;
     var el = document.createElement('span'); el.className = 'cbar-label';
-    el.style.left = ((i + 1) / colors.length * 100).toFixed(1) + '%';
-    el.textContent = (typeof v === 'number' && v > 0 && bounds[0] < 0 ? '+' : '') + v;
+    el.style.left = pct.toFixed(1) + '%';
+    el.textContent = (typeof v === 'number' && v > 0 && bounds[0] < 0 ? '+' : '') + (Math.abs(v) < 1 ? v : Math.round(v));
     labels.appendChild(el);
   });
 }

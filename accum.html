@@ -29,7 +29,7 @@
     right: 20px;
     padding: 24px;
     z-index: 1000;
-    width: 270px;
+    width: 300px;
     max-height: calc(100vh - 140px);
     overflow-y: auto;
     transform-origin: top right;
@@ -37,7 +37,7 @@
 
   /* Collapsed chip shows just the colour bar */
   .info-panel.collapsed {
-    width: 230px;
+    width: 300px;
     height: auto;
     padding: 0;
     overflow: hidden;
@@ -50,7 +50,7 @@
     justify-content: space-between;
   }
   .info-panel.collapsed .cbar-container {
-    padding: 6px 13px 8px;
+    padding: 6px 24px 8px;
   }
   .info-panel.collapsed .cbar-container p { font-size: 9px; font-weight: 600; color: #475569; margin-bottom: 3px; }
   .info-panel.collapsed .cbar { height: 6px; border-radius: 3px; }
@@ -392,10 +392,14 @@
   </div>
 
   <!-- Gauge vs radar key (visible in both states when active) -->
-  <div class="bias-legend" id="biasKey" style="display:none;margin-top:8px;">
-    <span class="bias-swatch"><span class="bias-dot" style="background:#ef4444;"></span>Gauge &gt; radar</span>
-    <span class="bias-swatch"><span class="bias-dot" style="background:#3b82f6;"></span>Radar &gt; gauge</span>
-    <span class="bias-swatch"><span class="bias-dot" style="background:#e2e8f0;"></span>Close match</span>
+  <div class="cbar-container" id="biasKey" style="display:none;margin-top:8px;">
+    <p>Gauge vs radar (mm)</p>
+    <div class="cbar" style="background:linear-gradient(to right,#3b82f6,#e2e8f0,#ef4444);"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:2px;font-size:9px;color:#5f6368;font-weight:500;">
+      <span id="biasLabelNeg">—</span>
+      <span>0</span>
+      <span id="biasLabelPos">—</span>
+    </div>
   </div>
 
   <!-- Rest hidden when collapsed -->
@@ -517,12 +521,17 @@ function buildCbar(scheme) {
     cbar.appendChild(b);
   });
   var n = s.colors.length;
+  var w = cbar.offsetWidth || 252;
+  var lastPx = -24;
   s.bounds.forEach(function(v, i) {
-    var pct = ((i + 1) / n * 100).toFixed(1);
+    var pct = (i + 1) / n * 100;
+    var px  = pct / 100 * w;
+    if (px - lastPx < 22) return;
+    lastPx = px;
     var el = document.createElement('span');
     el.className = 'cbar-label';
-    el.style.left = pct + '%';
-    el.textContent = v;
+    el.style.left = pct.toFixed(1) + '%';
+    el.textContent = v < 1 ? v : Math.round(v);
     labels.appendChild(el);
   });
 }
@@ -571,7 +580,7 @@ function setSnapshot(idx) {
 function setPeriod(period) {
   currentPeriod = period;
   updateDisplay();
-  if (biasVisible) renderBiasMarkers();
+  if (biasVisible) { buildBiasKey(); renderBiasMarkers(); }
   if (polyVisible) renderPolyChoropleth();
 }
 
@@ -875,10 +884,18 @@ function renderBiasMarkers() {
   });
 }
 
+function buildBiasKey() {
+  var pi    = PERIODS_LIST.indexOf(currentPeriod);
+  var hours = PERIOD_H[pi >= 0 ? pi : 0];
+  document.getElementById('biasLabelNeg').textContent = '−' + hours + 'mm';
+  document.getElementById('biasLabelPos').textContent = '+' + hours + 'mm';
+}
+
 function toggleBias() {
   var checked = !biasVisible;
   document.getElementById('btnBias').classList.toggle('seg-active', checked);
-  document.getElementById('biasKey').style.display = checked ? 'flex' : 'none';
+  document.getElementById('biasKey').style.display = checked ? 'block' : 'none';
+  if (checked) buildBiasKey();
   setBiasVisible(checked);
 }
 

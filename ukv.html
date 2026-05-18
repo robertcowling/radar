@@ -29,14 +29,14 @@
     right: 20px;
     padding: 24px;
     z-index: 1000;
-    width: 270px;
+    width: 300px;
     max-height: calc(100vh - 140px);
     overflow-y: auto;
     transform-origin: top right;
   }
 
   .info-panel.collapsed {
-    width: 230px;
+    width: 300px;
     height: auto;
     padding: 0;
     overflow: hidden;
@@ -49,7 +49,7 @@
     justify-content: space-between;
   }
   .info-panel.collapsed .cbar-container {
-    padding: 6px 13px 8px;
+    padding: 6px 24px 8px;
   }
   .info-panel.collapsed .cbar-container p { font-size: 9px; font-weight: 600; color: #475569; margin-bottom: 3px; }
   .info-panel.collapsed .cbar { height: 6px; border-radius: 3px; }
@@ -703,11 +703,16 @@ function buildCbar() {
     cbar.appendChild(b);
   });
   var n = scheme.colors.length;
+  var w = cbar.offsetWidth || 252;
+  var lastPx = -24;
   scheme.bounds.forEach(function(v, i) {
-    var pct = ((i + 1) / n * 100).toFixed(1);
+    var pct = (i + 1) / n * 100;
+    var px  = pct / 100 * w;
+    if (px - lastPx < 22) return;
+    lastPx = px;
     var el  = document.createElement('span');
     el.className = 'cbar-label';
-    el.style.left = pct + '%';
+    el.style.left = pct.toFixed(1) + '%';
     el.textContent = v < 1 ? v : Math.round(v);
     labels.appendChild(el);
   });
