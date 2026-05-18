@@ -1140,12 +1140,17 @@ function setViewMode(mode) {
 
 function updateSourceLabels() {
   var isGauge = currentCompareSource === 'gauge';
-  document.getElementById('obsHeader').textContent = isGauge ? 'Rain gauges' : 'Radar obs';
+  var obsLabel  = isGauge ? 'Rain gauges'          : 'Radar obs';
+  var biasLabel = isGauge ? 'Bias (UKV − Gauges)' : 'Bias (UKV − Radar)';
+  document.getElementById('obsHeader').textContent = obsLabel;
   document.getElementById('biasHeader').innerHTML  = isGauge ? 'Bias (UKV &minus; Gauges)' : 'Bias (UKV &minus; Radar)';
   var biasCbarP = document.querySelector('#biasCbarOverlay p');
   if (biasCbarP) biasCbarP.textContent = isGauge ? 'Bias — UKV minus Gauges (mm)' : 'Bias — UKV minus Radar (mm)';
   var accumCbarP = document.querySelector('#accumCbarRadar p');
   if (accumCbarP) accumCbarP.textContent = isGauge ? 'Gauges (mm)' : 'Accumulation (mm)';
+  // Mobile (stacked) pane labels are rendered from data-pane-label via CSS — keep them in sync.
+  document.getElementById('accumCbarRadar').setAttribute('data-pane-label', obsLabel);
+  document.getElementById('biasCbarOverlay').setAttribute('data-pane-label', biasLabel);
 }
 
 function _syncControlState() {
