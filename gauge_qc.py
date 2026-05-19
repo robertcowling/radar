@@ -92,7 +92,7 @@ R2_PUBLIC_URL    = os.environ.get("R2_PUBLIC_BASE_URL", "").rstrip("/")
 USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, R2_BUCKET, R2_PUBLIC_URL])
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-OPENAI_MODEL   = os.environ.get("OPENAI_MODEL", "gpt-4.5")
+OPENAI_MODEL   = os.environ.get("OPENAI_MODEL", "gpt-5.4")
 
 
 # ── R2 helpers ─────────────────────────────────────────────────────────────────
