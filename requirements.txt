@@ -5,3 +5,4 @@ Pillow>=10.4.0
 numpy>=1.26.0
 h5py>=3.11.0
 pyproj>=3.6.0
+openai>=1.0.0

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gauge QC | Flood Forecast</title>
+<link rel="icon" type="image/png" href="https://floodforecast.co.uk/static/images/avatar.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa; color:#3c4043; overflow:hidden; }
+#map { width:100vw; height:100vh; }
+
+.surface {
+  background:white;
+  border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.12),0 2px 6px rgba(0,0,0,0.08);
+  transition:box-shadow 0.3s ease;
+}
+.surface:hover { box-shadow:0 12px 32px rgba(0,0,0,0.16),0 4px 10px rgba(0,0,0,0.1); }
+
+/* ── Side panel ─────────────────────────────────────────────────────────── */
+.side-panel {
+  position:fixed;
+  top:20px;
+  right:20px;
+  width:560px;
+  max-height:calc(100vh - 40px);
+  z-index:1000;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border-radius:12px;
+}
+
+.panel-header {
+  background:#1e293b;
+  color:#f1f5f9;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:13px 20px;
+  border-radius:12px 12px 0 0;
+  flex-shrink:0;
+}
+.panel-header-title { font-size:14px; font-weight:600; letter-spacing:0.3px; }
+.panel-header-right { display:flex; align-items:center; gap:10px; }
+
+.header-counts {
+  font-size:11px; color:#94a3b8; white-space:nowrap;
+}
+.count-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  background:rgba(255,255,255,0.12); border-radius:10px;
+  padding:2px 8px; font-size:11px; font-weight:600; color:#f1f5f9;
+}
+.count-badge.red   { background:#c62828; }
+.count-badge.orange { background:#ef6c00; }
+.count-badge.green  { background:#2e7d32; }
+.count-badge.blue   { background:#1a73e8; }
+
+.refresh-btn {
+  background:rgba(255,255,255,0.12); border:none; cursor:pointer;
+  border-radius:8px; padding:5px 10px;
+  font-size:12px; font-weight:500; color:#f1f5f9; font-family:'Roboto',sans-serif;
+  display:flex; align-items:center; gap:5px; transition:background 0.2s;
+}
+.refresh-btn:hover { background:rgba(255,255,255,0.22); }
+
+.updated-at { font-size:10px; color:#64748b; }
+
+/* ── Panel body (scrollable) ──────────────────────────────────────────────── */
+.panel-body {
+  flex:1; overflow-y:auto; background:white; border-radius:0 0 12px 12px;
+}
+.panel-body::-webkit-scrollbar { width:5px; }
+.panel-body::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:3px; }
+
+/* ── Section headings ──────────────────────────────────────────────────── */
+.section-label {
+  font-size:10px; font-weight:700; letter-spacing:0.6px;
+  color:#94a3b8; text-transform:uppercase;
+  padding:10px 16px 4px; margin:0;
+}
+
+/* ── Gauge rows ─────────────────────────────────────────────────────────── */
+.gauge-row {
+  display:grid;
+  grid-template-columns:6px 1fr auto;
+  align-items:start;
+  gap:0 10px;
+  padding:10px 16px;
+  border-bottom:1px solid #f1f3f4;
+  cursor:pointer;
+  transition:background 0.1s;
+}
+.gauge-row:hover { background:#f8f9fa; }
+.gauge-row.selected { background:#e8f0fe; }
+
+.gauge-bar {
+  width:6px; border-radius:3px; margin-top:3px; align-self:stretch; min-height:30px;
+}
+
+.gauge-main { min-width:0; }
+.gauge-name {
+  font-size:13px; font-weight:600; color:#1e293b;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.gauge-location {
+  font-size:11px; color:#64748b; margin-top:1px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.gauge-checks { display:flex; gap:4px; flex-wrap:wrap; margin-top:5px; }
+.gauge-llm {
+  font-size:11px; color:#475569; line-height:1.45; margin-top:5px;
+  font-style:italic;
+}
+
+.gauge-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
+.gauge-value { font-size:16px; font-weight:700; color:#1e293b; }
+.gauge-unit  { font-size:10px; color:#64748b; font-weight:500; }
+.runs-badge  {
+  font-size:10px; font-weight:600; padding:2px 7px; border-radius:8px;
+  background:#f1f3f4; color:#5f6368; white-space:nowrap;
+}
+
+/* Check pills */
+.pill {
+  font-size:10px; font-weight:700; padding:2px 6px; border-radius:5px;
+  white-space:nowrap;
+}
+.pill.fail-threshold { background:#fce4ec; color:#c62828; }
+.pill.fail-temporal  { background:#fff3e0; color:#e65100; }
+.pill.fail-nn        { background:#fce4ec; color:#880e4f; }
+.pill.fail-zero      { background:#e3f2fd; color:#01579b; }
+.pill.fail-radar     { background:#f3e5f5; color:#4a148c; }
+.pill.llm-suspect    { background:#ffebee; color:#b71c1c; border:1px solid #ef9a9a; }
+.pill.llm-uncertain  { background:#fff8e1; color:#f57f17; border:1px solid #ffe082; }
+.pill.llm-genuine    { background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7; }
+
+/* ── Persistent section toggle ───────────────────────────────────────────── */
+.persistent-toggle {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 16px; cursor:pointer; border-bottom:1px solid #f1f3f4;
+  font-size:12px; font-weight:600; color:#5f6368;
+  user-select:none;
+}
+.persistent-toggle:hover { background:#f8f9fa; }
+.toggle-arrow { font-size:11px; transition:transform 0.2s; }
+.toggle-arrow.open { transform:rotate(90deg); }
+.persistent-body { display:none; }
+.persistent-body.open { display:block; }
+
+/* Muted style for persistent rows */
+.gauge-row.persistent { opacity:0.65; }
+.gauge-row.persistent:hover { opacity:0.85; background:#f8f9fa; }
+
+/* ── All-clear card ──────────────────────────────────────────────────────── */
+.all-clear {
+  margin:24px 20px; padding:20px 16px; border-radius:10px;
+  background:#e8f5e9; border:1px solid #a5d6a7; text-align:center;
+}
+.all-clear svg { margin-bottom:6px; }
+.all-clear p { margin:0; font-size:13px; font-weight:500; color:#2e7d32; }
+.all-clear .sub { font-size:11px; color:#4caf50; margin-top:4px; }
+
+/* ── Status cards (loading / error) ─────────────────────────────────────── */
+.status-card {
+  margin:24px 20px; padding:16px; border-radius:10px;
+  font-size:13px; text-align:center;
+}
+.status-card.loading { background:#e3f2fd; color:#01579b; }
+.status-card.error   { background:#ffebee; color:#b71c1c; }
+.status-card.no-data { background:#f3e5f5; color:#4a148c; }
+
+/* ── Popup ─────────────────────────────────────────────────────────────── */
+.qc-popup { font-family:'Roboto',sans-serif; font-size:12px; min-width:240px; max-width:300px; }
+.qc-popup h4 { margin:0 0 6px; font-size:13px; color:#1e293b; }
+.qc-popup .pop-value { font-size:18px; font-weight:700; color:#1e293b; margin-bottom:8px; }
+.qc-popup table { width:100%; border-collapse:collapse; font-size:11px; }
+.qc-popup td { padding:3px 0; }
+.qc-popup td:first-child { color:#64748b; width:48%; }
+.qc-popup td:last-child { font-weight:500; }
+.qc-popup .pop-llm { margin-top:8px; font-size:11px; color:#475569; font-style:italic; line-height:1.5; }
+.qc-popup .pop-sep { border:none; border-top:1px solid #f1f3f4; margin:8px 0; }
+
+/* ── Back link ───────────────────────────────────────────────────────────── */
+.back-link {
+  position:fixed; bottom:28px; left:20px; z-index:1000;
+  background:rgba(30,41,59,0.88); color:#f1f5f9;
+  border-radius:20px; padding:6px 14px; font-size:12px; font-weight:500;
+  text-decoration:none; backdrop-filter:blur(4px);
+  transition:background 0.2s;
+}
+.back-link:hover { background:rgba(30,41,59,1); }
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+@media (max-width:768px) {
+  .side-panel { top:auto; bottom:0; left:0; right:0; width:100%; max-height:55vh; border-radius:12px 12px 0 0; }
+  .panel-header { border-radius:12px 12px 0 0; }
+  .panel-body { border-radius:0; }
+}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="side-panel surface" id="sidePanel">
+  <div class="panel-header">
+    <span class="panel-header-title">Gauge QC</span>
+    <div class="panel-header-right">
+      <span id="headerCounts" class="header-counts">—</span>
+      <button class="refresh-btn" onclick="loadResults()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+  <div class="updated-at" id="updatedAt" style="padding:4px 16px;background:#f8f9fa;font-size:10px;color:#94a3b8;flex-shrink:0;"></div>
+  <div class="panel-body" id="panelBody">
+    <div class="status-card loading">Loading QC results…</div>
+  </div>
+</div>
+
+<a href="/" class="back-link">← Radar</a>
+
+<script>
+var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
+var R2_CDN  = 'https://radar.floodforecast.co.uk';
+function cdnUrl(path) { return R2_CDN + '/' + path + '?_cb=' + Date.now(); }
+
+var map = L.map('map', { zoomControl: false }).setView([54.0, -3.0], 6);
+L.control.zoom({ position: 'topleft' }).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains: 'abcd', maxZoom: 18
+}).addTo(map);
+
+var greyLayer  = L.layerGroup().addTo(map);
+var flagLayer  = L.layerGroup().addTo(map);
+
+var results          = null;
+var selectedId       = null;
+var markerById       = {};
+var rowById          = {};
+var persistentOpen   = false;
+
+// ── Colours ────────────────────────────────────────────────────────────────
+var CHECK_COLORS = {
+  FLAGGED:  '#c62828',
+  ELEVATED: '#ef6c00',
+};
+var LLM_BORDER = {
+  SUSPECT:   '#b71c1c',
+  UNCERTAIN: '#f57f17',
+  GENUINE:   '#2e7d32',
+};
+
+function gaugeColor(g) {
+  if (g.checks_flag === 'FLAGGED') return '#c62828';
+  if (g.llm_verdict === 'SUSPECT')  return '#1a73e8';
+  return '#ef6c00';
+}
+
+// ── Load stations for grey background dots ─────────────────────────────────
+function loadGreyDots() {
+  fetch('rain/stations.json?_cb=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var stations = d.stations || {};
+      Object.values(stations).forEach(function(s) {
+        L.circleMarker([s.lat, s.lon], {
+          radius: 2.5, color: 'transparent',
+          fillColor: '#90a4ae', fillOpacity: 0.35,
+          interactive: false,
+        }).addTo(greyLayer);
+      });
+    })
+    .catch(function() {}); // grey dots are decorative; failure is OK
+}
+
+// ── Load QC results ────────────────────────────────────────────────────────
+function loadResults() {
+  fetch(cdnUrl('gaugecheck/results.json'))
+    .then(function(r) {
+      if (r.status === 404) throw { status: 404 };
+      if (!r.ok) throw { status: r.status };
+      return r.json();
+    })
+    .then(function(data) {
+      results = data;
+      renderPanel();
+      renderMapMarkers();
+    })
+    .catch(function(e) {
+      if (e && e.status === 404) {
+        showStatus('no-data',
+          'QC data not yet available.<br>The workflow has not run yet, or results are being generated.');
+      } else {
+        showStatus('error', 'Could not load QC results. Check your connection and try refreshing.');
+      }
+      document.getElementById('headerCounts').textContent = '—';
+      document.getElementById('updatedAt').textContent = '';
+    });
+}
+
+function showStatus(cls, msg) {
+  document.getElementById('panelBody').innerHTML =
+    '<div class="status-card ' + cls + '">' + msg + '</div>';
+}
+
+// ── Render panel ───────────────────────────────────────────────────────────
+function renderPanel() {
+  if (!results) return;
+
+  var gauges = results.gauges || [];
+  var flagged = gauges.filter(function(g) { return g.checks_flag === 'FLAGGED'; });
+  var elevated = gauges.filter(function(g) { return g.checks_flag === 'ELEVATED'; });
+  var llmSuspect = gauges.filter(function(g) { return g.llm_verdict === 'SUSPECT'; });
+
+  // Header counts
+  var countParts = [];
+  if (flagged.length)    countParts.push(flagged.length + ' flagged');
+  if (elevated.length)   countParts.push(elevated.length + ' elevated');
+  if (llmSuspect.length) countParts.push(llmSuspect.length + ' LLM suspect');
+  document.getElementById('headerCounts').textContent =
+    countParts.length ? countParts.join(' · ') : 'All clear';
+
+  // Updated at
+  if (results.generated_at) {
+    var d = new Date(results.generated_at);
+    document.getElementById('updatedAt').textContent =
+      'Updated ' + d.toUTCString().replace(':00 GMT', ' UTC').slice(5);
+  }
+
+  // Build body
+  var newFlags        = gauges.filter(function(g) { return g.consecutive_flags === 1; });
+  var recentFlags     = gauges.filter(function(g) { return g.consecutive_flags >= 2 && g.consecutive_flags <= 3; });
+  var persistentFlags = gauges.filter(function(g) { return g.consecutive_flags >= 4; });
+
+  var html = '';
+  rowById = {};
+
+  if (gauges.length === 0) {
+    html += '<div class="all-clear">' +
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' +
+      '<p>No suspicious gauges detected</p>' +
+      '<p class="sub">Checked ' + (results.total_checked || 0) + ' active stations</p>' +
+      '</div>';
+  } else {
+    if (newFlags.length) {
+      html += '<p class="section-label">New flags</p>';
+      newFlags.forEach(function(g) { html += buildRow(g, false); });
+    }
+    if (recentFlags.length) {
+      html += '<p class="section-label">Recent (30–45 min)</p>';
+      recentFlags.forEach(function(g) { html += buildRow(g, false); });
+    }
+    if (persistentFlags.length) {
+      var hrs = Math.round(
+        persistentFlags.reduce(function(mx, g) { return Math.max(mx, g.consecutive_flags); }, 0) * 15 / 60
+      );
+      html += '<div class="persistent-toggle" onclick="togglePersistent()" id="persToggle">' +
+        '<span class="toggle-arrow" id="persArrow">▶</span>' +
+        '<span>Persistent issues (' + persistentFlags.length + ' gauge' +
+        (persistentFlags.length > 1 ? 's' : '') + ') · longest ' + hrs + 'h+</span>' +
+        '</div>';
+      html += '<div class="persistent-body" id="persBody">';
+      persistentFlags.forEach(function(g) { html += buildRow(g, true); });
+      html += '</div>';
+    }
+  }
+
+  document.getElementById('panelBody').innerHTML = html;
+
+  // Attach click handlers
+  gauges.forEach(function(g) {
+    var el = document.getElementById('row-' + g.station_id);
+    if (el) {
+      rowById[g.station_id] = el;
+      el.addEventListener('click', function() { selectGauge(g.station_id); });
+    }
+  });
+}
+
+function buildRow(g, persistent) {
+  var color = gaugeColor(g);
+  var checkPills = buildCheckPills(g.checks);
+  var llmPill = buildLlmPill(g.llm_verdict);
+
+  var locationStr = '';
+  if (g.county) locationStr = g.county;
+  if (g.region && g.region !== g.county) locationStr += (locationStr ? ', ' : '') + g.region;
+  if (!locationStr) locationStr = g.lat.toFixed(3) + '°N ' + Math.abs(g.lon).toFixed(3) + '°' + (g.lon < 0 ? 'W' : 'E');
+
+  var runsStr = g.consecutive_flags > 1
+    ? (g.consecutive_flags * 15) + ' min'
+    : 'New';
+
+  var llmHtml = '';
+  if (g.llm_reasoning) {
+    var snippet = g.llm_reasoning.length > 140
+      ? g.llm_reasoning.slice(0, 137) + '…'
+      : g.llm_reasoning;
+    llmHtml = '<div class="gauge-llm">' + escHtml(snippet) + '</div>';
+  } else if (g.llm_verdict === null && g.checks_flag !== 'ELEVATED') {
+    llmHtml = '<div class="gauge-llm" style="color:#94a3b8;">LLM assessment pending API key</div>';
+  }
+
+  return '<div class="gauge-row' + (persistent ? ' persistent' : '') + '" id="row-' + g.station_id + '">' +
+    '<div class="gauge-bar" style="background:' + color + ';"></div>' +
+    '<div class="gauge-main">' +
+      '<div class="gauge-name">' + escHtml(g.name) + '</div>' +
+      '<div class="gauge-location">' + escHtml(locationStr) + '</div>' +
+      '<div class="gauge-checks">' + checkPills + llmPill + '</div>' +
+      llmHtml +
+    '</div>' +
+    '<div class="gauge-right">' +
+      '<div><span class="gauge-value">' + g.latest_value_mm.toFixed(1) + '</span>' +
+        '<span class="gauge-unit"> mm</span></div>' +
+      '<div class="runs-badge">' + runsStr + '</div>' +
+    '</div>' +
+    '</div>';
+}
+
+function buildCheckPills(checks) {
+  if (!checks) return '';
+  var pills = '';
+  var defs = [
+    ['hard_threshold',    'fail-threshold', 'THRESHOLD'],
+    ['temporal',          'fail-temporal',  'SPIKE'],
+    ['nearest_neighbour', 'fail-nn',        'SPATIAL'],
+    ['persistent_zero',   'fail-zero',      'ZERO'],
+    ['radar',             'fail-radar',     'RADAR'],
+  ];
+  defs.forEach(function(d) {
+    var c = checks[d[0]];
+    if (c && !c.passed && !c.skipped) {
+      pills += '<span class="pill ' + d[1] + '">' + d[2] + '</span>';
+    }
+  });
+  return pills;
+}
+
+function buildLlmPill(verdict) {
+  if (!verdict) return '';
+  var cls = { SUSPECT: 'llm-suspect', UNCERTAIN: 'llm-uncertain', GENUINE: 'llm-genuine' };
+  var label = { SUSPECT: 'LLM: SUSPECT', UNCERTAIN: 'LLM: UNCERTAIN', GENUINE: 'LLM: GENUINE' };
+  return '<span class="pill ' + (cls[verdict] || '') + '">' + (label[verdict] || verdict) + '</span>';
+}
+
+function togglePersistent() {
+  persistentOpen = !persistentOpen;
+  var body  = document.getElementById('persBody');
+  var arrow = document.getElementById('persArrow');
+  if (body) body.classList.toggle('open', persistentOpen);
+  if (arrow) arrow.classList.toggle('open', persistentOpen);
+}
+
+// ── Map markers ────────────────────────────────────────────────────────────
+function renderMapMarkers() {
+  flagLayer.clearLayers();
+  markerById = {};
+  if (!results) return;
+  var gauges = results.gauges || [];
+  gauges.forEach(function(g) {
+    var color   = gaugeColor(g);
+    var opacity = g.consecutive_flags >= 4 ? 0.55 : 0.9;
+    var m = L.circleMarker([g.lat, g.lon], {
+      radius: 9, color: 'white', weight: 1.5,
+      fillColor: color, fillOpacity: opacity,
+    });
+    m.bindPopup(buildPopup(g), { maxWidth: 320, minWidth: 240 });
+    m.addTo(flagLayer);
+    markerById[g.station_id] = m;
+  });
+}
+
+function buildPopup(g) {
+  var checks = g.checks || {};
+  var checkRows = [
+    ['Hard threshold', checks.hard_threshold],
+    ['Temporal spike', checks.temporal],
+    ['Nearest neighbour', checks.nearest_neighbour],
+    ['Persistent zero', checks.persistent_zero],
+    ['Radar conformity', checks.radar],
+  ];
+  var tableRows = checkRows.map(function(pair) {
+    var label = pair[0];
+    var c = pair[1];
+    if (!c) return '';
+    var icon, detail = '';
+    if (c.skipped) {
+      icon   = '<span style="color:#94a3b8">—</span>';
+      detail = '<span style="color:#94a3b8;font-size:10px;">(' + c.skipped + ')</span>';
+    } else if (!c.passed) {
+      icon   = '<span style="color:#c62828;font-weight:700">✗</span>';
+      detail = formatCheckDetail(c);
+    } else {
+      icon   = '<span style="color:#2e7d32">✓</span>';
+    }
+    return '<tr><td>' + label + '</td><td>' + icon + ' ' + detail + '</td></tr>';
+  }).join('');
+
+  var llmHtml = '';
+  if (g.llm_verdict) {
+    llmHtml = '<hr class="pop-sep">' +
+      '<div class="pop-llm"><strong>LLM: ' + g.llm_verdict + '</strong><br>' +
+      (g.llm_reasoning ? escHtml(g.llm_reasoning) : '') + '</div>';
+    if (g.llm_from_run) {
+      llmHtml += '<div style="font-size:10px;color:#94a3b8;margin-top:4px;">LLM assessed ' + fmtTime(g.llm_from_run) + '</div>';
+    }
+  }
+
+  var locationStr = g.county ? (g.county + (g.region ? ', ' + g.region : '')) : '';
+
+  return '<div class="qc-popup">' +
+    '<h4>' + escHtml(g.name) + (locationStr ? '<br><span style="font-size:11px;color:#64748b;">' + escHtml(locationStr) + '</span>' : '') + '</h4>' +
+    '<div class="pop-value">' + g.latest_value_mm.toFixed(1) + ' mm <span style="font-size:12px;font-weight:400;color:#64748b;">at ' + fmtTime(g.latest_slot_time) + '</span></div>' +
+    '<table>' + tableRows + '</table>' +
+    llmHtml +
+    (g.consecutive_flags > 1 ? '<div style="font-size:10px;color:#94a3b8;margin-top:6px;">Flagged ' + g.consecutive_flags + ' consecutive runs (' + Math.round(g.consecutive_flags * 15) + ' min)</div>' : '') +
+    '</div>';
+}
+
+function formatCheckDetail(c) {
+  if (!c) return '';
+  var parts = [];
+  if (c.spike_ratio)         parts.push(c.spike_ratio + '× spike');
+  if (c.preceding_median_mm !== undefined) parts.push('median ' + c.preceding_median_mm + ' mm');
+  if (c.nn_mean_mm !== undefined) parts.push('nbr mean ' + c.nn_mean_mm + ' mm');
+  if (c.radar_mm_15min !== undefined) parts.push('radar ' + c.radar_mm_15min + ' mm');
+  if (c.ratio !== undefined) parts.push('ratio ' + c.ratio + '×');
+  if (c.active_neighbours !== undefined) parts.push(c.active_neighbours + ' active nbrs');
+  if (c.value_mm !== undefined && !parts.length) parts.push(c.value_mm + ' mm');
+  return '<span style="font-size:10px;color:#5f6368;">' + parts.join(', ') + '</span>';
+}
+
+// ── Select / fly to gauge ──────────────────────────────────────────────────
+function selectGauge(stationId) {
+  // Deselect previous
+  if (selectedId && rowById[selectedId]) {
+    rowById[selectedId].classList.remove('selected');
+  }
+  selectedId = stationId;
+  if (rowById[stationId]) rowById[stationId].classList.add('selected');
+  var m = markerById[stationId];
+  if (m) {
+    map.flyTo(m.getLatLng(), 11, { duration: 0.7 });
+    setTimeout(function() { m.openPopup(); }, 750);
+  }
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function fmtTime(iso) {
+  if (!iso) return '—';
+  try {
+    var d = new Date(iso);
+    return d.toUTCString().slice(17, 22) + ' UTC';
+  } catch(e) { return iso; }
+}
+
+// ── Boot ────────────────────────────────────────────────────────────────────
+loadGreyDots();
+loadResults();
+</script>
+</body>
+</html>
