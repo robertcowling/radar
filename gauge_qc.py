@@ -45,6 +45,7 @@ HARD_SUSPECT_MM      = 25.0   # exceeds all known UK 15-min records
 TEMPORAL_WINDOW      = 7      # preceding slots to compare against (7 × 15 min = 1 h 45)
 TEMPORAL_SPIKE_RATIO = 8.0    # ratio above which an isolated spike is flagged
 TEMPORAL_ZERO_TRIGGER = 5.0   # mm — flag spike from zero above this
+TEMPORAL_MIN_FLAG_MM = 1.0    # don't flag spikes below this absolute value (noise)
 
 NN_RADIUS_KM         = 20.0   # search radius for nearest-neighbour check
 NN_MIN_NBHRS         = 2      # skip check if fewer qualifying neighbours found
@@ -220,6 +221,8 @@ def check_temporal(value, history_7):
     if len(valid) < 3:
         return {"passed": True, "skipped": "insufficient_history"}
     median_prev = sorted(valid)[len(valid) // 2]
+    if value < TEMPORAL_MIN_FLAG_MM:
+        return {"passed": True, "skipped": "below_min_absolute"}
     if median_prev < 0.01:
         if value >= TEMPORAL_ZERO_TRIGGER:
             return {"passed": False, "reason": "spike_from_zero",

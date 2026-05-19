@@ -25,18 +25,33 @@ body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa;
 
 /* ── Side panel ─────────────────────────────────────────────────────────── */
 .side-panel {
-  position:fixed; top:20px; right:20px; width:560px;
-  max-height:calc(100vh - 100px); z-index:1000;
-  display:flex; flex-direction:column; overflow:hidden; border-radius:12px;
+  position:fixed;
+  top:20px;
+  right:20px;
+  width:560px;
+  max-height:calc(100vh - 120px);
+  z-index:1000;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border-radius:12px;
 }
+
 .panel-header {
-  background:#1e293b; color:#f1f5f9;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:13px 20px; border-radius:12px 12px 0 0; flex-shrink:0;
+  background:#1e293b;
+  color:#f1f5f9;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:13px 20px;
+  border-radius:12px 12px 0 0;
+  flex-shrink:0;
 }
 .panel-header-title { font-size:14px; font-weight:600; letter-spacing:0.3px; }
 .panel-header-right { display:flex; align-items:center; gap:10px; }
+
 .header-counts { font-size:11px; color:#94a3b8; white-space:nowrap; }
+
 .refresh-btn {
   background:rgba(255,255,255,0.12); border:none; cursor:pointer;
   border-radius:8px; padding:5px 10px;
@@ -44,74 +59,114 @@ body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa;
   display:flex; align-items:center; gap:5px; transition:background 0.2s;
 }
 .refresh-btn:hover { background:rgba(255,255,255,0.22); }
-.info-btn {
-  background:rgba(255,255,255,0.12); border:none; cursor:pointer;
-  border-radius:8px; width:28px; height:28px;
-  font-size:14px; font-weight:700; color:#94a3b8; font-family:'Roboto',sans-serif;
-  display:flex; align-items:center; justify-content:center; transition:background 0.2s;
-}
-.info-btn:hover { background:rgba(255,255,255,0.22); color:#f1f5f9; }
+
 .updated-at { font-size:10px; color:#64748b; }
+
+/* ── Panel body (scrollable) ──────────────────────────────────────────────── */
 .panel-body {
   flex:1; overflow-y:auto; background:white; border-radius:0 0 12px 12px;
 }
 .panel-body::-webkit-scrollbar { width:5px; }
 .panel-body::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:3px; }
 
-/* test banner */
-.test-banner {
-  background:#fef3c7; border-bottom:2px solid #f59e0b;
-  padding:6px 16px; font-size:11px; font-weight:700; color:#92400e;
-  letter-spacing:0.3px; flex-shrink:0;
-}
-
 /* ── Section headings ──────────────────────────────────────────────────── */
 .section-label {
   font-size:10px; font-weight:700; letter-spacing:0.6px;
-  color:#94a3b8; text-transform:uppercase; padding:10px 16px 4px; margin:0;
+  color:#94a3b8; text-transform:uppercase;
+  padding:10px 16px 4px; margin:0;
 }
+
 /* ── Gauge rows ─────────────────────────────────────────────────────────── */
 .gauge-row {
-  display:grid; grid-template-columns:6px 1fr auto;
-  align-items:start; gap:0 10px; padding:10px 16px;
-  border-bottom:1px solid #f1f3f4; cursor:pointer; transition:background 0.1s;
+  display:grid;
+  grid-template-columns:6px 1fr auto;
+  align-items:start;
+  gap:0 10px;
+  padding:10px 16px;
+  border-bottom:1px solid #f1f3f4;
+  cursor:pointer;
+  transition:background 0.1s;
 }
 .gauge-row:hover { background:#f8f9fa; }
 .gauge-row.selected { background:#e8f0fe; }
-.gauge-bar { width:6px; border-radius:3px; margin-top:3px; align-self:stretch; min-height:30px; }
+
+.gauge-bar {
+  width:6px; border-radius:3px; margin-top:3px; align-self:stretch; min-height:30px;
+}
+
 .gauge-main { min-width:0; }
-.gauge-name { font-size:13px; font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.gauge-location { font-size:11px; color:#64748b; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gauge-name {
+  font-size:13px; font-weight:600; color:#1e293b;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.gauge-location {
+  font-size:11px; color:#64748b; margin-top:1px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
 .gauge-checks { display:flex; gap:4px; flex-wrap:wrap; margin-top:5px; }
-.gauge-llm { font-size:11px; color:#475569; line-height:1.45; margin-top:5px; font-style:italic; }
+.gauge-llm {
+  font-size:11px; color:#475569; line-height:1.45; margin-top:5px;
+  font-style:italic;
+}
+
 .gauge-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
 .gauge-value { font-size:16px; font-weight:700; color:#1e293b; }
 .gauge-unit  { font-size:10px; color:#64748b; font-weight:500; }
-.runs-badge  { font-size:10px; font-weight:600; padding:2px 7px; border-radius:8px; background:#f1f3f4; color:#5f6368; white-space:nowrap; }
+.runs-badge  {
+  font-size:10px; font-weight:600; padding:2px 7px; border-radius:8px;
+  background:#f1f3f4; color:#5f6368; white-space:nowrap;
+}
+
+/* Check pills */
+.pill {
+  font-size:10px; font-weight:700; padding:2px 6px; border-radius:5px;
+  white-space:nowrap;
+}
+.pill.fail-threshold { background:#fce4ec; color:#c62828; }
+.pill.fail-temporal  { background:#fff3e0; color:#e65100; }
+.pill.fail-nn        { background:#fce4ec; color:#880e4f; }
+.pill.fail-zero      { background:#e3f2fd; color:#01579b; }
+.pill.fail-radar     { background:#f3e5f5; color:#4a148c; }
+.pill.fail-drip      { background:#e8eaf6; color:#283593; }
+.pill.fail-accum     { background:#fbe9e7; color:#bf360c; }
+.pill.llm-suspect    { background:#ffebee; color:#b71c1c; border:1px solid #ef9a9a; }
+.pill.llm-uncertain  { background:#fff8e1; color:#f57f17; border:1px solid #ffe082; }
+.pill.llm-genuine    { background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7; }
+
+/* ── Persistent section toggle ───────────────────────────────────────────── */
 .persistent-toggle {
-  display:flex; align-items:center; gap:8px; padding:8px 16px; cursor:pointer;
-  border-bottom:1px solid #f1f3f4; font-size:12px; font-weight:600; color:#5f6368; user-select:none;
+  display:flex; align-items:center; gap:8px;
+  padding:8px 16px; cursor:pointer; border-bottom:1px solid #f1f3f4;
+  font-size:12px; font-weight:600; color:#5f6368;
+  user-select:none;
 }
 .persistent-toggle:hover { background:#f8f9fa; }
 .toggle-arrow { font-size:11px; transition:transform 0.2s; }
 .toggle-arrow.open { transform:rotate(90deg); }
 .persistent-body { display:none; }
 .persistent-body.open { display:block; }
+
+/* Muted style for persistent rows */
 .gauge-row.persistent { opacity:0.65; }
 .gauge-row.persistent:hover { opacity:0.85; background:#f8f9fa; }
 
-/* Check pills */
-.pill { font-size:10px; font-weight:700; padding:2px 6px; border-radius:5px; white-space:nowrap; }
-.fail-threshold { background:#fce4ec; color:#c62828; }
-.fail-temporal  { background:#fff3e0; color:#e65100; }
-.fail-nn        { background:#fce4ec; color:#880e4f; }
-.fail-zero      { background:#e3f2fd; color:#01579b; }
-.fail-radar     { background:#f3e5f5; color:#4a148c; }
-.fail-drip      { background:#e8eaf6; color:#283593; }
-.fail-accum     { background:#fbe9e7; color:#bf360c; }
-.llm-suspect    { background:#ffebee; color:#b71c1c; border:1px solid #ef9a9a; }
-.llm-uncertain  { background:#fff8e1; color:#f57f17; border:1px solid #ffe082; }
-.llm-genuine    { background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7; }
+/* ── All-clear card ──────────────────────────────────────────────────────── */
+.all-clear {
+  margin:24px 20px; padding:20px 16px; border-radius:10px;
+  background:#e8f5e9; border:1px solid #a5d6a7; text-align:center;
+}
+.all-clear svg { margin-bottom:6px; }
+.all-clear p { margin:0; font-size:13px; font-weight:500; color:#2e7d32; }
+.all-clear .sub { font-size:11px; color:#4caf50; margin-top:4px; }
+
+/* ── Status cards (loading / error) ─────────────────────────────────────── */
+.status-card {
+  margin:24px 20px; padding:16px; border-radius:10px;
+  font-size:13px; text-align:center;
+}
+.status-card.loading { background:#e3f2fd; color:#01579b; }
+.status-card.error   { background:#ffebee; color:#b71c1c; }
+.status-card.no-data { background:#f3e5f5; color:#4a148c; }
 
 /* ── Popup ─────────────────────────────────────────────────────────────── */
 .qc-popup { font-family:'Roboto',sans-serif; font-size:12px; min-width:240px; max-width:300px; }
@@ -124,94 +179,117 @@ body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa;
 .qc-popup .pop-llm { margin-top:8px; font-size:11px; color:#475569; font-style:italic; line-height:1.5; }
 .qc-popup .pop-sep { border:none; border-top:1px solid #f1f3f4; margin:8px 0; }
 
-/* ── Timeline bar ─────────────────────────────────────────────────────────── */
-.timeline-bar {
-  position:fixed; bottom:0; left:0; right:0; height:52px; z-index:1001;
-  background:rgba(15,23,42,0.93); backdrop-filter:blur(8px);
-  border-top:1px solid rgba(255,255,255,0.08);
-  display:flex; align-items:center; gap:10px; padding:0 16px;
+/* ── Player panel ─────────────────────────────────────────────────────────── */
+.player-panel {
+  position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+  padding:0; z-index:1000;
+  width:95%; max-width:950px;
+  display:flex; align-items:center; gap:0;
+  flex-direction:column;
+  overflow:hidden;
 }
-.tl-back {
-  color:#94a3b8; text-decoration:none; font-size:12px; font-weight:500;
-  white-space:nowrap; flex-shrink:0; padding:5px 8px; border-radius:6px; transition:color 0.2s;
-}
-.tl-back:hover { color:#f1f5f9; }
-.tl-divider { width:1px; height:24px; background:rgba(255,255,255,0.15); flex-shrink:0; }
-.tl-nav {
-  color:#64748b; font-size:20px; cursor:pointer; flex-shrink:0;
-  width:24px; text-align:center; user-select:none; line-height:1; transition:color 0.15s;
-}
-.tl-nav:hover { color:#f1f5f9; }
-.tl-nav.disabled { opacity:0.25; pointer-events:none; }
-.tl-slider {
-  flex:1; -webkit-appearance:none; appearance:none;
-  height:4px; border-radius:2px; background:#334155; outline:none; cursor:pointer;
-}
-.tl-slider::-webkit-slider-thumb {
-  -webkit-appearance:none; width:14px; height:14px;
-  border-radius:50%; background:#1a73e8; cursor:pointer; border:2px solid white;
-}
-.tl-label { font-size:11px; color:#94a3b8; white-space:nowrap; flex-shrink:0; min-width:148px; text-align:right; }
-.tl-live-btn {
-  background:#2e7d32; border:none; color:white; border-radius:6px;
-  padding:4px 9px; font-size:11px; font-weight:700; cursor:pointer;
-  flex-shrink:0; font-family:'Roboto',sans-serif; transition:background 0.2s;
-}
-.tl-live-btn:hover { background:#388e3c; }
 
-/* ── Info modal ──────────────────────────────────────────────────────────── */
-.modal-backdrop {
+.player-panel-inner {
+  width:100%; display:flex; align-items:center; gap:16px;
+  padding:12px 20px; box-sizing:border-box;
+}
+
+/* ── Control group ────────────────────────────────────────────────────────── */
+.control-group { display:flex; flex-direction:column; gap:3px; flex-shrink:0; }
+.control-label { font-size:10px; font-weight:600; color:#3c4043; letter-spacing:0.5px; padding-left:8px; }
+
+/* ── Timeline container ───────────────────────────────────────────────────── */
+.timeline-container {
+  position:relative; flex-grow:1; height:48px; display:flex; align-items:center;
+}
+.timeline-track {
+  position:absolute; left:0; right:0; height:4px;
+  background:#e8eaed; border-radius:2px; pointer-events:none;
+}
+#timeSlider {
+  position:relative; width:100%; -webkit-appearance:none; appearance:none;
+  height:4px; background:transparent; outline:none; cursor:pointer; z-index:1;
+}
+#timeSlider::-webkit-slider-thumb {
+  -webkit-appearance:none; width:18px; height:18px;
+  border-radius:50%; background:#202124; cursor:pointer;
+  border:2px solid white; box-shadow:0 1px 3px rgba(0,0,0,0.3);
+}
+#timeSlider::-moz-range-thumb {
+  width:18px; height:18px; border-radius:50%; background:#202124;
+  cursor:pointer; border:2px solid white; box-shadow:0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* ── Player date/time display ─────────────────────────────────────────────── */
+#playerDateTime {
+  flex-shrink:0; width:105px; padding-left:12px; border-left:1px solid #e8eaed;
+}
+#playerDateLine { font-size:10px; color:#3c4043; }
+#playerTimeLine { font-size:16px; font-weight:700; color:#202124; }
+
+/* ── Seg control (pill toggles) ───────────────────────────────────────────── */
+.seg-control {
+  background:#f1f3f4; border-radius:24px; padding:3px;
+  display:flex; align-items:center;
+}
+.seg-btn {
+  padding:7px 16px; border-radius:21px; border:none;
+  background:transparent; font-size:13px; font-weight:500; color:#3c4043;
+  cursor:pointer; font-family:'Roboto',sans-serif; transition:background 0.15s;
+  white-space:nowrap;
+}
+.seg-btn:hover { background:rgba(0,0,0,0.06); }
+.seg-btn.seg-active {
+  background:white; box-shadow:0 1px 3px rgba(0,0,0,0.18);
+}
+
+/* ── Info icon button ─────────────────────────────────────────────────────── */
+.info-icon-btn {
+  background:transparent; border:none; cursor:pointer; padding:0;
+  display:flex; align-items:center; color:#94a3b8; transition:color 0.2s;
+  flex-shrink:0;
+}
+.info-icon-btn:hover { color:#5f6368; }
+
+/* ── Info modal ───────────────────────────────────────────────────────────── */
+.info-modal-backdrop {
   display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
   z-index:2000; align-items:center; justify-content:center;
 }
-.modal-backdrop.open { display:flex; }
-.modal-card {
-  background:white; border-radius:14px; width:min(600px,calc(100vw - 32px));
+.info-modal-backdrop.open { display:flex; }
+.info-modal {
+  background:white; border-radius:14px; padding:22px 24px 18px;
+  max-width:380px; width:calc(100vw - 32px);
+  box-shadow:0 20px 60px rgba(0,0,0,0.3); position:relative;
   max-height:calc(100vh - 40px); overflow-y:auto;
-  box-shadow:0 24px 60px rgba(0,0,0,0.3);
 }
-.modal-card::-webkit-scrollbar { width:5px; }
-.modal-card::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:3px; }
-.modal-head {
-  background:#1e293b; color:#f1f5f9; padding:16px 20px;
-  border-radius:14px 14px 0 0;
-  display:flex; align-items:center; justify-content:space-between;
+.info-modal::-webkit-scrollbar { width:5px; }
+.info-modal::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:3px; }
+.info-modal h3 {
+  margin:0 0 14px; font-size:13px; font-weight:700; color:#1e293b;
+  display:flex; align-items:center; gap:8px;
 }
-.modal-head h3 { margin:0; font-size:14px; font-weight:600; }
-.modal-close {
-  background:rgba(255,255,255,0.12); border:none; color:#94a3b8;
-  border-radius:6px; width:26px; height:26px; font-size:16px;
-  cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.2s;
+.info-modal ul { list-style:none; margin:0; padding:0; }
+.info-modal li {
+  font-size:12px; color:#475569; line-height:1.6;
+  padding:7px 0; border-bottom:1px solid #f1f5f9;
 }
-.modal-close:hover { background:rgba(255,255,255,0.22); color:#f1f5f9; }
-.modal-body { padding:20px; }
-.qc-flow { display:flex; flex-direction:column; align-items:center; gap:0; }
-.flow-node { width:100%; border-radius:8px; padding:10px 14px; font-size:12px; font-weight:600; text-align:center; }
-.flow-arrow { font-size:18px; color:#94a3b8; line-height:1; margin:2px 0; }
-.flow-checks-box { width:100%; border:1.5px solid #e2e8f0; border-radius:8px; overflow:hidden; margin:2px 0; }
-.flow-checks-title {
-  background:#f1f5f9; font-size:11px; font-weight:700; letter-spacing:0.5px;
-  text-transform:uppercase; color:#64748b; padding:8px 14px; border-bottom:1px solid #e2e8f0;
+.info-modal li:last-child { border-bottom:none; }
+.info-modal-close {
+  position:absolute; top:14px; right:16px;
+  background:transparent; border:none; cursor:pointer;
+  font-size:18px; color:#94a3b8;
 }
-.flow-check-row {
-  display:flex; align-items:flex-start; gap:10px; padding:7px 14px;
-  border-bottom:1px solid #f8f9fa; font-size:12px;
-}
-.flow-check-row:last-child { border-bottom:none; }
-.flow-check-pill { flex-shrink:0; font-size:10px; font-weight:700; padding:2px 6px; border-radius:5px; margin-top:1px; }
-.flow-check-desc { color:#475569; line-height:1.45; }
-.flow-check-desc strong { color:#1e293b; }
-.flow-outcomes { display:flex; gap:8px; width:100%; margin:2px 0; }
-.flow-outcome { flex:1; border-radius:8px; padding:8px 10px; font-size:11px; text-align:center; }
-.flow-llm-box { width:100%; border-radius:8px; padding:10px 14px; background:#fef3c7; border:1.5px solid #f59e0b; font-size:12px; }
-.flow-llm-box strong { color:#92400e; }
-.flow-verdicts { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
-.flow-verdict { flex:1; border-radius:6px; padding:5px 8px; font-size:11px; font-weight:600; text-align:center; min-width:80px; }
+.info-modal-close:hover { color:#5f6368; }
 
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
 @media (max-width:768px) {
-  .side-panel { top:auto; bottom:52px; left:0; right:0; width:100%; max-height:50vh; border-radius:12px 12px 0 0; }
+  .side-panel { top:auto; bottom:120px; left:0; right:0; width:100%; max-height:50vh; border-radius:12px 12px 0 0; }
   .panel-header { border-radius:12px 12px 0 0; }
   .panel-body { border-radius:0; }
+  .player-panel { bottom:10px; gap:0; }
+  .player-panel-inner { padding:10px 14px; gap:10px; }
+  #playerDateTime { display:none; }
 }
 </style>
 </head>
@@ -224,85 +302,70 @@ body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa;
     <span class="panel-header-title">Gauge QC <span style="color:#f59e0b;font-size:11px;">[TEST DATA]</span></span>
     <div class="panel-header-right">
       <span id="headerCounts" class="header-counts">—</span>
-      <button class="info-btn" onclick="openInfo()" title="How QC works">ⓘ</button>
     </div>
   </div>
-  <div class="test-banner">⚠ Mock data — for UI preview only. Not real gauge readings.</div>
+  <div style="background:#fef3c7;border-bottom:2px solid #f59e0b;padding:5px 16px;font-size:11px;font-weight:700;color:#92400e;flex-shrink:0">⚠ Mock data — UI preview only</div>
   <div class="updated-at" id="updatedAt" style="padding:4px 16px;background:#f8f9fa;font-size:10px;color:#94a3b8;flex-shrink:0;"></div>
   <div class="panel-body" id="panelBody">
     <div style="padding:20px;text-align:center;color:#94a3b8;font-size:13px;">Loading mock data…</div>
   </div>
 </div>
 
-<div class="timeline-bar">
-  <a href="/gaugecheck.html" class="tl-back">← Live QC</a>
-  <div class="tl-divider"></div>
-  <span class="tl-nav disabled">‹</span>
-  <input type="range" class="tl-slider" min="0" max="5" value="5" style="flex:1">
-  <span class="tl-label" style="color:#81c784;">LIVE (mock)</span>
-  <span class="tl-nav disabled">›</span>
+<div id="infoModalBackdrop" class="info-modal-backdrop" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="info-modal">
+    <button class="info-modal-close" onclick="toggleInfoModal()">&times;</button>
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      Gauge QC checks
+    </h3>
+    <ul>
+      <li><strong>THRESHOLD</strong> — single 15-min reading ≥ 25 mm (suspicious) or ≥ 50 mm (physically impossible for the UK).</li>
+      <li><strong>SPIKE</strong> — isolated peak ≥ 8× the preceding 1¾ hr median, or a sudden jump from zero above 5 mm.</li>
+      <li><strong>SPATIAL</strong> — high reading (≥ 8 mm) when all stations within 20 km show near-zero.</li>
+      <li><strong>ZERO</strong> — gauge stuck at 0 for 6+ hrs while neighbours and/or radar confirm active rainfall.</li>
+      <li><strong>RADAR</strong> — reading far exceeds the Met Office radar QPE at the same location (ratio &gt; 15×).</li>
+      <li><strong>DRIP</strong> — near-constant low-amplitude tips over 3+ hrs: classic blocked or leaking tipping bucket signature.</li>
+      <li><strong>ACCUM</strong> — 24 hr gauge total ≥ 3.5× the mean of its nearest neighbours.</li>
+      <li><strong>LLM review</strong> — AI independently assesses the first flagged run when ≥ 2 checks fail or reading ≥ 20 mm. Verdict: GENUINE, UNCERTAIN, or SUSPECT.</li>
+      <li><strong style="color:#ef6c00">🟠 ELEVATED</strong> — 1 check failed.&nbsp;&nbsp;<strong style="color:#c62828">🔴 FLAGGED</strong> — 2 or more checks failed.</li>
+    </ul>
+  </div>
 </div>
 
-<div class="modal-backdrop" id="infoModal" onclick="closeInfo(event)">
-  <div class="modal-card" onclick="event.stopPropagation()">
-    <div class="modal-head">
-      <h3>How Gauge QC Works</h3>
-      <button class="modal-close" onclick="closeInfo()">✕</button>
+<div class="player-panel surface">
+  <div class="player-panel-inner">
+    <div class="control-group">
+      <span class="control-label">Navigate</span>
+      <a href="gaugecheck.html" style="color:#1a73e8; font-size:13px; font-weight:500; text-decoration:none; padding:7px 0; white-space:nowrap;">← Live QC</a>
     </div>
-    <div class="modal-body">
-      <div class="qc-flow">
-        <div class="flow-node" style="background:#e0f2fe;color:#0369a1;border:1.5px solid #7dd3fc;">
-          📡 15-min rainfall reading arrives from telemetry
-        </div>
-        <div class="flow-arrow">↓</div>
-        <div class="flow-checks-box">
-          <div class="flow-checks-title">7 Automated Checks</div>
-          <div class="flow-check-row">
-            <span class="flow-check-pill fail-threshold">THRESHOLD</span>
-            <span class="flow-check-desc"><strong>Hard limit</strong> — single slot ≥ 25 mm is suspicious; ≥ 50 mm is physically impossible for the UK.</span>
-          </div>
-          <div class="flow-check-row">
-            <span class="flow-check-pill fail-temporal">SPIKE</span>
-            <span class="flow-check-desc"><strong>Temporal spike</strong> — isolated peak ≥ 8× the preceding 1h 45min median, or a jump from zero above 5 mm.</span>
-          </div>
-          <div class="flow-check-row">
-            <span class="flow-check-pill fail-nn">SPATIAL</span>
-            <span class="flow-check-desc"><strong>Nearest-neighbour</strong> — high reading (≥ 8 mm) when all stations within 20 km report near-zero.</span>
-          </div>
-          <div class="flow-check-row">
-            <span class="flow-check-pill fail-zero">ZERO</span>
-            <span class="flow-check-desc"><strong>Persistent zero</strong> — gauge stuck at 0 for 6 hrs while ≥ 3 neighbours and/or radar show active rainfall.</span>
-          </div>
-          <div class="flow-check-row">
-            <span class="flow-check-pill fail-radar">RADAR</span>
-            <span class="flow-check-desc"><strong>Radar conformity</strong> — gauge reading far exceeds the Met Office radar QPE at the same location (ratio &gt; 15×).</span>
-          </div>
-          <div class="flow-check-row">
-            <span class="flow-check-pill fail-drip">DRIP</span>
-            <span class="flow-check-desc"><strong>Drip / leak pattern</strong> — near-constant low-amplitude tips over ≥ 3 hrs (classic blocked or leaking tipping bucket).</span>
-          </div>
-          <div class="flow-check-row">
-            <span class="flow-check-pill fail-accum">ACCUM</span>
-            <span class="flow-check-desc"><strong>Accumulation anomaly</strong> — 24-hr gauge total is ≥ 3.5× the mean of its nearest neighbours.</span>
-          </div>
-        </div>
-        <div class="flow-arrow">↓</div>
-        <div class="flow-outcomes">
-          <div class="flow-outcome" style="background:#f0fdf4;border:1.5px solid #86efac;color:#15803d;"><strong>0 fails</strong><br>Passes QC — not shown</div>
-          <div class="flow-outcome" style="background:#fff7ed;border:1.5px solid #fdba74;color:#c2410c;"><strong>1 fail</strong><br>🟠 ELEVATED</div>
-          <div class="flow-outcome" style="background:#fff1f2;border:1.5px solid #fca5a5;color:#b91c1c;"><strong>2+ fails</strong><br>🔴 FLAGGED</div>
-        </div>
-        <div class="flow-arrow">↓</div>
-        <div class="flow-llm-box">
-          <strong>🤖 LLM Review</strong> — triggered when ≥ 2 checks fail <em>or</em> reading ≥ 20 mm, on the first flagged run only.
-          <div class="flow-verdicts">
-            <div class="flow-verdict pill llm-genuine">GENUINE — real rain</div>
-            <div class="flow-verdict pill llm-uncertain">UNCERTAIN — unclear</div>
-            <div class="flow-verdict pill llm-suspect">SUSPECT — likely fault</div>
-          </div>
-        </div>
+
+    <div class="control-group">
+      <span class="control-label">Catchments</span>
+      <div class="seg-control">
+        <button class="seg-btn" id="catchmentBtn" onclick="toggleCatchments()">Show</button>
       </div>
     </div>
+
+    <div class="timeline-container" id="timelineContainer" style="display:none">
+      <div class="timeline-track"></div>
+      <input type="range" id="timeSlider" min="0" max="0" value="0" oninput="onSliderInput()">
+    </div>
+
+    <div id="playerDateTime">
+      <div id="playerDateLine">LIVE</div>
+      <div id="playerTimeLine">—</div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-label">&nbsp;</span>
+      <div class="seg-control">
+        <button class="seg-btn" id="liveBtn" onclick="goLive()" style="display:none">LIVE</button>
+      </div>
+    </div>
+
+    <button class="info-icon-btn" onclick="toggleInfoModal()" title="How QC works">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+    </button>
   </div>
 </div>
 
@@ -315,10 +378,15 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 }).addTo(map);
 
 var flagLayer  = L.layerGroup().addTo(map);
+var results    = null;
 var selectedId = null;
 var markerById = {};
 var rowById    = {};
-var persistentOpen = false;
+var persistentOpen   = false;
+var manifest         = null;
+var catchmentLayer   = null;
+var catchmentVisible = false;
+var catchmentLoading = false;
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 var MOCK = {
@@ -451,18 +519,126 @@ var MOCK = {
   ]
 };
 
-// ── Render ─────────────────────────────────────────────────────────────────
+// ── Colours ────────────────────────────────────────────────────────────────
 function gaugeColor(g) {
   if (g.checks_flag === 'FLAGGED') return '#c62828';
   if (g.llm_verdict === 'SUSPECT')  return '#1a73e8';
   return '#ef6c00';
 }
 
+// ── Manifest + timeline ────────────────────────────────────────────────────
+function buildSliderFromMock() {
+  manifest = { runs: ['20260519T1200Z','20260519T1145Z','20260519T1130Z','20260519T1115Z','20260519T1100Z','20260519T1045Z'] };
+  buildSlider();
+}
+
+function buildSlider() {
+  if (!manifest) return;
+  var n = manifest.runs.length;
+  var slider = document.getElementById('timeSlider');
+  slider.min   = 0;
+  slider.max   = n - 1;
+  slider.value = n - 1; // start at newest (live)
+  document.getElementById('timelineContainer').style.display = '';
+  updateSliderState(n - 1);
+}
+
+function runTsForSlider(val) {
+  if (!manifest) return null;
+  var n = manifest.runs.length;
+  return manifest.runs[n - 1 - parseInt(val)];
+}
+
+function onSliderInput() {
+  var val = parseInt(document.getElementById('timeSlider').value);
+  updateSliderState(val);
+  // In test mode: re-render the same mock data regardless of timestamp
+  renderPanel();
+  renderMapMarkers();
+}
+
+function goLive() {
+  if (!manifest) return;
+  var slider = document.getElementById('timeSlider');
+  slider.value = slider.max;
+  onSliderInput();
+}
+
+function updateSliderState(val) {
+  if (!manifest) return;
+  var n      = manifest.runs.length;
+  var isLive = (val === n - 1);
+  var ts     = runTsForSlider(val);
+
+  var parts = fmtRunTsParts(ts);
+  document.getElementById('playerDateLine').textContent = isLive ? 'LIVE' : parts.date;
+  document.getElementById('playerTimeLine').textContent = isLive ? '—' : parts.time;
+
+  var liveBtn = document.getElementById('liveBtn');
+  liveBtn.style.display = isLive ? 'none' : '';
+
+  // Update catchment button active state
+  document.getElementById('catchmentBtn').classList.toggle('seg-active', catchmentVisible);
+
+  // Tint side panel header when viewing history
+  document.getElementById('sidePanel').style.borderTop =
+    isLive ? '' : '3px solid #ef6c00';
+}
+
+function fmtRunTsParts(ts) {
+  if (!ts) return { date: 'LIVE', time: '—' };
+  var m = ts.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})Z$/);
+  if (!m) return { date: ts, time: '' };
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var date = m[3] + ' ' + months[+m[2] - 1];
+  var time = m[4] + ':' + m[5] + ' UTC';
+  return { date: date, time: time };
+}
+
+// ── Catchment layer ────────────────────────────────────────────────────────
+function toggleCatchments() {
+  catchmentVisible = !catchmentVisible;
+  var btn = document.getElementById('catchmentBtn');
+  btn.classList.toggle('seg-active', catchmentVisible);
+  if (catchmentVisible && !catchmentLayer && !catchmentLoading) {
+    catchmentLoading = true;
+    btn.textContent = 'Loading…';
+    fetch('uk_catchments.geojson')
+      .then(function(r) { return r.json(); })
+      .then(function(gj) {
+        catchmentLayer = L.geoJSON(gj, {
+          style: {
+            color: '#1a73e8', weight: 1.5, opacity: 0.55,
+            fillColor: '#1a73e8', fillOpacity: 0.04,
+          },
+          onEachFeature: function(feat, layer) {
+            var name = feat.properties && feat.properties.HA_NAME;
+            if (name) layer.bindTooltip(name, { sticky: true, className: 'catchment-tip' });
+          },
+        }).addTo(map);
+        catchmentLoading = false;
+        btn.textContent = catchmentVisible ? 'Hide' : 'Show';
+      })
+      .catch(function() {
+        catchmentLoading = false;
+        catchmentVisible = false;
+        btn.classList.remove('seg-active');
+        btn.textContent = 'Show';
+      });
+  } else if (catchmentLayer) {
+    if (catchmentVisible) { map.addLayer(catchmentLayer); }
+    else                  { map.removeLayer(catchmentLayer); }
+    btn.textContent = catchmentVisible ? 'Hide' : 'Show';
+  }
+}
+
+// ── Render panel ───────────────────────────────────────────────────────────
 function renderPanel() {
   var gauges = MOCK.gauges;
-  var flagged    = gauges.filter(function(g){ return g.checks_flag==='FLAGGED'; });
-  var elevated   = gauges.filter(function(g){ return g.checks_flag==='ELEVATED'; });
-  var llmSuspect = gauges.filter(function(g){ return g.llm_verdict==='SUSPECT'; });
+  var flagged    = gauges.filter(function(g) { return g.checks_flag === 'FLAGGED'; });
+  var elevated   = gauges.filter(function(g) { return g.checks_flag === 'ELEVATED'; });
+  var llmSuspect = gauges.filter(function(g) { return g.llm_verdict === 'SUSPECT'; });
+
   var countParts = [];
   if (flagged.length)    countParts.push(flagged.length + ' flagged');
   if (elevated.length)   countParts.push(elevated.length + ' elevated');
@@ -471,36 +647,42 @@ function renderPanel() {
     countParts.length ? countParts.join(' · ') : 'All clear';
   document.getElementById('updatedAt').textContent = 'Mock data — ' + MOCK.total_checked + ' stations checked';
 
-  var newFlags        = gauges.filter(function(g){ return g.consecutive_flags === 1; });
-  var recentFlags     = gauges.filter(function(g){ return g.consecutive_flags >= 2 && g.consecutive_flags <= 3; });
-  var persistentFlags = gauges.filter(function(g){ return g.consecutive_flags >= 4; });
+  var newFlags        = gauges.filter(function(g) { return g.consecutive_flags === 1; });
+  var recentFlags     = gauges.filter(function(g) { return g.consecutive_flags >= 2 && g.consecutive_flags <= 3; });
+  var persistentFlags = gauges.filter(function(g) { return g.consecutive_flags >= 4; });
 
   var html = '';
   rowById = {};
+
   if (newFlags.length) {
     html += '<p class="section-label">New flags</p>';
-    newFlags.forEach(function(g){ html += buildRow(g, false); });
+    newFlags.forEach(function(g) { html += buildRow(g, false); });
   }
   if (recentFlags.length) {
     html += '<p class="section-label">Recent (30–45 min)</p>';
-    recentFlags.forEach(function(g){ html += buildRow(g, false); });
+    recentFlags.forEach(function(g) { html += buildRow(g, false); });
   }
   if (persistentFlags.length) {
-    var hrs = Math.round(persistentFlags.reduce(function(mx,g){ return Math.max(mx,g.consecutive_flags); },0)*15/60);
+    var hrs = Math.round(
+      persistentFlags.reduce(function(mx, g) { return Math.max(mx, g.consecutive_flags); }, 0) * 15 / 60
+    );
     html += '<div class="persistent-toggle" onclick="togglePersistent()" id="persToggle">' +
       '<span class="toggle-arrow" id="persArrow">▶</span>' +
       '<span>Persistent issues (' + persistentFlags.length + ' gauge' +
-      (persistentFlags.length>1?'s':'') + ') · longest ' + hrs + 'h+</span></div>';
+      (persistentFlags.length > 1 ? 's' : '') + ') · longest ' + hrs + 'h+</span>' +
+      '</div>';
     html += '<div class="persistent-body" id="persBody">';
-    persistentFlags.forEach(function(g){ html += buildRow(g, true); });
+    persistentFlags.forEach(function(g) { html += buildRow(g, true); });
     html += '</div>';
   }
+
   document.getElementById('panelBody').innerHTML = html;
-  gauges.forEach(function(g){
-    var el = document.getElementById('row-'+g.station_id);
+
+  gauges.forEach(function(g) {
+    var el = document.getElementById('row-' + g.station_id);
     if (el) {
       rowById[g.station_id] = el;
-      el.addEventListener('click', function(){ selectGauge(g.station_id); });
+      el.addEventListener('click', function() { selectGauge(g.station_id); });
     }
   });
 }
@@ -509,26 +691,36 @@ function buildRow(g, persistent) {
   var color = gaugeColor(g);
   var checkPills = buildCheckPills(g.checks);
   var llmPill = buildLlmPill(g.llm_verdict);
+
   var locationStr = '';
   if (g.county) locationStr = g.county;
-  if (g.region && g.region !== g.county) locationStr += (locationStr?', ':'') + g.region;
-  var runsStr = g.consecutive_flags > 1 ? (g.consecutive_flags*15)+' min' : 'New';
+  if (g.region && g.region !== g.county) locationStr += (locationStr ? ', ' : '') + g.region;
+  if (!locationStr) locationStr = g.lat.toFixed(3) + '°N ' + Math.abs(g.lon).toFixed(3) + '°' + (g.lon < 0 ? 'W' : 'E');
+
+  var runsStr = g.consecutive_flags > 1
+    ? (g.consecutive_flags * 15) + ' min'
+    : 'New';
+
   var llmHtml = '';
   if (g.llm_reasoning) {
-    var snippet = g.llm_reasoning.length > 140 ? g.llm_reasoning.slice(0,137)+'…' : g.llm_reasoning;
+    var snippet = g.llm_reasoning.length > 140
+      ? g.llm_reasoning.slice(0, 137) + '…'
+      : g.llm_reasoning;
     llmHtml = '<div class="gauge-llm">' + escHtml(snippet) + '</div>';
   }
-  return '<div class="gauge-row'+(persistent?' persistent':'')+'" id="row-'+g.station_id+'">' +
-    '<div class="gauge-bar" style="background:'+color+';"></div>' +
+
+  return '<div class="gauge-row' + (persistent ? ' persistent' : '') + '" id="row-' + g.station_id + '">' +
+    '<div class="gauge-bar" style="background:' + color + ';"></div>' +
     '<div class="gauge-main">' +
-      '<div class="gauge-name">'+escHtml(g.name)+'</div>' +
-      '<div class="gauge-location">'+escHtml(locationStr)+'</div>' +
-      '<div class="gauge-checks">'+checkPills+llmPill+'</div>' +
+      '<div class="gauge-name">' + escHtml(g.name) + '</div>' +
+      '<div class="gauge-location">' + escHtml(locationStr) + '</div>' +
+      '<div class="gauge-checks">' + checkPills + llmPill + '</div>' +
       llmHtml +
     '</div>' +
     '<div class="gauge-right">' +
-      '<div><span class="gauge-value">'+g.latest_value_mm.toFixed(1)+'</span><span class="gauge-unit"> mm</span></div>' +
-      '<div class="runs-badge">'+runsStr+'</div>' +
+      '<div><span class="gauge-value">' + g.latest_value_mm.toFixed(1) + '</span>' +
+        '<span class="gauge-unit"> mm</span></div>' +
+      '<div class="runs-badge">' + runsStr + '</div>' +
     '</div>' +
     '</div>';
 }
@@ -537,33 +729,43 @@ function buildCheckPills(checks) {
   if (!checks) return '';
   var pills = '';
   var defs = [
-    ['hard_threshold','fail-threshold','THRESHOLD'],['temporal','fail-temporal','SPIKE'],
-    ['nearest_neighbour','fail-nn','SPATIAL'],['persistent_zero','fail-zero','ZERO'],
-    ['radar','fail-radar','RADAR'],['drip_leak','fail-drip','DRIP'],['accum_anomaly','fail-accum','ACCUM'],
+    ['hard_threshold',    'fail-threshold', 'THRESHOLD'],
+    ['temporal',          'fail-temporal',  'SPIKE'],
+    ['nearest_neighbour', 'fail-nn',        'SPATIAL'],
+    ['persistent_zero',   'fail-zero',      'ZERO'],
+    ['radar',             'fail-radar',     'RADAR'],
+    ['drip_leak',         'fail-drip',      'DRIP'],
+    ['accum_anomaly',     'fail-accum',     'ACCUM'],
   ];
-  defs.forEach(function(d){
+  defs.forEach(function(d) {
     var c = checks[d[0]];
-    if (c && !c.passed && !c.skipped) pills += '<span class="pill '+d[1]+'">'+d[2]+'</span>';
+    if (c && !c.passed && !c.skipped) {
+      pills += '<span class="pill ' + d[1] + '">' + d[2] + '</span>';
+    }
   });
   return pills;
 }
+
 function buildLlmPill(verdict) {
   if (!verdict) return '';
-  var cls={SUSPECT:'llm-suspect',UNCERTAIN:'llm-uncertain',GENUINE:'llm-genuine'};
-  var label={SUSPECT:'LLM: SUSPECT',UNCERTAIN:'LLM: UNCERTAIN',GENUINE:'LLM: GENUINE'};
-  return '<span class="pill '+(cls[verdict]||'")>'+(label[verdict]||verdict)+'</span>';
-}
-function togglePersistent() {
-  persistentOpen = !persistentOpen;
-  var body=document.getElementById('persBody'), arrow=document.getElementById('persArrow');
-  if(body) body.classList.toggle('open',persistentOpen);
-  if(arrow) arrow.classList.toggle('open',persistentOpen);
+  var cls = { SUSPECT: 'llm-suspect', UNCERTAIN: 'llm-uncertain', GENUINE: 'llm-genuine' };
+  var label = { SUSPECT: 'LLM: SUSPECT', UNCERTAIN: 'LLM: UNCERTAIN', GENUINE: 'LLM: GENUINE' };
+  return '<span class="pill ' + (cls[verdict] || '') + '">' + (label[verdict] || verdict) + '</span>';
 }
 
+function togglePersistent() {
+  persistentOpen = !persistentOpen;
+  var body  = document.getElementById('persBody');
+  var arrow = document.getElementById('persArrow');
+  if (body) body.classList.toggle('open', persistentOpen);
+  if (arrow) arrow.classList.toggle('open', persistentOpen);
+}
+
+// ── Map markers ────────────────────────────────────────────────────────────
 function renderMapMarkers() {
   flagLayer.clearLayers();
   markerById = {};
-  MOCK.gauges.forEach(function(g){
+  MOCK.gauges.forEach(function(g) {
     var color   = gaugeColor(g);
     var opacity = g.consecutive_flags >= 4 ? 0.55 : 0.9;
     var m = L.circleMarker([g.lat, g.lon], {
@@ -579,73 +781,106 @@ function renderMapMarkers() {
 function buildPopup(g) {
   var checks = g.checks || {};
   var checkRows = [
-    ['Hard threshold',     checks.hard_threshold],
-    ['Temporal spike',     checks.temporal],
-    ['Nearest neighbour',  checks.nearest_neighbour],
-    ['Persistent zero',    checks.persistent_zero],
-    ['Radar conformity',   checks.radar],
-    ['Drip/leak pattern',  checks.drip_leak],
-    ['24hr accumulation',  checks.accum_anomaly],
+    ['Hard threshold',      checks.hard_threshold],
+    ['Temporal spike',      checks.temporal],
+    ['Nearest neighbour',   checks.nearest_neighbour],
+    ['Persistent zero',     checks.persistent_zero],
+    ['Radar conformity',    checks.radar],
+    ['Drip/leak pattern',   checks.drip_leak],
+    ['24hr accumulation',   checks.accum_anomaly],
   ];
-  var tableRows = checkRows.map(function(pair){
+  var tableRows = checkRows.map(function(pair) {
+    var label = pair[0];
     var c = pair[1];
     if (!c) return '';
-    var icon, detail='';
-    if (c.skipped)      { icon='<span style="color:#94a3b8">—</span>'; detail='<span style="color:#94a3b8;font-size:10px;">('+c.skipped+')</span>'; }
-    else if (!c.passed) { icon='<span style="color:#c62828;font-weight:700">✗</span>'; detail=formatCheckDetail(c); }
-    else                { icon='<span style="color:#2e7d32">✓</span>'; }
-    return '<tr><td>'+pair[0]+'</td><td>'+icon+' '+detail+'</td></tr>';
+    var icon, detail = '';
+    if (c.skipped) {
+      icon   = '<span style="color:#94a3b8">—</span>';
+      detail = '<span style="color:#94a3b8;font-size:10px;">(' + c.skipped + ')</span>';
+    } else if (!c.passed) {
+      icon   = '<span style="color:#c62828;font-weight:700">✗</span>';
+      detail = formatCheckDetail(c);
+    } else {
+      icon   = '<span style="color:#2e7d32">✓</span>';
+    }
+    return '<tr><td>' + label + '</td><td>' + icon + ' ' + detail + '</td></tr>';
   }).join('');
+
   var llmHtml = '';
   if (g.llm_verdict) {
-    llmHtml='<hr class="pop-sep"><div class="pop-llm"><strong>LLM: '+g.llm_verdict+'</strong><br>'+(g.llm_reasoning?escHtml(g.llm_reasoning):'')+'</div>';
+    llmHtml = '<hr class="pop-sep">' +
+      '<div class="pop-llm"><strong>LLM: ' + g.llm_verdict + '</strong><br>' +
+      (g.llm_reasoning ? escHtml(g.llm_reasoning) : '') + '</div>';
   }
-  var locationStr = g.county ? (g.county+(g.region?', '+g.region:'')) : '';
+
+  var locationStr = g.county ? (g.county + (g.region ? ', ' + g.region : '')) : '';
+
   return '<div class="qc-popup">' +
-    '<h4>'+escHtml(g.name)+(locationStr?'<br><span style="font-size:11px;color:#64748b;">'+escHtml(locationStr)+'</span>':'')+'</h4>' +
-    '<div class="pop-value">'+g.latest_value_mm.toFixed(1)+' mm</div>' +
-    '<table>'+tableRows+'</table>' +
+    '<h4>' + escHtml(g.name) + (locationStr ? '<br><span style="font-size:11px;color:#64748b;">' + escHtml(locationStr) + '</span>' : '') + '</h4>' +
+    '<div class="pop-value">' + g.latest_value_mm.toFixed(1) + ' mm</div>' +
+    '<table>' + tableRows + '</table>' +
     llmHtml +
-    (g.consecutive_flags>1?'<div style="font-size:10px;color:#94a3b8;margin-top:6px;">Flagged '+g.consecutive_flags+' consecutive runs ('+Math.round(g.consecutive_flags*15)+' min)</div>':'') +
+    (g.consecutive_flags > 1 ? '<div style="font-size:10px;color:#94a3b8;margin-top:6px;">Flagged ' + g.consecutive_flags + ' consecutive runs (' + Math.round(g.consecutive_flags * 15) + ' min)</div>' : '') +
     '</div>';
 }
 
 function formatCheckDetail(c) {
   if (!c) return '';
-  var parts=[];
-  if (c.spike_ratio)  parts.push(c.spike_ratio+'× spike');
-  if (c.preceding_median_mm !== undefined) parts.push('median '+c.preceding_median_mm+' mm');
-  if (c.nn_mean_mm !== undefined) parts.push('nbr mean '+c.nn_mean_mm+' mm');
-  if (c.radar_mm_15min !== undefined) parts.push('radar '+c.radar_mm_15min+' mm');
-  if (c.ratio !== undefined) parts.push('ratio '+c.ratio+'×');
-  if (c.active_neighbours !== undefined) parts.push(c.active_neighbours+' active nbrs');
-  if (c.value_mm !== undefined && !parts.length) parts.push(c.value_mm+' mm');
-  return '<span style="font-size:10px;color:#5f6368;">'+parts.join(', ')+'</span>';
+  var parts = [];
+  if (c.spike_ratio)         parts.push(c.spike_ratio + '× spike');
+  if (c.preceding_median_mm !== undefined) parts.push('median ' + c.preceding_median_mm + ' mm');
+  if (c.nn_mean_mm !== undefined) parts.push('nbr mean ' + c.nn_mean_mm + ' mm');
+  if (c.radar_mm_15min !== undefined) parts.push('radar ' + c.radar_mm_15min + ' mm');
+  if (c.ratio !== undefined) parts.push('ratio ' + c.ratio + '×');
+  if (c.active_neighbours !== undefined) parts.push(c.active_neighbours + ' active nbrs');
+  if (c.value_mm !== undefined && !parts.length) parts.push(c.value_mm + ' mm');
+  return '<span style="font-size:10px;color:#5f6368;">' + parts.join(', ') + '</span>';
 }
 
+// ── Select / fly to gauge ──────────────────────────────────────────────────
 function selectGauge(stationId) {
-  if (selectedId && rowById[selectedId]) rowById[selectedId].classList.remove('selected');
+  if (selectedId && rowById[selectedId]) {
+    rowById[selectedId].classList.remove('selected');
+  }
   selectedId = stationId;
   if (rowById[stationId]) rowById[stationId].classList.add('selected');
   var m = markerById[stationId];
-  if (m) { map.flyTo(m.getLatLng(), 11, {duration:0.7}); setTimeout(function(){ m.openPopup(); }, 750); }
+  if (m) {
+    map.flyTo(m.getLatLng(), Math.min(map.getZoom(), 8), { duration: 0.5 });
+    setTimeout(function() { m.openPopup(); }, 550);
+  }
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────────
 function escHtml(s) {
   if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
-function openInfo() { document.getElementById('infoModal').classList.add('open'); }
-function closeInfo(e) {
-  if (!e || e.target === document.getElementById('infoModal'))
-    document.getElementById('infoModal').classList.remove('open');
+function fmtTime(iso) {
+  if (!iso) return '—';
+  try {
+    var d = new Date(iso);
+    return d.toUTCString().slice(17, 22) + ' UTC';
+  } catch(e) { return iso; }
 }
-document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeInfo(); });
 
-// ── Boot ──────────────────────────────────────────────────────────────────
+// ── Info modal ──────────────────────────────────────────────────────────────
+function toggleInfoModal() {
+  document.getElementById('infoModalBackdrop').classList.toggle('open');
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') document.getElementById('infoModalBackdrop').classList.remove('open');
+});
+
+// ── Boot ────────────────────────────────────────────────────────────────────
 renderPanel();
 renderMapMarkers();
+buildSliderFromMock();
 </script>
 </body>
 </html>
