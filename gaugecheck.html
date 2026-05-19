@@ -34,21 +34,24 @@ body {
 .header-cell .h-sub { font-size: 10px; color: #94a3b8; font-weight: 400; white-space: nowrap; }
 .header-cell .h-nav { font-size: 11px; color: #64748b; font-weight: 500; text-decoration: none; }
 .header-cell .h-nav:hover { color: #94a3b8; }
-.right-wrap { width: 460px; flex: none; border-left: 2px solid #374151; }
 
 .panels-row { flex: 1; display: flex; min-height: 0; }
+
+/* ── Maps wrapper (left + mid together) ────────────────────────────────────── */
+.maps-wrap { flex: 2; display: flex; position: relative; min-height: 0; }
 .panel-wrap { position: relative; flex: 1; overflow: hidden; border-left: 2px solid #374151; }
 .panel-wrap:first-child { border-left: none; }
 .panel-map { width: 100%; height: 100%; }
 
-/* ── Panel player bar (floating inside each map panel) ─────────────────────── */
-.panel-bar {
+/* ── Shared player bar (floating over both map panels, centered) ─────────────── */
+.shared-bar {
   position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
   z-index: 500; background: white; border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.1);
   padding: 10px 16px; display: flex; align-items: center; gap: 12px;
   white-space: nowrap;
 }
+.bar-sep { width: 1px; height: 28px; background: #e8eaed; flex-shrink: 0; }
 
 /* ── Shared control groups ─────────────────────────────────────────────────── */
 .control-group { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
@@ -114,10 +117,6 @@ select:hover { background-color: #e8eaed; }
   border: 1.5px solid rgba(255,255,255,0.6);
   box-sizing: border-box; cursor: pointer;
 }
-.rg-dot-sm {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: #90a4ae; opacity: 0.4;
-}
 
 /* ── QC popup (mid map) ────────────────────────────────────────────────────── */
 .qc-popup { font-family: 'Roboto', sans-serif; font-size: 12px; min-width: 200px; max-width: 270px; }
@@ -131,6 +130,7 @@ select:hover { background-color: #e8eaed; }
 
 /* ── Right panel (table) ───────────────────────────────────────────────────── */
 .right-wrap {
+  width: 460px; flex: none; border-left: 2px solid #374151;
   display: flex; flex-direction: column; background: white;
   overflow: hidden;
 }
@@ -218,10 +218,21 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
 <!-- Panels -->
 <div class="panels-row">
 
-  <!-- Left: rain gauge accumulation map -->
-  <div class="panel-wrap" id="leftWrap">
-    <div id="mapLeft" class="panel-map"></div>
-    <div class="panel-bar" id="leftBar">
+  <!-- Maps wrapper: left + mid share one floating bar -->
+  <div class="maps-wrap">
+
+    <!-- Left: rain gauge accumulation map -->
+    <div class="panel-wrap" id="leftWrap">
+      <div id="mapLeft" class="panel-map"></div>
+    </div>
+
+    <!-- Middle: QC flags map -->
+    <div class="panel-wrap" id="midWrap">
+      <div id="mapMid" class="panel-map"></div>
+    </div>
+
+    <!-- Shared control bar centered across both maps -->
+    <div class="shared-bar" id="sharedBar">
       <div class="control-group">
         <span class="control-label">Period</span>
         <select id="periodSelect" onchange="onPeriodChange(this.value)">
@@ -233,13 +244,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
           <option value="24hr">24 Hours</option>
         </select>
       </div>
-    </div>
-  </div>
-
-  <!-- Middle: QC flags map -->
-  <div class="panel-wrap" id="midWrap">
-    <div id="mapMid" class="panel-map"></div>
-    <div class="panel-bar" id="midBar">
+      <div class="bar-sep"></div>
       <div class="control-group">
         <span class="control-label">Areas</span>
         <select id="areaSelect" onchange="onAreaSelectChange(this.value)">
@@ -250,6 +255,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
           <option value="none">None</option>
         </select>
       </div>
+      <div class="bar-sep"></div>
       <div class="timeline-container" id="timelineContainer" style="display:none">
         <div class="timeline-track"></div>
         <input type="range" id="timeSlider" min="0" max="0" value="0" oninput="onSliderInput()">
@@ -257,9 +263,6 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
       <div id="playerDateTime" style="display:none">
         <div id="playerDateLine">LIVE</div>
         <div id="playerTimeLine">—</div>
-      </div>
-      <div class="seg-control" id="liveBtnWrap" style="display:none">
-        <button class="seg-btn" onclick="goLive()">LIVE</button>
       </div>
       <button class="info-icon-btn" onclick="toggleInfoModal()" title="How QC works">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
@@ -427,18 +430,12 @@ function buildSlider() {
 }
 
 function onSliderInput() {
-  var val = parseInt(document.getElementById('timeSlider').value);
-  var isLive = val === parseInt(document.getElementById('timeSlider').max);
-  document.getElementById('liveBtnWrap').style.display = isLive ? 'none' : '';
-  var ts = manifest ? manifest.runs[manifest.runs.length - 1 - val] : null;
-  loadResults(ts);
-}
-
-function goLive() {
   var sl = document.getElementById('timeSlider');
-  sl.value = sl.max;
-  document.getElementById('liveBtnWrap').style.display = 'none';
-  loadResults(null);
+  var val = parseInt(sl.value);
+  var idx = manifest.runs.length - 1 - val;
+  var ts = manifest ? manifest.runs[idx] : null;
+  var isLive = val === parseInt(sl.max);
+  loadResults(isLive ? null : ts);
 }
 
 function updateDateDisplay(readingTime) {
@@ -610,7 +607,6 @@ function renderTable() {
   var html = '';
   sorted.forEach(function(g) {
     var ac = g.accums || {};
-    var flagCls = g.checks_flag === 'FLAGGED' ? 'flag-flagged' : 'flag-elevated';
     var checkPills = buildCheckPills(g.checks);
     var llmPill    = buildLlmPill(g.llm_verdict);
     var loc = [g.county, (g.region !== g.county ? g.region : null)].filter(Boolean).join(', ');
