@@ -128,7 +128,7 @@ select:hover { background-color: #e8eaed; }
 .qc-popup .pop-llm { margin-top: 6px; font-size: 11px; color: #475569; font-style: italic; line-height: 1.5; }
 .qc-popup .pop-sep { border: none; border-top: 1px solid #f1f3f4; margin: 6px 0; }
 
-/* ── Right panel (table) ───────────────────────────────────────────────────── */
+/* ── Right panel ───────────────────────────────────────────────────────────── */
 .right-wrap {
   width: 460px; flex: none; border-left: 2px solid #374151;
   display: flex; flex-direction: column; background: white;
@@ -144,30 +144,12 @@ select:hover { background-color: #e8eaed; }
   background: #f8f9fa; border-bottom: 1px solid #e8eaed; flex-shrink: 0;
   padding: 4px 16px; font-size: 10px; color: #64748b;
 }
-
-.tbl-wrap { flex: 1; overflow-y: auto; }
-.tbl-wrap::-webkit-scrollbar { width: 4px; }
-.tbl-wrap::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 2px; }
-
-table.qc-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-table.qc-table thead th {
-  position: sticky; top: 0; background: #f8f9fa; z-index: 1;
-  padding: 6px 8px; text-align: left; font-size: 10px; font-weight: 700;
-  color: #64748b; letter-spacing: 0.4px; text-transform: uppercase;
-  border-bottom: 1px solid #e8eaed; white-space: nowrap;
+.refresh-btn {
+  background: transparent; border: none; cursor: pointer; color: #94a3b8;
+  font-size: 15px; padding: 0 0 0 8px; line-height: 1; transition: color 0.2s;
+  font-family: 'Roboto', sans-serif;
 }
-table.qc-table tbody tr {
-  border-bottom: 1px solid #f1f3f4; cursor: pointer; transition: background 0.1s;
-}
-table.qc-table tbody tr:hover { background: #f8f9fa; }
-table.qc-table tbody tr.selected { background: #e8f0fe; }
-table.qc-table td { padding: 7px 8px; vertical-align: top; }
-
-.tbl-name { font-size: 12px; font-weight: 600; color: #1e293b; }
-.tbl-loc  { font-size: 10px; color: #64748b; margin-top: 1px; }
-.tbl-num  { font-size: 12px; font-weight: 600; color: #202124; white-space: nowrap; text-align: right; }
-.tbl-unit { font-size: 9px; color: #5f6368; font-weight: 400; }
-.tbl-empty { text-align: center; padding: 30px; color: #4caf50; font-size: 12px; font-weight: 500; }
+.refresh-btn:hover { color: #f1f5f9; }
 
 /* ── Check pills ───────────────────────────────────────────────────────────── */
 .pill { font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px; white-space: nowrap; display: inline-block; margin: 1px 1px 1px 0; }
@@ -183,7 +165,81 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
 .pill.llm-genuine    { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
 .pill.flag-flagged   { background: #fce4ec; color: #c62828; }
 .pill.flag-elevated  { background: #fff3e0; color: #ef6c00; }
-.checks-cell { min-width: 80px; }
+
+/* ── Flag log ──────────────────────────────────────────────────────────────── */
+.flag-list { flex: 1; overflow-y: auto; }
+.flag-list::-webkit-scrollbar { width: 4px; }
+.flag-list::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 2px; }
+
+.flag-card {
+  display: grid;
+  grid-template-columns: 4px 1fr;
+  gap: 0 10px;
+  padding: 10px 14px 10px 0;
+  border-bottom: 1px solid #f1f3f4;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.flag-card:hover { background: #f8f9fa; }
+.flag-card.selected { background: #e8f0fe; }
+.flag-card.flag-resolved { opacity: 0.6; }
+.flag-bar { width: 4px; border-radius: 0 2px 2px 0; }
+.flag-content { min-width: 0; }
+.flag-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.flag-name { font-size: 13px; font-weight: 600; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flag-value { font-size: 13px; font-weight: 700; color: #202124; white-space: nowrap; flex-shrink: 0; }
+.flag-unit { font-size: 10px; font-weight: 400; color: #5f6368; }
+.flag-loc { font-size: 10px; color: #64748b; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.flag-time { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+.flag-pills { margin-top: 4px; }
+.flag-empty { text-align: center; padding: 30px 16px; color: #4caf50; font-size: 12px; font-weight: 500; }
+
+/* ── Filter bar ────────────────────────────────────────────────────────────── */
+.filter-bar {
+  background: #f8f9fa;
+  border-bottom: 1px solid #e8eaed;
+  padding: 7px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.fchip {
+  background: #e8eaed;
+  border: none;
+  border-radius: 10px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #5f6368;
+  cursor: pointer;
+  font-family: 'Roboto', sans-serif;
+  letter-spacing: 0.3px;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.fchip:hover { background: #d8dadc; }
+.fchip.active-flagged  { background: #c62828; color: white; }
+.fchip.active-elevated { background: #ef6c00; color: white; }
+.fchip.active-check    { background: #1e293b; color: white; }
+.fbar-sep { width: 1px; height: 14px; background: #d8dadc; flex-shrink: 0; }
+.fbar-sort { font-size: 10px; padding: 3px 22px 3px 8px; border-radius: 10px; }
+
+/* ── Resolved toggle ───────────────────────────────────────────────────────── */
+.resolved-toggle {
+  width: 100%; padding: 8px 14px; background: #f8f9fa;
+  border: none; border-top: 1px solid #e8eaed; border-bottom: 1px solid #e8eaed;
+  font-size: 11px; font-weight: 600; color: #64748b; cursor: pointer;
+  text-align: left; font-family: 'Roboto', sans-serif;
+  transition: background 0.1s;
+}
+.resolved-toggle:hover { background: #f1f3f4; }
+
+.right-subrow {
+  background: #f8f9fa; border-bottom: 1px solid #e8eaed; flex-shrink: 0;
+  padding: 4px 16px; font-size: 10px; color: #64748b;
+}
 
 /* ── Info modal ────────────────────────────────────────────────────────────── */
 .info-modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 2000; align-items: center; justify-content: center; }
@@ -195,6 +251,18 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
 .info-modal li:last-child { border-bottom: none; }
 .info-modal-close { position: absolute; top: 14px; right: 16px; background: transparent; border: none; cursor: pointer; font-size: 18px; color: #94a3b8; }
 .info-modal-close:hover { color: #5f6368; }
+
+/* ── Mobile responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .panels-row { flex-direction: column; }
+  #leftWrap { display: none; }
+  .maps-wrap { flex: none; height: 42vh; }
+  .right-wrap { width: 100%; border-left: none; border-top: 2px solid #374151; flex: 1; min-height: 0; }
+  .shared-bar { bottom: 10px; padding: 8px 10px; gap: 8px; overflow-x: auto; max-width: calc(100vw - 20px); }
+  .header-cell:first-child { display: none; }
+  .header-cell:nth-child(2) { flex: 1; }
+  .header-cell:nth-child(3) { flex: none; width: auto; }
+}
 </style>
 </head>
 <body>
@@ -207,11 +275,14 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
   </div>
   <div class="header-cell">
     <span>QC Flags</span>
-    <a href="/" class="h-nav">← Radar</a>
+    <a href="/" class="h-nav">&#8592; Radar</a>
   </div>
   <div class="header-cell" style="border-left:2px solid #374151; flex:none; width:460px; box-sizing:border-box;">
-    <span>QC Results</span>
-    <span id="rightCounts" class="h-sub">—</span>
+    <span style="display:flex;align-items:center;gap:4px;">
+      Flag Log
+      <button class="refresh-btn" id="refreshBtn" onclick="refreshFlagLog()" title="Refresh flag log">&#8635;</button>
+    </span>
+    <span id="rightCounts2" class="h-sub">—</span>
   </div>
 </div>
 
@@ -270,30 +341,32 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
     </div>
   </div>
 
-  <!-- Right: QC results table -->
+  <!-- Right: Flag Log -->
   <div class="right-wrap">
-    <div class="right-header">
-      <span class="right-header-title">QC Results</span>
-      <span id="rightCounts2" class="right-counts">—</span>
-    </div>
     <div class="right-subrow" id="rightSub"></div>
-    <div class="tbl-wrap">
-      <table class="qc-table">
-        <thead>
-          <tr>
-            <th>Station</th>
-            <th style="text-align:right">15min</th>
-            <th style="text-align:right">1hr</th>
-            <th style="text-align:right">24hr</th>
-            <th>Checks</th>
-            <th>LLM</th>
-            <th>Since</th>
-          </tr>
-        </thead>
-        <tbody id="qcTbody">
-          <tr><td colspan="7" class="tbl-empty">Loading…</td></tr>
-        </tbody>
-      </table>
+
+    <!-- Filter bar -->
+    <div class="filter-bar" id="filterBar">
+      <button class="fchip" id="chip-FLAGGED" onclick="toggleLevelFilter('FLAGGED')">FLAGGED</button>
+      <button class="fchip" id="chip-ELEVATED" onclick="toggleLevelFilter('ELEVATED')">ELEVATED</button>
+      <div class="fbar-sep"></div>
+      <button class="fchip" id="chip-THR"    onclick="toggleCheckFilter('THR')">THR</button>
+      <button class="fchip" id="chip-SPIKE"  onclick="toggleCheckFilter('SPIKE')">SPIKE</button>
+      <button class="fchip" id="chip-SPATIAL" onclick="toggleCheckFilter('SPATIAL')">SPATIAL</button>
+      <button class="fchip" id="chip-ZERO"   onclick="toggleCheckFilter('ZERO')">ZERO</button>
+      <button class="fchip" id="chip-RADAR"  onclick="toggleCheckFilter('RADAR')">RADAR</button>
+      <button class="fchip" id="chip-DRIP"   onclick="toggleCheckFilter('DRIP')">DRIP</button>
+      <button class="fchip" id="chip-ACCUM"  onclick="toggleCheckFilter('ACCUM')">ACCUM</button>
+      <div class="fbar-sep"></div>
+      <select class="fbar-sort" id="sortSelect" onchange="onSortChange(this.value)">
+        <option value="newest">Newest first</option>
+        <option value="longest">Most persistent</option>
+      </select>
+    </div>
+
+    <!-- Scrollable flag list -->
+    <div class="flag-list" id="flagList">
+      <div class="flag-empty">Loading&#8230;</div>
     </div>
   </div>
 
@@ -308,15 +381,15 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
       Gauge QC checks
     </h3>
     <ul>
-      <li><strong>THRESHOLD</strong> — single 15-min reading ≥ 25 mm (suspicious) or ≥ 50 mm (physically impossible).</li>
-      <li><strong>SPIKE</strong> — isolated peak ≥ 8× the preceding 1¾ hr median, or sudden jump from zero above 5 mm.</li>
-      <li><strong>SPATIAL</strong> — high reading (≥ 8 mm) when all stations within 20 km show near-zero.</li>
+      <li><strong>THRESHOLD</strong> — single 15-min reading &#8805; 25 mm (suspicious) or &#8805; 50 mm (physically impossible).</li>
+      <li><strong>SPIKE</strong> — isolated peak &#8805; 8&#215; the preceding 1&frac34; hr median, or sudden jump from zero above 5 mm.</li>
+      <li><strong>SPATIAL</strong> — high reading (&#8805; 8 mm) when all stations within 20 km show near-zero.</li>
       <li><strong>ZERO</strong> — gauge stuck at 0 for 6+ hrs while neighbours and/or radar confirm active rainfall.</li>
-      <li><strong>RADAR</strong> — reading far exceeds the Met Office radar QPE at the same location (ratio &gt; 15×).</li>
+      <li><strong>RADAR</strong> — reading far exceeds the Met Office radar QPE at the same location (ratio &gt; 15&#215;).</li>
       <li><strong>DRIP</strong> — near-constant low-amplitude tips over 3+ hrs: classic blocked or leaking tipping bucket.</li>
-      <li><strong>ACCUM</strong> — 24 hr gauge total ≥ 3.5× the mean of its nearest neighbours.</li>
-      <li><strong>LLM review</strong> — AI independently assesses when any check fails or reading ≥ 20 mm. Verdict: GENUINE, UNCERTAIN, or SUSPECT.</li>
-      <li><strong style="color:#ef6c00">🟠 ELEVATED</strong> — 1 check failed.&nbsp;&nbsp;<strong style="color:#c62828">🔴 FLAGGED</strong> — 2 or more checks failed.</li>
+      <li><strong>ACCUM</strong> — 24 hr gauge total &#8805; 5.0&#215; the mean of its nearest neighbours.</li>
+      <li><strong>LLM review</strong> — AI independently assesses when any check fails or reading &#8805; 20 mm. Verdict: GENUINE, UNCERTAIN, or SUSPECT.</li>
+      <li><strong style="color:#ef6c00">&#x1F7E0; ELEVATED</strong> — 1 check failed.&nbsp;&nbsp;<strong style="color:#c62828">&#x1F534; FLAGGED</strong> — 2 or more checks failed.</li>
     </ul>
   </div>
 </div>
@@ -352,13 +425,21 @@ var greyLayerMid   = L.layerGroup().addTo(mapMid);
 var flagLayerMid   = L.layerGroup().addTo(mapMid);
 
 // ── State ──────────────────────────────────────────────────────────────────
-var results       = null;
+var mapResults    = null;
 var manifest      = null;
 var selectedId    = null;
 var currentPeriod = '1hr';
-var tblRowById    = {};
 var mLeftById     = {};
 var mMidById      = {};
+
+// Log-specific state
+var logGauges    = [];
+var logResolved  = [];
+var filterLevel  = '';
+var filterChecks = new Set();
+var logSortBy    = 'newest';
+var showResolved = false;
+var flagCardById = {};
 
 // ── Accum colour scale (matching /rain) ────────────────────────────────────
 var ACCUM_COLORS = ['#e1f5fe','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'];
@@ -416,8 +497,8 @@ function loadManifest() {
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(d){
       if (d && d.runs && d.runs.length >= 2) { manifest = d; buildSlider(); }
-      loadResults(null);
-    }).catch(function(){ loadResults(null); });
+      loadResultsAndLog();
+    }).catch(function(){ loadResultsAndLog(); });
 }
 
 function buildSlider() {
@@ -432,10 +513,14 @@ function buildSlider() {
 function onSliderInput() {
   var sl = document.getElementById('timeSlider');
   var val = parseInt(sl.value);
-  var idx = manifest.runs.length - 1 - val;
-  var ts = manifest ? manifest.runs[idx] : null;
   var isLive = val === parseInt(sl.max);
-  loadResults(isLive ? null : ts);
+  if (isLive) {
+    loadResultsAndLog();
+  } else {
+    var idx = manifest.runs.length - 1 - val;
+    var ts = manifest ? manifest.runs[idx] : null;
+    loadArchiveRun(ts);
+  }
 }
 
 function updateDateDisplay(readingTime) {
@@ -453,29 +538,86 @@ function updateDateDisplay(readingTime) {
   }
 }
 
-// ── Load results ───────────────────────────────────────────────────────────
-function loadResults(runTs) {
-  var url = runTs ? cdnUrl('gaugecheck/runs/' + runTs + '.json') : cdnUrl('gaugecheck/results.json');
-  fetch(url)
-    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
-    .then(function(d){
-      results = d;
-      updateDateDisplay(d.latest_reading_time);
+// ── Load results + log (live data) ────────────────────────────────────────
+function loadResultsAndLog() {
+  var urlCurrent = cdnUrl('gaugecheck/results.json');
+  var prevPromise;
+  if (manifest && manifest.runs && manifest.runs.length >= 2) {
+    prevPromise = fetch(cdnUrl('gaugecheck/runs/' + manifest.runs[1] + '.json'))
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .catch(function(){ return null; });
+  } else {
+    prevPromise = Promise.resolve(null);
+  }
+  var currentPromise = fetch(urlCurrent)
+    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); });
+
+  Promise.all([currentPromise, prevPromise])
+    .then(function(results) {
+      var current = results[0];
+      var prev    = results[1];
+
+      mapResults = current;
+      updateDateDisplay(current.latest_reading_time);
+
+      // Build logGauges from current
+      logGauges = (current.gauges || []).slice();
+
+      // Build logResolved: in prev but not in current
+      if (prev && prev.gauges) {
+        var currentIds = {};
+        logGauges.forEach(function(g){ currentIds[g.station_id] = true; });
+        logResolved = prev.gauges.filter(function(g){ return !currentIds[g.station_id]; });
+      } else {
+        logResolved = [];
+      }
+
+      updateHeaderCounts();
       renderLeftMarkers();
       renderMidMarkers();
-      renderTable();
+      renderFlagLog();
+
+      // Update subrow
+      if (current.latest_reading_time) {
+        var d = new Date(current.latest_reading_time);
+        document.getElementById('rightSub').textContent =
+          'Data at ' + pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes()) + ' UTC · ' + (current.total_checked||0) + ' stations checked';
+      }
     })
     .catch(function(){
-      document.getElementById('qcTbody').innerHTML = '<tr><td colspan="7" class="tbl-empty" style="color:#b71c1c">Could not load QC results</td></tr>';
+      document.getElementById('flagList').innerHTML = '<div class="flag-empty" style="color:#b71c1c">Could not load QC results</div>';
     });
 }
 
-// ── Left map: rain gauge accumulation ──────────────────────────────────────
+// ── Load archive run (maps only) ──────────────────────────────────────────
+function loadArchiveRun(runTs) {
+  if (!runTs) return;
+  var url = cdnUrl('gaugecheck/runs/' + runTs + '.json');
+  fetch(url)
+    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(d){
+      mapResults = d;
+      updateDateDisplay(d.latest_reading_time);
+      renderLeftMarkers();
+      renderMidMarkers();
+    })
+    .catch(function(){});
+}
+
+// ── Refresh flag log ───────────────────────────────────────────────────────
+function refreshFlagLog() {
+  var btn = document.getElementById('refreshBtn');
+  btn.style.opacity = '0.4';
+  loadResultsAndLog();
+  setTimeout(function(){ btn.style.opacity = ''; }, 800);
+}
+
+// ── Left map: rain gauge accumulation ─────────────────────────────────────
 function renderLeftMarkers() {
   greyLayerLeft.clearLayers();
   accumLayerLeft.clearLayers();
   mLeftById = {};
-  var summary = (results && results.summary) || [];
+  var summary = (mapResults && mapResults.summary) || [];
   var lbl = {'mm':'15-min','1hr':'1hr','3hr':'3hr','6hr':'6hr','12hr':'12hr','24hr':'24hr'}[currentPeriod] || currentPeriod;
 
   summary.forEach(function(s) {
@@ -504,9 +646,9 @@ function renderMidMarkers() {
   greyLayerMid.clearLayers();
   flagLayerMid.clearLayers();
   mMidById = {};
-  var summary = (results && results.summary) || [];
+  var summary = (mapResults && mapResults.summary) || [];
   var flagMap = {};
-  (results && results.gauges || []).forEach(function(g){ flagMap[g.station_id] = g; });
+  ((mapResults && mapResults.gauges) || []).forEach(function(g){ flagMap[g.station_id] = g; });
 
   summary.forEach(function(s) {
     if (s.f) return;
@@ -547,8 +689,8 @@ function buildPopup(g) {
   var trs = rows.map(function(p) {
     var c = p[1]; if (!c) return '';
     var icon = c.skipped ? '<span style="color:#94a3b8">—</span>'
-             : !c.passed  ? '<span style="color:#c62828;font-weight:700">✗</span>'
-             : '<span style="color:#2e7d32">✓</span>';
+             : !c.passed  ? '<span style="color:#c62828;font-weight:700">&#10007;</span>'
+             : '<span style="color:#2e7d32">&#10003;</span>';
     var det = (!c.passed && !c.skipped) ? formatDetail(c) : '';
     return '<tr><td>' + p[0] + '</td><td>' + icon + ' ' + det + '</td></tr>';
   }).join('');
@@ -566,100 +708,232 @@ function buildPopup(g) {
 
 function formatDetail(c) {
   var p = [];
-  if (c.spike_ratio) p.push(c.spike_ratio+'× spike');
+  if (c.spike_ratio) p.push(c.spike_ratio+'&#215; spike');
   if (c.preceding_median_mm !== undefined) p.push('med '+c.preceding_median_mm+'mm');
   if (c.nn_mean_mm !== undefined) p.push('nbr '+c.nn_mean_mm+'mm');
   if (c.radar_mm_15min !== undefined) p.push('radar '+c.radar_mm_15min+'mm');
-  if (c.ratio !== undefined) p.push('ratio '+c.ratio+'×');
+  if (c.ratio !== undefined) p.push('ratio '+c.ratio+'&#215;');
   return p.length ? '<span style="font-size:10px;color:#5f6368">'+p.join(', ')+'</span>' : '';
 }
 
-// ── Right panel: table ─────────────────────────────────────────────────────
-function renderTable() {
-  var gauges  = (results && results.gauges) || [];
-  var tbody   = document.getElementById('qcTbody');
-  tblRowById  = {};
-
-  var flagged  = gauges.filter(function(g){ return g.checks_flag==='FLAGGED'; }).length;
-  var elevated = gauges.filter(function(g){ return g.checks_flag==='ELEVATED'; }).length;
-  var countsTxt = flagged || elevated
-    ? (flagged ? flagged+' flagged' : '') + (flagged&&elevated?' · ':'') + (elevated ? elevated+' elevated' : '')
-    : 'All clear';
-  document.getElementById('rightCounts').textContent = countsTxt;
-  document.getElementById('rightCounts2').textContent = countsTxt;
-
-  if (results && results.latest_reading_time) {
-    var d = new Date(results.latest_reading_time);
-    document.getElementById('rightSub').textContent =
-      'Data at ' + pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes()) + ' UTC · ' + (results.total_checked||0) + ' stations checked';
+// ── Header counts ──────────────────────────────────────────────────────────
+function updateHeaderCounts() {
+  var flagged  = logGauges.filter(function(g){ return g.checks_flag === 'FLAGGED'; }).length;
+  var elevated = logGauges.filter(function(g){ return g.checks_flag === 'ELEVATED'; }).length;
+  var txt;
+  if (flagged || elevated) {
+    txt = (flagged ? flagged + ' flagged' : '') +
+          (flagged && elevated ? ' · ' : '') +
+          (elevated ? elevated + ' elevated' : '');
+  } else {
+    txt = 'All clear';
   }
+  document.getElementById('rightCounts2').textContent = txt;
+}
 
-  if (!gauges.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="tbl-empty">No suspicious gauges detected</td></tr>';
-    return;
-  }
+// ── Filter helpers ─────────────────────────────────────────────────────────
+function toggleLevelFilter(level) {
+  filterLevel = (filterLevel === level) ? '' : level;
+  document.getElementById('chip-FLAGGED').className  = 'fchip' + (filterLevel === 'FLAGGED'  ? ' active-flagged'  : '');
+  document.getElementById('chip-ELEVATED').className = 'fchip' + (filterLevel === 'ELEVATED' ? ' active-elevated' : '');
+  renderFlagLog();
+}
 
-  var sorted = gauges.slice().sort(function(a,b){
-    var f = (a.checks_flag==='FLAGGED'?0:1) - (b.checks_flag==='FLAGGED'?0:1);
-    return f || b.latest_value_mm - a.latest_value_mm;
+function toggleCheckFilter(key) {
+  if (filterChecks.has(key)) { filterChecks.delete(key); } else { filterChecks.add(key); }
+  var checkKeys = ['THR','SPIKE','SPATIAL','ZERO','RADAR','DRIP','ACCUM'];
+  checkKeys.forEach(function(k){
+    var el = document.getElementById('chip-' + k);
+    if (el) el.className = 'fchip' + (filterChecks.has(k) ? ' active-check' : '');
   });
+  renderFlagLog();
+}
+
+function onSortChange(val) {
+  logSortBy = val;
+  renderFlagLog();
+}
+
+function toggleResolved() {
+  showResolved = !showResolved;
+  renderFlagLog();
+}
+
+// ── Check key mapping ─────────────────────────────────────────────────────
+var CHECK_KEY_MAP = {
+  THR:     'hard_threshold',
+  SPIKE:   'temporal',
+  SPATIAL: 'nearest_neighbour',
+  ZERO:    'persistent_zero',
+  RADAR:   'radar',
+  DRIP:    'drip_leak',
+  ACCUM:   'accum_anomaly'
+};
+
+function gaugeFailsCheck(g, key) {
+  var field = CHECK_KEY_MAP[key];
+  if (!field || !g.checks) return false;
+  var c = g.checks[field];
+  return c && !c.passed && !c.skipped;
+}
+
+// ── Format duration ────────────────────────────────────────────────────────
+function formatDuration(minutes) {
+  if (!minutes || minutes < 1) return '';
+  var h = Math.floor(minutes / 60);
+  var m = minutes % 60;
+  if (h > 0 && m > 0) return h + 'h ' + m + 'm';
+  if (h > 0) return h + 'h';
+  return m + 'm';
+}
+
+// ── Build flag card HTML ───────────────────────────────────────────────────
+function buildFlagCard(g, resolved) {
+  var barColor = resolved ? '#90a4ae'
+               : g.checks_flag === 'FLAGGED' ? '#c62828' : '#ef6c00';
+
+  var loc = [g.county, (g.region && g.region !== g.county ? g.region : null)].filter(Boolean).join(', ');
+
+  var durationMins = g.consecutive_flags ? Math.round((g.consecutive_flags - 1) * 15) : 0;
+  var timeStr = '';
+  if (g.first_flagged_at) {
+    timeStr = fmtTime(g.first_flagged_at);
+    if (g.consecutive_flags === 1) {
+      timeStr += ' · new this run';
+    } else if (durationMins > 0) {
+      timeStr += ' · active ' + formatDuration(durationMins);
+    }
+  } else if (g.consecutive_flags === 1) {
+    timeStr = 'new this run';
+  }
+
+  // Check pills (only failing)
+  var checkDefs = [
+    ['hard_threshold','fail-threshold','THR'],
+    ['temporal','fail-temporal','SPIKE'],
+    ['nearest_neighbour','fail-nn','SPATIAL'],
+    ['persistent_zero','fail-zero','ZERO'],
+    ['radar','fail-radar','RADAR'],
+    ['drip_leak','fail-drip','DRIP'],
+    ['accum_anomaly','fail-accum','ACCUM']
+  ];
+  var pillsHtml = '';
+  var checks = g.checks || {};
+  checkDefs.forEach(function(d){
+    var c = checks[d[0]];
+    if (c && !c.passed && !c.skipped) {
+      pillsHtml += '<span class="pill ' + d[1] + '">' + d[2] + '</span>';
+    }
+  });
+  if (g.llm_verdict) {
+    var llmCls = {SUSPECT:'llm-suspect',UNCERTAIN:'llm-uncertain',GENUINE:'llm-genuine'};
+    pillsHtml += '<span class="pill ' + (llmCls[g.llm_verdict]||'') + '">' + g.llm_verdict + '</span>';
+  }
+
+  var resolvedClass = resolved ? ' flag-resolved' : '';
+  var id = escHtml(g.station_id);
+
+  return '<div class="flag-card' + resolvedClass + '" id="flagcard-' + id + '" onclick="selectGauge(\'' + id + '\')">' +
+    '<div class="flag-bar" style="background:' + barColor + '"></div>' +
+    '<div class="flag-content">' +
+      '<div class="flag-top">' +
+        '<span class="flag-name">' + escHtml(g.name) + '</span>' +
+        '<span class="flag-value">' + g.latest_value_mm.toFixed(1) + '<span class="flag-unit"> mm</span></span>' +
+      '</div>' +
+      (loc ? '<div class="flag-loc">' + escHtml(loc) + '</div>' : '') +
+      (timeStr ? '<div class="flag-time">' + timeStr + '</div>' : '') +
+      (pillsHtml ? '<div class="flag-pills">' + pillsHtml + '</div>' : '') +
+    '</div>' +
+  '</div>';
+}
+
+// ── Render flag log ────────────────────────────────────────────────────────
+function renderFlagLog() {
+  var listEl = document.getElementById('flagList');
+  flagCardById = {};
+
+  // Filter active gauges
+  var visible = logGauges.filter(function(g) {
+    if (filterLevel && g.checks_flag !== filterLevel) return false;
+    if (filterChecks.size > 0) {
+      var anyMatch = false;
+      filterChecks.forEach(function(key){ if (gaugeFailsCheck(g, key)) anyMatch = true; });
+      if (!anyMatch) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  if (logSortBy === 'longest') {
+    visible.sort(function(a, b){ return (b.consecutive_flags||0) - (a.consecutive_flags||0); });
+  } else {
+    // newest first by first_flagged_at, fall back to consecutive_flags desc
+    visible.sort(function(a, b){
+      var ta = a.first_flagged_at ? new Date(a.first_flagged_at).getTime() : 0;
+      var tb = b.first_flagged_at ? new Date(b.first_flagged_at).getTime() : 0;
+      if (tb !== ta) return tb - ta;
+      return (b.consecutive_flags||0) - (a.consecutive_flags||0);
+    });
+  }
 
   var html = '';
-  sorted.forEach(function(g) {
-    var ac = g.accums || {};
-    var checkPills = buildCheckPills(g.checks);
-    var llmPill    = buildLlmPill(g.llm_verdict);
-    var loc = [g.county, (g.region !== g.county ? g.region : null)].filter(Boolean).join(', ');
-    var since = g.consecutive_flags > 1 ? Math.round(g.consecutive_flags*15)+'m' : 'New';
-    var borderColor = g.checks_flag === 'FLAGGED' ? '#c62828' : '#ef6c00';
-    html += '<tr class="tbl-row" id="tblrow-' + g.station_id + '" style="border-left:3px solid '+borderColor+'">' +
-      '<td><div class="tbl-name">' + escHtml(g.name) + '</div>' +
-        (loc ? '<div class="tbl-loc">' + escHtml(loc) + '</div>' : '') + '</td>' +
-      '<td class="tbl-num">' + g.latest_value_mm.toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
-      '<td class="tbl-num">' + (ac['1hr']||0).toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
-      '<td class="tbl-num">' + (ac['24hr']||0).toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
-      '<td class="checks-cell">' + checkPills + '</td>' +
-      '<td>' + llmPill + '</td>' +
-      '<td class="tbl-num">' + since + '</td>' +
-      '</tr>';
+
+  if (!visible.length) {
+    html = '<div class="flag-empty">No suspicious gauges detected</div>';
+  } else {
+    visible.forEach(function(g) {
+      html += buildFlagCard(g, false);
+    });
+  }
+
+  // Resolved section
+  if (logResolved.length > 0) {
+    var arrow = showResolved ? '&#9660;' : '&#9654;';
+    html += '<button class="resolved-toggle" onclick="toggleResolved()">' +
+      arrow + ' ' + logResolved.length + ' recently resolved' +
+    '</button>';
+    if (showResolved) {
+      logResolved.forEach(function(g) {
+        html += buildFlagCard(g, true);
+      });
+    }
+  }
+
+  listEl.innerHTML = html;
+
+  // Register card references for selectGauge
+  visible.forEach(function(g) {
+    var el = document.getElementById('flagcard-' + g.station_id);
+    if (el) flagCardById[g.station_id] = el;
   });
-  tbody.innerHTML = html;
+  if (showResolved) {
+    logResolved.forEach(function(g) {
+      var el = document.getElementById('flagcard-' + g.station_id);
+      if (el) flagCardById[g.station_id] = el;
+    });
+  }
 
-  sorted.forEach(function(g) {
-    var el = document.getElementById('tblrow-'+g.station_id);
-    if (el) { tblRowById[g.station_id] = el; el.addEventListener('click', function(){ selectGauge(g.station_id); }); }
-  });
-}
-
-function buildCheckPills(checks) {
-  if (!checks) return '';
-  var out = '';
-  var defs = [['hard_threshold','fail-threshold','THR'],['temporal','fail-temporal','SPIKE'],
-    ['nearest_neighbour','fail-nn','SPATIAL'],['persistent_zero','fail-zero','ZERO'],
-    ['radar','fail-radar','RADAR'],['drip_leak','fail-drip','DRIP'],['accum_anomaly','fail-accum','ACCUM']];
-  defs.forEach(function(d){ var c=checks[d[0]]; if(c&&!c.passed&&!c.skipped) out+='<span class="pill '+d[1]+'">'+d[2]+'</span>'; });
-  return out;
-}
-
-function buildLlmPill(v) {
-  if (!v) return '';
-  var cls = {SUSPECT:'llm-suspect',UNCERTAIN:'llm-uncertain',GENUINE:'llm-genuine'};
-  var lbl = {SUSPECT:'SUSPECT',UNCERTAIN:'UNCERTAIN',GENUINE:'GENUINE'};
-  return '<span class="pill '+(cls[v]||'')+'">'+( lbl[v]||v)+'</span>';
+  // Restore selected highlight
+  if (selectedId && flagCardById[selectedId]) {
+    flagCardById[selectedId].classList.add('selected');
+  }
 }
 
 // ── Select gauge (highlights all panels) ───────────────────────────────────
 function selectGauge(id) {
-  if (selectedId && tblRowById[selectedId]) tblRowById[selectedId].classList.remove('selected');
+  if (selectedId && flagCardById[selectedId]) flagCardById[selectedId].classList.remove('selected');
   selectedId = id;
-  if (tblRowById[id]) { tblRowById[id].classList.add('selected'); tblRowById[id].scrollIntoView({behavior:'smooth',block:'nearest'}); }
+  if (flagCardById[id]) {
+    flagCardById[id].classList.add('selected');
+    flagCardById[id].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 
   var m = mMidById[id] || mLeftById[id];
   if (m) {
     var ll = m.getLatLng ? m.getLatLng() : L.latLng(m._latlng);
     var z  = Math.min(mapMid.getZoom(), 8);
-    mapLeft.flyTo(ll, z, {duration:0.5});
-    mapMid.flyTo(ll, z, {duration:0.5});
+    mapLeft.flyTo(ll, z, { duration: 0.5 });
+    mapMid.flyTo(ll, z, { duration: 0.5 });
     if (mMidById[id] && mMidById[id].openPopup) setTimeout(function(){ mMidById[id].openPopup(); }, 550);
   }
 }
