@@ -138,6 +138,8 @@ body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa;
 .pill.fail-nn        { background:#fce4ec; color:#880e4f; }
 .pill.fail-zero      { background:#e3f2fd; color:#01579b; }
 .pill.fail-radar     { background:#f3e5f5; color:#4a148c; }
+.pill.fail-drip      { background:#e8eaf6; color:#283593; }
+.pill.fail-accum     { background:#fbe9e7; color:#bf360c; }
 .pill.llm-suspect    { background:#ffebee; color:#b71c1c; border:1px solid #ef9a9a; }
 .pill.llm-uncertain  { background:#fff8e1; color:#f57f17; border:1px solid #ffe082; }
 .pill.llm-genuine    { background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7; }
@@ -437,6 +439,8 @@ function buildCheckPills(checks) {
     ['nearest_neighbour', 'fail-nn',        'SPATIAL'],
     ['persistent_zero',   'fail-zero',      'ZERO'],
     ['radar',             'fail-radar',     'RADAR'],
+    ['drip_leak',         'fail-drip',      'DRIP'],
+    ['accum_anomaly',     'fail-accum',     'ACCUM'],
   ];
   defs.forEach(function(d) {
     var c = checks[d[0]];
@@ -484,11 +488,13 @@ function renderMapMarkers() {
 function buildPopup(g) {
   var checks = g.checks || {};
   var checkRows = [
-    ['Hard threshold', checks.hard_threshold],
-    ['Temporal spike', checks.temporal],
-    ['Nearest neighbour', checks.nearest_neighbour],
-    ['Persistent zero', checks.persistent_zero],
-    ['Radar conformity', checks.radar],
+    ['Hard threshold',      checks.hard_threshold],
+    ['Temporal spike',      checks.temporal],
+    ['Nearest neighbour',   checks.nearest_neighbour],
+    ['Persistent zero',     checks.persistent_zero],
+    ['Radar conformity',    checks.radar],
+    ['Drip/leak pattern',   checks.drip_leak],
+    ['24hr accumulation',   checks.accum_anomaly],
   ];
   var tableRows = checkRows.map(function(pair) {
     var label = pair[0];
