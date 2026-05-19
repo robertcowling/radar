@@ -763,8 +763,14 @@ def main():
         llm_from_run  = None
 
         if should_call_llm(checks, latest_value):
-            if consecutive_flags == 1:
-                # Build enriched neighbour info for the prompt
+            prev_verdict = prev.get("llm_verdict") if prev else None
+            if prev_verdict:
+                # Carry forward existing assessment (avoid repeated LLM calls for stuck hardware)
+                llm_verdict   = prev_verdict
+                llm_reasoning = prev.get("llm_reasoning")
+                llm_from_run  = prev.get("llm_from_run")
+            else:
+                # First flag, or prior call failed — call LLM now
                 neighbours_info = []
                 for nbr_id, dist_km, nbr_name, nbr_val in neighbours[:3]:
                     h24 = get_station_slots(days, nbr_id, latest_date_str,
@@ -782,11 +788,6 @@ def main():
                 )
                 if llm_verdict:
                     llm_from_run = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-            else:
-                # Carry forward previous LLM assessment
-                llm_verdict   = prev.get("llm_verdict")
-                llm_reasoning = prev.get("llm_reasoning")
-                llm_from_run  = prev.get("llm_from_run")
 
         checks_flag = "FLAGGED" if any_check_failed(checks) else "ELEVATED"
         summary_entry['f'] = checks_flag
