@@ -19,120 +19,89 @@ body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa;
   background:white;
   border-radius:12px;
   box-shadow:0 8px 24px rgba(0,0,0,0.12),0 2px 6px rgba(0,0,0,0.08);
-  transition:box-shadow 0.3s ease;
 }
-.surface:hover { box-shadow:0 12px 32px rgba(0,0,0,0.16),0 4px 10px rgba(0,0,0,0.1); }
 
-/* ── Side panel ─────────────────────────────────────────────────────────── */
-.side-panel {
-  position:fixed;
-  top:20px;
-  right:20px;
-  width:560px;
-  max-height:calc(100vh - 120px);
-  z-index:1000;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
+/* ── Left panel (gauge display) ──────────────────────────────────────────── */
+.left-panel {
+  position:fixed; top:20px; left:10px;
+  width:270px; max-height:calc(100vh - 120px);
+  z-index:1000; display:flex; flex-direction:column; overflow:hidden;
   border-radius:12px;
 }
 
+/* ── Right panel (QC flags) ───────────────────────────────────────────────── */
+.right-panel {
+  position:fixed; top:20px; right:10px;
+  width:380px; max-height:calc(100vh - 120px);
+  z-index:1000; display:flex; flex-direction:column; overflow:hidden;
+  border-radius:12px;
+}
+
+/* ── Shared panel header ──────────────────────────────────────────────────── */
 .panel-header {
-  background:#1e293b;
-  color:#f1f5f9;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:13px 20px;
-  border-radius:12px 12px 0 0;
-  flex-shrink:0;
+  background:#1e293b; color:#f1f5f9;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:11px 16px; border-radius:12px 12px 0 0; flex-shrink:0;
 }
-.panel-header-title { font-size:14px; font-weight:600; letter-spacing:0.3px; }
-.panel-header-right { display:flex; align-items:center; gap:10px; }
+.panel-header-title { font-size:13px; font-weight:600; letter-spacing:0.3px; }
+.panel-header-right { display:flex; align-items:center; gap:8px; }
+.header-counts { font-size:10px; color:#94a3b8; white-space:nowrap; }
+.updated-at { font-size:10px; color:#64748b; padding:4px 14px; background:#f8f9fa; flex-shrink:0; }
 
-.header-counts {
-  font-size:11px; color:#94a3b8; white-space:nowrap;
-}
-.count-badge {
-  display:inline-flex; align-items:center; gap:4px;
-  background:rgba(255,255,255,0.12); border-radius:10px;
-  padding:2px 8px; font-size:11px; font-weight:600; color:#f1f5f9;
-}
-.count-badge.red   { background:#c62828; }
-.count-badge.orange { background:#ef6c00; }
-.count-badge.green  { background:#2e7d32; }
-.count-badge.blue   { background:#1a73e8; }
-
-.refresh-btn {
-  background:rgba(255,255,255,0.12); border:none; cursor:pointer;
-  border-radius:8px; padding:5px 10px;
-  font-size:12px; font-weight:500; color:#f1f5f9; font-family:'Roboto',sans-serif;
-  display:flex; align-items:center; gap:5px; transition:background 0.2s;
-}
-.refresh-btn:hover { background:rgba(255,255,255,0.22); }
-
-.updated-at { font-size:10px; color:#64748b; }
-
-/* ── Panel body (scrollable) ──────────────────────────────────────────────── */
+/* ── Shared panel body ────────────────────────────────────────────────────── */
 .panel-body {
   flex:1; overflow-y:auto; background:white; border-radius:0 0 12px 12px;
 }
-.panel-body::-webkit-scrollbar { width:5px; }
-.panel-body::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:3px; }
+.panel-body::-webkit-scrollbar { width:4px; }
+.panel-body::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:2px; }
 
-/* ── Section headings ──────────────────────────────────────────────────── */
-.section-label {
-  font-size:10px; font-weight:700; letter-spacing:0.6px;
-  color:#94a3b8; text-transform:uppercase;
-  padding:10px 16px 4px; margin:0;
+/* ── Left panel rows (gauge display) ─────────────────────────────────────── */
+.gl-row {
+  display:flex; align-items:center; gap:8px;
+  padding:7px 12px; border-bottom:1px solid #f1f3f4;
+  cursor:pointer; transition:background 0.1s;
 }
+.gl-row:hover { background:#f8f9fa; }
+.gl-row.selected { background:#e8f0fe; }
+.gl-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.gl-name {
+  flex:1; font-size:12px; font-weight:500; color:#1e293b;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.gl-county { font-size:10px; color:#80868b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; }
+.gl-val { font-size:13px; font-weight:700; color:#202124; flex-shrink:0; white-space:nowrap; }
+.gl-unit { font-size:10px; color:#5f6368; font-weight:400; }
+.gl-flag {
+  font-size:9px; font-weight:700; padding:1px 5px; border-radius:4px;
+  flex-shrink:0; white-space:nowrap;
+}
+.gl-flag.flagged { background:#fce4ec; color:#c62828; }
+.gl-flag.elevated { background:#fff3e0; color:#ef6c00; }
 
-/* ── Gauge rows ─────────────────────────────────────────────────────────── */
+/* ── Right panel rows (QC checks) ────────────────────────────────────────── */
 .gauge-row {
-  display:grid;
-  grid-template-columns:6px 1fr auto;
-  align-items:start;
-  gap:0 10px;
-  padding:10px 16px;
-  border-bottom:1px solid #f1f3f4;
-  cursor:pointer;
-  transition:background 0.1s;
+  display:grid; grid-template-columns:5px 1fr auto;
+  align-items:start; gap:0 10px; padding:10px 14px;
+  border-bottom:1px solid #f1f3f4; cursor:pointer; transition:background 0.1s;
 }
 .gauge-row:hover { background:#f8f9fa; }
 .gauge-row.selected { background:#e8f0fe; }
-
-.gauge-bar {
-  width:6px; border-radius:3px; margin-top:3px; align-self:stretch; min-height:30px;
-}
-
+.gauge-bar { width:5px; border-radius:3px; margin-top:3px; align-self:stretch; min-height:28px; }
 .gauge-main { min-width:0; }
-.gauge-name {
-  font-size:13px; font-weight:600; color:#1e293b;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-.gauge-location {
-  font-size:11px; color:#64748b; margin-top:1px;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-.gauge-checks { display:flex; gap:4px; flex-wrap:wrap; margin-top:5px; }
-.gauge-llm {
-  font-size:11px; color:#475569; line-height:1.45; margin-top:5px;
-  font-style:italic;
-}
-
-.gauge-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
-.gauge-value { font-size:16px; font-weight:700; color:#1e293b; }
+.gauge-name { font-size:12px; font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gauge-location { font-size:10px; color:#64748b; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gauge-checks { display:flex; gap:3px; flex-wrap:wrap; margin-top:4px; }
+.gauge-llm { font-size:11px; color:#475569; line-height:1.4; margin-top:4px; font-style:italic; }
+.gauge-right { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0; }
+.gauge-value { font-size:15px; font-weight:700; color:#1e293b; }
 .gauge-unit  { font-size:10px; color:#64748b; font-weight:500; }
-.runs-badge  {
-  font-size:10px; font-weight:600; padding:2px 7px; border-radius:8px;
-  background:#f1f3f4; color:#5f6368; white-space:nowrap;
-}
+.runs-badge  { font-size:10px; font-weight:600; padding:2px 6px; border-radius:7px; background:#f1f3f4; color:#5f6368; white-space:nowrap; }
 
-/* Check pills */
-.pill {
-  font-size:10px; font-weight:700; padding:2px 6px; border-radius:5px;
-  white-space:nowrap;
-}
+/* ── Section headings ─────────────────────────────────────────────────────── */
+.section-label { font-size:10px; font-weight:700; letter-spacing:0.6px; color:#94a3b8; text-transform:uppercase; padding:8px 14px 3px; margin:0; }
+
+/* ── Check pills ──────────────────────────────────────────────────────────── */
+.pill { font-size:10px; font-weight:700; padding:2px 5px; border-radius:4px; white-space:nowrap; }
 .pill.fail-threshold { background:#fce4ec; color:#c62828; }
 .pill.fail-temporal  { background:#fff3e0; color:#e65100; }
 .pill.fail-nn        { background:#fce4ec; color:#880e4f; }
@@ -145,173 +114,120 @@ body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa;
 .pill.llm-genuine    { background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7; }
 
 /* ── Persistent section toggle ───────────────────────────────────────────── */
-.persistent-toggle {
-  display:flex; align-items:center; gap:8px;
-  padding:8px 16px; cursor:pointer; border-bottom:1px solid #f1f3f4;
-  font-size:12px; font-weight:600; color:#5f6368;
-  user-select:none;
-}
+.persistent-toggle { display:flex; align-items:center; gap:8px; padding:8px 14px; cursor:pointer; border-bottom:1px solid #f1f3f4; font-size:12px; font-weight:600; color:#5f6368; user-select:none; }
 .persistent-toggle:hover { background:#f8f9fa; }
 .toggle-arrow { font-size:11px; transition:transform 0.2s; }
 .toggle-arrow.open { transform:rotate(90deg); }
 .persistent-body { display:none; }
 .persistent-body.open { display:block; }
-
-/* Muted style for persistent rows */
 .gauge-row.persistent { opacity:0.65; }
-.gauge-row.persistent:hover { opacity:0.85; background:#f8f9fa; }
+.gauge-row.persistent:hover { opacity:0.85; }
 
-/* ── All-clear card ──────────────────────────────────────────────────────── */
-.all-clear {
-  margin:24px 20px; padding:20px 16px; border-radius:10px;
-  background:#e8f5e9; border:1px solid #a5d6a7; text-align:center;
-}
+/* ── All-clear / status cards ─────────────────────────────────────────────── */
+.all-clear { margin:20px 14px; padding:18px 14px; border-radius:10px; background:#e8f5e9; border:1px solid #a5d6a7; text-align:center; }
 .all-clear svg { margin-bottom:6px; }
-.all-clear p { margin:0; font-size:13px; font-weight:500; color:#2e7d32; }
+.all-clear p { margin:0; font-size:12px; font-weight:500; color:#2e7d32; }
 .all-clear .sub { font-size:11px; color:#4caf50; margin-top:4px; }
-
-/* ── Status cards (loading / error) ─────────────────────────────────────── */
-.status-card {
-  margin:24px 20px; padding:16px; border-radius:10px;
-  font-size:13px; text-align:center;
-}
+.status-card { margin:20px 14px; padding:14px; border-radius:10px; font-size:12px; text-align:center; }
 .status-card.loading { background:#e3f2fd; color:#01579b; }
 .status-card.error   { background:#ffebee; color:#b71c1c; }
-.status-card.no-data { background:#f3e5f5; color:#4a148c; }
 
-/* ── Popup ─────────────────────────────────────────────────────────────── */
-.qc-popup { font-family:'Roboto',sans-serif; font-size:12px; min-width:240px; max-width:300px; }
-.qc-popup h4 { margin:0 0 6px; font-size:13px; color:#1e293b; }
-.qc-popup .pop-value { font-size:18px; font-weight:700; color:#1e293b; margin-bottom:8px; }
+/* ── Tooltip (matching rain gauge page) ───────────────────────────────────── */
+.leaflet-tooltip.gauge-tip {
+  font-family:'Roboto',sans-serif; font-size:12px;
+  padding:5px 9px; border-radius:6px; border:none;
+  box-shadow:0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* ── Popup ────────────────────────────────────────────────────────────────── */
+.qc-popup { font-family:'Roboto',sans-serif; font-size:12px; min-width:220px; max-width:280px; }
+.qc-popup h4 { margin:0 0 5px; font-size:13px; color:#1e293b; }
+.qc-popup .pop-value { font-size:17px; font-weight:700; color:#1e293b; margin-bottom:7px; }
 .qc-popup table { width:100%; border-collapse:collapse; font-size:11px; }
-.qc-popup td { padding:3px 0; }
-.qc-popup td:first-child { color:#64748b; width:48%; }
+.qc-popup td { padding:2px 0; }
+.qc-popup td:first-child { color:#64748b; width:50%; }
 .qc-popup td:last-child { font-weight:500; }
-.qc-popup .pop-llm { margin-top:8px; font-size:11px; color:#475569; font-style:italic; line-height:1.5; }
-.qc-popup .pop-sep { border:none; border-top:1px solid #f1f3f4; margin:8px 0; }
+.qc-popup .pop-llm { margin-top:7px; font-size:11px; color:#475569; font-style:italic; line-height:1.5; }
+.qc-popup .pop-sep { border:none; border-top:1px solid #f1f3f4; margin:7px 0; }
 
 /* ── Player panel ─────────────────────────────────────────────────────────── */
 .player-panel {
   position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
   padding:12px 20px; z-index:1000;
-  width:95%; max-width:950px;
-  display:flex; align-items:center; gap:16px;
+  width:95%; max-width:1050px;
+  display:flex; align-items:center; gap:14px;
 }
-
-/* ── Control group ────────────────────────────────────────────────────────── */
 .control-group { display:flex; flex-direction:column; gap:3px; flex-shrink:0; }
 .control-label { font-size:10px; font-weight:600; color:#3c4043; letter-spacing:0.5px; padding-left:8px; }
 
-/* ── Timeline container ───────────────────────────────────────────────────── */
-.timeline-container {
-  position:relative; flex-grow:1; height:48px; display:flex; align-items:center;
-}
+/* ── Timeline ─────────────────────────────────────────────────────────────── */
+.timeline-container { position:relative; flex-grow:1; height:48px; display:flex; align-items:center; }
 .timeline-track {
   position:absolute; top:50%; left:9px; right:9px; height:6px; margin-top:-3px;
   background:#e8eaed; border-radius:3px; z-index:1; pointer-events:none;
 }
-#timeSlider {
-  -webkit-appearance:none; appearance:none;
-  width:100%; background:transparent; z-index:3; margin:0; position:relative;
-}
+#timeSlider { -webkit-appearance:none; appearance:none; width:100%; background:transparent; z-index:3; margin:0; position:relative; }
 #timeSlider:focus { outline:none; }
 #timeSlider::-webkit-slider-runnable-track { height:6px; background:transparent; border-radius:3px; }
 #timeSlider::-webkit-slider-thumb {
   -webkit-appearance:none; height:18px; width:18px;
   border-radius:50%; background:#202124; border:2px solid white; cursor:pointer;
-  margin-top:-6px; box-shadow:0 2px 4px rgba(0,0,0,0.3);
-  transition:transform 0.1s, box-shadow 0.1s;
+  margin-top:-6px; box-shadow:0 2px 4px rgba(0,0,0,0.3); transition:transform 0.1s,box-shadow 0.1s;
 }
-#timeSlider::-webkit-slider-thumb:hover {
-  transform:scale(1.15); box-shadow:0 3px 6px rgba(0,0,0,0.4);
-}
-#timeSlider::-moz-range-thumb {
-  width:18px; height:18px; border-radius:50%; background:#202124;
-  cursor:pointer; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);
-}
+#timeSlider::-webkit-slider-thumb:hover { transform:scale(1.15); box-shadow:0 3px 6px rgba(0,0,0,0.4); }
+#timeSlider::-moz-range-thumb { width:18px; height:18px; border-radius:50%; background:#202124; cursor:pointer; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3); }
 
 /* ── Player date/time display ─────────────────────────────────────────────── */
-#playerDateTime {
-  flex-shrink:0; width:105px; display:flex; flex-direction:column; gap:1px;
-  padding-left:12px; border-left:1px solid #e8eaed; overflow:hidden;
-}
+#playerDateTime { flex-shrink:0; width:105px; display:flex; flex-direction:column; gap:1px; padding-left:12px; border-left:1px solid #e8eaed; overflow:hidden; }
 #playerDateLine { font-size:10px; color:#3c4043; font-weight:500; white-space:nowrap; overflow:hidden; }
 #playerTimeLine { font-size:16px; font-weight:700; color:#202124; white-space:nowrap; overflow:hidden; }
 
-/* ── Seg control (pill toggles) ───────────────────────────────────────────── */
-.seg-control {
-  background:#f1f3f4; border-radius:24px; padding:3px;
-  display:flex; align-items:center;
-}
+/* ── Seg control ──────────────────────────────────────────────────────────── */
+.seg-control { background:#f1f3f4; border-radius:24px; padding:3px; display:flex; align-items:center; }
 .seg-btn {
-  padding:7px 16px; border-radius:21px; border:none;
+  padding:7px 14px; border-radius:21px; border:none;
   background:transparent; font-size:13px; font-weight:500; color:#3c4043;
-  cursor:pointer; font-family:'Roboto',sans-serif; transition:background 0.15s;
-  white-space:nowrap;
+  cursor:pointer; font-family:'Roboto',sans-serif; transition:background 0.15s; white-space:nowrap;
 }
 .seg-btn:hover { background:rgba(0,0,0,0.06); }
-.seg-btn.seg-active {
-  background:white; box-shadow:0 1px 3px rgba(0,0,0,0.18);
-}
+.seg-btn.seg-active { background:white; box-shadow:0 1px 3px rgba(0,0,0,0.18); }
+.seg-btn:disabled { opacity:0.3; cursor:not-allowed; }
 
 /* ── Pill selects ─────────────────────────────────────────────────────────── */
 select {
   -webkit-appearance:none; appearance:none;
   background:#f1f3f4; border:none;
-  padding:9px 34px 9px 16px; border-radius:24px;
+  padding:9px 32px 9px 14px; border-radius:24px;
   font-family:'Roboto',sans-serif; font-size:13px; color:#202124; font-weight:500;
   cursor:pointer; outline:none;
   background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat:no-repeat; background-position:right 14px center;
+  background-repeat:no-repeat; background-position:right 12px center;
   transition:background 0.2s; width:100%;
 }
 select:hover { background-color:#e8eaed; }
 
 /* ── Info icon button ─────────────────────────────────────────────────────── */
-.info-icon-btn {
-  background:transparent; border:none; cursor:pointer; padding:0;
-  display:flex; align-items:center; color:#94a3b8; transition:color 0.2s;
-  flex-shrink:0;
-}
+.info-icon-btn { background:transparent; border:none; cursor:pointer; padding:0; display:flex; align-items:center; color:#94a3b8; transition:color 0.2s; flex-shrink:0; }
 .info-icon-btn:hover { color:#5f6368; }
 
 /* ── Info modal ───────────────────────────────────────────────────────────── */
-.info-modal-backdrop {
-  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
-  z-index:2000; align-items:center; justify-content:center;
-}
+.info-modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:2000; align-items:center; justify-content:center; }
 .info-modal-backdrop.open { display:flex; }
-.info-modal {
-  background:white; border-radius:14px; padding:22px 24px 18px;
-  max-width:380px; width:calc(100vw - 32px);
-  box-shadow:0 20px 60px rgba(0,0,0,0.3); position:relative;
-  max-height:calc(100vh - 40px); overflow-y:auto;
-}
+.info-modal { background:white; border-radius:14px; padding:22px 24px 18px; max-width:380px; width:calc(100vw - 32px); box-shadow:0 20px 60px rgba(0,0,0,0.3); position:relative; max-height:calc(100vh - 40px); overflow-y:auto; }
 .info-modal::-webkit-scrollbar { width:5px; }
 .info-modal::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:3px; }
-.info-modal h3 {
-  margin:0 0 14px; font-size:13px; font-weight:700; color:#1e293b;
-  display:flex; align-items:center; gap:8px;
-}
+.info-modal h3 { margin:0 0 14px; font-size:13px; font-weight:700; color:#1e293b; display:flex; align-items:center; gap:8px; }
 .info-modal ul { list-style:none; margin:0; padding:0; }
-.info-modal li {
-  font-size:12px; color:#475569; line-height:1.6;
-  padding:7px 0; border-bottom:1px solid #f1f5f9;
-}
+.info-modal li { font-size:12px; color:#475569; line-height:1.6; padding:7px 0; border-bottom:1px solid #f1f5f9; }
 .info-modal li:last-child { border-bottom:none; }
-.info-modal-close {
-  position:absolute; top:14px; right:16px;
-  background:transparent; border:none; cursor:pointer;
-  font-size:18px; color:#94a3b8;
-}
+.info-modal-close { position:absolute; top:14px; right:16px; background:transparent; border:none; cursor:pointer; font-size:18px; color:#94a3b8; }
 .info-modal-close:hover { color:#5f6368; }
 
-/* ── Mobile ──────────────────────────────────────────────────────────────── */
-@media (max-width:768px) {
-  .side-panel { top:auto; bottom:120px; left:0; right:0; width:100%; max-height:50vh; border-radius:12px 12px 0 0; }
-  .panel-header { border-radius:12px 12px 0 0; }
-  .panel-body { border-radius:0; }
-  .player-panel { bottom:10px; padding:10px 14px; gap:10px; }
+/* ── Mobile ───────────────────────────────────────────────────────────────── */
+@media (max-width:900px) {
+  .left-panel  { display:none; }
+  .right-panel { width:calc(100% - 20px); right:10px; left:10px; }
+  .player-panel { bottom:10px; padding:10px 14px; gap:8px; }
   #playerDateTime { display:none; }
 }
 </style>
@@ -320,23 +236,30 @@ select:hover { background-color:#e8eaed; }
 
 <div id="map"></div>
 
-<div class="side-panel surface" id="sidePanel">
+<!-- Left panel: gauge display -->
+<div class="left-panel surface" id="gaugePanel">
   <div class="panel-header">
-    <span class="panel-header-title">Gauge QC</span>
-    <div class="panel-header-right">
-      <span id="headerCounts" class="header-counts">—</span>
-      <button class="refresh-btn" onclick="loadResults(null)">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
-        Refresh
-      </button>
-    </div>
+    <span class="panel-header-title">Gauges</span>
+    <span id="gaugeSubtitle" class="header-counts">—</span>
   </div>
-  <div class="updated-at" id="updatedAt" style="padding:4px 16px;background:#f8f9fa;font-size:10px;color:#94a3b8;flex-shrink:0;"></div>
+  <div class="panel-body" id="gaugePanelBody">
+    <div class="status-card loading">Loading…</div>
+  </div>
+</div>
+
+<!-- Right panel: QC flags -->
+<div class="right-panel surface" id="qcPanel">
+  <div class="panel-header">
+    <span class="panel-header-title">QC Flags</span>
+    <span id="headerCounts" class="header-counts">—</span>
+  </div>
+  <div class="updated-at" id="updatedAt"></div>
   <div class="panel-body" id="panelBody">
     <div class="status-card loading">Loading QC results…</div>
   </div>
 </div>
 
+<!-- Info modal -->
 <div id="infoModalBackdrop" class="info-modal-backdrop" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="info-modal">
     <button class="info-modal-close" onclick="toggleInfoModal()">&times;</button>
@@ -346,11 +269,11 @@ select:hover { background-color:#e8eaed; }
     </h3>
     <ul>
       <li><strong>THRESHOLD</strong> — single 15-min reading ≥ 25 mm (suspicious) or ≥ 50 mm (physically impossible for the UK).</li>
-      <li><strong>SPIKE</strong> — isolated peak ≥ 8× the preceding 1¾ hr median, or a sudden jump from zero above 5 mm.</li>
+      <li><strong>SPIKE</strong> — isolated peak ≥ 8× the preceding 1¾ hr median, or sudden jump from zero above 5 mm.</li>
       <li><strong>SPATIAL</strong> — high reading (≥ 8 mm) when all stations within 20 km show near-zero.</li>
       <li><strong>ZERO</strong> — gauge stuck at 0 for 6+ hrs while neighbours and/or radar confirm active rainfall.</li>
       <li><strong>RADAR</strong> — reading far exceeds the Met Office radar QPE at the same location (ratio &gt; 15×).</li>
-      <li><strong>DRIP</strong> — near-constant low-amplitude tips over 3+ hrs: classic blocked or leaking tipping bucket signature.</li>
+      <li><strong>DRIP</strong> — near-constant low-amplitude tips over 3+ hrs: classic blocked or leaking tipping bucket.</li>
       <li><strong>ACCUM</strong> — 24 hr gauge total ≥ 3.5× the mean of its nearest neighbours.</li>
       <li><strong>LLM review</strong> — AI independently assesses the first flagged run when ≥ 2 checks fail or reading ≥ 20 mm. Verdict: GENUINE, UNCERTAIN, or SUSPECT.</li>
       <li><strong style="color:#ef6c00">🟠 ELEVATED</strong> — 1 check failed.&nbsp;&nbsp;<strong style="color:#c62828">🔴 FLAGGED</strong> — 2 or more checks failed.</li>
@@ -358,10 +281,31 @@ select:hover { background-color:#e8eaed; }
   </div>
 </div>
 
+<!-- Player panel -->
 <div class="player-panel surface">
   <div class="control-group">
     <span class="control-label">Navigate</span>
-    <a href="/" style="color:#1a73e8; font-size:13px; font-weight:500; text-decoration:none; padding:7px 0; white-space:nowrap;">← Radar</a>
+    <a href="/" style="color:#1a73e8;font-size:13px;font-weight:500;text-decoration:none;padding:7px 0;white-space:nowrap;">← Radar</a>
+  </div>
+
+  <div class="control-group">
+    <span class="control-label">Period</span>
+    <select id="periodSelect" onchange="onPeriodChange(this.value)">
+      <option value="mm">15 min</option>
+      <option value="1hr" selected>1 Hour</option>
+      <option value="3hr">3 Hours</option>
+      <option value="6hr">6 Hours</option>
+      <option value="12hr">12 Hours</option>
+      <option value="24hr">24 Hours</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <span class="control-label">Flags</span>
+    <div class="seg-control">
+      <button class="seg-btn" id="prevFlagBtn" onclick="navFlagged(-1)" title="Previous flagged gauge">◀</button>
+      <button class="seg-btn" id="nextFlagBtn" onclick="navFlagged(1)"  title="Next flagged gauge">▶</button>
+    </div>
   </div>
 
   <div class="control-group">
@@ -409,15 +353,31 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
   subdomains: 'abcd', maxZoom: 18
 }).addTo(map);
 
-var greyLayer  = L.layerGroup().addTo(map);
-var flagLayer  = L.layerGroup().addTo(map);
+var markerLayer = L.layerGroup().addTo(map);
 
+// ── State ──────────────────────────────────────────────────────────────────
 var results        = null;
 var selectedId     = null;
 var markerById     = {};
-var rowById        = {};
+var qcRowById      = {};
+var glRowById      = {};
 var persistentOpen = false;
 var manifest       = null;
+var currentPeriod  = '1hr';
+var flaggedNavIdx  = 0;
+
+// ── Accumulation colour scale (matches rain gauge page) ───────────────────
+var ACCUM_COLORS = ['#e1f5fe','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'];
+var ACCUM_BREAKS = [0.1, 0.5, 1, 2, 4, 8, 16, 32, 64];
+
+function getAccumColor(mm) {
+  if (!mm || mm < 0.05) return '#e8eaed';
+  var idx = 0;
+  for (var i = 0; i < ACCUM_BREAKS.length; i++) {
+    if (mm >= ACCUM_BREAKS[i]) idx = i; else break;
+  }
+  return ACCUM_COLORS[idx];
+}
 
 // ── Boundary layers ────────────────────────────────────────────────────────
 var regionLayer    = null;
@@ -427,48 +387,41 @@ var gridLayer      = null;
 var currentBoundary = 'catchments';
 
 var BOUNDARY_STYLES = {
-  regions:    { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
-  counties:   { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
-  catchments: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
-  grid:       { color: '#5f6368', weight: 0.7, fillOpacity: 0, className: 'region-boundary' },
+  regions:    { color:'#5f6368', weight:1.5, fillOpacity:0, className:'region-boundary' },
+  counties:   { color:'#5f6368', weight:1.0, fillOpacity:0, className:'region-boundary' },
+  catchments: { color:'#5f6368', weight:1.0, fillOpacity:0, className:'region-boundary' },
+  grid:       { color:'#5f6368', weight:0.7, fillOpacity:0, className:'region-boundary' },
 };
 var BOUNDARY_FILES = {
-  regions:    'uk_regions.geojson',
-  counties:   'uk-counties.geojson',
-  catchments: 'uk_catchments.geojson',
-  grid:       'uk_grid_20km.geojson',
+  regions:'uk_regions.geojson', counties:'uk-counties.geojson',
+  catchments:'uk_catchments.geojson', grid:'uk_grid_20km.geojson',
 };
 
 function getBoundaryLayer(name) {
-  if (name === 'regions')    return regionLayer;
-  if (name === 'counties')   return countiesLayer;
-  if (name === 'catchments') return catchmentsLayer;
-  if (name === 'grid')       return gridLayer;
+  if (name==='regions')    return regionLayer;
+  if (name==='counties')   return countiesLayer;
+  if (name==='catchments') return catchmentsLayer;
+  if (name==='grid')       return gridLayer;
   return null;
 }
 function setBoundaryLayer(name, layer) {
-  if (name === 'regions')    regionLayer    = layer;
-  if (name === 'counties')   countiesLayer  = layer;
-  if (name === 'catchments') catchmentsLayer = layer;
-  if (name === 'grid')       gridLayer      = layer;
+  if (name==='regions')    regionLayer     = layer;
+  if (name==='counties')   countiesLayer   = layer;
+  if (name==='catchments') catchmentsLayer = layer;
+  if (name==='grid')       gridLayer       = layer;
 }
-
 function loadBoundary(val) {
   if (!BOUNDARY_FILES[val]) return;
-  if (getBoundaryLayer(val)) {
-    getBoundaryLayer(val).addTo(map);
-    return;
-  }
+  if (getBoundaryLayer(val)) { getBoundaryLayer(val).addTo(map); return; }
   fetch(BOUNDARY_FILES[val])
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      var layer = L.geoJSON(data, { style: BOUNDARY_STYLES[val], interactive: false });
+      var layer = L.geoJSON(data, { style:BOUNDARY_STYLES[val], interactive:false });
       setBoundaryLayer(val, layer);
       if (currentBoundary === val) layer.addTo(map);
     })
-    .catch(function(e) { console.log('Could not load ' + val + ':', e); });
+    .catch(function(e) { console.log('Could not load '+val+':', e); });
 }
-
 function onAreaSelectChange(val) {
   ['regions','counties','catchments','grid'].forEach(function(n) {
     var l = getBoundaryLayer(n);
@@ -478,38 +431,27 @@ function onAreaSelectChange(val) {
   if (val !== 'none') loadBoundary(val);
 }
 
-// ── Colours ────────────────────────────────────────────────────────────────
-var CHECK_COLORS = {
-  FLAGGED:  '#c62828',
-  ELEVATED: '#ef6c00',
-};
-var LLM_BORDER = {
-  SUSPECT:   '#b71c1c',
-  UNCERTAIN: '#f57f17',
-  GENUINE:   '#2e7d32',
-};
-
-function gaugeColor(g) {
-  if (g.checks_flag === 'FLAGGED') return '#c62828';
-  if (g.llm_verdict === 'SUSPECT')  return '#1a73e8';
-  return '#ef6c00';
+// ── Period selector ────────────────────────────────────────────────────────
+function onPeriodChange(val) {
+  currentPeriod = val;
+  renderGaugePanel();
+  renderMapMarkers();
 }
 
-// ── Load stations for grey background dots ─────────────────────────────────
-function loadGreyDots() {
-  fetch('rain/stations.json?_cb=' + Date.now())
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      var stations = d.stations || {};
-      Object.values(stations).forEach(function(s) {
-        L.circleMarker([s.lat, s.lon], {
-          radius: 2.5, color: 'transparent',
-          fillColor: '#90a4ae', fillOpacity: 0.35,
-          interactive: false,
-        }).addTo(greyLayer);
-      });
-    })
-    .catch(function() {}); // grey dots are decorative; failure is OK
+function getVal(s) {
+  if (currentPeriod === 'mm') return s.mm || 0;
+  return (s.ac && s.ac[currentPeriod]) || 0;
+}
+
+// ── Flagged gauge navigation ───────────────────────────────────────────────
+function navFlagged(dir) {
+  if (!results) return;
+  var flagged = (results.gauges || []).filter(function(g) {
+    return g.checks_flag === 'FLAGGED' || g.checks_flag === 'ELEVATED';
+  });
+  if (!flagged.length) return;
+  flaggedNavIdx = (flaggedNavIdx + dir + flagged.length) % flagged.length;
+  selectGauge(flagged[flaggedNavIdx].station_id);
 }
 
 // ── Manifest + timeline ────────────────────────────────────────────────────
@@ -521,7 +463,7 @@ function loadManifest() {
         manifest = data;
         buildSlider();
       }
-      loadResults(null); // always load latest on boot
+      loadResults(null);
     })
     .catch(function() { loadResults(null); });
 }
@@ -532,9 +474,9 @@ function buildSlider() {
   var slider = document.getElementById('timeSlider');
   slider.min   = 0;
   slider.max   = n - 1;
-  slider.value = n - 1; // start at newest (live)
+  slider.value = n - 1;
   document.getElementById('timelineContainer').style.display = '';
-  updateSliderState(n - 1);
+  updateSliderLabel(n - 1, null);
 }
 
 function runTsForSlider(val) {
@@ -545,125 +487,133 @@ function runTsForSlider(val) {
 
 function onSliderInput() {
   var val = parseInt(document.getElementById('timeSlider').value);
-  updateSliderState(val);
+  var isLive = (val === parseInt(document.getElementById('timeSlider').max));
+  document.getElementById('liveBtn').style.display = isLive ? 'none' : '';
   var ts = runTsForSlider(val);
   loadResults(ts);
 }
 
 function goLive() {
-  if (!manifest) return;
   var slider = document.getElementById('timeSlider');
   slider.value = slider.max;
-  onSliderInput();
+  document.getElementById('liveBtn').style.display = 'none';
+  loadResults(null);
 }
 
-function updateSliderState(val) {
-  if (!manifest) return;
-  var n      = manifest.runs.length;
-  var isLive = (val === n - 1);
-  var ts     = runTsForSlider(val);
-
-  var parts = fmtRunTsParts(ts);
-  document.getElementById('playerDateLine').textContent = isLive ? 'LIVE' : parts.date;
-  document.getElementById('playerTimeLine').textContent = isLive ? '—' : parts.time;
-
-  var liveBtn = document.getElementById('liveBtn');
-  liveBtn.style.display = isLive ? 'none' : '';
-
-  // Update catchment button active state (visual only, doesn't change toggle)
-  document.getElementById('catchmentBtn').classList.toggle('seg-active', catchmentVisible);
-
-  // Tint side panel header when viewing history
-  document.getElementById('sidePanel').style.borderTop =
-    isLive ? '' : '3px solid #ef6c00';
+function updateSliderLabel(val, readingTime) {
+  var dateEl = document.getElementById('playerDateLine');
+  var timeEl = document.getElementById('playerTimeLine');
+  if (readingTime) {
+    try {
+      var d = new Date(readingTime);
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      dateEl.textContent = d.getUTCDate() + ' ' + months[d.getUTCMonth()];
+      timeEl.textContent = pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes());
+    } catch(e) {
+      dateEl.textContent = '—';
+      timeEl.textContent = readingTime;
+    }
+  } else {
+    var isLive = manifest ? (val === manifest.runs.length - 1) : true;
+    dateEl.textContent = isLive ? 'LIVE' : '—';
+    timeEl.textContent = '—';
+  }
 }
 
-function fmtRunTsParts(ts) {
-  if (!ts) return { date: 'LIVE', time: '—' };
-  var m = ts.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})Z$/);
-  if (!m) return { date: ts, time: '' };
-  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  var date = m[3] + ' ' + months[+m[2] - 1];
-  var time = m[4] + ':' + m[5] + ' UTC';
-  return { date: date, time: time };
-}
-
-function fmtRunTs(ts) {
-  if (!ts) return 'LIVE';
-  var m = ts.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})Z$/);
-  if (!m) return ts;
-  var d = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5]));
-  return d.toUTCString().replace(' GMT','').slice(5);
-}
-
-// ── Load QC results ────────────────────────────────────────────────────────
+// ── Load results ───────────────────────────────────────────────────────────
 function loadResults(runTs) {
-  var url = (runTs && manifest)
+  var url = runTs
     ? cdnUrl('gaugecheck/runs/' + runTs + '.json')
     : cdnUrl('gaugecheck/results.json');
+
   fetch(url)
-    .then(function(r) {
-      if (r.status === 404) throw { status: 404 };
-      if (!r.ok) throw { status: r.status };
-      return r.json();
-    })
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function(data) {
       results = data;
-      renderPanel();
+      updateSliderLabel(
+        parseInt(document.getElementById('timeSlider').value),
+        data.latest_reading_time
+      );
+      renderQcPanel();
+      renderGaugePanel();
       renderMapMarkers();
     })
-    .catch(function(e) {
-      if (e && e.status === 404) {
-        showStatus('no-data',
-          'QC data not yet available.<br>The workflow has not run yet, or results are being generated.');
-      } else {
-        showStatus('error', 'Could not load QC results. Check your connection and try refreshing.');
-      }
+    .catch(function() {
+      showStatus('error', 'Could not load QC results.');
+      document.getElementById('gaugePanelBody').innerHTML = '<div class="status-card error">Load failed</div>';
       document.getElementById('headerCounts').textContent = '—';
       document.getElementById('updatedAt').textContent = '';
     });
 }
 
-
-function showStatus(cls, msg) {
-  document.getElementById('panelBody').innerHTML =
-    '<div class="status-card ' + cls + '">' + msg + '</div>';
-}
-
-// ── Render panel ───────────────────────────────────────────────────────────
-function renderPanel() {
-  if (!results) return;
-
-  var gauges = results.gauges || [];
-  var flagged = gauges.filter(function(g) { return g.checks_flag === 'FLAGGED'; });
-  var elevated = gauges.filter(function(g) { return g.checks_flag === 'ELEVATED'; });
-  var llmSuspect = gauges.filter(function(g) { return g.llm_verdict === 'SUSPECT'; });
-
-  // Header counts
-  var countParts = [];
-  if (flagged.length)    countParts.push(flagged.length + ' flagged');
-  if (elevated.length)   countParts.push(elevated.length + ' elevated');
-  if (llmSuspect.length) countParts.push(llmSuspect.length + ' LLM suspect');
-  document.getElementById('headerCounts').textContent =
-    countParts.length ? countParts.join(' · ') : 'All clear';
-
-  // Updated at
-  if (results.generated_at) {
-    var d = new Date(results.generated_at);
-    document.getElementById('updatedAt').textContent =
-      'Updated ' + d.toUTCString().replace(':00 GMT', ' UTC').slice(5);
+// ── Left panel: gauge display ──────────────────────────────────────────────
+function renderGaugePanel() {
+  var summary = (results && results.summary) || [];
+  var body = document.getElementById('gaugePanelBody');
+  if (!summary.length) {
+    body.innerHTML = '<div class="status-card loading">Loading…</div>';
+    return;
   }
 
-  // Build body
+  var sorted = summary.slice().sort(function(a, b) { return getVal(b) - getVal(a); });
+  var periodLabel = {'mm':'15-min','1hr':'1 hr','3hr':'3 hr','6hr':'6 hr','12hr':'12 hr','24hr':'24 hr'}[currentPeriod] || currentPeriod;
+  document.getElementById('gaugeSubtitle').textContent = summary.length + ' · ' + periodLabel;
+
+  var html = '';
+  glRowById = {};
+  sorted.forEach(function(s) {
+    var val   = getVal(s);
+    var color = getAccumColor(val);
+    var flagHtml = '';
+    if (s.f === 'FLAGGED')   flagHtml = '<span class="gl-flag flagged">FLAG</span>';
+    else if (s.f === 'ELEVATED') flagHtml = '<span class="gl-flag elevated">ELEV</span>';
+    html += '<div class="gl-row" id="gl-' + s.id + '">' +
+      '<div class="gl-dot" style="background:' + color + '"></div>' +
+      '<div class="gl-name">' + escHtml(s.n) + '</div>' +
+      flagHtml +
+      '<div class="gl-val">' + val.toFixed(1) + '<span class="gl-unit"> mm</span></div>' +
+      '</div>';
+  });
+
+  body.innerHTML = html;
+
+  sorted.forEach(function(s) {
+    var el = document.getElementById('gl-' + s.id);
+    if (el) {
+      glRowById[s.id] = el;
+      el.addEventListener('click', function() { selectGauge(s.id); });
+    }
+  });
+}
+
+// ── Right panel: QC flags ──────────────────────────────────────────────────
+function renderQcPanel() {
+  if (!results) return;
+  var gauges   = results.gauges || [];
+  var flagged  = gauges.filter(function(g) { return g.checks_flag === 'FLAGGED'; });
+  var elevated = gauges.filter(function(g) { return g.checks_flag === 'ELEVATED'; });
+
+  var countParts = [];
+  if (flagged.length)  countParts.push(flagged.length + ' flagged');
+  if (elevated.length) countParts.push(elevated.length + ' elevated');
+  document.getElementById('headerCounts').textContent = countParts.length ? countParts.join(' · ') : 'All clear';
+
+  if (results.latest_reading_time) {
+    var d = new Date(results.latest_reading_time);
+    document.getElementById('updatedAt').textContent =
+      'Data at ' + pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes()) + ' UTC  ·  ' +
+      (results.total_checked || 0) + ' stations';
+  }
+
   var newFlags        = gauges.filter(function(g) { return g.consecutive_flags === 1; });
   var recentFlags     = gauges.filter(function(g) { return g.consecutive_flags >= 2 && g.consecutive_flags <= 3; });
   var persistentFlags = gauges.filter(function(g) { return g.consecutive_flags >= 4; });
 
   var html = '';
-  rowById = {};
+  qcRowById = {};
 
   if (gauges.length === 0) {
-    html += '<div class="all-clear">' +
+    html = '<div class="all-clear">' +
       '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' +
       '<p>No suspicious gauges detected</p>' +
       '<p class="sub">Checked ' + (results.total_checked || 0) + ' active stations</p>' +
@@ -671,74 +621,53 @@ function renderPanel() {
   } else {
     if (newFlags.length) {
       html += '<p class="section-label">New flags</p>';
-      newFlags.forEach(function(g) { html += buildRow(g, false); });
+      newFlags.forEach(function(g) { html += buildQcRow(g, false); });
     }
     if (recentFlags.length) {
-      html += '<p class="section-label">Recent (30–45 min)</p>';
-      recentFlags.forEach(function(g) { html += buildRow(g, false); });
+      html += '<p class="section-label">Recent</p>';
+      recentFlags.forEach(function(g) { html += buildQcRow(g, false); });
     }
     if (persistentFlags.length) {
-      var hrs = Math.round(
-        persistentFlags.reduce(function(mx, g) { return Math.max(mx, g.consecutive_flags); }, 0) * 15 / 60
-      );
+      var hrs = Math.round(persistentFlags.reduce(function(mx,g){ return Math.max(mx,g.consecutive_flags); },0)*15/60);
       html += '<div class="persistent-toggle" onclick="togglePersistent()" id="persToggle">' +
         '<span class="toggle-arrow" id="persArrow">▶</span>' +
-        '<span>Persistent issues (' + persistentFlags.length + ' gauge' +
-        (persistentFlags.length > 1 ? 's' : '') + ') · longest ' + hrs + 'h+</span>' +
-        '</div>';
+        '<span>Persistent (' + persistentFlags.length + ') · longest ' + hrs + 'h+</span></div>';
       html += '<div class="persistent-body" id="persBody">';
-      persistentFlags.forEach(function(g) { html += buildRow(g, true); });
+      persistentFlags.forEach(function(g) { html += buildQcRow(g, true); });
       html += '</div>';
     }
   }
 
   document.getElementById('panelBody').innerHTML = html;
-
-  // Attach click handlers
   gauges.forEach(function(g) {
-    var el = document.getElementById('row-' + g.station_id);
+    var el = document.getElementById('qcrow-' + g.station_id);
     if (el) {
-      rowById[g.station_id] = el;
+      qcRowById[g.station_id] = el;
       el.addEventListener('click', function() { selectGauge(g.station_id); });
     }
   });
 }
 
-function buildRow(g, persistent) {
-  var color = gaugeColor(g);
+function buildQcRow(g, persistent) {
+  var color = g.checks_flag === 'FLAGGED' ? '#c62828' : '#ef6c00';
   var checkPills = buildCheckPills(g.checks);
   var llmPill = buildLlmPill(g.llm_verdict);
-
-  var locationStr = '';
-  if (g.county) locationStr = g.county;
-  if (g.region && g.region !== g.county) locationStr += (locationStr ? ', ' : '') + g.region;
-  if (!locationStr) locationStr = g.lat.toFixed(3) + '°N ' + Math.abs(g.lon).toFixed(3) + '°' + (g.lon < 0 ? 'W' : 'E');
-
-  var runsStr = g.consecutive_flags > 1
-    ? (g.consecutive_flags * 15) + ' min'
-    : 'New';
-
-  var llmHtml = '';
-  if (g.llm_reasoning) {
-    var snippet = g.llm_reasoning.length > 140
-      ? g.llm_reasoning.slice(0, 137) + '…'
-      : g.llm_reasoning;
-    llmHtml = '<div class="gauge-llm">' + escHtml(snippet) + '</div>';
-  } else if (g.llm_verdict === null && g.checks_flag !== 'ELEVATED') {
-    llmHtml = '<div class="gauge-llm" style="color:#94a3b8;">LLM assessment pending API key</div>';
-  }
-
-  return '<div class="gauge-row' + (persistent ? ' persistent' : '') + '" id="row-' + g.station_id + '">' +
-    '<div class="gauge-bar" style="background:' + color + ';"></div>' +
+  var loc = g.county || '';
+  if (g.region && g.region !== g.county) loc += (loc ? ', ' : '') + g.region;
+  var runsStr = g.consecutive_flags > 1 ? (g.consecutive_flags * 15) + ' min' : 'New';
+  var llmHtml = g.llm_reasoning
+    ? '<div class="gauge-llm">' + escHtml(g.llm_reasoning.length > 120 ? g.llm_reasoning.slice(0,117)+'…' : g.llm_reasoning) + '</div>'
+    : '';
+  return '<div class="gauge-row' + (persistent ? ' persistent' : '') + '" id="qcrow-' + g.station_id + '">' +
+    '<div class="gauge-bar" style="background:' + color + '"></div>' +
     '<div class="gauge-main">' +
       '<div class="gauge-name">' + escHtml(g.name) + '</div>' +
-      '<div class="gauge-location">' + escHtml(locationStr) + '</div>' +
+      (loc ? '<div class="gauge-location">' + escHtml(loc) + '</div>' : '') +
       '<div class="gauge-checks">' + checkPills + llmPill + '</div>' +
       llmHtml +
     '</div>' +
     '<div class="gauge-right">' +
-      '<div><span class="gauge-value">' + g.latest_value_mm.toFixed(1) + '</span>' +
-        '<span class="gauge-unit"> mm</span></div>' +
+      '<div><span class="gauge-value">' + g.latest_value_mm.toFixed(1) + '</span><span class="gauge-unit"> mm</span></div>' +
       '<div class="runs-badge">' + runsStr + '</div>' +
     '</div>' +
     '</div>';
@@ -748,162 +677,164 @@ function buildCheckPills(checks) {
   if (!checks) return '';
   var pills = '';
   var defs = [
-    ['hard_threshold',    'fail-threshold', 'THRESHOLD'],
-    ['temporal',          'fail-temporal',  'SPIKE'],
-    ['nearest_neighbour', 'fail-nn',        'SPATIAL'],
-    ['persistent_zero',   'fail-zero',      'ZERO'],
-    ['radar',             'fail-radar',     'RADAR'],
-    ['drip_leak',         'fail-drip',      'DRIP'],
-    ['accum_anomaly',     'fail-accum',     'ACCUM'],
+    ['hard_threshold','fail-threshold','THRESHOLD'],
+    ['temporal','fail-temporal','SPIKE'],
+    ['nearest_neighbour','fail-nn','SPATIAL'],
+    ['persistent_zero','fail-zero','ZERO'],
+    ['radar','fail-radar','RADAR'],
+    ['drip_leak','fail-drip','DRIP'],
+    ['accum_anomaly','fail-accum','ACCUM'],
   ];
   defs.forEach(function(d) {
     var c = checks[d[0]];
-    if (c && !c.passed && !c.skipped) {
-      pills += '<span class="pill ' + d[1] + '">' + d[2] + '</span>';
-    }
+    if (c && !c.passed && !c.skipped) pills += '<span class="pill ' + d[1] + '">' + d[2] + '</span>';
   });
   return pills;
 }
 
 function buildLlmPill(verdict) {
   if (!verdict) return '';
-  var cls = { SUSPECT: 'llm-suspect', UNCERTAIN: 'llm-uncertain', GENUINE: 'llm-genuine' };
-  var label = { SUSPECT: 'LLM: SUSPECT', UNCERTAIN: 'LLM: UNCERTAIN', GENUINE: 'LLM: GENUINE' };
-  return '<span class="pill ' + (cls[verdict] || '') + '">' + (label[verdict] || verdict) + '</span>';
+  var cls   = { SUSPECT:'llm-suspect', UNCERTAIN:'llm-uncertain', GENUINE:'llm-genuine' };
+  var label = { SUSPECT:'LLM: SUSPECT', UNCERTAIN:'LLM: UNCERTAIN', GENUINE:'LLM: GENUINE' };
+  return '<span class="pill ' + (cls[verdict]||'') + '">' + (label[verdict]||verdict) + '</span>';
 }
 
 function togglePersistent() {
   persistentOpen = !persistentOpen;
   var body  = document.getElementById('persBody');
   var arrow = document.getElementById('persArrow');
-  if (body) body.classList.toggle('open', persistentOpen);
+  if (body)  body.classList.toggle('open', persistentOpen);
   if (arrow) arrow.classList.toggle('open', persistentOpen);
 }
 
 // ── Map markers ────────────────────────────────────────────────────────────
 function renderMapMarkers() {
-  flagLayer.clearLayers();
+  markerLayer.clearLayers();
   markerById = {};
-  if (!results) return;
-  var gauges = results.gauges || [];
-  gauges.forEach(function(g) {
-    var color   = gaugeColor(g);
-    var opacity = g.consecutive_flags >= 4 ? 0.55 : 0.9;
-    var m = L.circleMarker([g.lat, g.lon], {
-      radius: 9, color: 'white', weight: 1.5,
-      fillColor: color, fillOpacity: opacity,
+  var summary = (results && results.summary) || [];
+  var flagMap = {};
+  (results && results.gauges || []).forEach(function(g) { flagMap[g.station_id] = g; });
+
+  summary.forEach(function(s) {
+    var val      = getVal(s);
+    var isFlagged = !!s.f;
+    var fillColor = isFlagged
+      ? (s.f === 'FLAGGED' ? '#c62828' : '#ef6c00')
+      : getAccumColor(val);
+    var radius    = isFlagged ? 8 : 5;
+    var weight    = isFlagged ? 1.5 : 0.5;
+    var outColor  = isFlagged ? 'white' : 'rgba(0,0,0,0.15)';
+
+    var m = L.circleMarker([s.lat, s.lon], {
+      radius: radius, color: outColor, weight: weight,
+      fillColor: fillColor, fillOpacity: isFlagged ? 0.9 : 0.7,
     });
-    m.bindPopup(buildPopup(g), { maxWidth: 320, minWidth: 240 });
-    m.addTo(flagLayer);
-    markerById[g.station_id] = m;
+
+    var tipCounty = s.c ? '<br><span style="font-size:10px;color:#80868b">' + escHtml(s.c) + '</span>' : '';
+    var periodLabel = {'mm':'15-min','1hr':'1hr','3hr':'3hr','6hr':'6hr','12hr':'12hr','24hr':'24hr'}[currentPeriod];
+    m.bindTooltip(
+      '<b>' + escHtml(s.n) + '</b>' + tipCounty + '<br>' + periodLabel + ': ' + val.toFixed(1) + ' mm',
+      { direction:'top', className:'gauge-tip', offset:[0, -radius - 2] }
+    );
+
+    if (flagMap[s.id]) {
+      m.bindPopup(buildPopup(flagMap[s.id]), { maxWidth:300, minWidth:220 });
+    }
+
+    m.on('click', (function(sid) { return function() { selectGauge(sid); }; })(s.id));
+    m.addTo(markerLayer);
+    markerById[s.id] = m;
   });
 }
 
 function buildPopup(g) {
   var checks = g.checks || {};
   var checkRows = [
-    ['Hard threshold',      checks.hard_threshold],
-    ['Temporal spike',      checks.temporal],
-    ['Nearest neighbour',   checks.nearest_neighbour],
-    ['Persistent zero',     checks.persistent_zero],
-    ['Radar conformity',    checks.radar],
-    ['Drip/leak pattern',   checks.drip_leak],
-    ['24hr accumulation',   checks.accum_anomaly],
+    ['Hard threshold',    checks.hard_threshold],
+    ['Temporal spike',    checks.temporal],
+    ['Nearest neighbour', checks.nearest_neighbour],
+    ['Persistent zero',   checks.persistent_zero],
+    ['Radar conformity',  checks.radar],
+    ['Drip/leak',         checks.drip_leak],
+    ['24hr accumulation', checks.accum_anomaly],
   ];
   var tableRows = checkRows.map(function(pair) {
-    var label = pair[0];
-    var c = pair[1];
-    if (!c) return '';
+    var c = pair[1]; if (!c) return '';
     var icon, detail = '';
-    if (c.skipped) {
-      icon   = '<span style="color:#94a3b8">—</span>';
-      detail = '<span style="color:#94a3b8;font-size:10px;">(' + c.skipped + ')</span>';
-    } else if (!c.passed) {
-      icon   = '<span style="color:#c62828;font-weight:700">✗</span>';
-      detail = formatCheckDetail(c);
-    } else {
-      icon   = '<span style="color:#2e7d32">✓</span>';
-    }
-    return '<tr><td>' + label + '</td><td>' + icon + ' ' + detail + '</td></tr>';
+    if (c.skipped)     { icon = '<span style="color:#94a3b8">—</span>'; }
+    else if (!c.passed){ icon = '<span style="color:#c62828;font-weight:700">✗</span>'; detail = formatCheckDetail(c); }
+    else               { icon = '<span style="color:#2e7d32">✓</span>'; }
+    return '<tr><td>' + pair[0] + '</td><td>' + icon + ' ' + detail + '</td></tr>';
   }).join('');
-
   var llmHtml = '';
   if (g.llm_verdict) {
-    llmHtml = '<hr class="pop-sep">' +
-      '<div class="pop-llm"><strong>LLM: ' + g.llm_verdict + '</strong><br>' +
+    llmHtml = '<hr class="pop-sep"><div class="pop-llm"><strong>LLM: ' + g.llm_verdict + '</strong><br>' +
       (g.llm_reasoning ? escHtml(g.llm_reasoning) : '') + '</div>';
-    if (g.llm_from_run) {
-      llmHtml += '<div style="font-size:10px;color:#94a3b8;margin-top:4px;">LLM assessed ' + fmtTime(g.llm_from_run) + '</div>';
-    }
   }
-
-  var locationStr = g.county ? (g.county + (g.region ? ', ' + g.region : '')) : '';
-
+  var loc = g.county ? (g.county + (g.region ? ', '+g.region : '')) : '';
   return '<div class="qc-popup">' +
-    '<h4>' + escHtml(g.name) + (locationStr ? '<br><span style="font-size:11px;color:#64748b;">' + escHtml(locationStr) + '</span>' : '') + '</h4>' +
+    '<h4>' + escHtml(g.name) + (loc ? '<br><span style="font-size:11px;color:#64748b;">' + escHtml(loc) + '</span>' : '') + '</h4>' +
     '<div class="pop-value">' + g.latest_value_mm.toFixed(1) + ' mm <span style="font-size:12px;font-weight:400;color:#64748b;">at ' + fmtTime(g.latest_slot_time) + '</span></div>' +
-    '<table>' + tableRows + '</table>' +
-    llmHtml +
-    (g.consecutive_flags > 1 ? '<div style="font-size:10px;color:#94a3b8;margin-top:6px;">Flagged ' + g.consecutive_flags + ' consecutive runs (' + Math.round(g.consecutive_flags * 15) + ' min)</div>' : '') +
+    '<table>' + tableRows + '</table>' + llmHtml +
+    (g.consecutive_flags > 1 ? '<div style="font-size:10px;color:#94a3b8;margin-top:5px;">Flagged ' + g.consecutive_flags + ' runs (' + Math.round(g.consecutive_flags*15) + ' min)</div>' : '') +
     '</div>';
 }
 
 function formatCheckDetail(c) {
-  if (!c) return '';
   var parts = [];
-  if (c.spike_ratio)         parts.push(c.spike_ratio + '× spike');
-  if (c.preceding_median_mm !== undefined) parts.push('median ' + c.preceding_median_mm + ' mm');
-  if (c.nn_mean_mm !== undefined) parts.push('nbr mean ' + c.nn_mean_mm + ' mm');
-  if (c.radar_mm_15min !== undefined) parts.push('radar ' + c.radar_mm_15min + ' mm');
-  if (c.ratio !== undefined) parts.push('ratio ' + c.ratio + '×');
-  if (c.active_neighbours !== undefined) parts.push(c.active_neighbours + ' active nbrs');
-  if (c.value_mm !== undefined && !parts.length) parts.push(c.value_mm + ' mm');
+  if (c.spike_ratio)               parts.push(c.spike_ratio + '× spike');
+  if (c.preceding_median_mm !== undefined) parts.push('median '+c.preceding_median_mm+' mm');
+  if (c.nn_mean_mm !== undefined)  parts.push('nbr mean '+c.nn_mean_mm+' mm');
+  if (c.radar_mm_15min !== undefined) parts.push('radar '+c.radar_mm_15min+' mm');
+  if (c.ratio !== undefined)       parts.push('ratio '+c.ratio+'×');
+  if (c.active_neighbours !== undefined) parts.push(c.active_neighbours+' active nbrs');
+  if (c.value_mm !== undefined && !parts.length) parts.push(c.value_mm+' mm');
   return '<span style="font-size:10px;color:#5f6368;">' + parts.join(', ') + '</span>';
 }
 
 // ── Select / fly to gauge ──────────────────────────────────────────────────
 function selectGauge(stationId) {
-  // Deselect previous
-  if (selectedId && rowById[selectedId]) {
-    rowById[selectedId].classList.remove('selected');
+  if (selectedId) {
+    if (qcRowById[selectedId]) qcRowById[selectedId].classList.remove('selected');
+    if (glRowById[selectedId]) glRowById[selectedId].classList.remove('selected');
   }
   selectedId = stationId;
-  if (rowById[stationId]) rowById[stationId].classList.add('selected');
+  if (qcRowById[stationId]) {
+    qcRowById[stationId].classList.add('selected');
+    qcRowById[stationId].scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+  if (glRowById[stationId]) {
+    glRowById[stationId].classList.add('selected');
+    glRowById[stationId].scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
   var m = markerById[stationId];
   if (m) {
-    map.flyTo(m.getLatLng(), Math.min(map.getZoom(), 8), { duration: 0.5 });
+    map.flyTo(m.getLatLng(), Math.min(map.getZoom(), 8), { duration:0.5 });
     setTimeout(function() { m.openPopup(); }, 550);
   }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+function showStatus(cls, msg) {
+  document.getElementById('panelBody').innerHTML = '<div class="status-card ' + cls + '">' + msg + '</div>';
+}
 function escHtml(s) {
   if (!s) return '';
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
 function fmtTime(iso) {
   if (!iso) return '—';
-  try {
-    var d = new Date(iso);
-    return d.toUTCString().slice(17, 22) + ' UTC';
-  } catch(e) { return iso; }
+  try { var d = new Date(iso); return pad2(d.getUTCHours())+':'+pad2(d.getUTCMinutes())+' UTC'; } catch(e) { return iso; }
 }
+function pad2(n) { return n < 10 ? '0'+n : ''+n; }
 
-// ── Info modal ──────────────────────────────────────────────────────────────
-function toggleInfoModal() {
-  document.getElementById('infoModalBackdrop').classList.toggle('open');
-}
+// ── Info modal ─────────────────────────────────────────────────────────────
+function toggleInfoModal() { document.getElementById('infoModalBackdrop').classList.toggle('open'); }
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') document.getElementById('infoModalBackdrop').classList.remove('open');
 });
 
-// ── Boot ────────────────────────────────────────────────────────────────────
-loadGreyDots();
+// ── Boot ───────────────────────────────────────────────────────────────────
 loadManifest();
 loadBoundary('catchments');
 </script>

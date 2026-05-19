@@ -92,7 +92,7 @@ R2_PUBLIC_URL    = os.environ.get("R2_PUBLIC_BASE_URL", "").rstrip("/")
 USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, R2_BUCKET, R2_PUBLIC_URL])
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-OPENAI_MODEL   = os.environ.get("OPENAI_MODEL", "gpt-4o")
+OPENAI_MODEL   = os.environ.get("OPENAI_MODEL", "gpt-4.1")
 
 
 # ── R2 helpers ─────────────────────────────────────────────────────────────────
@@ -678,8 +678,9 @@ def main():
 
     # QC loop
     print(f"Running QC on {len(latest_readings)} active stations...")
-    flagged_gauges = []
-    total_checked  = 0
+    flagged_gauges    = []
+    station_summaries = []
+    total_checked     = 0
 
     for station_id, latest_value in latest_readings.items():
         if station_id not in stations:
@@ -698,6 +699,18 @@ def main():
                                           latest_slot, DRIP_WINDOW_SLOTS)
         history_96    = get_station_slots(days, station_id, latest_date_str,
                                           latest_slot, 96)
+
+        # Accumulation totals (always computed for every station)
+        def _ac(n): return round(sum(v for v in history_96[-n:] if v is not None and v >= 0), 1)
+        accums = {'1hr': _ac(4), '3hr': _ac(12), '6hr': _ac(24), '12hr': _ac(48), '24hr': _ac(96)}
+
+        # Station summary entry (flag filled in below if flagged)
+        summary_entry = {
+            'id': station_id, 'n': s.get('name', station_id),
+            'lat': round(lat, 5), 'lon': round(lon, 5),
+            'c': s.get('county'), 'mm': round(latest_value, 2), 'ac': accums,
+        }
+        station_summaries.append(summary_entry)
 
         # Neighbours and their 6-hr means (for persistent-zero check)
         neighbours = find_neighbours(station_id, stations, latest_readings)
@@ -776,6 +789,7 @@ def main():
                 llm_from_run  = prev.get("llm_from_run")
 
         checks_flag = "FLAGGED" if any_check_failed(checks) else "ELEVATED"
+        summary_entry['f'] = checks_flag
 
         flagged_gauges.append({
             "station_id":        station_id,
@@ -784,6 +798,7 @@ def main():
             "region":            s.get("region"),
             "lat":               round(lat, 5),
             "lon":               round(lon, 5),
+            "accums":            accums,
             "latest_value_mm":   round(latest_value, 2),
             "latest_slot_time":  latest_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "checks_flag":       checks_flag,
@@ -810,6 +825,7 @@ def main():
         "flagged_by_checks":  flagged_by_checks,
         "flagged_by_llm":     flagged_by_llm,
         "gauges":             flagged_gauges,
+        "summary":            station_summaries,
     }
 
     print(
@@ -821,8 +837,10 @@ def main():
     print("Uploading gaugecheck/results.json...")
     r2_put_json(r2, OUTPUT_KEY, result)
 
-    # Archive timestamped snapshot and update manifest
-    run_ts = now.strftime("%Y%m%dT%H%MZ")
+    # Archive timestamped snapshot and update manifest.
+    # Round to 15-min floor so 10-min runs overwrite the same slot.
+    slot_mins = (now.hour * 60 + now.minute) // 15 * 15
+    run_ts = now.strftime("%Y%m%d") + "T{:02d}{:02d}Z".format(slot_mins // 60, slot_mins % 60)
     r2_put_json(r2, RUNS_KEY_TPL.format(ts=run_ts), result)
     manifest = r2_get_json(r2, MANIFEST_KEY, {"runs": []})
     runs_list = manifest.get("runs", [])
