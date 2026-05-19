@@ -555,7 +555,7 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
         resp   = client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=300,
+            max_completion_tokens=300,
             temperature=0.2,
         )
         text = resp.choices[0].message.content.strip()
