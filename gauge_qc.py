@@ -2,22 +2,29 @@
 """
 gauge_qc.py — Real-time rain gauge quality control.
 
-Runs 5 deterministic checks on the most recent 15-min readings, then
+Runs 7 deterministic checks on the most recent 15-min readings, then
 optionally calls an LLM (OpenAI) for an independent assessment of any
 suspicious or high-value gauges.  Results are uploaded to R2 as
 gaugecheck/results.json.
 
 Checks (UK-calibrated thresholds):
-  1. Hard threshold  — single slot ≥25 mm suspicious, ≥50 mm impossible
-  2. Temporal spike  — isolated peak vs preceding 7-slot median
-  3. Nearest neighbour — high reading when all stations within 20 km report near-zero
-  4. Persistent zero — gauge stuck at 0 while neighbours/radar show rain
-  5. Radar conformity — gauge far exceeds radar QPE at same location
+  1. Hard threshold      — single slot ≥25 mm suspicious, ≥50 mm impossible
+  2. Temporal spike      — isolated peak vs preceding 7-slot median
+  3. Nearest neighbour   — high reading when all 20 km neighbours report near-zero
+  4. Persistent zero     — gauge stuck at 0 while neighbours/radar show rain
+  5. Radar conformity    — gauge far exceeds radar QPE at same location
+  6. Drip/leak pattern   — near-constant low-amplitude tips over ≥3 hrs
+                           (classic blocked/leaking tipping bucket signature)
+  7. Accumulation anomaly — 24 hr gauge total >> neighbour mean
+                            (catches persistent systematic over-recording)
 
-LLM is called when a gauge fails any check OR reads ≥20 mm, but only on
+LLM is called when ≥2 checks fail OR the reading is ≥20 mm, but only on
 the first run it is flagged (consecutive_flags==1) to avoid repeated API
 calls for persistently broken hardware.  Gracefully skipped if
 OPENAI_API_KEY is absent or the openai package is not installed.
+
+Future enhancement: station-specific adaptive thresholds derived from
+historical climatology would replace the fixed hard thresholds above.
 """
 
 import io, json, math, os, sys, tempfile
@@ -53,6 +60,17 @@ RADAR_RATIO_LIMIT    = 15.0   # gauge/radar ratio above which it is suspicious
 RADAR_MAX_EST_MM     = 0.5    # radar 5 km estimate must be below this to flag
 
 LLM_TRIGGER_MM       = 20.0   # also call LLM if reading ≥ this (even if checks pass)
+LLM_MIN_FAILURES     = 2      # require this many check failures to trigger LLM (avoids calls during real rain)
+
+DRIP_WINDOW_SLOTS    = 12     # 3 hr look-back for drip/leak pattern check
+DRIP_MIN_NONZERO     = 8      # minimum non-zero slots to apply pattern check
+DRIP_MAX_MEAN_MM     = 1.5    # pattern only meaningful at low intensities
+DRIP_MAX_CV          = 0.25   # coefficient of variation below this = suspiciously uniform
+
+ACCUM_WINDOW_SLOTS   = 96     # 24 hr accumulation window
+ACCUM_MIN_TOTAL_MM   = 15.0   # ignore gauges with trivially low totals
+ACCUM_RATIO_LIMIT    = 3.5    # gauge 24 hr total / neighbour mean above this = anomalous
+ACCUM_MIN_NBHRS      = 3      # minimum neighbours with data to apply check
 
 # ── Storage keys ───────────────────────────────────────────────────────────────
 OUTPUT_KEY        = "gaugecheck/results.json"
@@ -296,6 +314,97 @@ def check_radar(value, radar_mm):
             "ratio": round(ratio, 1)}
 
 
+def check_drip_leak(history_drip):
+    """Detect a blocked or leaking tipping bucket producing near-constant small tips.
+
+    Classic signature: 8+ consecutive non-zero slots all in a tight range, at low
+    intensity — physically implausible because real rain varies considerably in rate.
+    history_drip: last DRIP_WINDOW_SLOTS values (oldest first), may contain None.
+    """
+    valid = [v for v in history_drip if v is not None and v > 0]
+    if len(valid) < DRIP_MIN_NONZERO:
+        return {"passed": True, "skipped": "insufficient_nonzero_slots"}
+    mean_val = sum(valid) / len(valid)
+    if mean_val > DRIP_MAX_MEAN_MM:
+        return {"passed": True, "skipped": "intensity_too_high_for_drip"}
+    # Coefficient of variation: std / mean
+    variance = sum((v - mean_val) ** 2 for v in valid) / len(valid)
+    std_val  = variance ** 0.5
+    cv       = std_val / max(mean_val, 0.01)
+    # Also check for perfectly identical consecutive values (stuck counter)
+    longest_identical_run = 1
+    cur_run = 1
+    for i in range(1, len(valid)):
+        if abs(valid[i] - valid[i - 1]) < 0.001:
+            cur_run += 1
+            longest_identical_run = max(longest_identical_run, cur_run)
+        else:
+            cur_run = 1
+    if cv < DRIP_MAX_CV:
+        return {
+            "passed": False,
+            "reason": "uniform_drip_pattern",
+            "nonzero_slots": len(valid),
+            "mean_mm": round(mean_val, 3),
+            "cv": round(cv, 3),
+            "longest_identical_run": longest_identical_run,
+        }
+    if longest_identical_run >= 6:
+        return {
+            "passed": False,
+            "reason": "stuck_counter",
+            "nonzero_slots": len(valid),
+            "mean_mm": round(mean_val, 3),
+            "longest_identical_run": longest_identical_run,
+        }
+    return {"passed": True, "mean_mm": round(mean_val, 3), "cv": round(cv, 3)}
+
+
+def check_accumulation_anomaly(station_id, history_96, neighbours, days,
+                               latest_date_str, latest_slot):
+    """Compare 24 hr gauge total against nearest neighbours' 24 hr totals.
+
+    A gauge accumulating far more than all its neighbours over 24 hours suggests
+    systematic over-recording (e.g., continuous drip, faulty counter).
+    """
+    gauge_total = sum(v for v in history_96 if v is not None and v >= 0)
+    if gauge_total < ACCUM_MIN_TOTAL_MM:
+        return {"passed": True, "skipped": "total_below_threshold",
+                "gauge_24hr_mm": round(gauge_total, 1)}
+
+    nbr_totals = []
+    for nbr_id, _, _, _ in neighbours:
+        h96 = get_station_slots(days, nbr_id, latest_date_str, latest_slot,
+                                ACCUM_WINDOW_SLOTS)
+        t = sum(v for v in h96 if v is not None and v >= 0)
+        if t >= 0:
+            nbr_totals.append(t)
+
+    if len(nbr_totals) < ACCUM_MIN_NBHRS:
+        return {"passed": True, "skipped": "insufficient_neighbour_data",
+                "gauge_24hr_mm": round(gauge_total, 1)}
+
+    nbr_mean = sum(nbr_totals) / len(nbr_totals)
+    if nbr_mean < 1.0:
+        return {"passed": True, "skipped": "neighbours_also_dry",
+                "gauge_24hr_mm": round(gauge_total, 1)}
+
+    ratio = gauge_total / nbr_mean
+    if ratio > ACCUM_RATIO_LIMIT:
+        return {
+            "passed": False,
+            "reason": "accumulation_far_exceeds_neighbours",
+            "gauge_24hr_mm": round(gauge_total, 1),
+            "neighbour_mean_24hr_mm": round(nbr_mean, 1),
+            "ratio": round(ratio, 1),
+            "n_neighbours": len(nbr_totals),
+        }
+    return {"passed": True,
+            "gauge_24hr_mm": round(gauge_total, 1),
+            "neighbour_mean_24hr_mm": round(nbr_mean, 1),
+            "ratio": round(ratio, 1)}
+
+
 # ── Radar H5 loading ──────────────────────────────────────────────────────────
 def build_radar_extractor(h5_path):
     """Return extract_5km(lat, lon) -> mm/15min, or None on failure."""
@@ -470,8 +579,13 @@ def any_check_failed(checks):
     )
 
 
+def count_failures(checks):
+    return sum(1 for v in checks.values()
+               if not v.get("passed", True) and not v.get("skipped"))
+
+
 def should_call_llm(checks, value):
-    return any_check_failed(checks) or value >= LLM_TRIGGER_MM
+    return count_failures(checks) >= LLM_MIN_FAILURES or value >= LLM_TRIGGER_MM
 
 
 # ── Main ────────────────────────────────────────────────────────────────────────
@@ -563,14 +677,16 @@ def main():
         lon = s["lon"]
 
         # Slot histories
-        history_7    = get_station_slots(days, station_id, latest_date_str,
-                                         latest_slot - 1, TEMPORAL_WINDOW)
+        history_7     = get_station_slots(days, station_id, latest_date_str,
+                                          latest_slot - 1, TEMPORAL_WINDOW)
         history_pzero = get_station_slots(days, station_id, latest_date_str,
                                           latest_slot, PZERO_WINDOW_SLOTS)
-        history_96   = get_station_slots(days, station_id, latest_date_str,
-                                         latest_slot, 96)
+        history_drip  = get_station_slots(days, station_id, latest_date_str,
+                                          latest_slot, DRIP_WINDOW_SLOTS)
+        history_96    = get_station_slots(days, station_id, latest_date_str,
+                                          latest_slot, 96)
 
-        # Neighbours and their 6-hr means
+        # Neighbours and their 6-hr means (for persistent-zero check)
         neighbours = find_neighbours(station_id, stations, latest_readings)
         nbr_6hr_means = []
         for nbr_id, _, _, _ in neighbours:
@@ -584,18 +700,22 @@ def main():
         # Radar estimate
         radar_mm = extract_radar(lat, lon) if extract_radar else None
 
-        # Five checks
+        # Seven checks
         checks = {
-            "hard_threshold":    check_hard_threshold(latest_value),
-            "temporal":          check_temporal(latest_value, history_7),
-            "nearest_neighbour": check_nearest_neighbour(latest_value, neighbours),
-            "persistent_zero":   check_persistent_zero(
-                                     latest_value, history_pzero,
-                                     nbr_6hr_means, radar_mm),
-            "radar":             check_radar(latest_value, radar_mm),
+            "hard_threshold":      check_hard_threshold(latest_value),
+            "temporal":            check_temporal(latest_value, history_7),
+            "nearest_neighbour":   check_nearest_neighbour(latest_value, neighbours),
+            "persistent_zero":     check_persistent_zero(
+                                       latest_value, history_pzero,
+                                       nbr_6hr_means, radar_mm),
+            "radar":               check_radar(latest_value, radar_mm),
+            "drip_leak":           check_drip_leak(history_drip),
+            "accum_anomaly":       check_accumulation_anomaly(
+                                       station_id, history_96, neighbours,
+                                       days, latest_date_str, latest_slot),
         }
 
-        # Only record this gauge if checks failed or reading is unusually high
+        # Only record this gauge if at least one check failed or reading is high
         if not any_check_failed(checks) and latest_value < LLM_TRIGGER_MM:
             continue
 
