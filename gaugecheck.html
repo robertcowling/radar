@@ -190,21 +190,146 @@ body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa;
 .qc-popup .pop-llm { margin-top:8px; font-size:11px; color:#475569; font-style:italic; line-height:1.5; }
 .qc-popup .pop-sep { border:none; border-top:1px solid #f1f3f4; margin:8px 0; }
 
-/* ── Back link ───────────────────────────────────────────────────────────── */
-.back-link {
-  position:fixed; bottom:28px; left:20px; z-index:1000;
-  background:rgba(30,41,59,0.88); color:#f1f5f9;
-  border-radius:20px; padding:6px 14px; font-size:12px; font-weight:500;
-  text-decoration:none; backdrop-filter:blur(4px);
+/* ── Timeline bar ─────────────────────────────────────────────────────────── */
+.timeline-bar {
+  position:fixed; bottom:0; left:0; right:0; height:52px; z-index:1001;
+  background:rgba(15,23,42,0.93); backdrop-filter:blur(8px);
+  border-top:1px solid rgba(255,255,255,0.08);
+  display:flex; align-items:center; gap:10px; padding:0 16px;
+}
+.tl-back {
+  color:#94a3b8; text-decoration:none; font-size:12px; font-weight:500;
+  white-space:nowrap; flex-shrink:0; padding:5px 8px; border-radius:6px;
+  transition:color 0.2s;
+}
+.tl-back:hover { color:#f1f5f9; }
+.tl-divider { width:1px; height:24px; background:rgba(255,255,255,0.15); flex-shrink:0; }
+.tl-nav {
+  color:#64748b; font-size:20px; cursor:pointer; flex-shrink:0;
+  width:24px; text-align:center; user-select:none; line-height:1;
+  transition:color 0.15s;
+}
+.tl-nav:hover { color:#f1f5f9; }
+.tl-nav.disabled { opacity:0.25; pointer-events:none; }
+.tl-slider {
+  flex:1; -webkit-appearance:none; appearance:none;
+  height:4px; border-radius:2px; background:#334155; outline:none; cursor:pointer;
+}
+.tl-slider::-webkit-slider-thumb {
+  -webkit-appearance:none; width:14px; height:14px;
+  border-radius:50%; background:#1a73e8; cursor:pointer; border:2px solid white;
+}
+.tl-label {
+  font-size:11px; color:#94a3b8; white-space:nowrap; flex-shrink:0;
+  min-width:148px; text-align:right;
+}
+.tl-live-btn {
+  background:#2e7d32; border:none; color:white; border-radius:6px;
+  padding:4px 9px; font-size:11px; font-weight:700; cursor:pointer;
+  flex-shrink:0; font-family:'Roboto',sans-serif; transition:background 0.2s;
+}
+.tl-live-btn:hover { background:#388e3c; }
+.tl-no-history { font-size:11px; color:#475569; flex:1; text-align:center; }
+
+/* ── Catchment toggle ─────────────────────────────────────────────────────── */
+.catchment-btn {
+  position:fixed; top:120px; left:10px; z-index:1000;
+  background:white; border:2px solid rgba(0,0,0,0.2); border-radius:4px;
+  padding:5px 9px; font-size:11px; font-weight:600; color:#3c4043;
+  cursor:pointer; font-family:'Roboto',sans-serif; line-height:1.4;
+  transition:background 0.15s, border-color 0.15s;
+  box-shadow:0 1px 4px rgba(0,0,0,0.15);
+}
+.catchment-btn:hover { background:#f8f9fa; }
+.catchment-btn.active { background:#e8f0fe; color:#1a73e8; border-color:#1a73e8; }
+
+/* ── Info button ──────────────────────────────────────────────────────────── */
+.info-btn {
+  background:rgba(255,255,255,0.12); border:none; cursor:pointer;
+  border-radius:8px; width:28px; height:28px;
+  font-size:14px; font-weight:700; color:#94a3b8; font-family:'Roboto',sans-serif;
+  display:flex; align-items:center; justify-content:center; transition:background 0.2s;
+  flex-shrink:0;
+}
+.info-btn:hover { background:rgba(255,255,255,0.22); color:#f1f5f9; }
+
+/* ── Info modal ──────────────────────────────────────────────────────────── */
+.modal-backdrop {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+  z-index:2000; align-items:center; justify-content:center;
+}
+.modal-backdrop.open { display:flex; }
+.modal-card {
+  background:white; border-radius:14px; width:min(600px,calc(100vw - 32px));
+  max-height:calc(100vh - 40px); overflow-y:auto;
+  box-shadow:0 24px 60px rgba(0,0,0,0.3);
+}
+.modal-card::-webkit-scrollbar { width:5px; }
+.modal-card::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:3px; }
+.modal-head {
+  background:#1e293b; color:#f1f5f9; padding:16px 20px;
+  border-radius:14px 14px 0 0;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.modal-head h3 { margin:0; font-size:14px; font-weight:600; }
+.modal-close {
+  background:rgba(255,255,255,0.12); border:none; color:#94a3b8;
+  border-radius:6px; width:26px; height:26px; font-size:16px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
   transition:background 0.2s;
 }
-.back-link:hover { background:rgba(30,41,59,1); }
+.modal-close:hover { background:rgba(255,255,255,0.22); color:#f1f5f9; }
+.modal-body { padding:20px; }
+
+/* flow diagram */
+.qc-flow { display:flex; flex-direction:column; align-items:center; gap:0; }
+.flow-node {
+  width:100%; border-radius:8px; padding:10px 14px;
+  font-size:12px; font-weight:600; text-align:center;
+}
+.flow-arrow {
+  font-size:18px; color:#94a3b8; line-height:1; margin:2px 0;
+}
+.flow-checks-box {
+  width:100%; border:1.5px solid #e2e8f0; border-radius:8px; overflow:hidden;
+  margin:2px 0;
+}
+.flow-checks-title {
+  background:#f1f5f9; font-size:11px; font-weight:700; letter-spacing:0.5px;
+  text-transform:uppercase; color:#64748b; padding:8px 14px;
+  border-bottom:1px solid #e2e8f0;
+}
+.flow-check-row {
+  display:flex; align-items:flex-start; gap:10px; padding:7px 14px;
+  border-bottom:1px solid #f8f9fa; font-size:12px;
+}
+.flow-check-row:last-child { border-bottom:none; }
+.flow-check-pill {
+  flex-shrink:0; font-size:10px; font-weight:700;
+  padding:2px 6px; border-radius:5px; margin-top:1px;
+}
+.flow-check-desc { color:#475569; line-height:1.45; }
+.flow-check-desc strong { color:#1e293b; }
+.flow-outcomes {
+  display:flex; gap:8px; width:100%; margin:2px 0;
+}
+.flow-outcome {
+  flex:1; border-radius:8px; padding:8px 10px; font-size:11px; text-align:center;
+}
+.flow-llm-box {
+  width:100%; border-radius:8px; padding:10px 14px;
+  background:#fef3c7; border:1.5px solid #f59e0b; font-size:12px;
+}
+.flow-llm-box strong { color:#92400e; }
+.flow-verdicts { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.flow-verdict { flex:1; border-radius:6px; padding:5px 8px; font-size:11px; font-weight:600; text-align:center; min-width:80px; }
 
 /* ── Mobile ──────────────────────────────────────────────────────────────── */
 @media (max-width:768px) {
-  .side-panel { top:auto; bottom:0; left:0; right:0; width:100%; max-height:55vh; border-radius:12px 12px 0 0; }
+  .side-panel { top:auto; bottom:52px; left:0; right:0; width:100%; max-height:50vh; border-radius:12px 12px 0 0; }
   .panel-header { border-radius:12px 12px 0 0; }
   .panel-body { border-radius:0; }
+  .catchment-btn { top:auto; bottom:60px; }
 }
 </style>
 </head>
@@ -217,7 +342,8 @@ body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa;
     <span class="panel-header-title">Gauge QC</span>
     <div class="panel-header-right">
       <span id="headerCounts" class="header-counts">—</span>
-      <button class="refresh-btn" onclick="loadResults()">
+      <button class="info-btn" onclick="openInfo()" title="How QC works">ⓘ</button>
+      <button class="refresh-btn" onclick="loadResults(null)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
         Refresh
       </button>
@@ -229,7 +355,92 @@ body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa;
   </div>
 </div>
 
-<a href="/" class="back-link">← Radar</a>
+<button class="catchment-btn" id="catchmentBtn" onclick="toggleCatchments()">Catchments</button>
+
+<div class="modal-backdrop" id="infoModal" onclick="closeInfo(event)">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h3>How Gauge QC Works</h3>
+      <button class="modal-close" onclick="closeInfo()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="qc-flow">
+
+        <div class="flow-node" style="background:#e0f2fe;color:#0369a1;border:1.5px solid #7dd3fc;">
+          📡 15-min rainfall reading arrives from telemetry
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-checks-box">
+          <div class="flow-checks-title">7 Automated Checks</div>
+          <div class="flow-check-row">
+            <span class="flow-check-pill fail-threshold">THRESHOLD</span>
+            <span class="flow-check-desc"><strong>Hard limit</strong> — single slot ≥ 25 mm is suspicious; ≥ 50 mm is physically impossible for the UK.</span>
+          </div>
+          <div class="flow-check-row">
+            <span class="flow-check-pill fail-temporal">SPIKE</span>
+            <span class="flow-check-desc"><strong>Temporal spike</strong> — isolated peak ≥ 8× the preceding 1h 45min median, or a jump from zero above 5 mm.</span>
+          </div>
+          <div class="flow-check-row">
+            <span class="flow-check-pill fail-nn">SPATIAL</span>
+            <span class="flow-check-desc"><strong>Nearest-neighbour</strong> — high reading (≥ 8 mm) when all stations within 20 km report near-zero.</span>
+          </div>
+          <div class="flow-check-row">
+            <span class="flow-check-pill fail-zero">ZERO</span>
+            <span class="flow-check-desc"><strong>Persistent zero</strong> — gauge stuck at 0 for 6 hrs while ≥ 3 neighbours and/or radar show active rainfall.</span>
+          </div>
+          <div class="flow-check-row">
+            <span class="flow-check-pill fail-radar">RADAR</span>
+            <span class="flow-check-desc"><strong>Radar conformity</strong> — gauge reading far exceeds the Met Office radar QPE at the same location (ratio &gt; 15×).</span>
+          </div>
+          <div class="flow-check-row">
+            <span class="flow-check-pill fail-drip">DRIP</span>
+            <span class="flow-check-desc"><strong>Drip / leak pattern</strong> — near-constant low-amplitude tips over ≥ 3 hrs (classic blocked or leaking tipping bucket).</span>
+          </div>
+          <div class="flow-check-row">
+            <span class="flow-check-pill fail-accum">ACCUM</span>
+            <span class="flow-check-desc"><strong>Accumulation anomaly</strong> — 24-hr gauge total is ≥ 3.5× the mean of its nearest neighbours.</span>
+          </div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-outcomes">
+          <div class="flow-outcome" style="background:#f0fdf4;border:1.5px solid #86efac;color:#15803d;">
+            <strong>0 fails</strong><br>Passes QC — not shown
+          </div>
+          <div class="flow-outcome" style="background:#fff7ed;border:1.5px solid #fdba74;color:#c2410c;">
+            <strong>1 fail</strong><br>🟠 ELEVATED
+          </div>
+          <div class="flow-outcome" style="background:#fff1f2;border:1.5px solid #fca5a5;color:#b91c1c;">
+            <strong>2+ fails</strong><br>🔴 FLAGGED
+          </div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-llm-box">
+          <strong>🤖 LLM Review</strong> — triggered when ≥ 2 checks fail <em>or</em> reading ≥ 20 mm, on the first flagged run only (to avoid repeated API calls for persistently broken hardware). An OpenAI model is given the full check results, 24-hr history, and neighbour data to give an independent assessment.
+          <div class="flow-verdicts">
+            <div class="flow-verdict pill llm-genuine">GENUINE — real rain</div>
+            <div class="flow-verdict pill llm-uncertain">UNCERTAIN — unclear</div>
+            <div class="flow-verdict pill llm-suspect">SUSPECT — likely fault</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="timeline-bar" id="timelineBar">
+  <a href="/" class="tl-back">← Radar</a>
+  <div class="tl-divider"></div>
+  <span class="tl-nav disabled" id="tlOlder" onclick="stepSlider(-1)">‹</span>
+  <span class="tl-no-history" id="tlNoHistory">No history yet — run the QC workflow to build a timeline</span>
+  <input type="range" id="timelineSlider" class="tl-slider" min="0" max="0" value="0" oninput="onSliderInput()" style="display:none">
+  <span class="tl-label" id="tlLabel">LIVE</span>
+  <button class="tl-live-btn" id="tlLiveBtn" onclick="goLive()" style="display:none">LIVE</button>
+  <span class="tl-nav disabled" id="tlNewer" onclick="stepSlider(1)">›</span>
+</div>
 
 <script>
 var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
@@ -251,6 +462,10 @@ var selectedId       = null;
 var markerById       = {};
 var rowById          = {};
 var persistentOpen   = false;
+var manifest         = null;
+var catchmentLayer   = null;
+var catchmentVisible = false;
+var catchmentLoading = false;
 
 // ── Colours ────────────────────────────────────────────────────────────────
 var CHECK_COLORS = {
@@ -286,9 +501,94 @@ function loadGreyDots() {
     .catch(function() {}); // grey dots are decorative; failure is OK
 }
 
+// ── Manifest + timeline ────────────────────────────────────────────────────
+function loadManifest() {
+  fetch(cdnUrl('gaugecheck/manifest.json'))
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) {
+      if (data && data.runs && data.runs.length >= 2) {
+        manifest = data;
+        buildSlider();
+      }
+      loadResults(null); // always load latest on boot
+    })
+    .catch(function() { loadResults(null); });
+}
+
+function buildSlider() {
+  if (!manifest) return;
+  var n = manifest.runs.length;
+  var slider  = document.getElementById('timelineSlider');
+  var noHist  = document.getElementById('tlNoHistory');
+  slider.min   = 0;
+  slider.max   = n - 1;
+  slider.value = n - 1; // start at newest (live)
+  slider.style.display = '';
+  noHist.style.display = 'none';
+  updateSliderState(n - 1);
+}
+
+function runTsForSlider(val) {
+  if (!manifest) return null;
+  var n = manifest.runs.length;
+  return manifest.runs[n - 1 - parseInt(val)];
+}
+
+function onSliderInput() {
+  var val = parseInt(document.getElementById('timelineSlider').value);
+  updateSliderState(val);
+  var ts = runTsForSlider(val);
+  loadResults(ts);
+}
+
+function stepSlider(delta) {
+  var slider = document.getElementById('timelineSlider');
+  var val = parseInt(slider.value) + delta;
+  val = Math.max(0, Math.min(parseInt(slider.max), val));
+  slider.value = val;
+  onSliderInput();
+}
+
+function goLive() {
+  if (!manifest) return;
+  var slider = document.getElementById('timelineSlider');
+  slider.value = slider.max;
+  onSliderInput();
+}
+
+function updateSliderState(val) {
+  if (!manifest) return;
+  var n      = manifest.runs.length;
+  var isLive = (val === n - 1);
+  var ts     = runTsForSlider(val);
+  var label  = document.getElementById('tlLabel');
+  var liveBtn = document.getElementById('tlLiveBtn');
+  var older   = document.getElementById('tlOlder');
+  var newer   = document.getElementById('tlNewer');
+  label.textContent = isLive ? 'LIVE' : fmtRunTs(ts);
+  label.style.color = isLive ? '#81c784' : '#94a3b8';
+  liveBtn.style.display = isLive ? 'none' : '';
+  older.classList.toggle('disabled', val === 0);
+  newer.classList.toggle('disabled', isLive);
+  // Tint side panel header when viewing history
+  document.getElementById('sidePanel').style.borderTop =
+    isLive ? '' : '3px solid #ef6c00';
+}
+
+function fmtRunTs(ts) {
+  if (!ts) return 'LIVE';
+  var m = ts.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})Z$/);
+  if (!m) return ts;
+  var d = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5]));
+  return d.toUTCString().replace(' GMT','').slice(5);
+}
+
 // ── Load QC results ────────────────────────────────────────────────────────
-function loadResults() {
-  fetch(cdnUrl('gaugecheck/results.json'))
+function loadResults(runTs) {
+  var url = (runTs && manifest)
+    ? cdnUrl('gaugecheck/runs/' + runTs + '.json')
+    : cdnUrl('gaugecheck/results.json');
+  fetch(url)
     .then(function(r) {
       if (r.status === 404) throw { status: 404 };
       if (!r.ok) throw { status: r.status };
@@ -309,6 +609,41 @@ function loadResults() {
       document.getElementById('headerCounts').textContent = '—';
       document.getElementById('updatedAt').textContent = '';
     });
+}
+
+// ── Catchment layer ────────────────────────────────────────────────────────
+function toggleCatchments() {
+  catchmentVisible = !catchmentVisible;
+  document.getElementById('catchmentBtn').classList.toggle('active', catchmentVisible);
+  if (catchmentVisible && !catchmentLayer && !catchmentLoading) {
+    catchmentLoading = true;
+    document.getElementById('catchmentBtn').textContent = 'Loading…';
+    fetch('uk_catchments.geojson')
+      .then(function(r) { return r.json(); })
+      .then(function(gj) {
+        catchmentLayer = L.geoJSON(gj, {
+          style: {
+            color: '#1a73e8', weight: 1.5, opacity: 0.55,
+            fillColor: '#1a73e8', fillOpacity: 0.04,
+          },
+          onEachFeature: function(feat, layer) {
+            var name = feat.properties && feat.properties.HA_NAME;
+            if (name) layer.bindTooltip(name, { sticky: true, className: 'catchment-tip' });
+          },
+        }).addTo(map);
+        catchmentLoading = false;
+        document.getElementById('catchmentBtn').textContent = 'Catchments';
+      })
+      .catch(function() {
+        catchmentLoading = false;
+        catchmentVisible = false;
+        document.getElementById('catchmentBtn').classList.remove('active');
+        document.getElementById('catchmentBtn').textContent = 'Catchments';
+      });
+  } else if (catchmentLayer) {
+    if (catchmentVisible) { map.addLayer(catchmentLayer); }
+    else                  { map.removeLayer(catchmentLayer); }
+  }
 }
 
 function showStatus(cls, msg) {
@@ -580,9 +915,22 @@ function fmtTime(iso) {
   } catch(e) { return iso; }
 }
 
+// ── Info modal ──────────────────────────────────────────────────────────────
+function openInfo() {
+  document.getElementById('infoModal').classList.add('open');
+}
+function closeInfo(e) {
+  if (!e || e.target === document.getElementById('infoModal')) {
+    document.getElementById('infoModal').classList.remove('open');
+  }
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeInfo();
+});
+
 // ── Boot ────────────────────────────────────────────────────────────────────
 loadGreyDots();
-loadResults();
+loadManifest();
 </script>
 </body>
 </html>

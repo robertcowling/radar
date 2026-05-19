@@ -74,6 +74,9 @@ ACCUM_MIN_NBHRS      = 3      # minimum neighbours with data to apply check
 
 # ── Storage keys ───────────────────────────────────────────────────────────────
 OUTPUT_KEY        = "gaugecheck/results.json"
+MANIFEST_KEY      = "gaugecheck/manifest.json"
+RUNS_KEY_TPL      = "gaugecheck/runs/{ts}.json"
+MAX_RUNS          = 96   # 24 hr at 15-min cadence
 READINGS_PFX      = "rain/readings"
 STATIONS_KEY      = "rain/stations.json"
 META_KEY          = "rain/meta.json"
@@ -641,16 +644,23 @@ def main():
         date_str = d.strftime("%Y%m%d")
         days[date_str] = load_day(r2, date_str)
 
-    # Index latest slot readings
-    today_slots = days.get(latest_date_str, {})
-    slot_str_key = str(latest_slot)
-    latest_readings = {
-        sid: float(slots[slot_str_key])
-        for sid, slots in today_slots.items()
-        if isinstance(slots.get(slot_str_key), (int, float))
-        and slots[slot_str_key] >= 0
-    }
-    print(f"  {len(latest_readings)} stations with a reading in latest slot")
+    # Build most-recent reading for ALL registered stations, looking back up to 3 slots (45 min).
+    # Many telemetry stations have 15–45 min latency, so checking the exact latest slot
+    # would silently skip the majority of the network.
+    LOOKBACK_SLOTS = 3
+    latest_readings = {}
+    for sid in stations:
+        for back in range(LOOKBACK_SLOTS + 1):
+            slot_b = latest_slot - back
+            date_b = latest_date_str
+            if slot_b < 0:
+                slot_b += 96
+                date_b = (latest_dt - timedelta(days=1)).strftime("%Y%m%d")
+            val = days.get(date_b, {}).get(sid, {}).get(str(slot_b))
+            if isinstance(val, (int, float)) and val >= 0:
+                latest_readings[sid] = float(val)
+                break
+    print(f"  {len(latest_readings)} stations with a reading in the last {LOOKBACK_SLOTS+1} slots")
 
     # Radar (optional)
     print("Loading radar H5...")
@@ -807,6 +817,16 @@ def main():
     )
     print("Uploading gaugecheck/results.json...")
     r2_put_json(r2, OUTPUT_KEY, result)
+
+    # Archive timestamped snapshot and update manifest
+    run_ts = now.strftime("%Y%m%dT%H%MZ")
+    r2_put_json(r2, RUNS_KEY_TPL.format(ts=run_ts), result)
+    manifest = r2_get_json(r2, MANIFEST_KEY, {"runs": []})
+    runs_list = manifest.get("runs", [])
+    if run_ts not in runs_list:
+        runs_list.insert(0, run_ts)
+    r2_put_json(r2, MANIFEST_KEY, {"runs": runs_list[:MAX_RUNS]})
+    print(f"Archived run {run_ts} ({min(len(runs_list), MAX_RUNS)} in manifest).")
     print("Done.")
 
 
