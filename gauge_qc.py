@@ -16,7 +16,9 @@ Checks (UK-calibrated thresholds):
   6. Drip/leak pattern   — near-constant low-amplitude tips over ≥3 hrs
                            (classic blocked/leaking tipping bucket signature)
   7. Accumulation anomaly — 24 hr gauge total >> neighbour mean
-                            (catches persistent systematic over-recording)
+                            (catches persistent systematic over-recording;
+                             only neighbours with ≥5 mm 24 hr total are used
+                             to avoid orographic false positives)
 
 LLM is called when ≥2 checks fail OR the reading is ≥20 mm, but only on
 the first run it is flagged (consecutive_flags==1) to avoid repeated API
@@ -70,8 +72,9 @@ DRIP_MAX_CV          = 0.25   # coefficient of variation below this = suspicious
 
 ACCUM_WINDOW_SLOTS   = 96     # 24 hr accumulation window
 ACCUM_MIN_TOTAL_MM   = 15.0   # ignore gauges with trivially low totals
-ACCUM_RATIO_LIMIT    = 3.5    # gauge 24 hr total / neighbour mean above this = anomalous
+ACCUM_RATIO_LIMIT    = 5.0    # gauge 24 hr total / neighbour mean above this = anomalous
 ACCUM_MIN_NBHRS      = 3      # minimum neighbours with data to apply check
+ACCUM_MIN_NBR_TOTAL_MM = 5.0  # exclude near-dry neighbours from the comparison mean
 
 # ── Storage keys ───────────────────────────────────────────────────────────────
 OUTPUT_KEY        = "gaugecheck/results.json"
@@ -383,7 +386,7 @@ def check_accumulation_anomaly(station_id, history_96, neighbours, days,
         h96 = get_station_slots(days, nbr_id, latest_date_str, latest_slot,
                                 ACCUM_WINDOW_SLOTS)
         t = sum(v for v in h96 if v is not None and v >= 0)
-        if t >= 0:
+        if t >= ACCUM_MIN_NBR_TOTAL_MM:
             nbr_totals.append(t)
 
     if len(nbr_totals) < ACCUM_MIN_NBHRS:
@@ -391,7 +394,7 @@ def check_accumulation_anomaly(station_id, history_96, neighbours, days,
                 "gauge_24hr_mm": round(gauge_total, 1)}
 
     nbr_mean = sum(nbr_totals) / len(nbr_totals)
-    if nbr_mean < 1.0:
+    if nbr_mean < 3.0:
         return {"passed": True, "skipped": "neighbours_also_dry",
                 "gauge_24hr_mm": round(gauge_total, 1)}
 
