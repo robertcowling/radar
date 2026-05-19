@@ -61,7 +61,7 @@ RADAR_RATIO_LIMIT    = 15.0   # gauge/radar ratio above which it is suspicious
 RADAR_MAX_EST_MM     = 0.5    # radar 5 km estimate must be below this to flag
 
 LLM_TRIGGER_MM       = 20.0   # also call LLM if reading ≥ this (even if checks pass)
-LLM_MIN_FAILURES     = 2      # require this many check failures to trigger LLM (avoids calls during real rain)
+LLM_MIN_FAILURES     = 1      # require this many check failures to trigger LLM (avoids calls during real rain)
 
 DRIP_WINDOW_SLOTS    = 12     # 3 hr look-back for drip/leak pattern check
 DRIP_MIN_NONZERO     = 8      # minimum non-zero slots to apply pattern check
