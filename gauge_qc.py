@@ -45,7 +45,7 @@ HARD_SUSPECT_MM      = 25.0   # exceeds all known UK 15-min records
 TEMPORAL_WINDOW      = 7      # preceding slots to compare against (7 × 15 min = 1 h 45)
 TEMPORAL_SPIKE_RATIO = 8.0    # ratio above which an isolated spike is flagged
 TEMPORAL_ZERO_TRIGGER = 5.0   # mm — flag spike from zero above this
-TEMPORAL_MIN_FLAG_MM = 1.0    # don't flag spikes below this absolute value (noise)
+TEMPORAL_MIN_FLAG_MM = 5.0    # don't flag spikes below this absolute value (real showers)
 
 NN_RADIUS_KM         = 20.0   # search radius for nearest-neighbour check
 NN_MIN_NBHRS         = 2      # skip check if fewer qualifying neighbours found
