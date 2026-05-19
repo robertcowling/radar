@@ -207,29 +207,36 @@ body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa;
   position:relative; flex-grow:1; height:48px; display:flex; align-items:center;
 }
 .timeline-track {
-  position:absolute; left:0; right:0; height:4px;
-  background:#e8eaed; border-radius:2px; pointer-events:none;
+  position:absolute; top:50%; left:9px; right:9px; height:6px; margin-top:-3px;
+  background:#e8eaed; border-radius:3px; z-index:1; pointer-events:none;
 }
 #timeSlider {
-  position:relative; width:100%; -webkit-appearance:none; appearance:none;
-  height:4px; background:transparent; outline:none; cursor:pointer; z-index:1;
+  -webkit-appearance:none; appearance:none;
+  width:100%; background:transparent; z-index:3; margin:0; position:relative;
 }
+#timeSlider:focus { outline:none; }
+#timeSlider::-webkit-slider-runnable-track { height:6px; background:transparent; border-radius:3px; }
 #timeSlider::-webkit-slider-thumb {
-  -webkit-appearance:none; width:18px; height:18px;
-  border-radius:50%; background:#202124; cursor:pointer;
-  border:2px solid white; box-shadow:0 1px 3px rgba(0,0,0,0.3);
+  -webkit-appearance:none; height:18px; width:18px;
+  border-radius:50%; background:#202124; border:2px solid white; cursor:pointer;
+  margin-top:-6px; box-shadow:0 2px 4px rgba(0,0,0,0.3);
+  transition:transform 0.1s, box-shadow 0.1s;
+}
+#timeSlider::-webkit-slider-thumb:hover {
+  transform:scale(1.15); box-shadow:0 3px 6px rgba(0,0,0,0.4);
 }
 #timeSlider::-moz-range-thumb {
   width:18px; height:18px; border-radius:50%; background:#202124;
-  cursor:pointer; border:2px solid white; box-shadow:0 1px 3px rgba(0,0,0,0.3);
+  cursor:pointer; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);
 }
 
 /* ── Player date/time display ─────────────────────────────────────────────── */
 #playerDateTime {
-  flex-shrink:0; width:105px; padding-left:12px; border-left:1px solid #e8eaed;
+  flex-shrink:0; width:105px; display:flex; flex-direction:column; gap:1px;
+  padding-left:12px; border-left:1px solid #e8eaed; overflow:hidden;
 }
-#playerDateLine { font-size:10px; color:#3c4043; }
-#playerTimeLine { font-size:16px; font-weight:700; color:#202124; }
+#playerDateLine { font-size:10px; color:#3c4043; font-weight:500; white-space:nowrap; overflow:hidden; }
+#playerTimeLine { font-size:16px; font-weight:700; color:#202124; white-space:nowrap; overflow:hidden; }
 
 /* ── Seg control (pill toggles) ───────────────────────────────────────────── */
 .seg-control {
@@ -246,6 +253,19 @@ body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa;
 .seg-btn.seg-active {
   background:white; box-shadow:0 1px 3px rgba(0,0,0,0.18);
 }
+
+/* ── Pill selects ─────────────────────────────────────────────────────────── */
+select {
+  -webkit-appearance:none; appearance:none;
+  background:#f1f3f4; border:none;
+  padding:9px 34px 9px 16px; border-radius:24px;
+  font-family:'Roboto',sans-serif; font-size:13px; color:#202124; font-weight:500;
+  cursor:pointer; outline:none;
+  background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 14px center;
+  transition:background 0.2s; width:100%;
+}
+select:hover { background-color:#e8eaed; }
 
 /* ── Info icon button ─────────────────────────────────────────────────────── */
 .info-icon-btn {
@@ -345,10 +365,14 @@ body { padding:0; margin:0; font-family:'Roboto',sans-serif; background:#f8f9fa;
   </div>
 
   <div class="control-group">
-    <span class="control-label">Catchments</span>
-    <div class="seg-control">
-      <button class="seg-btn" id="catchmentBtn" onclick="toggleCatchments()">Show</button>
-    </div>
+    <span class="control-label">Areas</span>
+    <select id="areaSelect" onchange="onAreaSelectChange(this.value)">
+      <option value="catchments" selected>Catchments</option>
+      <option value="regions">Regions</option>
+      <option value="counties">Counties</option>
+      <option value="grid">Grid (20km)</option>
+      <option value="none">None</option>
+    </select>
   </div>
 
   <div class="timeline-container" id="timelineContainer" style="display:none">
@@ -388,15 +412,71 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 var greyLayer  = L.layerGroup().addTo(map);
 var flagLayer  = L.layerGroup().addTo(map);
 
-var results          = null;
-var selectedId       = null;
-var markerById       = {};
-var rowById          = {};
-var persistentOpen   = false;
-var manifest         = null;
-var catchmentLayer   = null;
-var catchmentVisible = false;
-var catchmentLoading = false;
+var results        = null;
+var selectedId     = null;
+var markerById     = {};
+var rowById        = {};
+var persistentOpen = false;
+var manifest       = null;
+
+// ── Boundary layers ────────────────────────────────────────────────────────
+var regionLayer    = null;
+var countiesLayer  = null;
+var catchmentsLayer = null;
+var gridLayer      = null;
+var currentBoundary = 'catchments';
+
+var BOUNDARY_STYLES = {
+  regions:    { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
+  counties:   { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
+  catchments: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
+  grid:       { color: '#5f6368', weight: 0.7, fillOpacity: 0, className: 'region-boundary' },
+};
+var BOUNDARY_FILES = {
+  regions:    'uk_regions.geojson',
+  counties:   'uk-counties.geojson',
+  catchments: 'uk_catchments.geojson',
+  grid:       'uk_grid_20km.geojson',
+};
+
+function getBoundaryLayer(name) {
+  if (name === 'regions')    return regionLayer;
+  if (name === 'counties')   return countiesLayer;
+  if (name === 'catchments') return catchmentsLayer;
+  if (name === 'grid')       return gridLayer;
+  return null;
+}
+function setBoundaryLayer(name, layer) {
+  if (name === 'regions')    regionLayer    = layer;
+  if (name === 'counties')   countiesLayer  = layer;
+  if (name === 'catchments') catchmentsLayer = layer;
+  if (name === 'grid')       gridLayer      = layer;
+}
+
+function loadBoundary(val) {
+  if (!BOUNDARY_FILES[val]) return;
+  if (getBoundaryLayer(val)) {
+    getBoundaryLayer(val).addTo(map);
+    return;
+  }
+  fetch(BOUNDARY_FILES[val])
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var layer = L.geoJSON(data, { style: BOUNDARY_STYLES[val], interactive: false });
+      setBoundaryLayer(val, layer);
+      if (currentBoundary === val) layer.addTo(map);
+    })
+    .catch(function(e) { console.log('Could not load ' + val + ':', e); });
+}
+
+function onAreaSelectChange(val) {
+  ['regions','counties','catchments','grid'].forEach(function(n) {
+    var l = getBoundaryLayer(n);
+    if (l && map.hasLayer(l)) map.removeLayer(l);
+  });
+  currentBoundary = val;
+  if (val !== 'none') loadBoundary(val);
+}
 
 // ── Colours ────────────────────────────────────────────────────────────────
 var CHECK_COLORS = {
@@ -544,42 +624,6 @@ function loadResults(runTs) {
     });
 }
 
-// ── Catchment layer ────────────────────────────────────────────────────────
-function toggleCatchments() {
-  catchmentVisible = !catchmentVisible;
-  var btn = document.getElementById('catchmentBtn');
-  btn.classList.toggle('seg-active', catchmentVisible);
-  if (catchmentVisible && !catchmentLayer && !catchmentLoading) {
-    catchmentLoading = true;
-    btn.textContent = 'Loading…';
-    fetch('uk_catchments.geojson')
-      .then(function(r) { return r.json(); })
-      .then(function(gj) {
-        catchmentLayer = L.geoJSON(gj, {
-          style: {
-            color: '#1a73e8', weight: 1.5, opacity: 0.55,
-            fillColor: '#1a73e8', fillOpacity: 0.04,
-          },
-          onEachFeature: function(feat, layer) {
-            var name = feat.properties && feat.properties.HA_NAME;
-            if (name) layer.bindTooltip(name, { sticky: true, className: 'catchment-tip' });
-          },
-        }).addTo(map);
-        catchmentLoading = false;
-        btn.textContent = catchmentVisible ? 'Hide' : 'Show';
-      })
-      .catch(function() {
-        catchmentLoading = false;
-        catchmentVisible = false;
-        btn.classList.remove('seg-active');
-        btn.textContent = 'Show';
-      });
-  } else if (catchmentLayer) {
-    if (catchmentVisible) { map.addLayer(catchmentLayer); }
-    else                  { map.removeLayer(catchmentLayer); }
-    btn.textContent = catchmentVisible ? 'Hide' : 'Show';
-  }
-}
 
 function showStatus(cls, msg) {
   document.getElementById('panelBody').innerHTML =
@@ -861,6 +905,7 @@ document.addEventListener('keydown', function(e) {
 // ── Boot ────────────────────────────────────────────────────────────────────
 loadGreyDots();
 loadManifest();
+loadBoundary('catchments');
 </script>
 </body>
 </html>
