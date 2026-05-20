@@ -101,10 +101,8 @@ select:hover { background-color: #e8eaed; }
   box-shadow: 0 2px 8px rgba(0,0,0,0.14); width: 230px;
 }
 .map-cbar p { font-size: 11px; font-weight: 600; color: #3c4043; margin: 0 0 4px; white-space: nowrap; }
-.cbar { display: flex; height: 10px; border-radius: 4px; overflow: hidden; }
-.cbar-block { flex: 1; }
-.cbar-labels { position: relative; height: 14px; margin-top: 2px; font-size: 9px; color: #5f6368; font-weight: 500; }
-.cbar-label  { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.cbar { display: flex; height: 18px; border-radius: 4px; overflow: hidden; }
+.cbar-block { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 7.5px; font-weight: 700; line-height: 1; }
 
 /* ── In-map QC flag key (mid panel) ───────────────────────────────────────── */
 .qc-key {
@@ -139,14 +137,20 @@ select:hover { background-color: #e8eaed; }
 }
 
 /* ── QC popup (mid map) ────────────────────────────────────────────────────── */
-.qc-popup { font-family: 'Roboto', sans-serif; font-size: 12px; min-width: 200px; max-width: 270px; }
-.qc-popup h4 { margin: 0 0 5px; font-size: 13px; color: #1e293b; }
-.qc-popup .pop-value { font-size: 17px; font-weight: 700; color: #1e293b; margin-bottom: 6px; }
-.qc-popup table { width: 100%; border-collapse: collapse; font-size: 11px; }
-.qc-popup td { padding: 2px 0; }
-.qc-popup td:first-child { color: #64748b; width: 48%; }
-.qc-popup .pop-llm { margin-top: 6px; font-size: 11px; color: #475569; line-height: 1.5; }
+.qc-popup { font-family: 'Roboto', sans-serif; font-size: 12px; min-width: 215px; max-width: 280px; }
+.qc-popup h4 { margin: 0 0 1px; font-size: 13px; font-weight: 700; color: #1e293b; }
+.pop-loc { font-size: 11px; color: #64748b; margin-bottom: 7px; }
+.pop-reading { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.pop-reading .pop-value { font-size: 18px; font-weight: 700; color: #1e293b; }
+.pop-reading .pop-time  { font-size: 11px; color: #94a3b8; }
+.pop-fail-hdr { font-size: 11px; font-weight: 700; color: #c62828; margin-bottom: 5px; }
+.pop-check-item { margin-bottom: 5px; }
+.pop-check-item .pci-name { font-size: 11px; font-weight: 700; color: #1e293b; }
+.pop-check-item .pci-det  { font-size: 10px; color: #64748b; line-height: 1.4; padding-left: 7px; margin-top: 1px; }
+.pop-passing { font-size: 10px; color: #2e7d32; margin-top: 4px; }
 .qc-popup .pop-sep { border: none; border-top: 1px solid #f1f3f4; margin: 6px 0; }
+.qc-popup .pop-llm { font-size: 11px; color: #475569; line-height: 1.5; }
+.pop-active { font-size: 10px; color: #94a3b8; margin-top: 6px; }
 
 /* ── Right panel (log table) ───────────────────────────────────────────────── */
 .right-wrap {
@@ -540,22 +544,15 @@ function makeGaugeIcon(val) {
 
 // ── Colour key (left map) ──────────────────────────────────────────────────
 function buildCbar() {
-  var cbar   = document.getElementById('mapCbar');
-  var labels = document.getElementById('mapCbarLabels');
+  var cbar = document.getElementById('mapCbar');
   if (!cbar) return;
-  cbar.innerHTML = ACCUM_COLORS.map(function(c) {
-    return '<div class="cbar-block" style="background:' + c + '"></div>';
-  }).join('');
-  var n = ACCUM_BREAKS.length;
-  var showAt = [0, 2, 4, 6, 8, 10, 12];
-  var html = '';
-  showAt.forEach(function(i) {
-    var pct = (i / n) * 100;
+  cbar.innerHTML = ACCUM_COLORS.map(function(c, i) {
     var v   = ACCUM_BREAKS[i];
     var lbl = v < 1 ? '<1' : v.toString();
-    html += '<span class="cbar-label" style="left:' + pct.toFixed(1) + '%">' + lbl + '</span>';
-  });
-  labels.innerHTML = html;
+    return '<div class="cbar-block" style="background:' + c + ';color:' + ACCUM_TEXT[i] + '">' + lbl + '</div>';
+  }).join('');
+  var labels = document.getElementById('mapCbarLabels');
+  if (labels) labels.style.display = 'none';
   document.getElementById('mapCbarLeft').style.display = '';
 }
 
@@ -647,7 +644,7 @@ function updateDateDisplay(readingTime) {
       tl.textContent = pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes());
     } catch(e) { dl.textContent = '—'; tl.textContent = '—'; }
   } else {
-    dl.textContent = 'LIVE'; tl.textContent = '—';
+    dl.textContent = 'Live'; tl.textContent = '—';
   }
 }
 
@@ -718,10 +715,12 @@ function renderMidMarkers() {
     var m = L.circleMarker([s.lat, s.lon], {
       radius:9, color:'white', weight:1.5, fillColor:fillColor, fillOpacity:0.9
     });
-    var tipCounty = s.c ? '<br><span style="font-size:10px;color:#80868b">' + escHtml(s.c) + '</span>' : '';
-    m.bindTooltip('<b>' + escHtml(s.n) + '</b>' + tipCounty + '<br>' + s.mm.toFixed(1) + ' mm · ' + s.f,
-      { direction:'top', className:'gauge-tip', offset:[0,-11] });
     var g = flagMap[s.id];
+    var failN = g ? countCheckFails(g.checks) : (s.f === 'FLAGGED' ? 2 : 1);
+    var failStr = failN === 1 ? '1 check fails' : failN + ' checks fail';
+    var tipCounty = s.c ? '<br><span style="font-size:10px;color:#80868b">' + escHtml(s.c) + '</span>' : '';
+    m.bindTooltip('<b>' + escHtml(s.n) + '</b>' + tipCounty + '<br>' + s.mm.toFixed(1) + ' mm &middot; ' + failStr,
+      { direction:'top', className:'gauge-tip', offset:[0,-11] });
     if (g) m.bindPopup(buildPopup(g), { maxWidth:300, minWidth:210 });
     m.on('click', (function(sid){ return function(){ selectGauge(sid); }; })(s.id));
     m.addTo(flagLayerMid);
@@ -732,58 +731,75 @@ function renderMidMarkers() {
 // ── QC popup ───────────────────────────────────────────────────────────────
 function buildPopup(g) {
   var checks = g.checks || {};
-  var rows = [
-    ['Hard threshold',    checks.hard_threshold],
-    ['Temporal spike',    checks.temporal],
-    ['Nearest neighbour', checks.nearest_neighbour],
-    ['Persistent zero',   checks.persistent_zero],
-    ['Radar conformity',  checks.radar],
-    ['Drip/leak',         checks.drip_leak],
-    ['24hr accumulation', checks.accum_anomaly],
+  var defs = [
+    ['hard_threshold',    'Threshold exceeded',   'Threshold'],
+    ['temporal',          'Temporal spike',        'Spike'],
+    ['nearest_neighbour', 'Spatial outlier',       'Spatial'],
+    ['persistent_zero',   'Stuck at zero',         'Zero'],
+    ['radar',             'Radar mismatch',        'Radar'],
+    ['drip_leak',         'Drip/leak pattern',     'Drip'],
+    ['accum_anomaly',     'Accumulation anomaly',  'Accum'],
   ];
-  var trs = rows.map(function(p) {
-    var c = p[1]; if (!c) return '';
-    var icon = c.skipped ? '<span style="color:#94a3b8">—</span>'
-             : !c.passed  ? '<span style="color:#c62828;font-weight:700">&#10007;</span>'
-             : '<span style="color:#2e7d32">&#10003;</span>';
-    var det = (!c.passed && !c.skipped) ? formatDetail(c) : '';
-    var detHtml = det ? '<div style="font-size:10px;color:#64748b;margin-top:2px;line-height:1.4">' + det + '</div>' : '';
-    return '<tr><td style="vertical-align:top;padding-top:3px">' + p[0] + '</td><td>' + icon + detHtml + '</td></tr>';
-  }).join('');
-  var llmHtml = g.llm_verdict
-    ? '<hr class="pop-sep"><div class="pop-llm"><strong>AI: ' + g.llm_verdict + '</strong><br>' + escHtml(g.llm_reasoning||'') + '</div>'
-    : '';
-  var loc = g.county ? g.county + (g.region ? ', '+g.region : '') : '';
-  return '<div class="qc-popup">' +
-    '<h4>' + escHtml(g.name) + (loc ? '<br><span style="font-size:11px;color:#64748b">' + escHtml(loc) + '</span>' : '') + '</h4>' +
-    '<div class="pop-value">' + g.latest_value_mm.toFixed(1) + ' mm <span style="font-size:11px;font-weight:400;color:#64748b">at ' + fmtTime(g.latest_slot_time) + '</span></div>' +
-    '<table>' + trs + '</table>' + llmHtml +
-    (g.consecutive_flags>1 ? '<div style="font-size:10px;color:#94a3b8;margin-top:5px">Flagged '+g.consecutive_flags+' runs ('+Math.round(g.consecutive_flags*15)+' min)</div>' : '') +
-    '</div>';
+  var failing = [], passing = [];
+  defs.forEach(function(d) {
+    var c = checks[d[0]];
+    if (!c) return;
+    if (!c.passed && !c.skipped) failing.push([d[1], formatDetail(c)]);
+    else if (c.passed) passing.push(d[2]);
+  });
+
+  var loc = (g.county || '') + (g.county && g.region ? ', ' + g.region : (!g.county && g.region ? g.region : ''));
+  var failN = failing.length;
+  var failStr = failN === 1 ? '1 check fails' : failN + ' checks fail';
+
+  var html = '<div class="qc-popup">';
+  html += '<h4>' + escHtml(g.name) + '</h4>';
+  if (loc) html += '<div class="pop-loc">' + escHtml(loc) + '</div>';
+  html += '<div class="pop-reading"><span class="pop-value">' + g.latest_value_mm.toFixed(1) + ' mm</span>';
+  html += '<span class="pop-time">at ' + fmtTime(g.latest_slot_time) + '</span></div>';
+  if (failN > 0) {
+    html += '<div class="pop-fail-hdr">' + failStr + '</div>';
+    failing.forEach(function(f) {
+      html += '<div class="pop-check-item"><div class="pci-name">' + f[0] + '</div>';
+      if (f[1]) html += '<div class="pci-det">' + f[1] + '</div>';
+      html += '</div>';
+    });
+  }
+  if (passing.length) {
+    html += '<div class="pop-passing">Passing: ' + passing.join(' &middot; ') + '</div>';
+  }
+  if (g.llm_verdict) {
+    html += '<hr class="pop-sep"><div class="pop-llm"><strong>AI: ' + g.llm_verdict + '</strong><br>' + escHtml(g.llm_reasoning || '') + '</div>';
+  }
+  if (g.consecutive_flags > 1) {
+    html += '<div class="pop-active">Active ' + g.consecutive_flags + ' runs &middot; ' + fmtDuration(g.consecutive_flags) + '</div>';
+  }
+  html += '</div>';
+  return html;
 }
 
 function formatDetail(c) {
   var r = c.reason || '';
   if (r === 'impossible')
-    return 'reading ' + c.value_mm + 'mm — physically impossible for UK';
+    return c.value_mm + ' mm — exceeds anything physically possible in the UK';
   if (r === 'exceeds_uk_record')
-    return 'reading ' + c.value_mm + 'mm ≥ ' + c.limit_mm + 'mm limit';
+    return c.value_mm + ' mm ≥ ' + c.limit_mm + ' mm limit';
   if (r === 'spike_from_zero')
-    return 'jump from 0 → ' + c.value_mm + 'mm (threshold ' + (window.TEMPORAL_ZERO_TRIGGER||5) + 'mm)';
+    return 'jump from 0 → ' + c.value_mm + ' mm';
   if (r === 'isolated_spike')
-    return c.spike_ratio + '× spike · preceding median ' + c.preceding_median_mm + 'mm';
+    return c.spike_ratio + '× the preceding median (' + c.preceding_median_mm + ' mm)';
   if (r === 'no_spatial_support')
-    return 'nbrs avg ' + c.nn_mean_mm + 'mm across ' + c.n_neighbours + ' stations within 20km';
+    return c.n_neighbours + ' neighbours within 20 km all avg ' + c.nn_mean_mm + ' mm';
   if (r === 'stuck_zero')
-    return 'zero for ' + c.zero_slots_in_window + ' of last ' + c.window_slots + ' slots · ' + c.active_neighbours + ' active neighbours';
+    return 'zero for ' + c.zero_slots_in_window + ' of last ' + c.window_slots + ' slots · ' + c.active_neighbours + ' active neighbours nearby';
   if (r === 'radar_mismatch')
-    return 'gauge ' + c.gauge_mm + 'mm · radar ' + c.radar_mm_15min + 'mm · ratio ' + c.ratio + '×';
+    return 'gauge ' + c.gauge_mm + ' mm · radar ' + c.radar_mm_15min + ' mm · ratio ' + c.ratio + '×';
   if (r === 'uniform_drip_pattern')
-    return c.nonzero_slots + ' non-zero slots · mean ' + c.mean_mm + 'mm · CV ' + c.cv + ' (uniform drip)';
+    return c.nonzero_slots + ' non-zero slots · mean ' + c.mean_mm + ' mm · CV ' + c.cv + ' (suspiciously uniform)';
   if (r === 'stuck_counter')
-    return c.nonzero_slots + ' slots · ' + c.longest_identical_run + ' consecutive identical readings';
+    return c.longest_identical_run + ' consecutive identical readings (' + c.nonzero_slots + ' slots)';
   if (r === 'accumulation_far_exceeds_neighbours')
-    return '24hr gauge ' + c.gauge_24hr_mm + 'mm · nbrs avg ' + c.neighbour_mean_24hr_mm + 'mm · ratio ' + c.ratio + '×';
+    return '24 hr total ' + c.gauge_24hr_mm + ' mm vs neighbours avg ' + c.neighbour_mean_24hr_mm + ' mm (' + c.ratio + '×)';
   return '';
 }
 
@@ -891,6 +907,11 @@ function selectGauge(id) {
     mapMid.flyTo(ll, z, { duration: 0.5 });
     if (mMidById[id] && mMidById[id].openPopup) setTimeout(function(){ mMidById[id].openPopup(); }, 550);
   }
+}
+
+function countCheckFails(checks) {
+  if (!checks) return 0;
+  return Object.keys(checks).filter(function(k) { var c = checks[k]; return c && !c.passed && !c.skipped; }).length;
 }
 
 function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
