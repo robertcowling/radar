@@ -37,13 +37,13 @@ body {
 
 .panels-row { flex: 1; display: flex; min-height: 0; }
 
-/* ── Maps wrapper (left + mid together) ────────────────────────────────────── */
+/* ── Maps wrapper ──────────────────────────────────────────────────────────── */
 .maps-wrap { flex: 2; display: flex; position: relative; min-height: 0; }
 .panel-wrap { position: relative; flex: 1; overflow: hidden; border-left: 2px solid #374151; }
 .panel-wrap:first-child { border-left: none; }
 .panel-map { width: 100%; height: 100%; }
 
-/* ── Shared player bar (floating over both map panels, centered) ─────────────── */
+/* ── Shared player bar ─────────────────────────────────────────────────────── */
 .shared-bar {
   position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
   z-index: 500; background: white; border-radius: 12px;
@@ -53,7 +53,6 @@ body {
 }
 .bar-sep { width: 1px; height: 28px; background: #e8eaed; flex-shrink: 0; }
 
-/* ── Shared control groups ─────────────────────────────────────────────────── */
 .control-group { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
 .control-label { font-size: 9px; font-weight: 600; color: #3c4043; letter-spacing: 0.5px; padding-left: 8px; }
 
@@ -74,19 +73,9 @@ body {
 #timeSlider::-webkit-slider-thumb:hover { transform: scale(1.15); box-shadow: 0 3px 6px rgba(0,0,0,0.4); }
 #timeSlider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #202124; border: 2px solid white; cursor: pointer; }
 
-#playerDateTime { flex-shrink: 0; display: flex; flex-direction: column; gap: 1px; padding-left: 10px; border-left: 1px solid #e8eaed; overflow: hidden; }
+#playerDateTime { flex-shrink: 0; display: flex; flex-direction: column; gap: 1px; padding-left: 10px; border-left: 1px solid #e8eaed; }
 #playerDateLine { font-size: 10px; color: #3c4043; font-weight: 500; }
 #playerTimeLine { font-size: 15px; font-weight: 700; color: #202124; }
-
-/* ── Seg control ───────────────────────────────────────────────────────────── */
-.seg-control { background: #f1f3f4; border-radius: 24px; padding: 3px; display: flex; }
-.seg-btn {
-  padding: 5px 12px; border-radius: 21px; border: none; background: transparent;
-  font-size: 12px; font-weight: 500; color: #3c4043; cursor: pointer;
-  font-family: 'Roboto', sans-serif; transition: background 0.15s; white-space: nowrap;
-}
-.seg-btn:hover { background: rgba(0,0,0,0.06); }
-.seg-btn.seg-active { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
 
 /* ── Pill select ───────────────────────────────────────────────────────────── */
 select {
@@ -104,18 +93,45 @@ select:hover { background-color: #e8eaed; }
 .info-icon-btn { background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; color: #94a3b8; transition: color 0.2s; }
 .info-icon-btn:hover { color: #5f6368; }
 
-/* ── Gauge tip (tooltip matching /rain) ────────────────────────────────────── */
+/* ── In-map colour key (left panel) ───────────────────────────────────────── */
+.map-cbar {
+  position: absolute; bottom: 90px; left: 10px; z-index: 500;
+  background: rgba(255,255,255,0.93); border-radius: 8px;
+  padding: 7px 10px 6px; pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.14); width: 230px;
+}
+.map-cbar p { font-size: 11px; font-weight: 600; color: #3c4043; margin: 0 0 4px; white-space: nowrap; }
+.cbar { display: flex; height: 10px; border-radius: 4px; overflow: hidden; }
+.cbar-block { flex: 1; }
+.cbar-labels { position: relative; height: 14px; margin-top: 2px; font-size: 9px; color: #5f6368; font-weight: 500; }
+.cbar-label  { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+
+/* ── In-map QC flag key (mid panel) ───────────────────────────────────────── */
+.qc-key {
+  position: absolute; bottom: 90px; left: 10px; z-index: 500;
+  background: rgba(255,255,255,0.93); border-radius: 8px;
+  padding: 7px 10px 6px; pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.14);
+}
+.qc-key p { font-size: 11px; font-weight: 600; color: #3c4043; margin: 0 0 5px; }
+.qc-swatch-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.qc-swatch-row:last-child { margin-bottom: 0; }
+.qc-dot { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid white; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+.qc-swatch-lbl { font-size: 10px; color: #3c4043; }
+
+/* ── Rain gauge value label (left map) ─────────────────────────────────────── */
+.rg-label {
+  border: 1.5px solid rgba(255,255,255,0.75); border-radius: 3px;
+  padding: 1px 4px; font-size: 9px; font-weight: 700;
+  white-space: nowrap; line-height: 1.4; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  cursor: pointer; display: block; text-align: center;
+}
+
+/* ── Gauge tip (tooltip) ───────────────────────────────────────────────────── */
 .leaflet-tooltip.gauge-tip {
   font-family: 'Roboto', sans-serif; font-size: 12px;
   padding: 5px 9px; border-radius: 6px; border: none;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-
-/* ── Rain gauge divIcon (left map) ─────────────────────────────────────────── */
-.rg-dot {
-  width: 14px; height: 14px; border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,0.6);
-  box-sizing: border-box; cursor: pointer;
 }
 
 /* ── QC popup (mid map) ────────────────────────────────────────────────────── */
@@ -128,11 +144,10 @@ select:hover { background-color: #e8eaed; }
 .qc-popup .pop-llm { margin-top: 6px; font-size: 11px; color: #475569; font-style: italic; line-height: 1.5; }
 .qc-popup .pop-sep { border: none; border-top: 1px solid #f1f3f4; margin: 6px 0; }
 
-/* ── Right panel ───────────────────────────────────────────────────────────── */
+/* ── Right panel (log table) ───────────────────────────────────────────────── */
 .right-wrap {
   width: 460px; flex: none; border-left: 2px solid #374151;
-  display: flex; flex-direction: column; background: white;
-  overflow: hidden;
+  display: flex; flex-direction: column; background: white; overflow: hidden;
 }
 .right-header {
   background: #1e293b; color: #f1f5f9; flex-shrink: 0;
@@ -144,12 +159,30 @@ select:hover { background-color: #e8eaed; }
   background: #f8f9fa; border-bottom: 1px solid #e8eaed; flex-shrink: 0;
   padding: 4px 16px; font-size: 10px; color: #64748b;
 }
-.refresh-btn {
-  background: transparent; border: none; cursor: pointer; color: #94a3b8;
-  font-size: 15px; padding: 0 0 0 8px; line-height: 1; transition: color 0.2s;
-  font-family: 'Roboto', sans-serif;
+.tbl-wrap { flex: 1; overflow-y: auto; }
+.tbl-wrap::-webkit-scrollbar { width: 4px; }
+.tbl-wrap::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 2px; }
+
+table.qc-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+table.qc-table thead th {
+  position: sticky; top: 0; background: #f8f9fa; z-index: 1;
+  padding: 6px 8px; text-align: left; font-size: 10px; font-weight: 700;
+  color: #64748b; letter-spacing: 0.4px; text-transform: uppercase;
+  border-bottom: 1px solid #e8eaed; white-space: nowrap;
 }
-.refresh-btn:hover { color: #f1f5f9; }
+table.qc-table tbody tr {
+  border-bottom: 1px solid #f1f3f4; cursor: pointer; transition: background 0.1s;
+}
+table.qc-table tbody tr:hover { background: #f8f9fa; }
+table.qc-table tbody tr.selected { background: #e8f0fe; }
+table.qc-table td { padding: 7px 8px; vertical-align: top; }
+
+.tbl-name { font-size: 12px; font-weight: 600; color: #1e293b; }
+.tbl-loc  { font-size: 10px; color: #64748b; margin-top: 1px; }
+.tbl-num  { font-size: 12px; font-weight: 600; color: #202124; white-space: nowrap; text-align: right; }
+.tbl-time { font-size: 11px; font-weight: 500; color: #3c4043; white-space: nowrap; }
+.tbl-unit { font-size: 9px; color: #5f6368; font-weight: 400; }
+.tbl-empty { text-align: center; padding: 30px; color: #4caf50; font-size: 12px; font-weight: 500; }
 
 /* ── Check pills ───────────────────────────────────────────────────────────── */
 .pill { font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px; white-space: nowrap; display: inline-block; margin: 1px 1px 1px 0; }
@@ -163,83 +196,7 @@ select:hover { background-color: #e8eaed; }
 .pill.llm-suspect    { background: #ffebee; color: #b71c1c; border: 1px solid #ef9a9a; }
 .pill.llm-uncertain  { background: #fff8e1; color: #f57f17; border: 1px solid #ffe082; }
 .pill.llm-genuine    { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
-.pill.flag-flagged   { background: #fce4ec; color: #c62828; }
-.pill.flag-elevated  { background: #fff3e0; color: #ef6c00; }
-
-/* ── Flag log ──────────────────────────────────────────────────────────────── */
-.flag-list { flex: 1; overflow-y: auto; }
-.flag-list::-webkit-scrollbar { width: 4px; }
-.flag-list::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 2px; }
-
-.flag-card {
-  display: grid;
-  grid-template-columns: 4px 1fr;
-  gap: 0 10px;
-  padding: 10px 14px 10px 0;
-  border-bottom: 1px solid #f1f3f4;
-  cursor: pointer;
-  transition: background 0.1s;
-}
-.flag-card:hover { background: #f8f9fa; }
-.flag-card.selected { background: #e8f0fe; }
-.flag-card.flag-resolved { opacity: 0.6; }
-.flag-bar { width: 4px; border-radius: 0 2px 2px 0; }
-.flag-content { min-width: 0; }
-.flag-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
-.flag-name { font-size: 13px; font-weight: 600; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.flag-value { font-size: 13px; font-weight: 700; color: #202124; white-space: nowrap; flex-shrink: 0; }
-.flag-unit { font-size: 10px; font-weight: 400; color: #5f6368; }
-.flag-loc { font-size: 10px; color: #64748b; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.flag-time { font-size: 10px; color: #94a3b8; margin-top: 2px; }
-.flag-pills { margin-top: 4px; }
-.flag-empty { text-align: center; padding: 30px 16px; color: #4caf50; font-size: 12px; font-weight: 500; }
-
-/* ── Filter bar ────────────────────────────────────────────────────────────── */
-.filter-bar {
-  background: #f8f9fa;
-  border-bottom: 1px solid #e8eaed;
-  padding: 7px 12px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  align-items: center;
-  flex-shrink: 0;
-}
-.fchip {
-  background: #e8eaed;
-  border: none;
-  border-radius: 10px;
-  padding: 3px 8px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #5f6368;
-  cursor: pointer;
-  font-family: 'Roboto', sans-serif;
-  letter-spacing: 0.3px;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
-}
-.fchip:hover { background: #d8dadc; }
-.fchip.active-flagged  { background: #c62828; color: white; }
-.fchip.active-elevated { background: #ef6c00; color: white; }
-.fchip.active-check    { background: #1e293b; color: white; }
-.fbar-sep { width: 1px; height: 14px; background: #d8dadc; flex-shrink: 0; }
-.fbar-sort { font-size: 10px; padding: 3px 22px 3px 8px; border-radius: 10px; }
-
-/* ── Resolved toggle ───────────────────────────────────────────────────────── */
-.resolved-toggle {
-  width: 100%; padding: 8px 14px; background: #f8f9fa;
-  border: none; border-top: 1px solid #e8eaed; border-bottom: 1px solid #e8eaed;
-  font-size: 11px; font-weight: 600; color: #64748b; cursor: pointer;
-  text-align: left; font-family: 'Roboto', sans-serif;
-  transition: background 0.1s;
-}
-.resolved-toggle:hover { background: #f1f3f4; }
-
-.right-subrow {
-  background: #f8f9fa; border-bottom: 1px solid #e8eaed; flex-shrink: 0;
-  padding: 4px 16px; font-size: 10px; color: #64748b;
-}
+.checks-cell { min-width: 80px; }
 
 /* ── Info modal ────────────────────────────────────────────────────────────── */
 .info-modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 2000; align-items: center; justify-content: center; }
@@ -278,41 +235,50 @@ select:hover { background-color: #e8eaed; }
     <a href="/" class="h-nav">&#8592; Radar</a>
   </div>
   <div class="header-cell" style="border-left:2px solid #374151; flex:none; width:460px; box-sizing:border-box;">
-    <span style="display:flex;align-items:center;gap:4px;">
-      Flag Log
-      <button class="refresh-btn" id="refreshBtn" onclick="refreshFlagLog()" title="Refresh flag log">&#8635;</button>
-    </span>
-    <span id="rightCounts2" class="h-sub">—</span>
+    <span>Log</span>
+    <span id="rightCounts" class="h-sub">—</span>
   </div>
 </div>
 
 <!-- Panels -->
 <div class="panels-row">
 
-  <!-- Maps wrapper: left + mid share one floating bar -->
   <div class="maps-wrap">
 
     <!-- Left: rain gauge accumulation map -->
     <div class="panel-wrap" id="leftWrap">
       <div id="mapLeft" class="panel-map"></div>
+      <!-- Colour key -->
+      <div class="map-cbar" id="mapCbarLeft" style="display:none">
+        <p id="mapCbarTitle">24 hr accumulation</p>
+        <div class="cbar" id="mapCbar"></div>
+        <div class="cbar-labels" id="mapCbarLabels"></div>
+      </div>
     </div>
 
     <!-- Middle: QC flags map -->
     <div class="panel-wrap" id="midWrap">
       <div id="mapMid" class="panel-map"></div>
+      <!-- QC flag key -->
+      <div class="qc-key">
+        <p>QC Status</p>
+        <div class="qc-swatch-row"><div class="qc-dot" style="background:#c62828"></div><span class="qc-swatch-lbl">FLAGGED (2+ checks)</span></div>
+        <div class="qc-swatch-row"><div class="qc-dot" style="background:#ef6c00"></div><span class="qc-swatch-lbl">ELEVATED (1 check)</span></div>
+        <div class="qc-swatch-row"><div class="qc-dot" style="background:#90a4ae;opacity:0.6"></div><span class="qc-swatch-lbl">No flags</span></div>
+      </div>
     </div>
 
     <!-- Shared control bar centered across both maps -->
-    <div class="shared-bar" id="sharedBar">
+    <div class="shared-bar">
       <div class="control-group">
         <span class="control-label">Period</span>
         <select id="periodSelect" onchange="onPeriodChange(this.value)">
           <option value="mm">15 min</option>
-          <option value="1hr" selected>1 Hour</option>
+          <option value="1hr">1 Hour</option>
           <option value="3hr">3 Hours</option>
           <option value="6hr">6 Hours</option>
           <option value="12hr">12 Hours</option>
-          <option value="24hr">24 Hours</option>
+          <option value="24hr" selected>24 Hours</option>
         </select>
       </div>
       <div class="bar-sep"></div>
@@ -341,32 +307,30 @@ select:hover { background-color: #e8eaed; }
     </div>
   </div>
 
-  <!-- Right: Flag Log -->
+  <!-- Right: rolling log table -->
   <div class="right-wrap">
-    <div class="right-subrow" id="rightSub"></div>
-
-    <!-- Filter bar -->
-    <div class="filter-bar" id="filterBar">
-      <button class="fchip" id="chip-FLAGGED" onclick="toggleLevelFilter('FLAGGED')">FLAGGED</button>
-      <button class="fchip" id="chip-ELEVATED" onclick="toggleLevelFilter('ELEVATED')">ELEVATED</button>
-      <div class="fbar-sep"></div>
-      <button class="fchip" id="chip-THR"    onclick="toggleCheckFilter('THR')">THR</button>
-      <button class="fchip" id="chip-SPIKE"  onclick="toggleCheckFilter('SPIKE')">SPIKE</button>
-      <button class="fchip" id="chip-SPATIAL" onclick="toggleCheckFilter('SPATIAL')">SPATIAL</button>
-      <button class="fchip" id="chip-ZERO"   onclick="toggleCheckFilter('ZERO')">ZERO</button>
-      <button class="fchip" id="chip-RADAR"  onclick="toggleCheckFilter('RADAR')">RADAR</button>
-      <button class="fchip" id="chip-DRIP"   onclick="toggleCheckFilter('DRIP')">DRIP</button>
-      <button class="fchip" id="chip-ACCUM"  onclick="toggleCheckFilter('ACCUM')">ACCUM</button>
-      <div class="fbar-sep"></div>
-      <select class="fbar-sort" id="sortSelect" onchange="onSortChange(this.value)">
-        <option value="newest">Newest first</option>
-        <option value="longest">Most persistent</option>
-      </select>
+    <div class="right-header">
+      <span class="right-header-title">Log</span>
+      <span id="rightCounts2" class="right-counts">—</span>
     </div>
-
-    <!-- Scrollable flag list -->
-    <div class="flag-list" id="flagList">
-      <div class="flag-empty">Loading&#8230;</div>
+    <div class="right-subrow" id="rightSub"></div>
+    <div class="tbl-wrap">
+      <table class="qc-table">
+        <thead>
+          <tr>
+            <th>Station</th>
+            <th>Time</th>
+            <th style="text-align:right">mm</th>
+            <th style="text-align:right">24hr</th>
+            <th>Checks</th>
+            <th>LLM</th>
+            <th>Dur</th>
+          </tr>
+        </thead>
+        <tbody id="qcTbody">
+          <tr><td colspan="7" class="tbl-empty">Loading…</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -401,13 +365,12 @@ function cdnUrl(path) { return R2_CDN + '/' + path + '?_cb=' + Date.now(); }
 // ── Maps ───────────────────────────────────────────────────────────────────
 var mapLeft = L.map('mapLeft', { zoomControl: true  }).setView([54.0, -3.0], 6);
 var mapMid  = L.map('mapMid',  { zoomControl: false }).setView([54.0, -3.0], 6);
+var TILE     = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+var TILE_ATT = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
+L.tileLayer(TILE, { attribution: TILE_ATT, subdomains: 'abcd', maxZoom: 18 }).addTo(mapLeft);
+L.tileLayer(TILE, { attribution: TILE_ATT, subdomains: 'abcd', maxZoom: 18 }).addTo(mapMid);
 
-var TILE = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-var TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
-L.tileLayer(TILE, { attribution: TILE_ATTR, subdomains: 'abcd', maxZoom: 18 }).addTo(mapLeft);
-L.tileLayer(TILE, { attribution: TILE_ATTR, subdomains: 'abcd', maxZoom: 18 }).addTo(mapMid);
-
-// ── Sync maps ──────────────────────────────────────────────────────────────
+// ── Map sync ───────────────────────────────────────────────────────────────
 var _syncing = false;
 function syncTo(src, tgt) {
   src.on('move', function() {
@@ -418,8 +381,7 @@ function syncTo(src, tgt) {
 }
 syncTo(mapLeft, mapMid); syncTo(mapMid, mapLeft);
 
-// ── Marker layers ──────────────────────────────────────────────────────────
-var greyLayerLeft  = L.layerGroup().addTo(mapLeft);
+// ── Layers ─────────────────────────────────────────────────────────────────
 var accumLayerLeft = L.layerGroup().addTo(mapLeft);
 var greyLayerMid   = L.layerGroup().addTo(mapMid);
 var flagLayerMid   = L.layerGroup().addTo(mapMid);
@@ -427,33 +389,77 @@ var flagLayerMid   = L.layerGroup().addTo(mapMid);
 // ── State ──────────────────────────────────────────────────────────────────
 var mapResults    = null;
 var manifest      = null;
+var logData       = null;
 var selectedId    = null;
-var currentPeriod = '1hr';
+var currentPeriod = '24hr';
+var tblRowById    = {};
 var mLeftById     = {};
 var mMidById      = {};
 
-// Log-specific state
-var logGauges    = [];
-var logResolved  = [];
-var filterLevel  = '';
-var filterChecks = new Set();
-var logSortBy    = 'newest';
-var showResolved = false;
-var flagCardById = {};
+// ── Met colour scheme (matching accum/compare alternative scheme) ──────────
+var ACCUM_COLORS = ['#3a6cff','#00ff00','#ffff95','#ffd563','#ff9618','#e86100','#ba2000','#cc537d','#db92dc','#ff02ff','#ffffff','#c8c8c8','#bfbf00'];
+var ACCUM_BREAKS = [0.03, 1, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160, 180];
+var ACCUM_TEXT   = ['#fff','#003300','#333300','#332500','#331e00','#fff','#fff','#fff','#330033','#fff','#3c4043','#3c4043','#3c4043'];
 
-// ── Accum colour scale (matching /rain) ────────────────────────────────────
-var ACCUM_COLORS = ['#e1f5fe','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'];
-var ACCUM_BREAKS = [0.1, 0.5, 1, 2, 4, 8, 16, 32, 64];
-function accumColor(mm) {
-  if (!mm || mm < 0.05) return '#e8eaed';
+function accumIdx(mm) {
+  if (!mm || mm < ACCUM_BREAKS[0]) return -1;
   var i = 0;
   for (var j = 0; j < ACCUM_BREAKS.length; j++) { if (mm >= ACCUM_BREAKS[j]) i = j; else break; }
-  return ACCUM_COLORS[i];
+  return i;
 }
+function accumColor(mm)     { var i = accumIdx(mm); return i < 0 ? '#e0e0e0' : ACCUM_COLORS[i]; }
+function accumTextColor(mm) { var i = accumIdx(mm); return i < 0 ? '#888'    : ACCUM_TEXT[i]; }
 
 function getVal(s) {
   if (currentPeriod === 'mm') return s.mm || 0;
   return (s.ac && s.ac[currentPeriod]) || 0;
+}
+
+function makeGaugeIcon(val) {
+  if (val < 0.03) {
+    return L.divIcon({
+      className: '',
+      html: '<div style="width:5px;height:5px;border-radius:50%;background:#b0bec5;opacity:0.4"></div>',
+      iconSize: [5,5], iconAnchor: [2,2]
+    });
+  }
+  var color = accumColor(val);
+  var tc    = accumTextColor(val);
+  var txt   = val >= 100 ? Math.round(val).toString() : val.toFixed(1);
+  var w     = txt.length <= 3 ? 26 : 32;
+  return L.divIcon({
+    className: '',
+    html: '<div class="rg-label" style="background:' + color + ';color:' + tc + '">' + txt + '</div>',
+    iconSize: [w, 14], iconAnchor: [w/2, 7]
+  });
+}
+
+// ── Colour key (left map) ──────────────────────────────────────────────────
+function buildCbar() {
+  var cbar   = document.getElementById('mapCbar');
+  var labels = document.getElementById('mapCbarLabels');
+  if (!cbar) return;
+  cbar.innerHTML = ACCUM_COLORS.map(function(c) {
+    return '<div class="cbar-block" style="background:' + c + '"></div>';
+  }).join('');
+  var n = ACCUM_BREAKS.length;
+  var showAt = [0, 2, 4, 6, 8, 10, 12];
+  var html = '';
+  showAt.forEach(function(i) {
+    var pct = (i / n) * 100;
+    var v   = ACCUM_BREAKS[i];
+    var lbl = v < 1 ? '<1' : v.toString();
+    html += '<span class="cbar-label" style="left:' + pct.toFixed(1) + '%">' + lbl + '</span>';
+  });
+  labels.innerHTML = html;
+  document.getElementById('mapCbarLeft').style.display = '';
+}
+
+function updateCbarTitle(period) {
+  var el = document.getElementById('mapCbarTitle');
+  if (!el) return;
+  var t = {mm:'15 min rain','1hr':'1 hr accum','3hr':'3 hr accum','6hr':'6 hr accum','12hr':'12 hr accum','24hr':'24 hr accum'};
+  el.textContent = t[period] || period;
 }
 
 // ── Boundary layers (mid map) ──────────────────────────────────────────────
@@ -473,7 +479,7 @@ function setBL(n,l) { if(n==='regions')regionLayer=l; else if(n==='counties')cou
 function loadBoundary(val) {
   if (!BFILES[val]) return;
   if (getBL(val)) { getBL(val).addTo(mapMid); return; }
-  fetch(BFILES[val]).then(function(r){return r.json();}).then(function(d){
+  fetch(BFILES[val]).then(function(r){ return r.json(); }).then(function(d){
     var l = L.geoJSON(d, { style:BSTYLES[val], interactive:false });
     setBL(val, l);
     if (currentBoundary === val) l.addTo(mapMid);
@@ -488,6 +494,7 @@ function onAreaSelectChange(val) {
 // ── Period change ──────────────────────────────────────────────────────────
 function onPeriodChange(val) {
   currentPeriod = val;
+  updateCbarTitle(val);
   renderLeftMarkers();
 }
 
@@ -502,25 +509,20 @@ function loadManifest() {
 }
 
 function buildSlider() {
-  var n = manifest.runs.length;
+  var n  = manifest.runs.length;
   var sl = document.getElementById('timeSlider');
-  sl.min = 0; sl.max = n-1; sl.value = n-1;
+  sl.min = 0; sl.max = n - 1; sl.value = n - 1;
   document.getElementById('timelineContainer').style.display = '';
   document.getElementById('playerDateTime').style.display = '';
   updateDateDisplay(null);
 }
 
 function onSliderInput() {
-  var sl = document.getElementById('timeSlider');
-  var val = parseInt(sl.value);
+  var sl    = document.getElementById('timeSlider');
+  var val   = parseInt(sl.value);
   var isLive = val === parseInt(sl.max);
-  if (isLive) {
-    loadResultsAndLog();
-  } else {
-    var idx = manifest.runs.length - 1 - val;
-    var ts = manifest ? manifest.runs[idx] : null;
-    loadArchiveRun(ts);
-  }
+  var ts    = manifest ? manifest.runs[manifest.runs.length - 1 - val] : null;
+  loadResults(isLive ? null : ts);
 }
 
 function updateDateDisplay(readingTime) {
@@ -528,7 +530,7 @@ function updateDateDisplay(readingTime) {
   var tl = document.getElementById('playerTimeLine');
   if (readingTime) {
     try {
-      var d = new Date(readingTime);
+      var d  = new Date(readingTime);
       var mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       dl.textContent = d.getUTCDate() + ' ' + mo[d.getUTCMonth()];
       tl.textContent = pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes());
@@ -538,65 +540,13 @@ function updateDateDisplay(readingTime) {
   }
 }
 
-// ── Load results + log (live data) ────────────────────────────────────────
-function loadResultsAndLog() {
-  var urlCurrent = cdnUrl('gaugecheck/results.json');
-  var prevPromise;
-  if (manifest && manifest.runs && manifest.runs.length >= 2) {
-    prevPromise = fetch(cdnUrl('gaugecheck/runs/' + manifest.runs[1] + '.json'))
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .catch(function(){ return null; });
-  } else {
-    prevPromise = Promise.resolve(null);
-  }
-  var currentPromise = fetch(urlCurrent)
-    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); });
-
-  Promise.all([currentPromise, prevPromise])
-    .then(function(results) {
-      var current = results[0];
-      var prev    = results[1];
-
-      mapResults = current;
-      updateDateDisplay(current.latest_reading_time);
-
-      // Build logGauges from current
-      logGauges = (current.gauges || []).slice();
-
-      // Build logResolved: in prev but not in current
-      if (prev && prev.gauges) {
-        var currentIds = {};
-        logGauges.forEach(function(g){ currentIds[g.station_id] = true; });
-        logResolved = prev.gauges.filter(function(g){ return !currentIds[g.station_id]; });
-      } else {
-        logResolved = [];
-      }
-
-      updateHeaderCounts();
-      renderLeftMarkers();
-      renderMidMarkers();
-      renderFlagLog();
-
-      // Update subrow
-      if (current.latest_reading_time) {
-        var d = new Date(current.latest_reading_time);
-        document.getElementById('rightSub').textContent =
-          'Data at ' + pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes()) + ' UTC · ' + (current.total_checked||0) + ' stations checked';
-      }
-    })
-    .catch(function(){
-      document.getElementById('flagList').innerHTML = '<div class="flag-empty" style="color:#b71c1c">Could not load QC results</div>';
-    });
-}
-
-// ── Load archive run (maps only) ──────────────────────────────────────────
-function loadArchiveRun(runTs) {
-  if (!runTs) return;
-  var url = cdnUrl('gaugecheck/runs/' + runTs + '.json');
+// ── Load results (maps only) ───────────────────────────────────────────────
+function loadResults(runTs) {
+  var url = runTs ? cdnUrl('gaugecheck/runs/' + runTs + '.json') : cdnUrl('gaugecheck/results.json');
   fetch(url)
     .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
     .then(function(d){
-      mapResults = d;
+      results = d;
       updateDateDisplay(d.latest_reading_time);
       renderLeftMarkers();
       renderMidMarkers();
@@ -604,31 +554,25 @@ function loadArchiveRun(runTs) {
     .catch(function(){});
 }
 
-// ── Refresh flag log ───────────────────────────────────────────────────────
-function refreshFlagLog() {
-  var btn = document.getElementById('refreshBtn');
-  btn.style.opacity = '0.4';
-  loadResultsAndLog();
-  setTimeout(function(){ btn.style.opacity = ''; }, 800);
+// ── Load log (right panel — loaded once at boot) ───────────────────────────
+function loadLog() {
+  fetch(cdnUrl('gaugecheck/log.json'))
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){ logData = d; renderLog(); })
+    .catch(function(){ renderLog(); });
 }
 
 // ── Left map: rain gauge accumulation ─────────────────────────────────────
 function renderLeftMarkers() {
-  greyLayerLeft.clearLayers();
   accumLayerLeft.clearLayers();
   mLeftById = {};
-  var summary = (mapResults && mapResults.summary) || [];
-  var lbl = {'mm':'15-min','1hr':'1hr','3hr':'3hr','6hr':'6hr','12hr':'12hr','24hr':'24hr'}[currentPeriod] || currentPeriod;
+  var summary = (results && results.summary) || [];
+  var lbl = {mm:'15-min','1hr':'1hr','3hr':'3hr','6hr':'6hr','12hr':'12hr','24hr':'24hr'}[currentPeriod] || currentPeriod;
 
   summary.forEach(function(s) {
-    var val   = getVal(s);
-    var color = accumColor(val);
-    var icon  = L.divIcon({
-      className: '',
-      html: '<div class="rg-dot" style="background:' + color + '"></div>',
-      iconSize: [14,14], iconAnchor: [7,7]
-    });
-    var m = L.marker([s.lat, s.lon], { icon:icon, zIndexOffset: s.f ? 100 : 0 });
+    var val  = getVal(s);
+    var icon = makeGaugeIcon(val);
+    var m    = L.marker([s.lat, s.lon], { icon:icon, zIndexOffset: s.f ? 100 : 0 });
     var tipCounty = s.c ? '<br><span style="font-size:10px;color:#80868b">' + escHtml(s.c) + '</span>' : '';
     m.bindTooltip('<b>' + escHtml(s.n) + '</b>' + tipCounty + '<br>' + lbl + ': ' + val.toFixed(1) + ' mm',
       { direction:'top', className:'gauge-tip', offset:[0,-9] });
@@ -637,11 +581,11 @@ function renderLeftMarkers() {
     mLeftById[s.id] = m;
   });
 
-  var lbl2 = {'mm':'15-min','1hr':'1 hr','3hr':'3 hr','6hr':'6 hr','12hr':'12 hr','24hr':'24 hr'}[currentPeriod];
+  var lbl2 = {mm:'15-min','1hr':'1 hr','3hr':'3 hr','6hr':'6 hr','12hr':'12 hr','24hr':'24 hr'}[currentPeriod];
   document.getElementById('leftStat').textContent = summary.length + ' stations · ' + lbl2;
 }
 
-// ── Mid map: QC flags ──────────────────────────────────────────────────────
+// ── Mid map: QC flags ─────────────────────────────────────────────────────
 function renderMidMarkers() {
   greyLayerMid.clearLayers();
   flagLayerMid.clearLayers();
@@ -708,203 +652,56 @@ function buildPopup(g) {
 
 function formatDetail(c) {
   var p = [];
-  if (c.spike_ratio) p.push(c.spike_ratio+'&#215; spike');
-  if (c.preceding_median_mm !== undefined) p.push('med '+c.preceding_median_mm+'mm');
-  if (c.nn_mean_mm !== undefined) p.push('nbr '+c.nn_mean_mm+'mm');
-  if (c.radar_mm_15min !== undefined) p.push('radar '+c.radar_mm_15min+'mm');
-  if (c.ratio !== undefined) p.push('ratio '+c.ratio+'&#215;');
+  if (c.spike_ratio)              p.push(c.spike_ratio+'× spike');
+  if (c.preceding_median_mm!==undefined) p.push('med '+c.preceding_median_mm+'mm');
+  if (c.nn_mean_mm!==undefined)   p.push('nbr '+c.nn_mean_mm+'mm');
+  if (c.radar_mm_15min!==undefined) p.push('radar '+c.radar_mm_15min+'mm');
+  if (c.ratio!==undefined)        p.push('ratio '+c.ratio+'×');
   return p.length ? '<span style="font-size:10px;color:#5f6368">'+p.join(', ')+'</span>' : '';
 }
 
-// ── Header counts ──────────────────────────────────────────────────────────
-function updateHeaderCounts() {
-  var flagged  = logGauges.filter(function(g){ return g.checks_flag === 'FLAGGED'; }).length;
-  var elevated = logGauges.filter(function(g){ return g.checks_flag === 'ELEVATED'; }).length;
-  var txt;
-  if (flagged || elevated) {
-    txt = (flagged ? flagged + ' flagged' : '') +
-          (flagged && elevated ? ' · ' : '') +
-          (elevated ? elevated + ' elevated' : '');
-  } else {
-    txt = 'All clear';
+// ── Right panel: rolling log ───────────────────────────────────────────────
+function renderLog() {
+  var events = (logData && logData.events) || [];
+  var tbody  = document.getElementById('qcTbody');
+  tblRowById = {};
+
+  var cnt = events.length;
+  document.getElementById('rightCounts').textContent  = cnt ? cnt + ' event' + (cnt !== 1 ? 's' : '') : 'All clear';
+  document.getElementById('rightCounts2').textContent = cnt ? cnt + ' event' + (cnt !== 1 ? 's' : '') : 'All clear';
+
+  if (logData && logData.updated_at) {
+    var d = new Date(logData.updated_at);
+    document.getElementById('rightSub').textContent =
+      'Events in last 48h · updated ' + pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes()) + ' UTC';
   }
   document.getElementById('rightCounts2').textContent = txt;
 }
 
-// ── Filter helpers ─────────────────────────────────────────────────────────
-function toggleLevelFilter(level) {
-  filterLevel = (filterLevel === level) ? '' : level;
-  document.getElementById('chip-FLAGGED').className  = 'fchip' + (filterLevel === 'FLAGGED'  ? ' active-flagged'  : '');
-  document.getElementById('chip-ELEVATED').className = 'fchip' + (filterLevel === 'ELEVATED' ? ' active-elevated' : '');
-  renderFlagLog();
-}
-
-function toggleCheckFilter(key) {
-  if (filterChecks.has(key)) { filterChecks.delete(key); } else { filterChecks.add(key); }
-  var checkKeys = ['THR','SPIKE','SPATIAL','ZERO','RADAR','DRIP','ACCUM'];
-  checkKeys.forEach(function(k){
-    var el = document.getElementById('chip-' + k);
-    if (el) el.className = 'fchip' + (filterChecks.has(k) ? ' active-check' : '');
-  });
-  renderFlagLog();
-}
-
-function onSortChange(val) {
-  logSortBy = val;
-  renderFlagLog();
-}
-
-function toggleResolved() {
-  showResolved = !showResolved;
-  renderFlagLog();
-}
-
-// ── Check key mapping ─────────────────────────────────────────────────────
-var CHECK_KEY_MAP = {
-  THR:     'hard_threshold',
-  SPIKE:   'temporal',
-  SPATIAL: 'nearest_neighbour',
-  ZERO:    'persistent_zero',
-  RADAR:   'radar',
-  DRIP:    'drip_leak',
-  ACCUM:   'accum_anomaly'
-};
-
-function gaugeFailsCheck(g, key) {
-  var field = CHECK_KEY_MAP[key];
-  if (!field || !g.checks) return false;
-  var c = g.checks[field];
-  return c && !c.passed && !c.skipped;
-}
-
-// ── Format duration ────────────────────────────────────────────────────────
-function formatDuration(minutes) {
-  if (!minutes || minutes < 1) return '';
-  var h = Math.floor(minutes / 60);
-  var m = minutes % 60;
-  if (h > 0 && m > 0) return h + 'h ' + m + 'm';
-  if (h > 0) return h + 'h';
-  return m + 'm';
-}
-
-// ── Build flag card HTML ───────────────────────────────────────────────────
-function buildFlagCard(g, resolved) {
-  var barColor = resolved ? '#90a4ae'
-               : g.checks_flag === 'FLAGGED' ? '#c62828' : '#ef6c00';
-
-  var loc = [g.county, (g.region && g.region !== g.county ? g.region : null)].filter(Boolean).join(', ');
-
-  var durationMins = g.consecutive_flags ? Math.round((g.consecutive_flags - 1) * 15) : 0;
-  var timeStr = '';
-  if (g.first_flagged_at) {
-    timeStr = fmtTime(g.first_flagged_at);
-    if (g.consecutive_flags === 1) {
-      timeStr += ' · new this run';
-    } else if (durationMins > 0) {
-      timeStr += ' · active ' + formatDuration(durationMins);
-    }
-  } else if (g.consecutive_flags === 1) {
-    timeStr = 'new this run';
-  }
-
-  // Check pills (only failing)
-  var checkDefs = [
-    ['hard_threshold','fail-threshold','THR'],
-    ['temporal','fail-temporal','SPIKE'],
-    ['nearest_neighbour','fail-nn','SPATIAL'],
-    ['persistent_zero','fail-zero','ZERO'],
-    ['radar','fail-radar','RADAR'],
-    ['drip_leak','fail-drip','DRIP'],
-    ['accum_anomaly','fail-accum','ACCUM']
-  ];
-  var pillsHtml = '';
-  var checks = g.checks || {};
-  checkDefs.forEach(function(d){
-    var c = checks[d[0]];
-    if (c && !c.passed && !c.skipped) {
-      pillsHtml += '<span class="pill ' + d[1] + '">' + d[2] + '</span>';
-    }
-  });
-  if (g.llm_verdict) {
-    var llmCls = {SUSPECT:'llm-suspect',UNCERTAIN:'llm-uncertain',GENUINE:'llm-genuine'};
-    pillsHtml += '<span class="pill ' + (llmCls[g.llm_verdict]||'') + '">' + g.llm_verdict + '</span>';
-  }
-
-  var resolvedClass = resolved ? ' flag-resolved' : '';
-  var id = escHtml(g.station_id);
-
-  return '<div class="flag-card' + resolvedClass + '" id="flagcard-' + id + '" onclick="selectGauge(\'' + id + '\')">' +
-    '<div class="flag-bar" style="background:' + barColor + '"></div>' +
-    '<div class="flag-content">' +
-      '<div class="flag-top">' +
-        '<span class="flag-name">' + escHtml(g.name) + '</span>' +
-        '<span class="flag-value">' + g.latest_value_mm.toFixed(1) + '<span class="flag-unit"> mm</span></span>' +
-      '</div>' +
-      (loc ? '<div class="flag-loc">' + escHtml(loc) + '</div>' : '') +
-      (timeStr ? '<div class="flag-time">' + timeStr + '</div>' : '') +
-      (pillsHtml ? '<div class="flag-pills">' + pillsHtml + '</div>' : '') +
-    '</div>' +
-  '</div>';
-}
-
-// ── Render flag log ────────────────────────────────────────────────────────
-function renderFlagLog() {
-  var listEl = document.getElementById('flagList');
-  flagCardById = {};
-
-  // Filter active gauges
-  var visible = logGauges.filter(function(g) {
-    if (filterLevel && g.checks_flag !== filterLevel) return false;
-    if (filterChecks.size > 0) {
-      var anyMatch = false;
-      filterChecks.forEach(function(key){ if (gaugeFailsCheck(g, key)) anyMatch = true; });
-      if (!anyMatch) return false;
-    }
-    return true;
-  });
-
-  // Sort
-  if (logSortBy === 'longest') {
-    visible.sort(function(a, b){ return (b.consecutive_flags||0) - (a.consecutive_flags||0); });
-  } else {
-    // newest first by first_flagged_at, fall back to consecutive_flags desc
-    visible.sort(function(a, b){
-      var ta = a.first_flagged_at ? new Date(a.first_flagged_at).getTime() : 0;
-      var tb = b.first_flagged_at ? new Date(b.first_flagged_at).getTime() : 0;
-      if (tb !== ta) return tb - ta;
-      return (b.consecutive_flags||0) - (a.consecutive_flags||0);
-    });
+  if (!events.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="tbl-empty">No flagged gauges in the last 48h</td></tr>';
+    return;
   }
 
   var html = '';
-
-  if (!visible.length) {
-    html = '<div class="flag-empty">No suspicious gauges detected</div>';
-  } else {
-    visible.forEach(function(g) {
-      html += buildFlagCard(g, false);
-    });
-  }
-
-  // Resolved section
-  if (logResolved.length > 0) {
-    var arrow = showResolved ? '&#9660;' : '&#9654;';
-    html += '<button class="resolved-toggle" onclick="toggleResolved()">' +
-      arrow + ' ' + logResolved.length + ' recently resolved' +
-    '</button>';
-    if (showResolved) {
-      logResolved.forEach(function(g) {
-        html += buildFlagCard(g, true);
-      });
-    }
-  }
-
-  listEl.innerHTML = html;
-
-  // Register card references for selectGauge
-  visible.forEach(function(g) {
-    var el = document.getElementById('flagcard-' + g.station_id);
-    if (el) flagCardById[g.station_id] = el;
+  events.forEach(function(e) {
+    var checkPills  = buildCheckPills(e.checks);
+    var llmPill     = buildLlmPill(e.llm_verdict);
+    var loc         = e.county || '';
+    var dur         = fmtDuration(e.consecutive_flags);
+    var t           = fmtLogTime(e.last_seen);
+    var mm24        = (e.accums && e.accums['24hr']) || 0;
+    var borderColor = e.checks_flag === 'FLAGGED' ? '#c62828' : '#ef6c00';
+    html += '<tr class="tbl-row" id="tblrow-' + e.station_id + '" style="border-left:3px solid ' + borderColor + '">' +
+      '<td><div class="tbl-name">' + escHtml(e.name) + '</div>' +
+        (loc ? '<div class="tbl-loc">' + escHtml(loc) + '</div>' : '') + '</td>' +
+      '<td class="tbl-time">' + t + '</td>' +
+      '<td class="tbl-num">' + e.latest_value_mm.toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
+      '<td class="tbl-num">' + mm24.toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
+      '<td class="checks-cell">' + checkPills + '</td>' +
+      '<td>' + llmPill + '</td>' +
+      '<td class="tbl-num">' + dur + '</td>' +
+      '</tr>';
   });
   if (showResolved) {
     logResolved.forEach(function(g) {
@@ -913,21 +710,58 @@ function renderFlagLog() {
     });
   }
 
-  // Restore selected highlight
-  if (selectedId && flagCardById[selectedId]) {
-    flagCardById[selectedId].classList.add('selected');
-  }
+  events.forEach(function(e) {
+    var el = document.getElementById('tblrow-' + e.station_id);
+    if (el) {
+      tblRowById[e.station_id] = el;
+      el.addEventListener('click', (function(sid){ return function(){ selectGauge(sid); }; })(e.station_id));
+    }
+  });
 }
 
-// ── Select gauge (highlights all panels) ───────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
+function buildCheckPills(checks) {
+  if (!checks) return '';
+  var out  = '';
+  var defs = [['hard_threshold','fail-threshold','THR'],['temporal','fail-temporal','SPIKE'],
+    ['nearest_neighbour','fail-nn','SPATIAL'],['persistent_zero','fail-zero','ZERO'],
+    ['radar','fail-radar','RADAR'],['drip_leak','fail-drip','DRIP'],['accum_anomaly','fail-accum','ACCUM']];
+  defs.forEach(function(d){ var c=checks[d[0]]; if(c&&!c.passed&&!c.skipped) out+='<span class="pill '+d[1]+'">'+d[2]+'</span>'; });
+  return out;
+}
+
+function buildLlmPill(v) {
+  if (!v) return '';
+  var cls = {SUSPECT:'llm-suspect',UNCERTAIN:'llm-uncertain',GENUINE:'llm-genuine'};
+  return '<span class="pill '+(cls[v]||'')+'">'+ v +'</span>';
+}
+
+function fmtDuration(n) {
+  var mins = (n || 1) * 15;
+  if (mins < 60) return mins + 'm';
+  var h = Math.floor(mins / 60), m = mins % 60;
+  return h + 'h' + (m ? m + 'm' : '');
+}
+
+function fmtLogTime(iso) {
+  if (!iso) return '—';
+  try {
+    var d  = new Date(iso);
+    var now = new Date();
+    var sameDay = d.getUTCDate() === now.getUTCDate() &&
+                  d.getUTCMonth() === now.getUTCMonth() &&
+                  d.getUTCFullYear() === now.getUTCFullYear();
+    if (sameDay) return pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes());
+    var mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return d.getUTCDate() + ' ' + mo[d.getUTCMonth()] + ' ' + pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes());
+  } catch(e) { return '—'; }
+}
+
+// ── Select gauge ───────────────────────────────────────────────────────────
 function selectGauge(id) {
   if (selectedId && flagCardById[selectedId]) flagCardById[selectedId].classList.remove('selected');
   selectedId = id;
-  if (flagCardById[id]) {
-    flagCardById[id].classList.add('selected');
-    flagCardById[id].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-
+  if (tblRowById[id]) { tblRowById[id].classList.add('selected'); tblRowById[id].scrollIntoView({behavior:'smooth',block:'nearest'}); }
   var m = mMidById[id] || mLeftById[id];
   if (m) {
     var ll = m.getLatLng ? m.getLatLng() : L.latLng(m._latlng);
@@ -938,16 +772,18 @@ function selectGauge(id) {
   }
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
 function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmtTime(iso) { if (!iso) return '—'; try { var d=new Date(iso); return pad2(d.getUTCHours())+':'+pad2(d.getUTCMinutes())+' UTC'; } catch(e){ return iso; } }
-function pad2(n) { return n<10?'0'+n:''+n; }
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 function toggleInfoModal() { document.getElementById('infoModalBackdrop').classList.toggle('open'); }
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') document.getElementById('infoModalBackdrop').classList.remove('open'); });
 
 // ── Boot ───────────────────────────────────────────────────────────────────
+buildCbar();
+updateCbarTitle('24hr');
 loadManifest();
 loadBoundary('catchments');
+loadLog();
 </script>
 </body>
 </html>

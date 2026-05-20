@@ -78,9 +78,11 @@ ACCUM_MIN_NBR_TOTAL_MM = 5.0  # exclude near-dry neighbours from the comparison 
 
 # ── Storage keys ───────────────────────────────────────────────────────────────
 OUTPUT_KEY        = "gaugecheck/results.json"
+LOG_KEY           = "gaugecheck/log.json"
 MANIFEST_KEY      = "gaugecheck/manifest.json"
 RUNS_KEY_TPL      = "gaugecheck/runs/{ts}.json"
 MAX_RUNS          = 672  # 7 days at 15-min cadence
+LOG_RETENTION_HRS = 48   # rolling event log retention
 READINGS_PFX      = "rain/readings"
 STATIONS_KEY      = "rain/stations.json"
 META_KEY          = "rain/meta.json"
@@ -597,6 +599,41 @@ def should_call_llm(checks, value):
     return count_failures(checks) >= LLM_MIN_FAILURES or value >= LLM_TRIGGER_MM
 
 
+# ── Rolling event log ──────────────────────────────────────────────────────────
+def update_log(r2, flagged_gauges, now):
+    existing  = r2_get_json(r2, LOG_KEY, {})
+    events    = {(e['station_id'], e['first_flagged_at']): e
+                 for e in existing.get('events', [])}
+    cutoff    = (now - timedelta(hours=LOG_RETENTION_HRS)).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    for g in flagged_gauges:
+        key = (g['station_id'], g['first_flagged_at'])
+        events[key] = {
+            'station_id':       g['station_id'],
+            'name':             g['name'],
+            'county':           g.get('county'),
+            'lat':              g['lat'],
+            'lon':              g['lon'],
+            'first_flagged_at': g['first_flagged_at'],
+            'last_seen':        now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'consecutive_flags': g['consecutive_flags'],
+            'checks_flag':      g['checks_flag'],
+            'latest_value_mm':  g['latest_value_mm'],
+            'checks':           g['checks'],
+            'llm_verdict':      g.get('llm_verdict'),
+            'llm_reasoning':    g.get('llm_reasoning'),
+            'accums':           g.get('accums', {}),
+        }
+
+    events = {k: v for k, v in events.items() if v['last_seen'] > cutoff}
+    log_data = {
+        'updated_at': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'events': sorted(events.values(), key=lambda e: e['last_seen'], reverse=True),
+    }
+    r2_put_json(r2, LOG_KEY, log_data)
+    print(f"Updated log ({len(log_data['events'])} events in last {LOG_RETENTION_HRS}h).")
+
+
 # ── Main ────────────────────────────────────────────────────────────────────────
 def main():
     if not USE_R2:
@@ -852,6 +889,7 @@ def main():
         runs_list.insert(0, run_ts)
     r2_put_json(r2, MANIFEST_KEY, {"runs": runs_list[:MAX_RUNS]})
     print(f"Archived run {run_ts} ({min(len(runs_list), MAX_RUNS)} in manifest).")
+    update_log(r2, flagged_gauges, now)
     print("Done.")
 
 
