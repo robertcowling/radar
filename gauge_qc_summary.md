@@ -24,7 +24,7 @@ A station with **2+ checks failed** → **Flagged** (red on map).
 ### When it runs
 - Any Elevated or Flagged station (≥1 check failed)
 - Any reading ≥20 mm even if all checks pass (high-value override)
-- Re-runs every 8 consecutive flags (~2 hrs) to refresh stale verdicts during long events
+- Re-runs every 4 consecutive flags (~1 hr) to refresh stale verdicts during long events
 - Skipped on intermediate runs between refreshes to keep API costs low
 
 ### What it receives
@@ -72,7 +72,7 @@ EA API (15-min telemetry)
 | Drip neighbour suppression | neighbours mean ≥0.15 mm/slot |
 | Accum anomaly ratio | 5× neighbour mean over 24 hrs |
 | LLM trigger (high value) | ≥20 mm |
-| LLM refresh interval | every 8 runs (~2 hrs) |
+| LLM refresh interval | every 4 runs (~1 hr) |
 | Telemetry lookback | 3 slots (45 min) for latency tolerance |
 | Log retention | 48 hrs |
 | Run archive | 7 days (672 runs) |

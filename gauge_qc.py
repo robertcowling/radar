@@ -823,7 +823,7 @@ def main():
             consecutive_flags = 1
             first_flagged_at  = now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        # LLM: run on first flag; re-run every 8 consecutive flags (~2 hrs) to
+        # LLM: run on first flag; re-run every 4 consecutive flags (~1 hr) to
         # refresh the assessment if conditions have changed during a persistent event.
         llm_verdict   = None
         llm_reasoning = None
@@ -835,7 +835,7 @@ def main():
 
         if should_call_llm(checks, latest_value):
             prev_verdict  = prev.get("llm_verdict") if prev else None
-            needs_refresh = not prev_verdict or consecutive_flags % 8 == 0
+            needs_refresh = not prev_verdict or consecutive_flags % 4 == 0
             if needs_refresh:
                 neighbours_info = []
                 for nbr_id, dist_km, nbr_name, nbr_val in neighbours[:3]:
