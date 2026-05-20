@@ -95,7 +95,7 @@ select:hover { background-color: #e8eaed; }
 
 /* ── In-map colour key (left panel) ───────────────────────────────────────── */
 .map-cbar {
-  position: absolute; bottom: 90px; left: 10px; z-index: 500;
+  position: absolute; top: 10px; right: 10px; z-index: 500;
   background: rgba(255,255,255,0.93); border-radius: 8px;
   padding: 7px 10px 6px; pointer-events: none;
   box-shadow: 0 2px 8px rgba(0,0,0,0.14); width: 230px;
@@ -108,7 +108,7 @@ select:hover { background-color: #e8eaed; }
 
 /* ── In-map QC flag key (mid panel) ───────────────────────────────────────── */
 .qc-key {
-  position: absolute; bottom: 90px; left: 10px; z-index: 500;
+  position: absolute; top: 10px; right: 10px; z-index: 500;
   background: rgba(255,255,255,0.93); border-radius: 8px;
   padding: 7px 10px 6px; pointer-events: none;
   box-shadow: 0 2px 8px rgba(0,0,0,0.14);
@@ -119,13 +119,17 @@ select:hover { background-color: #e8eaed; }
 .qc-dot { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid white; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
 .qc-swatch-lbl { font-size: 10px; color: #3c4043; }
 
-/* ── Rain gauge value label (left map) ─────────────────────────────────────── */
-.rg-label {
-  border: 1.5px solid rgba(255,255,255,0.75); border-radius: 3px;
-  padding: 1px 4px; font-size: 9px; font-weight: 700;
-  white-space: nowrap; line-height: 1.4; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-  cursor: pointer; display: block; text-align: center;
+/* ── Rain gauge icon (left map) ────────────────────────────────────────────── */
+.rg-wrap { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; }
+.rg-icon {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.55);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Roboto', sans-serif; font-size: 8.5px; font-weight: 700;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.4); box-sizing: border-box;
+  cursor: pointer; line-height: 1;
 }
+.rg-icon.rg-nodata { width: 7px; height: 7px; background: #90a4ae; opacity: 0.35; border: none; }
 
 /* ── Gauge tip (tooltip) ───────────────────────────────────────────────────── */
 .leaflet-tooltip.gauge-tip {
@@ -167,7 +171,7 @@ table.qc-table { width: 100%; border-collapse: collapse; font-size: 11px; }
 table.qc-table thead th {
   position: sticky; top: 0; background: #f8f9fa; z-index: 1;
   padding: 6px 8px; text-align: left; font-size: 10px; font-weight: 700;
-  color: #64748b; letter-spacing: 0.4px; text-transform: uppercase;
+  color: #64748b; letter-spacing: 0.2px;
   border-bottom: 1px solid #e8eaed; white-space: nowrap;
 }
 table.qc-table tbody tr {
@@ -262,8 +266,8 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
       <!-- QC flag key -->
       <div class="qc-key">
         <p>QC Status</p>
-        <div class="qc-swatch-row"><div class="qc-dot" style="background:#c62828"></div><span class="qc-swatch-lbl">FLAGGED (2+ checks)</span></div>
-        <div class="qc-swatch-row"><div class="qc-dot" style="background:#ef6c00"></div><span class="qc-swatch-lbl">ELEVATED (1 check)</span></div>
+        <div class="qc-swatch-row"><div class="qc-dot" style="background:#c62828"></div><span class="qc-swatch-lbl">Flagged (2+ checks)</span></div>
+        <div class="qc-swatch-row"><div class="qc-dot" style="background:#ef6c00"></div><span class="qc-swatch-lbl">Elevated (1 check)</span></div>
         <div class="qc-swatch-row"><div class="qc-dot" style="background:#90a4ae;opacity:0.6"></div><span class="qc-swatch-lbl">No flags</span></div>
       </div>
     </div>
@@ -309,10 +313,6 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
 
   <!-- Right: rolling log table -->
   <div class="right-wrap">
-    <div class="right-header">
-      <span class="right-header-title">Log</span>
-      <span id="rightCounts2" class="right-counts">—</span>
-    </div>
     <div class="right-subrow" id="rightSub"></div>
     <div class="tbl-wrap">
       <table class="qc-table">
@@ -345,15 +345,15 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
       Gauge QC checks
     </h3>
     <ul>
-      <li><strong>THRESHOLD</strong> — single 15-min reading &#8805; 25 mm (suspicious) or &#8805; 50 mm (physically impossible).</li>
-      <li><strong>SPIKE</strong> — isolated peak &#8805; 8&#215; the preceding 1&frac34; hr median, or sudden jump from zero above 5 mm.</li>
-      <li><strong>SPATIAL</strong> — high reading (&#8805; 8 mm) when all stations within 20 km show near-zero.</li>
-      <li><strong>ZERO</strong> — gauge stuck at 0 for 6+ hrs while neighbours and/or radar confirm active rainfall.</li>
-      <li><strong>RADAR</strong> — reading far exceeds the Met Office radar QPE at the same location (ratio &gt; 15&#215;).</li>
-      <li><strong>DRIP</strong> — near-constant low-amplitude tips over 3+ hrs: classic blocked or leaking tipping bucket.</li>
-      <li><strong>ACCUM</strong> — 24 hr gauge total &#8805; 5.0&#215; the mean of its nearest neighbours.</li>
-      <li><strong>LLM review</strong> — AI independently assesses when any check fails or reading &#8805; 20 mm. Verdict: GENUINE, UNCERTAIN, or SUSPECT.</li>
-      <li><strong style="color:#ef6c00">&#x1F7E0; ELEVATED</strong> — 1 check failed.&nbsp;&nbsp;<strong style="color:#c62828">&#x1F534; FLAGGED</strong> — 2 or more checks failed.</li>
+      <li><strong>Threshold</strong> — single 15-min reading &#8805; 25 mm (suspicious) or &#8805; 50 mm (physically impossible).</li>
+      <li><strong>Spike</strong> — isolated peak &#8805; 8&#215; the preceding 1&frac34; hr median, or sudden jump from zero above 5 mm.</li>
+      <li><strong>Spatial</strong> — high reading (&#8805; 8 mm) when all stations within 20 km show near-zero.</li>
+      <li><strong>Zero</strong> — gauge stuck at 0 for 6+ hrs while neighbours and/or radar confirm active rainfall.</li>
+      <li><strong>Radar</strong> — reading far exceeds the Met Office radar QPE at the same location (ratio &gt; 15&#215;).</li>
+      <li><strong>Drip</strong> — near-constant low-amplitude tips over 3+ hrs: classic blocked or leaking tipping bucket.</li>
+      <li><strong>Accum</strong> — 24 hr gauge total &#8805; 5.0&#215; the mean of its nearest neighbours.</li>
+      <li><strong>LLM review</strong> — AI independently assesses when any check fails or reading &#8805; 20 mm. Verdict: Genuine, Uncertain, or Suspect.</li>
+      <li><strong style="color:#ef6c00">&#x1F7E0; Elevated</strong> — 1 check failed.&nbsp;&nbsp;<strong style="color:#c62828">&#x1F534; Flagged</strong> — 2 or more checks failed.</li>
     </ul>
   </div>
 </div>
@@ -419,18 +419,17 @@ function makeGaugeIcon(val) {
   if (val < 0.03) {
     return L.divIcon({
       className: '',
-      html: '<div style="width:5px;height:5px;border-radius:50%;background:#b0bec5;opacity:0.4"></div>',
-      iconSize: [5,5], iconAnchor: [2,2]
+      html: '<div class="rg-wrap"><div class="rg-icon rg-nodata"></div></div>',
+      iconSize: [20, 20], iconAnchor: [10, 10]
     });
   }
   var color = accumColor(val);
   var tc    = accumTextColor(val);
-  var txt   = val >= 100 ? Math.round(val).toString() : val.toFixed(1);
-  var w     = txt.length <= 3 ? 26 : 32;
+  var txt   = val < 1 ? val.toFixed(1) : Math.round(val).toString();
   return L.divIcon({
     className: '',
-    html: '<div class="rg-label" style="background:' + color + ';color:' + tc + '">' + txt + '</div>',
-    iconSize: [w, 14], iconAnchor: [w/2, 7]
+    html: '<div class="rg-wrap"><div class="rg-icon" style="background:' + color + ';color:' + tc + '">' + txt + '</div></div>',
+    iconSize: [20, 20], iconAnchor: [10, 10]
   });
 }
 
@@ -684,8 +683,7 @@ function renderLog() {
 
   var cnt = events.length;
   var cntTxt = cnt ? cnt + ' event' + (cnt !== 1 ? 's' : '') : 'All clear';
-  document.getElementById('rightCounts').textContent  = cntTxt;
-  document.getElementById('rightCounts2').textContent = cntTxt;
+  document.getElementById('rightCounts').textContent = cntTxt;
 
   if (logData && logData.updated_at) {
     var d = new Date(logData.updated_at);
@@ -733,9 +731,9 @@ function renderLog() {
 function buildCheckPills(checks) {
   if (!checks) return '';
   var out  = '';
-  var defs = [['hard_threshold','fail-threshold','THR'],['temporal','fail-temporal','SPIKE'],
-    ['nearest_neighbour','fail-nn','SPATIAL'],['persistent_zero','fail-zero','ZERO'],
-    ['radar','fail-radar','RADAR'],['drip_leak','fail-drip','DRIP'],['accum_anomaly','fail-accum','ACCUM']];
+  var defs = [['hard_threshold','fail-threshold','Thr'],['temporal','fail-temporal','Spike'],
+    ['nearest_neighbour','fail-nn','Spatial'],['persistent_zero','fail-zero','Zero'],
+    ['radar','fail-radar','Radar'],['drip_leak','fail-drip','Drip'],['accum_anomaly','fail-accum','Accum']];
   defs.forEach(function(d){ var c=checks[d[0]]; if(c&&!c.passed&&!c.skipped) out+='<span class="pill '+d[1]+'">'+d[2]+'</span>'; });
   return out;
 }
@@ -743,7 +741,8 @@ function buildCheckPills(checks) {
 function buildLlmPill(v) {
   if (!v) return '';
   var cls = {SUSPECT:'llm-suspect',UNCERTAIN:'llm-uncertain',GENUINE:'llm-genuine'};
-  return '<span class="pill '+(cls[v]||'')+'">'+ v +'</span>';
+  var lbl = v.charAt(0) + v.slice(1).toLowerCase();
+  return '<span class="pill '+(cls[v]||'')+'">'+ lbl +'</span>';
 }
 
 function fmtDuration(n) {
