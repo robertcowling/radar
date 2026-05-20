@@ -372,14 +372,17 @@ L.tileLayer(TILE, { attribution: TILE_ATT, subdomains: 'abcd', maxZoom: 18 }).ad
 
 // ── Map sync ───────────────────────────────────────────────────────────────
 var _syncing = false;
-function syncTo(src, tgt) {
-  src.on('move', function() {
-    if (_syncing) return; _syncing = true;
-    tgt.setView(src.getCenter(), src.getZoom(), { animate: false });
-    _syncing = false;
+function syncMaps(src) {
+  if (_syncing) return;
+  _syncing = true;
+  var c = src.getCenter(), z = src.getZoom();
+  [mapLeft, mapMid].forEach(function(m) {
+    if (m !== src) m.setView(c, z, { animate: false });
   });
+  _syncing = false;
 }
-syncTo(mapLeft, mapMid); syncTo(mapMid, mapLeft);
+mapLeft.on('moveend', function() { syncMaps(mapLeft); });
+mapMid.on('moveend',  function() { syncMaps(mapMid); });
 
 // ── Layers ─────────────────────────────────────────────────────────────────
 var accumLayerLeft = L.layerGroup().addTo(mapLeft);
@@ -461,8 +464,9 @@ function updateCbarTitle(period) {
   el.textContent = t[period] || period;
 }
 
-// ── Boundary layers (mid map) ──────────────────────────────────────────────
-var regionLayer = null, countiesLayer = null, catchmentsLayer = null, gridLayer = null;
+// ── Boundary layers (both maps) ────────────────────────────────────────────
+// Each boundary needs two L.geoJSON instances — Leaflet layers can only live on one map.
+var _bLayersL = {}, _bLayersM = {};
 var currentBoundary = 'catchments';
 var BSTYLES = {
   regions:    { color:'#5f6368', weight:1.5, fillOpacity:0 },
@@ -472,20 +476,26 @@ var BSTYLES = {
 };
 var BFILES = { regions:'uk_regions.geojson', counties:'uk-counties.geojson', catchments:'uk_catchments.geojson', grid:'uk_grid_20km.geojson' };
 
-function getBL(n) { return n==='regions'?regionLayer:n==='counties'?countiesLayer:n==='catchments'?catchmentsLayer:n==='grid'?gridLayer:null; }
-function setBL(n,l) { if(n==='regions')regionLayer=l; else if(n==='counties')countiesLayer=l; else if(n==='catchments')catchmentsLayer=l; else if(n==='grid')gridLayer=l; }
-
 function loadBoundary(val) {
   if (!BFILES[val]) return;
-  if (getBL(val)) { getBL(val).addTo(mapMid); return; }
+  if (_bLayersL[val]) {
+    _bLayersL[val].addTo(mapLeft);
+    _bLayersM[val].addTo(mapMid);
+    return;
+  }
   fetch(BFILES[val]).then(function(r){ return r.json(); }).then(function(d){
-    var l = L.geoJSON(d, { style:BSTYLES[val], interactive:false });
-    setBL(val, l);
-    if (currentBoundary === val) l.addTo(mapMid);
+    _bLayersL[val] = L.geoJSON(d, { style:BSTYLES[val], interactive:false });
+    _bLayersM[val] = L.geoJSON(d, { style:BSTYLES[val], interactive:false });
+    if (currentBoundary === val) {
+      _bLayersL[val].addTo(mapLeft);
+      _bLayersM[val].addTo(mapMid);
+    }
   }).catch(function(){});
 }
 function onAreaSelectChange(val) {
-  ['regions','counties','catchments','grid'].forEach(function(n){ var l=getBL(n); if(l&&mapMid.hasLayer(l))mapMid.removeLayer(l); });
+  ['regions','counties','catchments','grid'].forEach(function(n) {
+    if (_bLayersL[n]) { mapLeft.removeLayer(_bLayersL[n]); mapMid.removeLayer(_bLayersM[n]); }
+  });
   currentBoundary = val;
   if (val !== 'none') loadBoundary(val);
 }
