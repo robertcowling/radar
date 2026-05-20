@@ -504,8 +504,8 @@ function loadManifest() {
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(d){
       if (d && d.runs && d.runs.length >= 2) { manifest = d; buildSlider(); }
-      loadResultsAndLog();
-    }).catch(function(){ loadResultsAndLog(); });
+      loadResults(null);
+    }).catch(function(){ loadResults(null); });
 }
 
 function buildSlider() {
@@ -590,9 +590,9 @@ function renderMidMarkers() {
   greyLayerMid.clearLayers();
   flagLayerMid.clearLayers();
   mMidById = {};
-  var summary = (mapResults && mapResults.summary) || [];
+  var summary = (results && results.summary) || [];
   var flagMap = {};
-  ((mapResults && mapResults.gauges) || []).forEach(function(g){ flagMap[g.station_id] = g; });
+  ((results && results.gauges) || []).forEach(function(g){ flagMap[g.station_id] = g; });
 
   summary.forEach(function(s) {
     if (s.f) return;
