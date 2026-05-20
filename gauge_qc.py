@@ -490,7 +490,8 @@ def load_latest_radar(s3):
 
 # ── LLM assessment ─────────────────────────────────────────────────────────────
 def call_llm(station_id, name, lat, lon, value, slot_time_str,
-             checks, history_96, neighbours_info, radar_mm):
+             checks, history_96, neighbours_info, radar_mm, accums,
+             consecutive_flags):
     """Return (verdict, reasoning) or (None, None) if unavailable."""
     if not OPENAI_API_KEY:
         return None, None
@@ -523,7 +524,13 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
         _fmt_check("Nearest neighbour (20 km)",     checks["nearest_neighbour"]),
         _fmt_check("Persistent zero",               checks["persistent_zero"]),
         _fmt_check("Radar conformity",              checks["radar"]),
+        _fmt_check("Drip/leak pattern",             checks["drip_leak"]),
+        _fmt_check("24 hr accumulation anomaly",    checks["accum_anomaly"]),
     ])
+
+    accum_str = "  " + "  ".join(
+        f"{k}: {v} mm" for k, v in accums.items()
+    )
 
     nbr_block = ""
     for nbr in neighbours_info[:3]:
@@ -531,22 +538,30 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
         hist_str = "[" + " ".join(f"{v:.1f}" if v is not None else "-"
                                   for v in hist) + "]"
         nbr_block += (f"\n  {nbr['name']} ({nbr['dist_km']:.1f} km): "
-                      f"latest {nbr.get('value_mm', '?')} mm  24hr={hist_str}")
+                      f"latest {nbr.get('value_mm', '?')} mm  6hr={hist_str}")
 
     radar_str = (f"{radar_mm:.2f} mm/15 min" if radar_mm is not None
                  else "unavailable")
+
+    flag_history = (f"This is the first time this gauge has been flagged in this episode."
+                    if consecutive_flags == 1
+                    else f"This gauge has been flagged for {consecutive_flags} consecutive 15-min runs "
+                         f"({consecutive_flags * 15} min = {consecutive_flags * 15 // 60}h "
+                         f"{consecutive_flags * 15 % 60}m).")
 
     prompt = (
         f"You are a UK rainfall quality-control expert advising a flood forecasting team.\n\n"
         f"Station: {name} (ID {station_id}), "
         f"{lat:.4f}°N  {abs(lon):.4f}°{'W' if lon < 0 else 'E'}\n"
-        f"Latest reading: {value:.1f} mm in 15-min slot at {slot_time_str} UTC\n\n"
+        f"Latest reading: {value:.1f} mm in 15-min slot at {slot_time_str} UTC\n"
+        f"{flag_history}\n\n"
+        f"Accumulation totals ending at this slot:\n{accum_str}\n\n"
         f"Automated QC check results (computed externally — do not recalculate):\n"
         f"{check_block}\n\n"
         f"Radar QPE at station: {radar_str}\n\n"
         f"This gauge last 24 hr (96 × 15-min slots, oldest→newest, mm, '-'=missing):\n"
         f"  {_fmt_slots(history_96)}\n\n"
-        f"Nearest neighbours (latest reading + last 24-hr history):"
+        f"Nearest neighbours (latest reading + last 6-hr history):"
         f"{nbr_block if nbr_block else chr(10) + '  None available'}\n\n"
         f"Based on the above, assess whether the reading at {slot_time_str} is genuine "
         f"rainfall or a sensor/telemetry fault. Consider the UK climate context.\n"
@@ -825,6 +840,7 @@ def main():
                     station_id, s.get("name", station_id), lat, lon,
                     latest_value, latest_dt.strftime("%Y-%m-%dT%H:%M"),
                     checks, history_96, neighbours_info, radar_mm,
+                    accums, consecutive_flags,
                 )
                 if llm_verdict:
                     llm_from_run = now.strftime("%Y-%m-%dT%H:%M:%SZ")
