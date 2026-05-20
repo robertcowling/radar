@@ -57,7 +57,7 @@ body {
 .control-label { font-size: 9px; font-weight: 600; color: #3c4043; letter-spacing: 0.5px; padding-left: 8px; }
 
 /* ── Timeline ──────────────────────────────────────────────────────────────── */
-.timeline-container { position: relative; width: 220px; height: 40px; display: flex; align-items: center; }
+.timeline-container { position: relative; width: 340px; height: 40px; display: flex; align-items: center; }
 .timeline-track {
   position: absolute; top: 50%; left: 9px; right: 9px; height: 6px; margin-top: -3px;
   background: #e8eaed; border-radius: 3px; z-index: 1; pointer-events: none;
@@ -652,14 +652,23 @@ function onSliderInput() {
   loadResults(isLive ? null : ts);
 }
 
+function ukTzLabel(date) {
+  try {
+    var s = date.toLocaleTimeString('en-GB', { timeZone:'Europe/London', timeZoneName:'short' });
+    var m = s.match(/\b(GMT|BST)\b/);
+    return m ? m[1] : '';
+  } catch(e) { return ''; }
+}
+
 function updateDateDisplay(readingTime) {
   var dl = document.getElementById('playerDateLine');
   var tl = document.getElementById('playerTimeLine');
   if (readingTime) {
     try {
-      var d = new Date(readingTime);
+      var d  = new Date(readingTime);
+      var tz = ukTzLabel(d);
       dl.textContent = ukDateShort(d);
-      tl.textContent = ukTime(d);
+      tl.textContent = ukTime(d) + (tz ? ' ' + tz : '');
     } catch(e) { dl.textContent = '—'; tl.textContent = '—'; }
   } else {
     dl.textContent = 'Live'; tl.textContent = '—';
