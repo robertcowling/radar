@@ -205,13 +205,35 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
 /* ── Info modal ────────────────────────────────────────────────────────────── */
 .info-modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 2000; align-items: center; justify-content: center; }
 .info-modal-backdrop.open { display: flex; }
-.info-modal { background: white; border-radius: 14px; padding: 22px 24px 18px; max-width: 380px; width: calc(100vw - 32px); box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative; max-height: calc(100vh - 40px); overflow-y: auto; }
-.info-modal h3 { margin: 0 0 14px; font-size: 13px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; }
-.info-modal ul { list-style: none; margin: 0; padding: 0; }
-.info-modal li { font-size: 12px; color: #475569; line-height: 1.6; padding: 7px 0; border-bottom: 1px solid #f1f5f9; }
-.info-modal li:last-child { border-bottom: none; }
+.info-modal { background: white; border-radius: 14px; padding: 20px 22px 18px; max-width: 480px; width: calc(100vw - 32px); box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative; max-height: calc(100vh - 48px); display: flex; flex-direction: column; }
+.info-modal h3 { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .info-modal-close { position: absolute; top: 14px; right: 16px; background: transparent; border: none; cursor: pointer; font-size: 18px; color: #94a3b8; }
 .info-modal-close:hover { color: #5f6368; }
+
+/* ── Modal tabs ────────────────────────────────────────────────────────────── */
+.modal-tabs { display: flex; border-bottom: 2px solid #e8eaed; flex-shrink: 0; margin: 0 0 2px; }
+.modal-tab { padding: 6px 14px 8px; font-size: 12px; font-weight: 600; color: #94a3b8; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; user-select: none; }
+.modal-tab.active { color: #1a73e8; border-bottom-color: #1a73e8; }
+.modal-tab-body { overflow-y: auto; flex: 1; padding-top: 4px; }
+.modal-tab-panel { display: none; }
+.modal-tab-panel.active { display: block; }
+
+/* ── Check items ───────────────────────────────────────────────────────────── */
+.check-item { padding: 9px 0; border-bottom: 1px solid #f1f5f9; }
+.check-item:last-child { border-bottom: none; }
+.ci-name { font-size: 12px; font-weight: 700; color: #1e293b; margin-bottom: 2px; }
+.ci-desc { font-size: 12px; color: #475569; line-height: 1.5; }
+.ci-rule { font-size: 11px; color: #64748b; line-height: 1.4; margin-top: 3px; }
+.ci-eg   { font-size: 11px; color: #94a3b8; margin-top: 3px; line-height: 1.4; }
+
+/* ── AI tab ────────────────────────────────────────────────────────────────── */
+.ai-section { padding: 9px 0; border-bottom: 1px solid #f1f5f9; }
+.ai-section:last-child { border-bottom: none; }
+.ai-section-title { font-size: 11px; font-weight: 700; color: #1e293b; margin-bottom: 5px; }
+.ai-section p { font-size: 12px; color: #475569; line-height: 1.6; margin: 0; }
+.ai-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.ai-list li { font-size: 12px; color: #475569; line-height: 1.5; padding: 1px 0 1px 14px; position: relative; }
+.ai-list li::before { content: '·'; position: absolute; left: 3px; color: #94a3b8; font-size: 14px; line-height: 1.2; }
 
 /* ── Mobile responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 767px) {
@@ -342,19 +364,99 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
     <button class="info-modal-close" onclick="toggleInfoModal()">&times;</button>
     <h3>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-      Gauge QC checks
+      Gauge QC
     </h3>
-    <ul>
-      <li><strong>Threshold</strong> — single 15-min reading &#8805; 25 mm (suspicious) or &#8805; 50 mm (physically impossible).</li>
-      <li><strong>Spike</strong> — isolated peak &#8805; 8&#215; the preceding 1&frac34; hr median, or sudden jump from zero above 5 mm.</li>
-      <li><strong>Spatial</strong> — high reading (&#8805; 8 mm) when all stations within 20 km show near-zero.</li>
-      <li><strong>Zero</strong> — gauge stuck at 0 for 6+ hrs while neighbours and/or radar confirm active rainfall.</li>
-      <li><strong>Radar</strong> — reading far exceeds the Met Office radar QPE at the same location (ratio &gt; 15&#215;).</li>
-      <li><strong>Drip</strong> — near-constant low-amplitude tips over 3+ hrs: classic blocked or leaking tipping bucket.</li>
-      <li><strong>Accum</strong> — 24 hr gauge total &#8805; 5.0&#215; the mean of its nearest neighbours.</li>
-      <li><strong>AI review</strong> — AI independently assesses when any check fails or reading &#8805; 20 mm. Verdict: Genuine, Uncertain, or Suspect.</li>
-      <li><strong style="color:#ef6c00">&#x1F7E0; 1 check fail</strong> — one check failed.&nbsp;&nbsp;<strong style="color:#c62828">&#x1F534; 2+ checks fail</strong> — two or more checks failed.</li>
-    </ul>
+    <div class="modal-tabs">
+      <div class="modal-tab active"  onclick="switchModalTab('checks')">Checks</div>
+      <div class="modal-tab"         onclick="switchModalTab('ai')">AI assessment</div>
+    </div>
+    <div class="modal-tab-body">
+
+      <!-- ── Checks tab ── -->
+      <div id="modalTabChecks" class="modal-tab-panel active">
+        <div class="check-item">
+          <div class="ci-name">Threshold</div>
+          <div class="ci-desc">Catches physically impossible readings in a single 15-min slot.</div>
+          <div class="ci-rule">Triggers at &#8805; 25 mm (suspicious) or &#8805; 50 mm (impossible). The UK 15-min record is around 22 mm.</div>
+          <div class="ci-eg">E.g. a reading of 60 mm — no 15-min interval in UK records has ever come close.</div>
+        </div>
+        <div class="check-item">
+          <div class="ci-name">Spike</div>
+          <div class="ci-desc">Detects an isolated burst out of all proportion with the recent reading history.</div>
+          <div class="ci-rule">Triggers when the reading is &#8805; 8&#215; the median of the preceding 7 slots (1 hr 45 min) AND &#8805; 5 mm absolute.</div>
+          <div class="ci-eg">E.g. previous 7 slots averaged 0.5 mm, then 12 mm appears — a 24&#215; ratio with no spatial or radar support.</div>
+        </div>
+        <div class="check-item">
+          <div class="ci-name">Spatial</div>
+          <div class="ci-desc">Flags a high reading that no nearby station can corroborate.</div>
+          <div class="ci-rule">Triggers when the reading is &#8805; 8 mm but every station within 20 km reports &lt; 2 mm.</div>
+          <div class="ci-eg">E.g. one gauge shows 15 mm while six neighbours within range all report 0 mm during an otherwise dry spell.</div>
+        </div>
+        <div class="check-item">
+          <div class="ci-name">Zero</div>
+          <div class="ci-desc">Identifies a gauge stuck at zero while surrounding gauges and radar confirm active rainfall.</div>
+          <div class="ci-rule">Triggers when &#8805; 80% of the last 6 hrs are zero, &#8805; 3 neighbours are actively recording, and radar shows &#8805; 2 mm.</div>
+          <div class="ci-eg">E.g. a blocked funnel or frozen sensor during an active rain event — the tipping bucket simply never tips.</div>
+        </div>
+        <div class="check-item">
+          <div class="ci-name">Radar</div>
+          <div class="ci-desc">Compares the gauge reading against the Met Office 1 km radar composite at the same location.</div>
+          <div class="ci-rule">Triggers when the reading is &#8805; 5 mm, radar QPE is &lt; 0.5 mm at that point, and the gauge/radar ratio exceeds 15&#215;.</div>
+          <div class="ci-eg">E.g. gauge reports 9 mm, radar sees 0.02 mm — a 450&#215; ratio. Even allowing for radar attenuation, this is implausible.</div>
+        </div>
+        <div class="check-item">
+          <div class="ci-name">Drip</div>
+          <div class="ci-desc">Detects a leaking or blocked tipping bucket producing near-constant low-amplitude tips — a telltale signature of faulty hardware.</div>
+          <div class="ci-rule">Triggers when &#8805; 8 of the last 12 slots (3 hrs) are non-zero, mean &lt; 1.5 mm, and variation is suspiciously uniform (CV &lt; 0.25). Suppressed if neighbours are also consistently wet (&ge; 0.15 mm/slot — protecting against genuine widespread drizzle). A stuck counter (CV = 0) always flags regardless.</div>
+          <div class="ci-eg">E.g. 0.2 mm every single slot for three hours — a blocked funnel drips at a near-constant rate; real rain varies.</div>
+        </div>
+        <div class="check-item">
+          <div class="ci-name">Accum</div>
+          <div class="ci-desc">Catches systematic over-recording that is only visible when looking at the full 24-hour picture.</div>
+          <div class="ci-rule">Triggers when the 24 hr gauge total is &#8805; 5&#215; the mean of &#8805; 3 nearby neighbours (each with &#8805; 5 mm, neighbour mean &#8805; 3 mm — to avoid false flags on dry days).</div>
+          <div class="ci-eg">E.g. gauge accumulates 130 mm while three nearby stations each record 20–25 mm over the same period.</div>
+        </div>
+        <div class="check-item" style="padding-top:10px; border-bottom:none">
+          <div style="font-size:11px;color:#64748b;line-height:1.7">
+            <strong style="color:#ef6c00">&#x1F7E0; 1 check fail</strong> — suspicious but a single signal may not be conclusive.<br>
+            <strong style="color:#c62828">&#x1F534; 2+ checks fail</strong> — multiple independent signals agree; high confidence of a fault.
+          </div>
+        </div>
+      </div>
+
+      <!-- ── AI tab ── -->
+      <div id="modalTabAi" class="modal-tab-panel">
+        <div class="ai-section">
+          <div class="ai-section-title">When it runs</div>
+          <p>Any time at least one check fails, or the reading is &#8805; 20 mm even if all checks pass. Re-assessed every 4 consecutive flags (~1 hr) to stay current during prolonged events. Skipped between refreshes to keep API costs low.</p>
+        </div>
+        <div class="ai-section">
+          <div class="ai-section-title">What data it receives</div>
+          <ul class="ai-list">
+            <li>Station location, season and month</li>
+            <li>Latest reading and how long the gauge has been continuously flagged</li>
+            <li>Accumulation totals: 1 hr / 3 hr / 6 hr / 12 hr / 24 hr</li>
+            <li>Wet/dry spell context: last significant rain, current spell length, 24-hr peak slot</li>
+            <li>All 7 check results with full numeric detail — ratios, slot counts, CV values, neighbour readings</li>
+            <li>Which checks are new this run vs persistent from previous runs</li>
+            <li>Met Office radar QPE at 5 km and 30 km radius around the station</li>
+            <li>UKV NWP 1-hr forecast accumulation at the station (treated as soft corroboration — NWP point data commonly underestimates localised convective totals)</li>
+            <li>Regional wetness: how many stations within 50 km are recording any rain or heavy rain</li>
+            <li>Full 24-hr slot history: 96 &#215; 15-min readings oldest to newest</li>
+            <li>3 nearest neighbours: latest reading, 6-hr slot history, and UKV forecast at each location</li>
+          </ul>
+        </div>
+        <div class="ai-section">
+          <div class="ai-section-title">What it's asked to do</div>
+          <p>Act as an independent UK rainfall QC expert. Weigh all available evidence and return one of three verdicts — <strong>Genuine</strong>, <strong>Uncertain</strong>, or <strong>Suspect</strong> — with a 2–3 sentence explanation shown in the station popup. It is explicitly told not to re-run the deterministic calculations, only to interpret the pre-computed results in context.</p>
+        </div>
+        <div class="ai-section">
+          <div class="ai-section-title">Why AI alongside deterministic checks?</div>
+          <p>Each check examines one signal in isolation. The AI can weigh conflicting evidence that no single threshold can resolve: a Spatial failure during a known narrow convective band looks very different from one during a region-wide dry spell. A Drip flag during widespread drizzle is not the same as one on a clear afternoon. The AI adds the interpretive layer that fixed thresholds cannot provide.</p>
+        </div>
+      </div>
+
+    </div><!-- modal-tab-body -->
   </div>
 </div>
 
@@ -795,6 +897,14 @@ function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').
 function fmtTime(iso) { if (!iso) return '—'; try { var d=new Date(iso); return pad2(d.getUTCHours())+':'+pad2(d.getUTCMinutes())+' UTC'; } catch(e){ return iso; } }
 function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 function toggleInfoModal() { document.getElementById('infoModalBackdrop').classList.toggle('open'); }
+
+function switchModalTab(tab) {
+  document.getElementById('modalTabChecks').classList.toggle('active', tab === 'checks');
+  document.getElementById('modalTabAi').classList.toggle('active',     tab === 'ai');
+  document.querySelectorAll('.modal-tab').forEach(function(el) {
+    el.classList.toggle('active', el.textContent.trim().toLowerCase().startsWith(tab === 'checks' ? 'check' : 'ai'));
+  });
+}
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') document.getElementById('infoModalBackdrop').classList.remove('open'); });
 
 // ── Boot ───────────────────────────────────────────────────────────────────
