@@ -117,17 +117,6 @@ select:hover { background-color: #e8eaed; }
 .qc-dot { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid white; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
 .qc-swatch-lbl { font-size: 10px; color: #3c4043; }
 
-/* ── Rain gauge icon (left map) ────────────────────────────────────────────── */
-.rg-wrap { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; }
-.rg-icon {
-  width: 20px; height: 20px; border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,0.55);
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Roboto', sans-serif; font-size: 8.5px; font-weight: 700;
-  text-shadow: 0 1px 1px rgba(0,0,0,0.4); box-sizing: border-box;
-  cursor: pointer; line-height: 1;
-}
-.rg-icon.rg-nodata { width: 7px; height: 7px; background: #90a4ae; opacity: 0.35; border: none; }
 
 /* ── Gauge tip (tooltip) ───────────────────────────────────────────────────── */
 .leaflet-tooltip.gauge-tip {
@@ -469,26 +458,29 @@ var R2_CDN = 'https://radar.floodforecast.co.uk';
 function cdnUrl(path) { return R2_CDN + '/' + path + '?_cb=' + Date.now(); }
 
 // ── Maps ───────────────────────────────────────────────────────────────────
-var mapLeft = L.map('mapLeft', { zoomControl: true  }).setView([54.0, -3.0], 6);
-var mapMid  = L.map('mapMid',  { zoomControl: false }).setView([54.0, -3.0], 6);
+var mapLeft = L.map('mapLeft', { zoomControl: true,  preferCanvas: true }).setView([54.0, -3.0], 6);
+var mapMid  = L.map('mapMid',  { zoomControl: false, preferCanvas: true }).setView([54.0, -3.0], 6);
 var TILE     = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 var TILE_ATT = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
 L.tileLayer(TILE, { attribution: TILE_ATT, subdomains: 'abcd', maxZoom: 18 }).addTo(mapLeft);
 L.tileLayer(TILE, { attribution: TILE_ATT, subdomains: 'abcd', maxZoom: 18 }).addTo(mapMid);
 
 // ── Map sync ───────────────────────────────────────────────────────────────
+// Use 'move' (not 'moveend') so maps track each other during the gesture.
+// noMoveStart: true prevents the synced map emitting its own movestart,
+// which would cause tile flicker and a feedback loop.
 var _syncing = false;
 function syncMaps(src) {
   if (_syncing) return;
   _syncing = true;
   var c = src.getCenter(), z = src.getZoom();
   [mapLeft, mapMid].forEach(function(m) {
-    if (m !== src) m.setView(c, z, { animate: false });
+    if (m !== src) m.setView(c, z, { animate: false, noMoveStart: true });
   });
   _syncing = false;
 }
-mapLeft.on('moveend', function() { syncMaps(mapLeft); });
-mapMid.on('moveend',  function() { syncMaps(mapMid); });
+mapLeft.on('move', function() { syncMaps(mapLeft); });
+mapMid.on('move',  function() { syncMaps(mapMid); });
 
 // ── Layers ─────────────────────────────────────────────────────────────────
 var accumLayerLeft = L.layerGroup().addTo(mapLeft);
@@ -524,21 +516,16 @@ function getVal(s) {
   return (s.ac && s.ac[currentPeriod]) || 0;
 }
 
-function makeGaugeIcon(val) {
-  if (val < 0.03) {
-    return L.divIcon({
-      className: '',
-      html: '<div class="rg-wrap"><div class="rg-icon rg-nodata"></div></div>',
-      iconSize: [20, 20], iconAnchor: [10, 10]
+function makeGaugeMarker(val, latlng) {
+  if (!val || val < 0.03) {
+    return L.circleMarker(latlng, {
+      radius: 3, fillColor: '#90a4ae', fillOpacity: 0.3,
+      color: 'transparent', weight: 0
     });
   }
-  var color = accumColor(val);
-  var tc    = accumTextColor(val);
-  var txt   = val < 1 ? val.toFixed(1) : Math.round(val).toString();
-  return L.divIcon({
-    className: '',
-    html: '<div class="rg-wrap"><div class="rg-icon" style="background:' + color + ';color:' + tc + '">' + txt + '</div></div>',
-    iconSize: [20, 20], iconAnchor: [10, 10]
+  return L.circleMarker(latlng, {
+    radius: 6, fillColor: accumColor(val), fillOpacity: 0.92,
+    color: 'white', weight: 1.5
   });
 }
 
@@ -678,12 +665,11 @@ function renderLeftMarkers() {
   var lbl = {mm:'15-min','1hr':'1hr','3hr':'3hr','6hr':'6hr','12hr':'12hr','24hr':'24hr'}[currentPeriod] || currentPeriod;
 
   summary.forEach(function(s) {
-    var val  = getVal(s);
-    var icon = makeGaugeIcon(val);
-    var m    = L.marker([s.lat, s.lon], { icon:icon, zIndexOffset: s.f ? 100 : 0 });
+    var val = getVal(s);
+    var m   = makeGaugeMarker(val, [s.lat, s.lon]);
     var tipCounty = s.c ? '<br><span style="font-size:10px;color:#80868b">' + escHtml(s.c) + '</span>' : '';
     m.bindTooltip('<b>' + escHtml(s.n) + '</b>' + tipCounty + '<br>' + lbl + ': ' + val.toFixed(1) + ' mm',
-      { direction:'top', className:'gauge-tip', offset:[0,-9] });
+      { direction:'top', className:'gauge-tip', offset:[0,-6] });
     m.on('click', (function(sid){ return function(){ selectGauge(sid); }; })(s.id));
     accumLayerLeft.addLayer(m);
     mLeftById[s.id] = m;
