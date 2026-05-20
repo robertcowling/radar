@@ -683,16 +683,15 @@ function renderLog() {
   tblRowById = {};
 
   var cnt = events.length;
-  document.getElementById('rightCounts').textContent  = cnt ? cnt + ' event' + (cnt !== 1 ? 's' : '') : 'All clear';
-  document.getElementById('rightCounts2').textContent = cnt ? cnt + ' event' + (cnt !== 1 ? 's' : '') : 'All clear';
+  var cntTxt = cnt ? cnt + ' event' + (cnt !== 1 ? 's' : '') : 'All clear';
+  document.getElementById('rightCounts').textContent  = cntTxt;
+  document.getElementById('rightCounts2').textContent = cntTxt;
 
   if (logData && logData.updated_at) {
     var d = new Date(logData.updated_at);
     document.getElementById('rightSub').textContent =
       'Events in last 48h · updated ' + pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes()) + ' UTC';
   }
-  document.getElementById('rightCounts2').textContent = txt;
-}
 
   if (!events.length) {
     tbody.innerHTML = '<tr><td colspan="7" class="tbl-empty">No flagged gauges in the last 48h</td></tr>';
@@ -719,12 +718,7 @@ function renderLog() {
       '<td class="tbl-num">' + dur + '</td>' +
       '</tr>';
   });
-  if (showResolved) {
-    logResolved.forEach(function(g) {
-      var el = document.getElementById('flagcard-' + g.station_id);
-      if (el) flagCardById[g.station_id] = el;
-    });
-  }
+  tbody.innerHTML = html;
 
   events.forEach(function(e) {
     var el = document.getElementById('tblrow-' + e.station_id);
@@ -775,7 +769,7 @@ function fmtLogTime(iso) {
 
 // ── Select gauge ───────────────────────────────────────────────────────────
 function selectGauge(id) {
-  if (selectedId && flagCardById[selectedId]) flagCardById[selectedId].classList.remove('selected');
+  if (selectedId && tblRowById[selectedId]) tblRowById[selectedId].classList.remove('selected');
   selectedId = id;
   if (tblRowById[id]) { tblRowById[id].classList.add('selected'); tblRowById[id].scrollIntoView({behavior:'smooth',block:'nearest'}); }
   var m = mMidById[id] || mLeftById[id];
