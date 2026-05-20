@@ -325,12 +325,15 @@ def check_radar(value, radar_mm):
             "ratio": round(ratio, 1)}
 
 
-def check_drip_leak(history_drip):
+def check_drip_leak(history_drip, nbr_mean_mm=None):
     """Detect a blocked or leaking tipping bucket producing near-constant small tips.
 
     Classic signature: 8+ consecutive non-zero slots all in a tight range, at low
     intensity — physically implausible because real rain varies considerably in rate.
     history_drip: last DRIP_WINDOW_SLOTS values (oldest first), may contain None.
+    nbr_mean_mm: mean 15-min reading across nearby neighbours over the drip window;
+                 if neighbours are also consistently wet, uniform low readings may be
+                 genuine widespread drizzle rather than a faulty gauge.
     """
     valid = [v for v in history_drip if v is not None and v > 0]
     if len(valid) < DRIP_MIN_NONZERO:
@@ -352,6 +355,12 @@ def check_drip_leak(history_drip):
         else:
             cur_run = 1
     if cv < DRIP_MAX_CV:
+        # Suppress if neighbours are also consistently wet — could be widespread drizzle.
+        # Stuck-counter case (cv==0) is still flagged regardless.
+        if cv > 0 and nbr_mean_mm is not None and nbr_mean_mm >= 0.15:
+            return {"passed": True, "skipped": "widespread_light_rain",
+                    "mean_mm": round(mean_val, 3), "cv": round(cv, 3),
+                    "nbr_mean_mm": round(nbr_mean_mm, 3)}
         return {
             "passed": False,
             "reason": "uniform_drip_pattern",
@@ -491,7 +500,7 @@ def load_latest_radar(s3):
 # ── LLM assessment ─────────────────────────────────────────────────────────────
 def call_llm(station_id, name, lat, lon, value, slot_time_str,
              checks, history_96, neighbours_info, radar_mm, accums,
-             consecutive_flags):
+             consecutive_flags, month_name, season):
     """Return (verdict, reasoning) or (None, None) if unavailable."""
     if not OPENAI_API_KEY:
         return None, None
@@ -553,6 +562,7 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
         f"You are a UK rainfall quality-control expert advising a flood forecasting team.\n\n"
         f"Station: {name} (ID {station_id}), "
         f"{lat:.4f}°N  {abs(lon):.4f}°{'W' if lon < 0 else 'E'}\n"
+        f"Season: {season} ({month_name})\n"
         f"Latest reading: {value:.1f} mm in 15-min slot at {slot_time_str} UTC\n"
         f"{flag_history}\n\n"
         f"Accumulation totals ending at this slot:\n{accum_str}\n\n"
@@ -790,7 +800,8 @@ def main():
                                        latest_value, history_pzero,
                                        nbr_6hr_means, radar_mm),
             "radar":               check_radar(latest_value, radar_mm),
-            "drip_leak":           check_drip_leak(history_drip),
+            "drip_leak":           check_drip_leak(history_drip,
+                                       nbr_mean_mm=sum(v for v in nbr_6hr_means if v is not None) / max(sum(1 for v in nbr_6hr_means if v is not None), 1) if nbr_6hr_means else None),
             "accum_anomaly":       check_accumulation_anomaly(
                                        station_id, history_96, neighbours,
                                        days, latest_date_str, latest_slot),
@@ -812,20 +823,20 @@ def main():
             consecutive_flags = 1
             first_flagged_at  = now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        # LLM (only on first flagged run to avoid repeated calls for stuck hardware)
+        # LLM: run on first flag; re-run every 8 consecutive flags (~2 hrs) to
+        # refresh the assessment if conditions have changed during a persistent event.
         llm_verdict   = None
         llm_reasoning = None
         llm_from_run  = None
 
+        _month  = latest_dt.strftime("%B")
+        _season = {12:"Winter",1:"Winter",2:"Winter",3:"Spring",4:"Spring",5:"Spring",
+                   6:"Summer",7:"Summer",8:"Summer",9:"Autumn",10:"Autumn",11:"Autumn"}[latest_dt.month]
+
         if should_call_llm(checks, latest_value):
-            prev_verdict = prev.get("llm_verdict") if prev else None
-            if prev_verdict:
-                # Carry forward existing assessment (avoid repeated LLM calls for stuck hardware)
-                llm_verdict   = prev_verdict
-                llm_reasoning = prev.get("llm_reasoning")
-                llm_from_run  = prev.get("llm_from_run")
-            else:
-                # First flag, or prior call failed — call LLM now
+            prev_verdict  = prev.get("llm_verdict") if prev else None
+            needs_refresh = not prev_verdict or consecutive_flags % 8 == 0
+            if needs_refresh:
                 neighbours_info = []
                 for nbr_id, dist_km, nbr_name, nbr_val in neighbours[:3]:
                     h24 = get_station_slots(days, nbr_id, latest_date_str,
@@ -840,10 +851,15 @@ def main():
                     station_id, s.get("name", station_id), lat, lon,
                     latest_value, latest_dt.strftime("%Y-%m-%dT%H:%M"),
                     checks, history_96, neighbours_info, radar_mm,
-                    accums, consecutive_flags,
+                    accums, consecutive_flags, _month, _season,
                 )
                 if llm_verdict:
                     llm_from_run = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+            else:
+                # Carry forward existing assessment between refresh cycles
+                llm_verdict   = prev_verdict
+                llm_reasoning = prev.get("llm_reasoning")
+                llm_from_run  = prev.get("llm_from_run")
 
         checks_flag = "FLAGGED" if any_check_failed(checks) else "ELEVATED"
         summary_entry['f'] = checks_flag
