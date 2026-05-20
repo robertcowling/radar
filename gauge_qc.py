@@ -427,7 +427,7 @@ def check_accumulation_anomaly(station_id, history_96, neighbours, days,
 
 # ── Radar H5 loading ──────────────────────────────────────────────────────────
 def build_radar_extractor(h5_path):
-    """Return extract_5km(lat, lon) -> mm/15min, or None on failure."""
+    """Return extract(lat, lon, radius_km=5.0) -> mm/15min, or None on failure."""
     try:
         with h5py.File(h5_path, "r") as f:
             where    = f["where"].attrs
@@ -451,22 +451,22 @@ def build_radar_extractor(h5_path):
 
         ll_to_radar = Transformer.from_crs("EPSG:4326", proj_str, always_xy=True)
         ul_x, ul_y  = ll_to_radar.transform(ul_lon, ul_lat)
-        r_px = max(1, round(5000 / xscale))  # 5 km in native pixels (1 km res → 5)
 
-        def extract_5km(lat, lon):
+        def extract(lat, lon, radius_km=5.0):
             gx, gy = ll_to_radar.transform(lon, lat)
             col_c  = round((gx - ul_x) / xscale)
             row_c  = round((ul_y - gy) / yscale)
             if not (0 <= col_c < xsize and 0 <= row_c < ysize):
                 return None
-            r0, r1 = max(0, row_c - r_px), min(ysize - 1, row_c + r_px)
-            c0, c1 = max(0, col_c - r_px), min(xsize - 1, col_c + r_px)
+            r_p = max(1, round(radius_km * 1000 / xscale))
+            r0, r1 = max(0, row_c - r_p), min(ysize - 1, row_c + r_p)
+            c0, c1 = max(0, col_c - r_p), min(xsize - 1, col_c + r_p)
             patch = rate[r0:r1 + 1, c0:c1 + 1]
             vals  = patch[patch > 0]
             mean_rate = float(vals.mean()) if len(vals) > 0 else 0.0
             return round(mean_rate / 4.0, 3)  # mm/hr → mm/15min
 
-        return extract_5km
+        return extract
     except Exception as e:
         print(f"  Radar parse error: {e}")
         return None
@@ -497,10 +497,41 @@ def load_latest_radar(s3):
     return None
 
 
+def load_ukv_gauge_data(r2, target_dt):
+    """Load UKV gauge-point values for the forecast step nearest to target_dt.
+
+    Returns ({station_id: {accum_1h, accum_3h, ...}}, step_desc_str) or ({}, None).
+    """
+    meta = r2_get_json(r2, "ukv_meta.json", {})
+    runs = meta.get("runs", [])
+    if not runs:
+        return {}, None
+    run = max(runs, key=lambda r: r["run_ts"])
+    run_ts = run["run_ts"]
+    try:
+        run_dt = datetime.strptime(run_ts, "%Y%m%dT%H%MZ").replace(tzinfo=timezone.utc)
+    except Exception:
+        return {}, None
+    best_step, best_diff = None, float("inf")
+    for step in run.get("steps", []):
+        valid_dt = run_dt + timedelta(hours=step.get("offset_hours", 0))
+        diff = abs((valid_dt - target_dt).total_seconds())
+        if diff < best_diff:
+            best_diff, best_step = diff, step
+    if best_step is None or best_diff > 6 * 3600:
+        return {}, None
+    key = f"ukv_gauge/{run_ts}/{best_step['offset']}.json"
+    data = r2_get_json(r2, key, {})
+    step_desc = f"run {run_ts}, T+{best_step.get('offset_hours')}h"
+    return data, step_desc
+
+
 # ── LLM assessment ─────────────────────────────────────────────────────────────
 def call_llm(station_id, name, lat, lon, value, slot_time_str,
              checks, history_96, neighbours_info, radar_mm, accums,
-             consecutive_flags, month_name, season):
+             consecutive_flags, month_name, season,
+             radar_30km_mm=None, spell_summary=None, regional_wet=None,
+             check_pattern_str=None, ukv_1h_mm=None, ukv_step_info=None):
     """Return (verdict, reasoning) or (None, None) if unavailable."""
     if not OPENAI_API_KEY:
         return None, None
@@ -546,17 +577,52 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
         hist = nbr.get("history_24", [])
         hist_str = "[" + " ".join(f"{v:.1f}" if v is not None else "-"
                                   for v in hist) + "]"
+        ukv_nbr = nbr.get("ukv_1h_mm")
+        ukv_tag = f"  UKV={ukv_nbr:.1f}mm" if ukv_nbr is not None else ""
         nbr_block += (f"\n  {nbr['name']} ({nbr['dist_km']:.1f} km): "
-                      f"latest {nbr.get('value_mm', '?')} mm  6hr={hist_str}")
+                      f"latest {nbr.get('value_mm', '?')} mm  6hr={hist_str}{ukv_tag}")
 
-    radar_str = (f"{radar_mm:.2f} mm/15 min" if radar_mm is not None
-                 else "unavailable")
+    radar_5km_str = (f"{radar_mm:.2f} mm/15 min" if radar_mm is not None
+                     else "unavailable")
+    radar_30km_str = (f"{radar_30km_mm:.2f} mm/15 min" if radar_30km_mm is not None
+                      else "unavailable")
 
     flag_history = (f"This is the first time this gauge has been flagged in this episode."
                     if consecutive_flags == 1
                     else f"This gauge has been flagged for {consecutive_flags} consecutive 15-min runs "
                          f"({consecutive_flags * 15} min = {consecutive_flags * 15 // 60}h "
                          f"{consecutive_flags * 15 % 60}m).")
+
+    spell_block = ""
+    if spell_summary:
+        spell_block = (
+            f"\nWet/dry spell context:\n"
+            f"  Max 15-min slot in last 24 hr: {spell_summary['max_15min_mm']} mm\n"
+            f"  Last significant rain (≥1 mm/slot): {spell_summary['hrs_since_significant_rain']}\n"
+            f"  Current spell: {spell_summary['current_spell']}\n"
+        )
+
+    regional_block = ""
+    if regional_wet:
+        regional_block = (
+            f"\nRegional context (50 km radius, all EA stations):\n"
+            f"  {regional_wet['total']} stations reporting  |  "
+            f"{regional_wet['any_rain']} with any rain  |  "
+            f"{regional_wet['heavy_rain']} with ≥2 mm/slot\n"
+        )
+
+    ukv_block = ""
+    if ukv_1h_mm is not None:
+        ukv_block = (
+            f"\nUKV NWP model at station ({ukv_step_info or 'latest run'}):\n"
+            f"  Forecast 1-hr accumulation: {ukv_1h_mm:.1f} mm\n"
+            f"  [Point-data from ~1.5 km NWP — treat as soft corroborating evidence only;\n"
+            f"   UKV often underestimates localised convective peaks and should not\n"
+            f"   override observational evidence from the gauge or radar QPE.]\n"
+        )
+
+    pattern_block = (f"\nCheck failure pattern: {check_pattern_str}\n"
+                     if check_pattern_str else "")
 
     prompt = (
         f"You are a UK rainfall quality-control expert advising a flood forecasting team.\n\n"
@@ -565,13 +631,19 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
         f"Season: {season} ({month_name})\n"
         f"Latest reading: {value:.1f} mm in 15-min slot at {slot_time_str} UTC\n"
         f"{flag_history}\n\n"
-        f"Accumulation totals ending at this slot:\n{accum_str}\n\n"
-        f"Automated QC check results (computed externally — do not recalculate):\n"
-        f"{check_block}\n\n"
-        f"Radar QPE at station: {radar_str}\n\n"
-        f"This gauge last 24 hr (96 × 15-min slots, oldest→newest, mm, '-'=missing):\n"
+        f"Accumulation totals ending at this slot:\n{accum_str}\n"
+        f"{spell_block}"
+        f"\nAutomated QC check results (computed externally — do not recalculate):\n"
+        f"{check_block}\n"
+        f"{pattern_block}"
+        f"\nRadar QPE at station:\n"
+        f"  5 km radius:  {radar_5km_str}\n"
+        f"  30 km radius: {radar_30km_str}  (near-zero confirms spatial isolation)\n"
+        f"{ukv_block}"
+        f"{regional_block}"
+        f"\nThis gauge last 24 hr (96 × 15-min slots, oldest→newest, mm, '-'=missing):\n"
         f"  {_fmt_slots(history_96)}\n\n"
-        f"Nearest neighbours (latest reading + last 6-hr history):"
+        f"Nearest neighbours (latest reading + last 6-hr slot history + UKV 1-hr forecast where available):"
         f"{nbr_block if nbr_block else chr(10) + '  None available'}\n\n"
         f"Based on the above, assess whether the reading at {slot_time_str} is genuine "
         f"rainfall or a sensor/telemetry fault. Consider the UK climate context.\n"
@@ -605,6 +677,81 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
     except Exception as e:
         print(f"  LLM error ({station_id}): {e}")
         return None, None
+
+
+# ── LLM context helpers ────────────────────────────────────────────────────────
+def compute_spell_summary(history_96):
+    """Pre-compute wet/dry spell context from 96-slot history (oldest first)."""
+    recent = [(i, v) for i, v in enumerate(reversed(history_96)) if v is not None]
+    max_mm = max((v for _, v in recent), default=0.0)
+
+    hrs_since = None
+    for i, v in recent:
+        if v >= 1.0:
+            hrs_since = round(i * 15 / 60, 1)
+            break
+    hrs_since_str = f"{hrs_since} hr ago" if hrs_since is not None else ">24 hr ago"
+
+    if not recent:
+        spell_str = "unknown"
+    else:
+        is_wet = recent[0][1] >= 0.1
+        count = 0
+        for _, v in recent:
+            if (v >= 0.1) == is_wet:
+                count += 1
+            else:
+                break
+        spell_str = f"{'wet' if is_wet else 'dry'} for {round(count * 15 / 60, 1)} hr"
+
+    return {
+        "max_15min_mm":              round(max_mm, 2),
+        "hrs_since_significant_rain": hrs_since_str,
+        "current_spell":              spell_str,
+    }
+
+
+def regional_wetness_count(station_id, stations, latest_readings, radius_km=50.0):
+    """Count stations within radius reporting any rain / heavy rain."""
+    s = stations[station_id]
+    total = reporting_any = reporting_heavy = 0
+    for sid, st in stations.items():
+        if sid == station_id:
+            continue
+        if _haversine_km(s["lat"], s["lon"], st["lat"], st["lon"]) <= radius_km:
+            total += 1
+            v = latest_readings.get(sid) or 0
+            if v > 0:
+                reporting_any += 1
+            if v >= 2.0:
+                reporting_heavy += 1
+    return {"total": total, "any_rain": reporting_any, "heavy_rain": reporting_heavy}
+
+
+def check_failure_pattern(checks, prev_checks):
+    """Describe how the set of failing checks has changed since the previous run."""
+    _names = {"hard_threshold": "Threshold", "temporal": "Spike",
+              "nearest_neighbour": "Spatial", "persistent_zero": "Zero",
+              "radar": "Radar", "drip_leak": "Drip", "accum_anomaly": "Accum"}
+
+    def _failing(c):
+        return {_names[k] for k, v in c.items()
+                if not v.get("passed", True) and not v.get("skipped")}
+
+    now   = _failing(checks)
+    prev  = _failing(prev_checks) if prev_checks else set()
+    new_f = now - prev
+    cleared = prev - now
+    parts = []
+    if now:
+        parts.append("Failing: " + ", ".join(sorted(now)))
+    if new_f:
+        parts.append("New this run: " + ", ".join(sorted(new_f)))
+    if cleared:
+        parts.append("Cleared: " + ", ".join(sorted(cleared)))
+    if not now:
+        parts.append("No deterministic failures (triggered by high reading value)")
+    return " | ".join(parts)
 
 
 # ── Utilities ──────────────────────────────────────────────────────────────────
@@ -741,6 +888,12 @@ def main():
     except Exception as e:
         print(f"  Radar setup error: {e}")
 
+    # UKV gauge-point forecasts (optional — used to enrich LLM context)
+    print("Loading UKV gauge data...")
+    ukv_gauge_data, ukv_step_info = load_ukv_gauge_data(r2, latest_dt)
+    print(f"  UKV: {len(ukv_gauge_data)} stations loaded"
+          + (f" ({ukv_step_info})" if ukv_step_info else " (unavailable)"))
+
     # QC loop
     print(f"Running QC on {len(latest_readings)} active stations...")
     flagged_gauges    = []
@@ -841,17 +994,29 @@ def main():
                 for nbr_id, dist_km, nbr_name, nbr_val in neighbours[:3]:
                     h24 = get_station_slots(days, nbr_id, latest_date_str,
                                             latest_slot, 24)
+                    nbr_ukv = ukv_gauge_data.get(nbr_id, {}).get("accum_1h")
                     neighbours_info.append({
                         "name":       nbr_name,
                         "dist_km":    dist_km,
                         "value_mm":   round(nbr_val, 2) if nbr_val is not None else None,
                         "history_24": h24,
+                        "ukv_1h_mm":  nbr_ukv,
                     })
+
+                radar_30km_mm   = extract_radar(lat, lon, radius_km=30.0) if extract_radar else None
+                _spell          = compute_spell_summary(history_96)
+                _regional       = regional_wetness_count(station_id, stations, latest_readings)
+                _pattern        = check_failure_pattern(checks, prev.get("checks") if prev else None)
+                _ukv_1h         = ukv_gauge_data.get(station_id, {}).get("accum_1h")
+
                 llm_verdict, llm_reasoning = call_llm(
                     station_id, s.get("name", station_id), lat, lon,
                     latest_value, latest_dt.strftime("%Y-%m-%dT%H:%M"),
                     checks, history_96, neighbours_info, radar_mm,
                     accums, consecutive_flags, _month, _season,
+                    radar_30km_mm=radar_30km_mm, spell_summary=_spell,
+                    regional_wet=_regional, check_pattern_str=_pattern,
+                    ukv_1h_mm=_ukv_1h, ukv_step_info=ukv_step_info,
                 )
                 if llm_verdict:
                     llm_from_run = now.strftime("%Y-%m-%dT%H:%M:%SZ")
