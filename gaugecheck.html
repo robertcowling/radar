@@ -636,7 +636,8 @@ function buildPopup(g) {
              : !c.passed  ? '<span style="color:#c62828;font-weight:700">&#10007;</span>'
              : '<span style="color:#2e7d32">&#10003;</span>';
     var det = (!c.passed && !c.skipped) ? formatDetail(c) : '';
-    return '<tr><td>' + p[0] + '</td><td>' + icon + ' ' + det + '</td></tr>';
+    var detHtml = det ? '<div style="font-size:10px;color:#64748b;margin-top:2px;line-height:1.4">' + det + '</div>' : '';
+    return '<tr><td style="vertical-align:top;padding-top:3px">' + p[0] + '</td><td>' + icon + detHtml + '</td></tr>';
   }).join('');
   var llmHtml = g.llm_verdict
     ? '<hr class="pop-sep"><div class="pop-llm"><strong>LLM: ' + g.llm_verdict + '</strong><br>' + escHtml(g.llm_reasoning||'') + '</div>'
@@ -651,13 +652,28 @@ function buildPopup(g) {
 }
 
 function formatDetail(c) {
-  var p = [];
-  if (c.spike_ratio)              p.push(c.spike_ratio+'× spike');
-  if (c.preceding_median_mm!==undefined) p.push('med '+c.preceding_median_mm+'mm');
-  if (c.nn_mean_mm!==undefined)   p.push('nbr '+c.nn_mean_mm+'mm');
-  if (c.radar_mm_15min!==undefined) p.push('radar '+c.radar_mm_15min+'mm');
-  if (c.ratio!==undefined)        p.push('ratio '+c.ratio+'×');
-  return p.length ? '<span style="font-size:10px;color:#5f6368">'+p.join(', ')+'</span>' : '';
+  var r = c.reason || '';
+  if (r === 'impossible')
+    return 'reading ' + c.value_mm + 'mm — physically impossible for UK';
+  if (r === 'exceeds_uk_record')
+    return 'reading ' + c.value_mm + 'mm ≥ ' + c.limit_mm + 'mm limit';
+  if (r === 'spike_from_zero')
+    return 'jump from 0 → ' + c.value_mm + 'mm (threshold ' + (window.TEMPORAL_ZERO_TRIGGER||5) + 'mm)';
+  if (r === 'isolated_spike')
+    return c.spike_ratio + '× spike · preceding median ' + c.preceding_median_mm + 'mm';
+  if (r === 'no_spatial_support')
+    return 'nbrs avg ' + c.nn_mean_mm + 'mm across ' + c.n_neighbours + ' stations within 20km';
+  if (r === 'stuck_zero')
+    return 'zero for ' + c.zero_slots_in_window + ' of last ' + c.window_slots + ' slots · ' + c.active_neighbours + ' active neighbours';
+  if (r === 'radar_mismatch')
+    return 'gauge ' + c.gauge_mm + 'mm · radar ' + c.radar_mm_15min + 'mm · ratio ' + c.ratio + '×';
+  if (r === 'uniform_drip_pattern')
+    return c.nonzero_slots + ' non-zero slots · mean ' + c.mean_mm + 'mm · CV ' + c.cv + ' (uniform drip)';
+  if (r === 'stuck_counter')
+    return c.nonzero_slots + ' slots · ' + c.longest_identical_run + ' consecutive identical readings';
+  if (r === 'accumulation_far_exceeds_neighbours')
+    return '24hr gauge ' + c.gauge_24hr_mm + 'mm · nbrs avg ' + c.neighbour_mean_24hr_mm + 'mm · ratio ' + c.ratio + '×';
+  return '';
 }
 
 // ── Right panel: rolling log ───────────────────────────────────────────────
