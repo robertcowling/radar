@@ -78,4 +78,23 @@ results["total_elevated"] = len([g for g in gauges_after if g.get("checks_flag")
 
 r2_put("gaugecheck/results.json", results)
 
+
+# ── 3. Trim manifest so pre-cutoff runs don't appear on the timeline ──────────
+manifest = r2_get("gaugecheck/manifest.json")
+if manifest and manifest.get("runs"):
+    runs_before = manifest["runs"]
+    def run_ts_to_dt(ts):
+        try:
+            return datetime.strptime(
+                ts[:4]+'-'+ts[4:6]+'-'+ts[6:8]+'T'+ts[9:11]+':'+ts[11:13]+':00Z',
+                "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        except Exception:
+            return None
+    runs_after = [ts for ts in runs_before if (run_ts_to_dt(ts) or cutoff) >= cutoff]
+    print(f"\nmanifest.json: {len(runs_before)} -> {len(runs_after)} runs")
+    manifest["runs"] = runs_after
+    r2_put("gaugecheck/manifest.json", manifest)
+else:
+    print("\nmanifest.json: not found or empty — skipped")
+
 print("\nDone.")
