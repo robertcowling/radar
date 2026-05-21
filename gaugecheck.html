@@ -228,28 +228,6 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
 .ai-list li { font-size: 12px; color: #475569; line-height: 1.5; padding: 1px 0 1px 14px; position: relative; }
 .ai-list li::before { content: '·'; position: absolute; left: 3px; color: #94a3b8; font-size: 14px; line-height: 1.2; }
 
-/* ── Hyetograph panel (left map overlay) ──────────────────────────────────── */
-#hyetoPanel {
-  position: absolute; inset: 0; z-index: 500; background: white;
-  display: none; flex-direction: column; overflow: hidden;
-}
-#hyetoPanel.visible { display: flex; }
-.hyeto-header {
-  padding: 10px 16px 8px; border-bottom: 1px solid #e8eaed; flex-shrink: 0;
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
-}
-.hyeto-title { font-size: 13px; font-weight: 700; color: #1e293b; }
-.hyeto-sub   { font-size: 11px; color: #64748b; margin-top: 2px; }
-.hyeto-close {
-  background: transparent; border: none; cursor: pointer;
-  font-size: 20px; color: #94a3b8; padding: 0; line-height: 1; flex-shrink: 0;
-}
-.hyeto-close:hover { color: #5f6368; }
-.hyeto-body {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  padding: 14px 18px 10px; min-height: 0; overflow: hidden;
-}
-
 /* ── Mobile responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 767px) {
   .panels-row { flex-direction: column; }
@@ -288,19 +266,6 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
     <!-- Left: rain gauge accumulation map -->
     <div class="panel-wrap" id="leftWrap">
       <div id="mapLeft" class="panel-map"></div>
-      <!-- Hyetograph overlay (shown when a gauge is selected) -->
-      <div id="hyetoPanel">
-        <div class="hyeto-header">
-          <div>
-            <div class="hyeto-title" id="hyetoTitle">—</div>
-            <div class="hyeto-sub"   id="hyetoSub"></div>
-          </div>
-          <button class="hyeto-close" onclick="closeHyeto()">&times;</button>
-        </div>
-        <div class="hyeto-body" id="hyetoBody">
-          <span style="color:#94a3b8;font-size:12px">Loading&hellip;</span>
-        </div>
-      </div>
       <!-- Colour key -->
       <div class="map-cbar" id="mapCbarLeft" style="display:none">
         <p id="mapCbarTitle">24 hr accumulation</p>
@@ -774,6 +739,8 @@ function renderLeftMarkers() {
     var tipCounty = s.c ? '<br><span style="font-size:10px;color:#80868b">' + escHtml(s.c) + '</span>' : '';
     m.bindTooltip('<b>' + escHtml(s.n) + '</b>' + tipCounty + '<br>' + lbl + ': ' + val.toFixed(1) + ' mm',
       { direction:'top', className:'gauge-tip', offset:[0,-6] });
+    m.bindPopup('<span style="color:#94a3b8;font-size:12px">Loading…</span>',
+      { maxWidth:270, minWidth:200 });
     m.on('click', (function(sid){ return function(){ selectGauge(sid); }; })(s.id));
     accumLayerLeft.addLayer(m);
     mLeftById[s.id] = m;
@@ -1022,7 +989,6 @@ function selectGauge(id, isoTime) {
     tblRowById[id].classList.add('selected');
     tblRowById[id].scrollIntoView({ behavior:'smooth', block:'nearest' });
   }
-  showHyeto(id);
   function focusGauge() {
     var m = mMidById[id] || mLeftById[id];
     if (!m) return;
@@ -1031,6 +997,7 @@ function selectGauge(id, isoTime) {
     mapLeft.flyTo(ll, z, { duration:0.5 });
     mapMid.flyTo(ll, z, { duration:0.5 });
     if (mMidById[id]) setTimeout(function(){ mMidById[id].openPopup(); }, 550);
+    if (mLeftById[id]) setTimeout(function(){ openLeftPopup(id); }, 550);
   }
   if (isoTime && manifest && manifest.runs && manifest.runs.length) {
     var target = new Date(isoTime).getTime();
@@ -1175,50 +1142,46 @@ function generateHyetoSVG(id, endMs, W) {
   return svg;
 }
 
-function showHyeto(id) {
-  var panel = document.getElementById('hyetoPanel');
-  var body  = document.getElementById('hyetoBody');
-  var title = document.getElementById('hyetoTitle');
-  var sub   = document.getElementById('hyetoSub');
+function openLeftPopup(id) {
+  var m = mLeftById[id];
+  if (!m) return;
 
-  // Find gauge name and metadata
-  var name = id, county = null, accum24 = null;
+  // Gather name, county, and accumulations
+  var name = id, county = null, ac = {};
   if (results) {
     (results.gauges || []).forEach(function(g) {
-      if (g.station_id === id) { name = g.name || id; county = g.county; accum24 = g.accums && g.accums['24hr']; }
+      if (g.station_id === id) { name = g.name || id; county = g.county; ac = g.accums || {}; }
     });
     (results.summary || []).forEach(function(s) {
-      if (s.id === id && name === id) { name = s.n || id; county = s.c; accum24 = s.ac && s.ac['24hr']; }
+      if (s.id === id && name === id) { name = s.n || id; county = s.c; ac = s.ac || {}; }
     });
   }
   if (name === id && logData) {
     (logData.events || []).forEach(function(e) {
-      if (e.station_id === id && name === id) { name = e.name || id; county = e.county; accum24 = e.accums && e.accums['24hr']; }
+      if (e.station_id === id && name === id) { name = e.name || id; county = e.county; ac = e.accums || {}; }
     });
   }
 
-  title.textContent = name;
-  var subParts = [];
-  if (county) subParts.push(county);
-  if (accum24 != null) subParts.push(accum24.toFixed(1) + ' mm (24hr)');
-  sub.textContent = subParts.join(' · ');
+  var hdr = '<div style="font-size:13px;font-weight:700;color:#202124;line-height:1.3">' + escHtml(name) + '</div>';
+  if (county) hdr += '<div style="font-size:11px;color:#5f6368;margin-bottom:4px">' + escHtml(county) + '</div>';
 
-  panel.classList.add('visible');
-  var W = Math.min(Math.max(body.clientWidth - 8, 220), 580);
-  body.innerHTML = '<span style="color:#94a3b8;font-size:12px">Loading…</span>';
+  var pillStyle = 'display:inline-block;background:#e8f0fe;border-radius:8px;padding:2px 7px;font-size:10px;color:#1a3c8f;margin:1px 2px 3px 0';
+  var pills = '';
+  ['1hr','3hr','6hr','12hr','24hr'].forEach(function(k) {
+    if (ac[k] != null) pills += '<span style="' + pillStyle + '">' + k + ': ' + ac[k].toFixed(1) + ' mm</span>';
+  });
+  if (pills) hdr += '<div>' + pills + '</div>';
 
   var endMs = Date.now();
   if (results && results.latest_reading_time) endMs = new Date(results.latest_reading_time).getTime();
 
-  loadHyetoDays(endMs, function() {
-    body.innerHTML = generateHyetoSVG(id, endMs, W);
-  });
-}
+  m.setPopupContent(hdr + '<span style="color:#94a3b8;font-size:12px">Loading…</span>');
+  m.openPopup();
 
-function closeHyeto() {
-  document.getElementById('hyetoPanel').classList.remove('visible');
-  selectedId = null;
-  Object.keys(tblRowById).forEach(function(k) { tblRowById[k].classList.remove('selected'); });
+  loadHyetoDays(endMs, function() {
+    if (!m._popup || !m._map) return;
+    m.setPopupContent(hdr + generateHyetoSVG(id, endMs, 250));
+  });
 }
 
 function countCheckFails(checks) {
