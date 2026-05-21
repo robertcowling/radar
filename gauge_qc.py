@@ -82,12 +82,10 @@ RADAR_MAX_EST_MM     = 0.5    # radar 5 km estimate must be below this to flag
 LLM_TRIGGER_MM       = 20.0   # also call LLM if reading ≥ this (even if checks pass)
 LLM_MIN_FAILURES     = 1      # require this many check failures to trigger LLM (avoids calls during real rain)
 
-DRIP_WINDOW_SLOTS    = 12     # 3 hr look-back for drip/leak pattern check
-DRIP_MIN_NONZERO     = 8      # minimum non-zero slots to apply pattern check
+DRIP_WINDOW_SLOTS    = 24     # 6 hr look-back for drip/leak pattern check
+DRIP_MIN_NONZERO     = 18     # need 18/24 non-zero slots (~4.5 hr continuous) before flagging
 DRIP_MAX_MEAN_MM     = 1.5    # pattern only meaningful at low intensities
 DRIP_MAX_CV          = 0.15   # coefficient of variation below this = suspiciously uniform
-                              # (0.25 was too sensitive — tightened to reduce false alarms
-                              #  during genuine steady drizzle)
 
 ACCUM_WINDOW_SLOTS   = 96     # 24 hr accumulation window
 ACCUM_MIN_TOTAL_MM   = 15.0   # ignore gauges with trivially low totals
