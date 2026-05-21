@@ -705,12 +705,15 @@ function updateDateDisplay(readingTime) {
 }
 
 // ── Load results (maps only) ───────────────────────────────────────────────
+var latestGeneratedAt = null;
+
 function loadResults(runTs) {
   var url = runTs ? cdnUrl('gaugecheck/runs/' + runTs + '.json') : cdnUrl('gaugecheck/results.json');
   fetch(url)
     .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
     .then(function(d){
       results = d;
+      if (!runTs && d.generated_at) latestGeneratedAt = d.generated_at;
       updateDateDisplay(d.latest_reading_time);
       renderLeftMarkers();
       renderMidMarkers();
@@ -718,12 +721,26 @@ function loadResults(runTs) {
     .catch(function(){});
 }
 
-// ── Load log (right panel — loaded once at boot) ───────────────────────────
+// ── Load log (right panel) ─────────────────────────────────────────────────
 function loadLog() {
   fetch(cdnUrl('gaugecheck/log.json'))
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(d){ logData = d; renderLog(); })
     .catch(function(){ renderLog(); });
+}
+
+// ── Live auto-refresh (polls every 3 min, skips if on historical run) ──────
+function pollLive() {
+  var sl = document.getElementById('timeSlider');
+  if (manifest && parseInt(sl.value) !== parseInt(sl.max)) return;
+  fetch(cdnUrl('gaugecheck/results.json'))
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){
+      if (!d || d.generated_at === latestGeneratedAt) return;
+      loadManifest();
+      loadLog();
+    })
+    .catch(function(){});
 }
 
 // ── Left map: rain gauge accumulation ─────────────────────────────────────
@@ -1230,6 +1247,7 @@ updateCbarTitle('3hr');
 loadManifest();
 loadBoundary('catchments');
 loadLog();
+setInterval(pollLive, 3 * 60 * 1000);
 </script>
 </body>
 </html>
