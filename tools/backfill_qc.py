@@ -6,7 +6,9 @@ For each run in the last 48 h:
   - Adds `range_check` (RC) and `spatial` (SCC) if not already present
   - Re-runs `drip_leak` from raw slot history using the current parameters
     (6-hour window, 18/24 non-zero threshold)
-  - Recomputes QI from the updated checks
+  - Recomputes QI and checks_flag from the updated checks
+  - Removes gauges that now pass all checks (and reading < LLM_TRIGGER_MM)
+    so they don't appear as false positives in the log
   - Re-uploads the patched run archive
 
 Then rebuilds the event log from the patched runs.
@@ -25,8 +27,9 @@ from gauge_qc import (
     get_r2, r2_get_json, r2_put_json,
     R2_BUCKET, MANIFEST_KEY, RUNS_KEY_TPL, LOG_KEY, STATIONS_KEY,
     READINGS_PFX, LOG_RETENTION_HRS, PZERO_WINDOW_SLOTS,
+    LLM_TRIGGER_MM,
     check_range, check_spatial_consistency, check_drip_leak, compute_qi,
-    find_neighbours, get_station_slots,
+    any_check_failed, find_neighbours, get_station_slots,
     DRIP_WINDOW_SLOTS,
 )
 
@@ -60,7 +63,7 @@ def main():
     print(f"  {len(stations)} stations")
 
     # Pre-load raw readings for PRELOAD_DAYS days.
-    # This covers any 6-hour drip lookback from the oldest run in the window.
+    # Covers any 6-hour drip lookback from the oldest run in the window.
     print(f"Pre-loading {PRELOAD_DAYS} days of gauge readings...")
     days = {}
     for delta in range(PRELOAD_DAYS):
@@ -102,14 +105,14 @@ def main():
             if "id" in e and "mm" in e
         }
 
-        # Quick summary index for QI sync
+        # Quick summary index for updating flagged entries
         summary_by_id = {
             e["id"]: e
             for e in run.get("summary", [])
             if "id" in e
         }
 
-        n_changed = 0
+        keep_gauges = []
         for g in run.get("gauges", []):
             sid = g["station_id"]
             val = g.get("latest_value_mm", 0.0)
@@ -148,19 +151,35 @@ def main():
                 _nbr_mean = sum(valid_means) / len(valid_means) if valid_means else None
             checks["drip_leak"] = check_drip_leak(history_drip, nbr_mean_mm=_nbr_mean)
 
-            new_qi = compute_qi(checks)
-            g["checks"] = checks
-            g["qi"]     = new_qi
+            # Re-evaluate whether this gauge should still be flagged
+            still_flagged = any_check_failed(checks) or val >= LLM_TRIGGER_MM
+            if not still_flagged:
+                # Checks now all pass and reading is low — remove from flagged list
+                # and clean up its summary entry
+                se = summary_by_id.get(sid)
+                if se:
+                    se.pop("f", None)
+                    se.pop("qi", None)
+                continue
 
-            # Sync QI into the flagged summary entry
+            new_qi = compute_qi(checks)
+            new_flag = "FLAGGED" if any_check_failed(checks) else "ELEVATED"
+            g["checks"]      = checks
+            g["qi"]          = new_qi
+            g["checks_flag"] = new_flag
+
+            # Sync QI and flag into the summary entry
             se = summary_by_id.get(sid)
-            if se and "f" in se:
+            if se:
+                se["f"]  = new_flag
                 se["qi"] = new_qi
 
-            n_changed += 1
+            keep_gauges.append(g)
 
+        n_removed = len(run.get("gauges", [])) - len(keep_gauges)
+        run["gauges"] = keep_gauges
         r2_put_json(r2, key, run)
-        print(f"  {run_ts}: {n_changed} gauges patched")
+        print(f"  {run_ts}: {len(keep_gauges)} gauges kept, {n_removed} pruned (now-passing)")
         patched.append((run_dt, run_ts, run))
 
     # Rebuild the event log from patched runs (oldest → newest)
