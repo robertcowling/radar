@@ -2,31 +2,32 @@
 """
 gauge_qc.py — Real-time rain gauge quality control.
 
-Runs 7 deterministic checks on the most recent 15-min readings, then
-optionally calls an LLM (OpenAI) for an independent assessment of any
-suspicious or high-value gauges.  Results are uploaded to R2 as
-gaugecheck/results.json.
+Implements the RainGaugeQC framework of Ośródka, Otop & Szturc (2022),
+AMT 15, 5581–5597, https://doi.org/10.5194/amt-15-5581-2022, adapted for
+UK single-sensor tipping-bucket gauges and the available data environment.
 
-Checks (UK-calibrated thresholds):
-  1. Hard threshold      — single slot ≥25 mm suspicious, ≥50 mm impossible
-  2. Temporal spike      — isolated peak vs preceding 7-slot median
-  3. Nearest neighbour   — high reading when all 20 km neighbours report near-zero
-  4. Persistent zero     — gauge stuck at 0 while neighbours/radar show rain
-  5. Radar conformity    — gauge far exceeds radar QPE at same location
-  6. Drip/leak pattern   — near-constant low-amplitude tips over ≥3 hrs
-                           (classic blocked/leaking tipping bucket signature)
-  7. Accumulation anomaly — 24 hr gauge total >> neighbour mean
-                            (catches persistent systematic over-recording;
-                             only neighbours with ≥5 mm 24 hr total are used
-                             to avoid orographic false positives)
+Checks and their paper mapping:
+  1. Gross error     (GEC) — single slot ≥25 mm suspicious, ≥50 mm impossible
+  2. Range check     (RC)  — exceeds seasonal climatological extreme (UK-wide 1% AEP)
+  3. Temporal        (TCC) — isolated spike vs preceding 7-slot median
+  4. Spatial         (SCC) — MAD-based outlier within a 100 km domain
+  5. Persistent zero (RCC) — stuck at 0 while neighbours/radar show rain
+  6. Radar conformity(RCC) — gauge far exceeds radar QPE at same location
+  7. Pattern              — near-constant low-amplitude tips (no paper equivalent)
+  8. Accumulation anomaly — 24 hr gauge total >> neighbour mean (extended SCC)
 
-LLM is called when ≥2 checks fail OR the reading is ≥20 mm, but only on
-the first run it is flagged (consecutive_flags==1) to avoid repeated API
-calls for persistently broken hardware.  Gracefully skipped if
-OPENAI_API_KEY is absent or the openai package is not installed.
+A continuous Quality Index (QI, 0.0–1.0) is computed from all check results,
+following the QI framework in Ośródka et al. 2022 with UK-specific adaptations:
+  · No dual-sensor TCC: UK EA telemetry gauges are single tipping buckets;
+    the heated/unheated sensor agreement step cannot be applied.
+  · No per-station RC climatology: UK-wide seasonal estimates replace
+    30-year per-station exceedance probabilities (unavailable).
+  · No terrain-dependent RCC: flat QI deductions used instead of the
+    lowland/foothill/mountain weighting in the paper.
 
-Future enhancement: station-specific adaptive thresholds derived from
-historical climatology would replace the fixed hard thresholds above.
+An LLM (OpenAI) is called for an independent assessment when ≥1 check fails
+or the reading is ≥20 mm.  Re-assessed every 4 consecutive flags (~1 hr).
+Gracefully skipped if OPENAI_API_KEY is absent or openai is not installed.
 """
 
 import io, json, math, os, sys, tempfile
@@ -41,18 +42,32 @@ from botocore.client import Config
 from pyproj import Transformer
 
 # ── UK-calibrated QC thresholds ────────────────────────────────────────────────
-HARD_REJECT_MM       = 50.0   # physically impossible for the UK
-HARD_SUSPECT_MM      = 25.0   # exceeds all known UK 15-min records
+HARD_REJECT_MM       = 50.0   # physically impossible for the UK in any 15-min slot
+HARD_SUSPECT_MM      = 25.0   # extremely unusual; exceeds ~99.9% of UK 15-min gauge readings
 
 TEMPORAL_WINDOW      = 7      # preceding slots to compare against (7 × 15 min = 1 h 45)
 TEMPORAL_SPIKE_RATIO = 8.0    # ratio above which an isolated spike is flagged
 TEMPORAL_ZERO_TRIGGER = 5.0   # mm — flag spike from zero above this
 TEMPORAL_MIN_FLAG_MM = 5.0    # don't flag spikes below this absolute value (real showers)
 
-NN_RADIUS_KM         = 20.0   # search radius for nearest-neighbour check
-NN_MIN_NBHRS         = 2      # skip check if fewer qualifying neighbours found
-NN_TRIGGER_MM        = 8.0    # only apply NN check above this gauge reading
-NN_MAX_NBHR_MM       = 2.0    # all neighbours must be below this to flag
+# 20 km neighbourhood — used for persistent-zero and accumulation checks
+NN_RADIUS_KM         = 20.0   # radius for find_neighbours() helper
+
+# ── Range Check (RC) — Ośródka et al. 2022 ─────────────────────────────────────
+# UK-wide seasonal 15-min extreme thresholds (approx. 1% annual exceedance
+# probability).  Per-station 30-year climatological data is unavailable, so
+# these conservative UK-wide estimates are used as a proxy.
+RANGE_WARM_SUSPECT_MM = 15.0  # Apr–Sep: ≈1% AEP for most UK locations
+RANGE_COLD_SUSPECT_MM = 10.0  # Oct–Mar: ≈1% AEP (frontal rain; lower intensity)
+
+# ── Spatial Consistency Check (SCC) — Ośródka et al. 2022 ──────────────────────
+SCC_RADIUS_KM    = 100.0  # 100 km domain radius (as per paper)
+SCC_MIN_DOMAIN_N = 5      # minimum domain stations required (paper: 3)
+SCC_TRIGGER_MM   = 1.0    # skip if gauge reading is below this
+SCC_DI_WEAK      = 4.0    # Di > this → weak outlier (~P90)
+SCC_DI_MEDIUM    = 8.0    # Di > this → medium outlier (~P95)
+SCC_DI_STRONG    = 15.0   # Di > this → strong outlier (~P99)
+SCC_MAD_FLOOR    = 0.5    # minimum scale denominator (prevents zero-division)
 
 PZERO_WINDOW_SLOTS   = 24     # look-back window for persistent-zero check (6 hrs)
 PZERO_NBR_TRIGGER_MM = 3.0    # mean mm a neighbour must show to count as "active"
@@ -220,6 +235,27 @@ def check_hard_threshold(value):
     return {"passed": True}
 
 
+def check_range(value, month):
+    """Range Check (RC) — Ośródka et al. 2022.
+
+    Flags readings that exceed seasonal climatological extremes.  In the paper
+    this uses per-station 30-year historical statistics; for UK telemetry gauges
+    that data is unavailable, so UK-wide warm/cold season thresholds are used
+    (see RANGE_WARM/COLD_SUSPECT_MM constants).  Warm season = Apr–Sep.
+    """
+    warm = 4 <= month <= 9
+    threshold = RANGE_WARM_SUSPECT_MM if warm else RANGE_COLD_SUSPECT_MM
+    if value >= threshold:
+        return {
+            "passed": False,
+            "reason": "exceeds_seasonal_range",
+            "value_mm": value,
+            "threshold_mm": threshold,
+            "season": "warm" if warm else "cold",
+        }
+    return {"passed": True, "threshold_mm": threshold}
+
+
 def check_temporal(value, history_7):
     """history_7: the 7 slots immediately preceding the current one (oldest first)."""
     valid = [v for v in history_7 if v is not None and v >= 0]
@@ -255,32 +291,69 @@ def find_neighbours(station_id, stations, latest_readings, radius_km=NN_RADIUS_K
     return nbrs[:k]
 
 
-def check_nearest_neighbour(value, neighbours):
-    if value < NN_TRIGGER_MM:
+def check_spatial_consistency(value, station_id, stations, latest_readings):
+    """Spatial Consistency Check (SCC) — Ośródka et al. 2022.
+
+    Detects spatial outliers using a MAD-based deviation index (Di) over a
+    100 km domain.  Outliers are classified weak/medium/strong using fixed Di
+    thresholds chosen to approximate the empirical P90/P95/P99 percentiles used
+    in the paper.  Note: the paper also uses four offset 25 km sub-domains for
+    robustness; we use a single domain here.
+
+    UK adaptation: without dual-sensor TCC confirmation, isolated genuine
+    convective events may receive a mild QI reduction from this check — the
+    LLM assessment provides contextual disambiguation.
+    """
+    if value < SCC_TRIGGER_MM:
         return {"passed": True, "skipped": "below_trigger"}
-    with_data = [(sid, d, name, v) for sid, d, name, v in neighbours
-                 if v is not None]
-    if len(with_data) < NN_MIN_NBHRS:
-        return {"passed": True, "skipped": "insufficient_neighbours",
-                "n_found": len(with_data)}
-    nn_vals = [v for _, _, _, v in with_data]
-    nn_mean = sum(nn_vals) / len(nn_vals)
-    all_low = all(v < NN_MAX_NBHR_MM for v in nn_vals)
-    if all_low:
+
+    s = stations[station_id]
+    domain_vals = []
+    for sid, st in stations.items():
+        if sid == station_id:
+            continue
+        dist = _haversine_km(s["lat"], s["lon"], st["lat"], st["lon"])
+        if dist <= SCC_RADIUS_KM:
+            v = latest_readings.get(sid)
+            if v is not None:
+                domain_vals.append(v)
+
+    if len(domain_vals) < SCC_MIN_DOMAIN_N:
+        return {"passed": True, "skipped": "insufficient_domain_stations",
+                "n_found": len(domain_vals)}
+
+    n = len(domain_vals)
+    vals_sorted = sorted(domain_vals)
+    q50 = vals_sorted[n // 2]
+    mad = sorted(abs(v - q50) for v in domain_vals)[n // 2]
+
+    scale = max(mad, SCC_MAD_FLOOR)
+    di = abs(value - q50) / scale
+
+    if di > SCC_DI_STRONG:
+        outlier_class = "strong"
+    elif di > SCC_DI_MEDIUM:
+        outlier_class = "medium"
+    elif di > SCC_DI_WEAK:
+        outlier_class = "weak"
+    else:
         return {
-            "passed": False,
-            "reason": "no_spatial_support",
-            "value_mm": value,
-            "nn_mean_mm": round(nn_mean, 2),
-            "n_neighbours": len(with_data),
-            "neighbours": [
-                {"id": sid, "name": name, "dist_km": d,
-                 "value_mm": round(v, 2)}
-                for sid, d, name, v in with_data[:5]
-            ],
+            "passed": True,
+            "di": round(di, 1),
+            "domain_median_mm": round(q50, 2),
+            "domain_n": n,
         }
-    return {"passed": True, "nn_mean_mm": round(nn_mean, 2),
-            "n_neighbours": len(with_data)}
+
+    return {
+        "passed": False,
+        "reason": "spatial_outlier",
+        "outlier_class": outlier_class,
+        "di": round(di, 1),
+        "value_mm": value,
+        "domain_median_mm": round(q50, 2),
+        "domain_mad": round(mad, 3),
+        "domain_n": n,
+    }
 
 
 def check_persistent_zero(value, history_pzero, nbr_6hr_means, radar_mm):
@@ -531,7 +604,8 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
              checks, history_96, neighbours_info, radar_mm, accums,
              consecutive_flags, month_name, season,
              radar_30km_mm=None, spell_summary=None, regional_wet=None,
-             check_pattern_str=None, ukv_1h_mm=None, ukv_step_info=None):
+             check_pattern_str=None, ukv_1h_mm=None, ukv_step_info=None,
+             qi=None):
     """Return (verdict, reasoning) or (None, None) if unavailable."""
     if not OPENAI_API_KEY:
         return None, None
@@ -558,14 +632,19 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
             return f"  {label}: FAIL — {c.get('reason', '')} {extras}"
         return f"  {label}: PASS"
 
+    qi_str = (f"Quality index (QI): {qi:.2f}  "
+              f"({'reject' if qi < 0.25 else 'poor' if qi < 0.50 else 'uncertain' if qi < 0.75 else 'good'})\n"
+              if qi is not None else "")
+
     check_block = "\n".join([
-        _fmt_check("Hard threshold (≥25 mm limit)", checks["hard_threshold"]),
-        _fmt_check("Temporal spike",                checks["temporal"]),
-        _fmt_check("Nearest neighbour (20 km)",     checks["nearest_neighbour"]),
-        _fmt_check("Persistent zero",               checks["persistent_zero"]),
-        _fmt_check("Radar conformity",              checks["radar"]),
-        _fmt_check("Drip/leak pattern",             checks["drip_leak"]),
-        _fmt_check("24 hr accumulation anomaly",    checks["accum_anomaly"]),
+        _fmt_check("Gross error check (GEC)",            checks["hard_threshold"]),
+        _fmt_check("Range check (RC, seasonal)",          checks.get("range_check", {"skipped": "not_in_run"})),
+        _fmt_check("Temporal consistency (TCC)",          checks["temporal"]),
+        _fmt_check("Spatial consistency (SCC, 100 km)",   checks.get("spatial", {"skipped": "not_in_run"})),
+        _fmt_check("Persistent zero (RCC false-zero)",    checks["persistent_zero"]),
+        _fmt_check("Radar conformity (RCC false-pos.)",   checks["radar"]),
+        _fmt_check("Drip/leak pattern",                   checks["drip_leak"]),
+        _fmt_check("Accumulation anomaly",                checks["accum_anomaly"]),
     ])
 
     accum_str = "  " + "  ".join(
@@ -635,6 +714,7 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
         f"{spell_block}"
         f"\nAutomated QC check results (computed externally — do not recalculate):\n"
         f"{check_block}\n"
+        f"{qi_str}"
         f"{pattern_block}"
         f"\nRadar QPE at station:\n"
         f"  5 km radius:  {radar_5km_str}\n"
@@ -730,9 +810,10 @@ def regional_wetness_count(station_id, stations, latest_readings, radius_km=50.0
 
 def check_failure_pattern(checks, prev_checks):
     """Describe how the set of failing checks has changed since the previous run."""
-    _names = {"hard_threshold": "Threshold", "temporal": "Spike",
-              "nearest_neighbour": "Spatial", "persistent_zero": "Zero",
-              "radar": "Radar", "drip_leak": "Drip", "accum_anomaly": "Accum"}
+    _names = {"hard_threshold": "GEC", "range_check": "Range",
+              "temporal": "Temporal", "spatial": "Spatial",
+              "persistent_zero": "Zero", "radar": "Radar",
+              "drip_leak": "Pattern", "accum_anomaly": "Accum"}
 
     def _failing(c):
         return {_names[k] for k, v in c.items()
@@ -752,6 +833,69 @@ def check_failure_pattern(checks, prev_checks):
     if not now:
         parts.append("No deterministic failures (triggered by high reading value)")
     return " | ".join(parts)
+
+
+# ── QI scoring ─────────────────────────────────────────────────────────────────
+def compute_qi(checks):
+    """Compute quality index [0.0, 1.0] from check results.
+
+    Implements the QI reduction framework of Ośródka et al. (2022) with
+    UK-specific adaptations documented in the module docstring.
+
+      QI = 1.0          fully trusted
+      QI = 0.75–0.99    minor concern (one weak signal)
+      QI = 0.50–0.74    moderate concern
+      QI = 0.25–0.49    significant concern — use with caution
+      QI = 0.0–0.24     reject
+    """
+    qi = 1.0
+
+    # GEC — hard physical impossible limit → immediate reject
+    ht = checks.get("hard_threshold", {})
+    if not ht.get("passed", True) and not ht.get("skipped"):
+        if ht.get("reason") == "impossible":
+            return 0.0
+        qi -= 0.50  # "exceeds_uk_record" (≥25 mm): very suspicious
+
+    # RC — Ośródka et al. 2022 Table 1: QI -= 0.25
+    rc = checks.get("range_check", {})
+    if not rc.get("passed", True) and not rc.get("skipped"):
+        qi -= 0.25
+
+    # TCC analog — Ośródka et al. 2022: QI -= 0.25 for sensor disagreement
+    tc = checks.get("temporal", {})
+    if not tc.get("passed", True) and not tc.get("skipped"):
+        qi -= 0.25
+
+    # RCC false-zero — paper: QI = 0; UK adaptation: QI -= 0.75 (radar
+    # quality not formally assessed so we avoid a hard reject)
+    pz = checks.get("persistent_zero", {})
+    if not pz.get("passed", True) and not pz.get("skipped"):
+        qi -= 0.75
+
+    # RCC false-positive — Ośródka et al. 2022: QI -= 0.25 (1-sensor, lowland)
+    rd = checks.get("radar", {})
+    if not rd.get("passed", True) and not rd.get("skipped"):
+        qi -= 0.25
+
+    # SCC — Ośródka et al. 2022: -0.10 / -0.25 / -0.50 by outlier class
+    scc = checks.get("spatial", {})
+    if not scc.get("passed", True) and not scc.get("skipped"):
+        cls = scc.get("outlier_class", "strong")
+        qi -= {"weak": 0.10, "medium": 0.25, "strong": 0.50}.get(cls, 0.25)
+
+    # Pattern check (no paper equivalent) — pragmatic hardware fault check
+    dl = checks.get("drip_leak", {})
+    if not dl.get("passed", True) and not dl.get("skipped"):
+        # stuck counter severity analogous to TCC stuck (QI=0 in paper)
+        qi -= 0.50 if dl.get("reason") == "stuck_counter" else 0.25
+
+    # Accumulation anomaly (extended SCC analog; not in paper)
+    aa = checks.get("accum_anomaly", {})
+    if not aa.get("passed", True) and not aa.get("skipped"):
+        qi -= 0.25
+
+    return max(0.0, round(qi, 2))
 
 
 # ── Utilities ──────────────────────────────────────────────────────────────────
@@ -790,6 +934,7 @@ def update_log(r2, flagged_gauges, now):
             'last_seen':        now.strftime('%Y-%m-%dT%H:%M:%SZ'),
             'consecutive_flags': g['consecutive_flags'],
             'checks_flag':      g['checks_flag'],
+            'qi':               g.get('qi'),
             'latest_value_mm':  g['latest_value_mm'],
             'checks':           g['checks'],
             'llm_verdict':      g.get('llm_verdict'),
@@ -944,21 +1089,26 @@ def main():
         # Radar estimate
         radar_mm = extract_radar(lat, lon) if extract_radar else None
 
-        # Seven checks
+        # Eight checks (GEC · RC · TCC · SCC · RCC-zero · RCC-pos · Pattern · Accum)
+        _nbr_mean = (sum(v for v in nbr_6hr_means if v is not None)
+                     / max(sum(1 for v in nbr_6hr_means if v is not None), 1)
+                     if nbr_6hr_means else None)
         checks = {
-            "hard_threshold":      check_hard_threshold(latest_value),
-            "temporal":            check_temporal(latest_value, history_7),
-            "nearest_neighbour":   check_nearest_neighbour(latest_value, neighbours),
-            "persistent_zero":     check_persistent_zero(
-                                       latest_value, history_pzero,
-                                       nbr_6hr_means, radar_mm),
-            "radar":               check_radar(latest_value, radar_mm),
-            "drip_leak":           check_drip_leak(history_drip,
-                                       nbr_mean_mm=sum(v for v in nbr_6hr_means if v is not None) / max(sum(1 for v in nbr_6hr_means if v is not None), 1) if nbr_6hr_means else None),
-            "accum_anomaly":       check_accumulation_anomaly(
-                                       station_id, history_96, neighbours,
-                                       days, latest_date_str, latest_slot),
+            "hard_threshold":  check_hard_threshold(latest_value),
+            "range_check":     check_range(latest_value, latest_dt.month),
+            "temporal":        check_temporal(latest_value, history_7),
+            "spatial":         check_spatial_consistency(
+                                   latest_value, station_id, stations, latest_readings),
+            "persistent_zero": check_persistent_zero(
+                                   latest_value, history_pzero,
+                                   nbr_6hr_means, radar_mm),
+            "radar":           check_radar(latest_value, radar_mm),
+            "drip_leak":       check_drip_leak(history_drip, nbr_mean_mm=_nbr_mean),
+            "accum_anomaly":   check_accumulation_anomaly(
+                                   station_id, history_96, neighbours,
+                                   days, latest_date_str, latest_slot),
         }
+        qi = compute_qi(checks)
 
         # Only record this gauge if at least one check failed or reading is high
         if not any_check_failed(checks) and latest_value < LLM_TRIGGER_MM:
@@ -1017,6 +1167,7 @@ def main():
                     radar_30km_mm=radar_30km_mm, spell_summary=_spell,
                     regional_wet=_regional, check_pattern_str=_pattern,
                     ukv_1h_mm=_ukv_1h, ukv_step_info=ukv_step_info,
+                    qi=qi,
                 )
                 if llm_verdict:
                     llm_from_run = now.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1027,7 +1178,8 @@ def main():
                 llm_from_run  = prev.get("llm_from_run")
 
         checks_flag = "FLAGGED" if any_check_failed(checks) else "ELEVATED"
-        summary_entry['f'] = checks_flag
+        summary_entry['f']  = checks_flag
+        summary_entry['qi'] = qi
 
         flagged_gauges.append({
             "station_id":        station_id,
@@ -1040,6 +1192,7 @@ def main():
             "latest_value_mm":   round(latest_value, 2),
             "latest_slot_time":  latest_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "checks_flag":       checks_flag,
+            "qi":                qi,
             "checks":            checks,
             "consecutive_flags": consecutive_flags,
             "first_flagged_at":  first_flagged_at,
