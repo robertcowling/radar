@@ -251,7 +251,6 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
   </div>
   <div class="header-cell">
     <span>Checks</span>
-    <a href="/" class="h-nav">&#8592; Radar</a>
   </div>
   <div class="header-cell" style="border-left:2px solid #374151; flex:none; width:460px; box-sizing:border-box;">
     <span>Log</span>
@@ -346,11 +345,10 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
             <th style="text-align:right">24hr</th>
             <th>QI</th>
             <th>AI</th>
-            <th>Dur</th>
           </tr>
         </thead>
         <tbody id="qcTbody">
-          <tr><td colspan="7" class="tbl-empty">Loading…</td></tr>
+          <tr><td colspan="6" class="tbl-empty">Loading…</td></tr>
         </tbody>
       </table>
     </div>
@@ -377,15 +375,15 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
       <div id="modalTabChecks" class="modal-tab-panel active">
         <div class="check-item">
           <div class="ci-name">Gross error (GEC)</div>
-          <div class="ci-desc">Catches physically impossible or extremely unusual readings in a single 15-min slot.</div>
-          <div class="ci-rule">&#8805; 50 mm: hard reject (QI = 0). &#8805; 25 mm: very suspicious (QI &#8722;0.50). UK extreme 15-min totals rarely exceed 25 mm even in severe convective storms.</div>
-          <div class="ci-eg">E.g. a reading of 60 mm exceeds what is physically plausible for any UK 15-min slot.</div>
+          <div class="ci-desc">Catches physically impossible or extremely rare readings in a single 15-min slot.</div>
+          <div class="ci-rule">&#8805; 60 mm: hard reject (QI = 0) — beyond any credible UK 15-min total (UK 30-min record &#8776;80 mm). &#8805; 35 mm: very suspicious (QI &#8722;0.50) — around the T50–100 return level for most UK sites.</div>
+          <div class="ci-eg">E.g. a reading of 65 mm is implausible — even the most extreme documented UK convective events have not produced 15-min totals this high.</div>
         </div>
         <div class="check-item">
           <div class="ci-name">Range check (RC)</div>
-          <div class="ci-desc">Flags readings that exceed seasonal climatological extremes, even if not physically impossible.</div>
-          <div class="ci-rule">Warm season (Apr–Sep): &#8805; 15 mm suspicious. Cold season (Oct–Mar): &#8805; 10 mm suspicious. QI &#8722;0.25 if triggered. Thresholds approximate the UK-wide 1% annual exceedance probability for 15-min totals.</div>
-          <div class="ci-eg">E.g. 12 mm in January — unusual for cold-season frontal rain and worth flagging, even though it cannot be ruled out entirely.</div>
+          <div class="ci-desc">Flags readings that are climatologically unusual for the season, even if not physically impossible.</div>
+          <div class="ci-rule">Warm season (Apr–Sep): &#8805; 25 mm suspicious. Cold season (Oct–Mar): &#8805; 15 mm suspicious. QI &#8722;0.25 if triggered. Thresholds approximate T20–50 return periods; per-station 30-year data is unavailable so UK-wide estimates are used.</div>
+          <div class="ci-eg">E.g. 16 mm in January — plausible in intense frontal rain but sufficiently unusual to warrant scrutiny; other checks and the AI assessment will provide context.</div>
         </div>
         <div class="check-item">
           <div class="ci-name">Temporal consistency (TCC)</div>
@@ -414,7 +412,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         <div class="check-item">
           <div class="ci-name">Drip/leak pattern</div>
           <div class="ci-desc">Detects a leaking or blocked tipping bucket producing near-constant low-amplitude tips — a telltale hardware fault signature (no direct paper equivalent).</div>
-          <div class="ci-rule">Triggers when &#8805; 8 of the last 12 slots are non-zero, mean &lt; 1.5 mm, and CV &lt; 0.25 (suspiciously uniform). Suppressed during widespread drizzle. A stuck counter (CV = 0) gives QI &#8722;0.50; uniform drip gives QI &#8722;0.25.</div>
+          <div class="ci-rule">Triggers when &#8805; 8 of the last 12 slots are non-zero, mean &lt; 1.5 mm, and CV &lt; 0.15 (highly uniform — UK steady drizzle still shows more variation than this). Suppressed if neighbours are also consistently wet. A stuck counter (CV = 0) gives QI &#8722;0.50; uniform drip gives QI &#8722;0.25.</div>
           <div class="ci-eg">E.g. 0.2 mm every single slot for three hours — a blocked funnel drips at a near-constant rate; real rain varies.</div>
         </div>
         <div class="check-item">
@@ -474,6 +472,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
             <a href="https://doi.org/10.5194/amt-15-5581-2022" style="color:#1a73e8" target="_blank">https://doi.org/10.5194/amt-15-5581-2022</a>
           </p>
           <p style="margin-top:8px">Each check reduces a Quality Index (QI) from a starting value of 1.0. The reductions are taken directly from Table 1 of the paper where applicable. Combined QI &lt; 0.50 is treated as poor quality.</p>
+          <p style="margin-top:8px">GEC and RC thresholds are informed by UK extreme rainfall records (Wikipedia, verified 2026-05-21): 5-min record 32 mm (Preston, 1893); 30-min record 80 mm (Eskdalemuir, 1953); 60-min record 92 mm (Maidenhead, 1901). These constrain what is plausible for a 15-min gauge slot — roughly up to ~50 mm in the most extreme historic UK convective events. These records are also included verbatim in the AI assessment prompt.</p>
         </div>
         <div class="ai-section">
           <div class="ai-section-title">UK adaptations</div>
@@ -891,33 +890,31 @@ function renderLog() {
   }
 
   if (!events.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="tbl-empty">No flagged gauges in the last 48h</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="tbl-empty">No flagged gauges in the last 48h</td></tr>';
     return;
   }
 
   var html = '';
   events.forEach(function(e) {
-    var failN       = countCheckFails(e.checks);
-    var failStr     = failN === 1 ? '1 fail' : failN + ' fails';
     var llmPill     = buildLlmPill(e.llm_verdict);
     var loc         = e.county || '';
     var dur         = fmtDuration(e.consecutive_flags);
-    var t           = fmtLogTime(e.last_seen);
+    var t           = fmtLogDateTime(e.last_seen);
     var mm24        = (e.accums && e.accums['24hr']) || 0;
     var qi          = e.qi;
     var borderColor = (qi !== undefined && qi < 0.5) ? '#c62828' : (e.checks_flag === 'FLAGGED' ? '#c62828' : '#ef6c00');
     var qiCell      = qi !== undefined
       ? '<span style="font-size:11px;font-weight:700;color:' + (qi < 0.5 ? '#c62828' : '#ef6c00') + '">' + qi.toFixed(2) + '</span>'
-      : '<span style="font-size:11px;font-weight:600;color:#3c4043">' + failStr + '</span>';
+      : '<span style="font-size:11px;color:#94a3b8">—</span>';
     html += '<tr class="tbl-row" id="tblrow-' + e.station_id + '" style="border-left:3px solid ' + borderColor + '">' +
       '<td><div class="tbl-name">' + escHtml(e.name) + '</div>' +
-        (loc ? '<div class="tbl-loc">' + escHtml(loc) + '</div>' : '') + '</td>' +
+        (loc ? '<div class="tbl-loc">' + escHtml(loc) + '</div>' : '') +
+        '<div class="tbl-loc">' + dur + '</div></td>' +
       '<td class="tbl-time">' + t + '</td>' +
       '<td class="tbl-num">' + e.latest_value_mm.toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
       '<td class="tbl-num">' + mm24.toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
       '<td class="checks-cell">' + qiCell + '</td>' +
       '<td>' + llmPill + '</td>' +
-      '<td class="tbl-num">' + dur + '</td>' +
       '</tr>';
   });
   tbody.innerHTML = html;
@@ -972,6 +969,13 @@ function fmtLogTime(iso) {
     var sameDay = d.toLocaleDateString('en-GB', { timeZone:'Europe/London' }) ===
                   now.toLocaleDateString('en-GB', { timeZone:'Europe/London' });
     return sameDay ? ukTime(d) : ukDateShort(d) + ' ' + ukTime(d);
+  } catch(e) { return '—'; }
+}
+function fmtLogDateTime(iso) {
+  if (!iso) return '—';
+  try {
+    var d = new Date(iso);
+    return ukDateShort(d) + '<br><span style="font-size:10px;color:#64748b">' + ukTime(d) + '</span>';
   } catch(e) { return '—'; }
 }
 

@@ -42,8 +42,8 @@ from botocore.client import Config
 from pyproj import Transformer
 
 # ── UK-calibrated QC thresholds ────────────────────────────────────────────────
-HARD_REJECT_MM       = 50.0   # physically impossible for the UK in any 15-min slot
-HARD_SUSPECT_MM      = 25.0   # extremely unusual; exceeds ~99.9% of UK 15-min gauge readings
+HARD_REJECT_MM       = 60.0   # beyond any credible UK 15-min gauge total (UK 30-min record ≈80 mm)
+HARD_SUSPECT_MM      = 35.0   # extremely rare for 15 min (~T50–100 for most UK sites)
 
 TEMPORAL_WINDOW      = 7      # preceding slots to compare against (7 × 15 min = 1 h 45)
 TEMPORAL_SPIKE_RATIO = 8.0    # ratio above which an isolated spike is flagged
@@ -54,11 +54,13 @@ TEMPORAL_MIN_FLAG_MM = 5.0    # don't flag spikes below this absolute value (rea
 NN_RADIUS_KM         = 20.0   # radius for find_neighbours() helper
 
 # ── Range Check (RC) — Ośródka et al. 2022 ─────────────────────────────────────
-# UK-wide seasonal 15-min extreme thresholds (approx. 1% annual exceedance
-# probability).  Per-station 30-year climatological data is unavailable, so
-# these conservative UK-wide estimates are used as a proxy.
-RANGE_WARM_SUSPECT_MM = 15.0  # Apr–Sep: ≈1% AEP for most UK locations
-RANGE_COLD_SUSPECT_MM = 10.0  # Oct–Mar: ≈1% AEP (frontal rain; lower intensity)
+# UK-wide seasonal 15-min extreme thresholds (~T20–50 return period).
+# Per-station 30-year climatological data is unavailable; UK-wide estimates used.
+# Evidence: UK 5-min record ≈32 mm (Preston, 1893), 30-min record ≈80 mm
+# (Eskdalemuir, 1953) — 15-min totals of 35–50 mm are plausible in extreme events.
+# FEH/ReFH T100 for 15-min: ~20–35 mm SE England, ~35–55 mm high-rainfall areas.
+RANGE_WARM_SUSPECT_MM = 25.0  # Apr–Sep: approx T20–50 across UK
+RANGE_COLD_SUSPECT_MM = 15.0  # Oct–Mar: rarer convective events; lower upper bound
 
 # ── Spatial Consistency Check (SCC) — Ośródka et al. 2022 ──────────────────────
 SCC_RADIUS_KM    = 100.0  # 100 km domain radius (as per paper)
@@ -83,7 +85,9 @@ LLM_MIN_FAILURES     = 1      # require this many check failures to trigger LLM 
 DRIP_WINDOW_SLOTS    = 12     # 3 hr look-back for drip/leak pattern check
 DRIP_MIN_NONZERO     = 8      # minimum non-zero slots to apply pattern check
 DRIP_MAX_MEAN_MM     = 1.5    # pattern only meaningful at low intensities
-DRIP_MAX_CV          = 0.25   # coefficient of variation below this = suspiciously uniform
+DRIP_MAX_CV          = 0.15   # coefficient of variation below this = suspiciously uniform
+                              # (0.25 was too sensitive — tightened to reduce false alarms
+                              #  during genuine steady drizzle)
 
 ACCUM_WINDOW_SLOTS   = 96     # 24 hr accumulation window
 ACCUM_MIN_TOTAL_MM   = 15.0   # ignore gauges with trivially low totals
@@ -599,6 +603,23 @@ def load_ukv_gauge_data(r2, target_dt):
     return data, step_desc
 
 
+# ── UK extreme rainfall reference ─────────────────────────────────────────────
+# Source: Wikipedia "United Kingdom weather records", checked 2026-05-21.
+# Used in the LLM prompt as ground-truth plausibility context.
+UK_EXTREME_RAINFALL = """\
+UK extreme rainfall records (Wikipedia, verified 2026-05-21):
+  Duration      Amount      Location                            Date
+  5 min         32 mm       Preston, Lancashire                 10 Aug 1893
+  30 min        80 mm       Eskdalemuir, Dumfries & Galloway   26 Jun 1953
+  60 min        92 mm       Maidenhead, Berkshire               12 Jul 1901
+  90 min       117 mm       Dunsop Valley, Lancashire            8 Aug 1967
+  120 min      193 mm       Walshaw Dean Lodge, W. Yorkshire    19 May 1989
+  24 hr        341 mm       Honister Pass, Cumbria               4 Dec 2015
+These constrain 15-min plausibility: 32 mm in 5 min implies ~50 mm/15 min is
+possible in the most extreme historic UK convective events.  60 mm/15 min would
+be extraordinary; ≥ 60 mm warrants immediate scrutiny for sensor error.\
+"""
+
 # ── LLM assessment ─────────────────────────────────────────────────────────────
 def call_llm(station_id, name, lat, lon, value, slot_time_str,
              checks, history_96, neighbours_info, radar_mm, accums,
@@ -705,6 +726,7 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
 
     prompt = (
         f"You are a UK rainfall quality-control expert advising a flood forecasting team.\n\n"
+        f"Reference — {UK_EXTREME_RAINFALL}\n\n"
         f"Station: {name} (ID {station_id}), "
         f"{lat:.4f}°N  {abs(lon):.4f}°{'W' if lon < 0 else 'E'}\n"
         f"Season: {season} ({month_name})\n"
