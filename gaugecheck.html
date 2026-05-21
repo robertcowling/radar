@@ -228,6 +228,28 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
 .ai-list li { font-size: 12px; color: #475569; line-height: 1.5; padding: 1px 0 1px 14px; position: relative; }
 .ai-list li::before { content: '·'; position: absolute; left: 3px; color: #94a3b8; font-size: 14px; line-height: 1.2; }
 
+/* ── Hyetograph panel (left map overlay) ──────────────────────────────────── */
+#hyetoPanel {
+  position: absolute; inset: 0; z-index: 500; background: white;
+  display: none; flex-direction: column; overflow: hidden;
+}
+#hyetoPanel.visible { display: flex; }
+.hyeto-header {
+  padding: 10px 16px 8px; border-bottom: 1px solid #e8eaed; flex-shrink: 0;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+}
+.hyeto-title { font-size: 13px; font-weight: 700; color: #1e293b; }
+.hyeto-sub   { font-size: 11px; color: #64748b; margin-top: 2px; }
+.hyeto-close {
+  background: transparent; border: none; cursor: pointer;
+  font-size: 20px; color: #94a3b8; padding: 0; line-height: 1; flex-shrink: 0;
+}
+.hyeto-close:hover { color: #5f6368; }
+.hyeto-body {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 14px 18px 10px; min-height: 0; overflow: hidden;
+}
+
 /* ── Mobile responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 767px) {
   .panels-row { flex-direction: column; }
@@ -266,6 +288,19 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
     <!-- Left: rain gauge accumulation map -->
     <div class="panel-wrap" id="leftWrap">
       <div id="mapLeft" class="panel-map"></div>
+      <!-- Hyetograph overlay (shown when a gauge is selected) -->
+      <div id="hyetoPanel">
+        <div class="hyeto-header">
+          <div>
+            <div class="hyeto-title" id="hyetoTitle">—</div>
+            <div class="hyeto-sub"   id="hyetoSub"></div>
+          </div>
+          <button class="hyeto-close" onclick="closeHyeto()">&times;</button>
+        </div>
+        <div class="hyeto-body" id="hyetoBody">
+          <span style="color:#94a3b8;font-size:12px">Loading&hellip;</span>
+        </div>
+      </div>
       <!-- Colour key -->
       <div class="map-cbar" id="mapCbarLeft" style="display:none">
         <p id="mapCbarTitle">24 hr accumulation</p>
@@ -923,7 +958,7 @@ function renderLog() {
     var el = document.getElementById('tblrow-' + e.station_id);
     if (el) {
       tblRowById[e.station_id] = el;
-      el.addEventListener('click', (function(ev){ return function(){ selectGauge(ev.station_id, ev.first_flagged_at); }; })(e));
+      el.addEventListener('click', (function(ev){ return function(){ selectGauge(ev.station_id, ev.last_seen); }; })(e));
     }
   });
 }
@@ -987,6 +1022,7 @@ function selectGauge(id, isoTime) {
     tblRowById[id].classList.add('selected');
     tblRowById[id].scrollIntoView({ behavior:'smooth', block:'nearest' });
   }
+  showHyeto(id);
   function focusGauge() {
     var m = mMidById[id] || mLeftById[id];
     if (!m) return;
@@ -998,11 +1034,20 @@ function selectGauge(id, isoTime) {
   }
   if (isoTime && manifest && manifest.runs && manifest.runs.length) {
     var target = new Date(isoTime).getTime();
-    var bestIdx = 0, bestDiff = Infinity;
+    // Archive key = 15-min floor of generated_at, so correct archive is always
+    // the latest key that is <= target (not just the nearest key).
+    var bestIdx = 0, bestMs = -Infinity;
     manifest.runs.forEach(function(ts, i) {
-      var diff = Math.abs(parseRunTs(ts) - target);
-      if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+      var tsMs = parseRunTs(ts);
+      if (tsMs <= target && tsMs > bestMs) { bestMs = tsMs; bestIdx = i; }
     });
+    if (bestMs === -Infinity) { // target before all runs — fall back to nearest
+      var bestDiff = Infinity;
+      manifest.runs.forEach(function(ts, i) {
+        var diff = Math.abs(parseRunTs(ts) - target);
+        if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+      });
+    }
     var sl    = document.getElementById('timeSlider');
     var slVal = manifest.runs.length - 1 - bestIdx;
     if (parseInt(sl.value) === slVal) { focusGauge(); return; }
@@ -1015,6 +1060,165 @@ function selectGauge(id, isoTime) {
     return;
   }
   focusGauge();
+}
+
+// ── Hyetograph ──────────────────────────────────────────────────────────────
+var hyetoCache = {};
+
+function hyetoDateKey(ms) {
+  var d = new Date(ms);
+  return '' + d.getUTCFullYear() + pad2(d.getUTCMonth() + 1) + pad2(d.getUTCDate());
+}
+
+function loadHyetoDays(endMs, cb) {
+  var needed = {};
+  for (var di = 0; di <= 1; di++) needed[hyetoDateKey(endMs - di * 86400000)] = true;
+  var pending = 0;
+  Object.keys(needed).forEach(function(k) {
+    if (hyetoCache[k] !== undefined) return;
+    hyetoCache[k] = null;
+    pending++;
+    fetch(cdnUrl('rain/readings/' + k + '.json'))
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(dd) { hyetoCache[k] = (dd && dd.readings) ? dd.readings : {}; if (--pending === 0) cb(); })
+      .catch(function()  { hyetoCache[k] = {};                                      if (--pending === 0) cb(); });
+  });
+  if (pending === 0) cb();
+}
+
+function generateHyetoSVG(id, endMs, W) {
+  var H = 130, padL = 26, padB = 26, padR = 6, padT = 10;
+  var cW = W - padL - padR, cH = H - padT - padB;
+  var SLOTS = 96, barW = cW / SLOTS;
+  var baseY = padT + cH;
+
+  var data = [], maxVal = 0;
+  for (var i = 0; i < SLOTS; i++) {
+    var slotMs = endMs - (SLOTS - 1 - i) * 15 * 60000;
+    var dt  = new Date(slotMs);
+    var dk  = hyetoDateKey(slotMs);
+    var si  = String(Math.round((dt.getUTCHours() * 60 + dt.getUTCMinutes()) / 15));
+    var rd  = hyetoCache[dk];
+    var v   = (rd && rd[id] && rd[id][si] != null) ? +rd[id][si] : null;
+    data.push({ v: v, ms: slotMs });
+    if (v !== null && v > maxVal) maxVal = v;
+  }
+
+  var yMax  = maxVal < 0.5 ? 1 : maxVal < 1 ? 2 : maxVal < 4 ? 5 : maxVal < 9 ? 10
+            : maxVal < 19 ? 20 : Math.ceil(maxVal * 1.15 / 10) * 10;
+  var yStep = yMax <= 2 ? 0.5 : yMax <= 5 ? 1 : yMax <= 10 ? 2 : yMax <= 20 ? 5 : 10;
+
+  var svg = '<svg width="' + W + '" height="' + H + '" style="display:block;overflow:visible">';
+
+  // Y gridlines + labels
+  for (var gv = yStep; gv <= yMax; gv += yStep) {
+    var gy = (padT + cH - (gv / yMax) * cH).toFixed(1);
+    svg += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy +
+           '" stroke="#e8eaed" stroke-width="0.8"/>';
+    svg += '<text x="' + (padL - 3) + '" y="' + (+gy + 3) + '" fill="#9aa0a6" font-size="8" ' +
+           'font-family="sans-serif" text-anchor="end">' + (gv % 1 === 0 ? gv : gv.toFixed(1)) + '</text>';
+  }
+
+  // Baseline
+  svg += '<line x1="' + padL + '" y1="' + baseY + '" x2="' + (W - padR) + '" y2="' + baseY +
+         '" stroke="#bdc1c6" stroke-width="1"/>';
+
+  // Midnight separator (UK local time) + date label
+  for (var i = 1; i < SLOTS; i++) {
+    try {
+      var ukT = new Date(data[i].ms).toLocaleTimeString('en-GB', {timeZone:'Europe/London',hour:'2-digit',minute:'2-digit',hour12:false});
+      if (ukT === '00:00') {
+        var mx = (padL + i * barW).toFixed(1);
+        svg += '<line x1="' + mx + '" y1="' + padT + '" x2="' + mx + '" y2="' + baseY +
+               '" stroke="#dde1e7" stroke-width="0.8" stroke-dasharray="2,2"/>';
+        var dLbl = new Date(data[i].ms).toLocaleDateString('en-GB', {timeZone:'Europe/London',day:'numeric',month:'short'});
+        svg += '<text x="' + (+mx + 2) + '" y="' + (padT + 8) + '" fill="#94a3b8" font-size="7" font-family="sans-serif">' + dLbl + '</text>';
+      }
+    } catch(e) {}
+  }
+
+  // Bars
+  var safeId = id.replace(/[^A-Za-z0-9]/g, '_');
+  var tipId  = 'hytip_' + safeId;
+  for (var i = 0; i < SLOTS; i++) {
+    var v = data[i].v;
+    if (v === null || v < 0.05) continue;
+    var bx  = (padL + i * barW).toFixed(1);
+    var bh  = Math.max((v / yMax) * cH, 1);
+    var by  = (padT + cH - bh).toFixed(1);
+    var col = v < 0.5 ? '#b3e5fc' : v < 1 ? '#4fc3f7' : v < 2 ? '#0288d1'
+            : v < 4 ? '#01579b'  : v < 8 ? '#2e7d32'  : '#ef6c00';
+    var bkW = Math.max(barW - 0.4, 0.5).toFixed(1);
+    try {
+      var tipT = new Date(data[i].ms).toLocaleTimeString('en-GB', {timeZone:'Europe/London',hour:'2-digit',minute:'2-digit',hour12:false});
+      var tip  = tipT + ': ' + v.toFixed(1) + ' mm';
+    } catch(e) { var tip = v.toFixed(1) + ' mm'; }
+    svg += '<rect x="' + bx + '" y="' + by + '" width="' + bkW + '" height="' + bh.toFixed(1) + '" fill="' + col + '" pointer-events="none"/>';
+    svg += '<rect x="' + bx + '" y="' + padT + '" width="' + barW.toFixed(1) + '" height="' + cH + '" fill="transparent"' +
+           ' onmouseover="var e=document.getElementById(\'' + tipId + '\');if(e)e.textContent=\'' + tip + '\'"' +
+           ' onmouseout="var e=document.getElementById(\'' + tipId + '\');if(e)e.textContent=\' \'"' + '/>';
+  }
+
+  // X-axis tick + label every 4 hours
+  for (var i = 0; i <= SLOTS; i += 16) {
+    var lMs = i < SLOTS ? data[i].ms : endMs;
+    var lx  = (padL + i * barW).toFixed(1);
+    try {
+      var lbl = new Date(lMs).toLocaleTimeString('en-GB', {timeZone:'Europe/London',hour:'2-digit',minute:'2-digit',hour12:false});
+    } catch(e) { var lbl = '--:--'; }
+    svg += '<line x1="' + lx + '" y1="' + baseY + '" x2="' + lx + '" y2="' + (baseY + 3) + '" stroke="#bdc1c6" stroke-width="1"/>';
+    svg += '<text x="' + lx + '" y="' + (baseY + 12) + '" fill="#80868b" font-size="8" font-family="sans-serif" text-anchor="middle">' + lbl + '</text>';
+  }
+
+  svg += '</svg>';
+  svg += '<div id="' + tipId + '" style="height:14px;font-size:10px;color:#5f6368;text-align:center;margin-top:2px;font-family:sans-serif"> </div>';
+  return svg;
+}
+
+function showHyeto(id) {
+  var panel = document.getElementById('hyetoPanel');
+  var body  = document.getElementById('hyetoBody');
+  var title = document.getElementById('hyetoTitle');
+  var sub   = document.getElementById('hyetoSub');
+
+  // Find gauge name and metadata
+  var name = id, county = null, accum24 = null;
+  if (results) {
+    (results.gauges || []).forEach(function(g) {
+      if (g.station_id === id) { name = g.name || id; county = g.county; accum24 = g.accums && g.accums['24hr']; }
+    });
+    (results.summary || []).forEach(function(s) {
+      if (s.id === id && name === id) { name = s.n || id; county = s.c; accum24 = s.ac && s.ac['24hr']; }
+    });
+  }
+  if (name === id && logData) {
+    (logData.events || []).forEach(function(e) {
+      if (e.station_id === id && name === id) { name = e.name || id; county = e.county; accum24 = e.accums && e.accums['24hr']; }
+    });
+  }
+
+  title.textContent = name;
+  var subParts = [];
+  if (county) subParts.push(county);
+  if (accum24 != null) subParts.push(accum24.toFixed(1) + ' mm (24hr)');
+  sub.textContent = subParts.join(' · ');
+
+  panel.classList.add('visible');
+  var W = Math.min(Math.max(body.clientWidth - 8, 220), 580);
+  body.innerHTML = '<span style="color:#94a3b8;font-size:12px">Loading…</span>';
+
+  var endMs = Date.now();
+  if (results && results.latest_reading_time) endMs = new Date(results.latest_reading_time).getTime();
+
+  loadHyetoDays(endMs, function() {
+    body.innerHTML = generateHyetoSVG(id, endMs, W);
+  });
+}
+
+function closeHyeto() {
+  document.getElementById('hyetoPanel').classList.remove('visible');
+  selectedId = null;
+  Object.keys(tblRowById).forEach(function(k) { tblRowById[k].classList.remove('selected'); });
 }
 
 function countCheckFails(checks) {
