@@ -444,7 +444,7 @@ def check_drip_leak(history_drip, nbr_mean_mm=None):
             "cv": round(cv, 3),
             "longest_identical_run": longest_identical_run,
         }
-    if longest_identical_run >= 6:
+    if longest_identical_run >= 12:
         return {
             "passed": False,
             "reason": "stuck_counter",
@@ -745,6 +745,29 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
         f"  {_fmt_slots(history_96)}\n\n"
         f"Nearest neighbours (latest reading + last 6-hr slot history + UKV 1-hr forecast where available):"
         f"{nbr_block if nbr_block else chr(10) + '  None available'}\n\n"
+        f"Guidance on interpreting specific checks:\n\n"
+        f"Drip/leak flag:\n"
+        f"  Tipping bucket gauges record rainfall in discrete 0.1 mm tips. In genuine light\n"
+        f"  rain (0.3–0.5 mm/hr) every slot naturally records exactly 0.1 mm, so runs of\n"
+        f"  6–12 consecutive identical low values are a normal tipping-bucket artefact of\n"
+        f"  resolution, not proof of a hardware fault. The flag is most reliable when:\n"
+        f"    (a) the 24-hr history shows no coherent preceding rain event;\n"
+        f"    (b) neighbours and radar are dry throughout the flagged period; and\n"
+        f"    (c) the near-constant low-rate pattern persists for many hours with\n"
+        f"        no realistic variation and no credible weather explanation.\n"
+        f"  If a genuine rain event is visible in the 24-hr history, or neighbours/radar\n"
+        f"  support recent rainfall, a drip flag on a low-value tail is likely genuine\n"
+        f"  post-frontal drizzle or the dying phase of a real event — not a fault.\n"
+        f"  Upland and west-facing sites (Lake District, Welsh mountains, Scottish Highlands,\n"
+        f"  Dartmoor, Pennines) experience extended low-intensity drizzle far more commonly\n"
+        f"  than lowland sites; apply extra benefit of the doubt at such locations.\n"
+        f"  When drip/leak is the only failing check, lean toward UNCERTAIN or GENUINE\n"
+        f"  unless the full evidence picture is clearly inconsistent with real rainfall.\n\n"
+        f"Spatial consistency flag:\n"
+        f"  A high Di score during a known narrow convective band or orographic shower\n"
+        f"  is expected — isolated intense cells routinely outpace their nearest neighbours.\n"
+        f"  Treat a spatial flag as weaker evidence of a fault when the 24-hr history and\n"
+        f"  radar both show a coherent event, even if neighbours are relatively dry.\n\n"
         f"Based on the above, assess whether the reading at {slot_time_str} is genuine "
         f"rainfall or a sensor/telemetry fault. Consider the UK climate context.\n"
         f"Give a 2–3 sentence explanation.\n"
