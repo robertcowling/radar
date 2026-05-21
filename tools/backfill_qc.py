@@ -4,11 +4,12 @@
 For each run in the last 48 h:
   - Removes old `nearest_neighbour` check key
   - Adds `range_check` (RC) and `spatial` (SCC) if not already present
+  - Re-runs `drip_leak` from raw slot history using the current parameters
+    (6-hour window, 18/24 non-zero threshold)
   - Recomputes QI from the updated checks
   - Re-uploads the patched run archive
 
-Then rebuilds the event log from the patched runs so old-style entries
-(with nearest_neighbour) are gone.
+Then rebuilds the event log from the patched runs.
 
 Usage:
   python tools/backfill_qc.py
@@ -18,17 +19,19 @@ Requires the same R2 env vars as gauge_qc.py.
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import json
 from datetime import datetime, timedelta, timezone
 
 from gauge_qc import (
     get_r2, r2_get_json, r2_put_json,
     R2_BUCKET, MANIFEST_KEY, RUNS_KEY_TPL, LOG_KEY, STATIONS_KEY,
-    LOG_RETENTION_HRS,
-    check_range, check_spatial_consistency, compute_qi,
+    READINGS_PFX, LOG_RETENTION_HRS, PZERO_WINDOW_SLOTS,
+    check_range, check_spatial_consistency, check_drip_leak, compute_qi,
+    find_neighbours, get_station_slots,
+    DRIP_WINDOW_SLOTS,
 )
 
 BACKFILL_HRS = 48
+PRELOAD_DAYS = 4  # covers 54-hour lookback from the oldest run in the window
 
 
 def parse_run_ts(ts):
@@ -47,7 +50,7 @@ def main():
     now = datetime.now(timezone.utc)
     cutoff_dt = now - timedelta(hours=BACKFILL_HRS)
 
-    # Station registry (needed for SCC lat/lon lookups)
+    # Station registry (needed for SCC and drip neighbour lookups)
     print("Loading stations...")
     sdata = r2_get_json(r2, STATIONS_KEY)
     if not sdata:
@@ -55,6 +58,17 @@ def main():
         sys.exit(1)
     stations = sdata.get("stations", {})
     print(f"  {len(stations)} stations")
+
+    # Pre-load raw readings for PRELOAD_DAYS days.
+    # This covers any 6-hour drip lookback from the oldest run in the window.
+    print(f"Pre-loading {PRELOAD_DAYS} days of gauge readings...")
+    days = {}
+    for delta in range(PRELOAD_DAYS):
+        d = now - timedelta(days=delta)
+        date_str = d.strftime("%Y%m%d")
+        data = r2_get_json(r2, f"{READINGS_PFX}/{date_str}.json")
+        days[date_str] = data.get("readings", {}) if data else {}
+        print(f"  {date_str}: {len(days[date_str])} stations")
 
     # Manifest → runs within window, sorted oldest-first
     print("Loading manifest...")
@@ -77,17 +91,18 @@ def main():
             print(f"  SKIP {run_ts} (not found)")
             continue
 
-        month = run_dt.month
+        month           = run_dt.month
+        latest_slot     = run_dt.hour * 4 + run_dt.minute // 15
+        latest_date_str = run_dt.strftime("%Y%m%d")
 
-        # Reconstruct latest_readings for this slot from the stored summary.
-        # summary contains every station that was checked at this run time.
+        # Reconstruct latest_readings for this slot from the stored summary
         latest_readings = {
             e["id"]: e["mm"]
             for e in run.get("summary", [])
             if "id" in e and "mm" in e
         }
 
-        # Build quick summary index for QI updates
+        # Quick summary index for QI sync
         summary_by_id = {
             e["id"]: e
             for e in run.get("summary", [])
@@ -96,11 +111,11 @@ def main():
 
         n_changed = 0
         for g in run.get("gauges", []):
-            sid   = g["station_id"]
-            val   = g.get("latest_value_mm", 0.0)
+            sid = g["station_id"]
+            val = g.get("latest_value_mm", 0.0)
             checks = g.get("checks", {})
 
-            # Remove old-style nearest_neighbour key
+            # Remove old-style key
             checks.pop("nearest_neighbour", None)
 
             # Add range_check (RC) if absent
@@ -113,11 +128,31 @@ def main():
                     val, sid, stations, latest_readings
                 )
 
+            # Always re-run drip_leak from raw slot history (new 6-hr window)
+            history_drip = get_station_slots(
+                days, sid, latest_date_str, latest_slot, DRIP_WINDOW_SLOTS
+            )
+            _nbr_mean = None
+            if sid in stations:
+                neighbours = find_neighbours(sid, stations, latest_readings)
+                nbr_means = []
+                for nbr_id, _, _, _ in neighbours:
+                    h = get_station_slots(
+                        days, nbr_id, latest_date_str, latest_slot, PZERO_WINDOW_SLOTS
+                    )
+                    valid_vals = [v for v in h if v is not None and v >= 0]
+                    nbr_means.append(
+                        sum(valid_vals) / len(valid_vals) if valid_vals else None
+                    )
+                valid_means = [v for v in nbr_means if v is not None]
+                _nbr_mean = sum(valid_means) / len(valid_means) if valid_means else None
+            checks["drip_leak"] = check_drip_leak(history_drip, nbr_mean_mm=_nbr_mean)
+
             new_qi = compute_qi(checks)
             g["checks"] = checks
             g["qi"]     = new_qi
 
-            # Sync QI into the summary entry if it was flagged
+            # Sync QI into the flagged summary entry
             se = summary_by_id.get(sid)
             if se and "f" in se:
                 se["qi"] = new_qi
@@ -128,8 +163,7 @@ def main():
         print(f"  {run_ts}: {n_changed} gauges patched")
         patched.append((run_dt, run_ts, run))
 
-    # Rebuild the event log from patched runs (oldest → newest so last_seen
-    # ends up as the most recent occurrence of each flagging episode)
+    # Rebuild the event log from patched runs (oldest → newest)
     print("\nRebuilding log from patched runs...")
     log_cutoff = (now - timedelta(hours=LOG_RETENTION_HRS)).strftime("%Y-%m-%dT%H:%M:%SZ")
     events = {}
@@ -157,7 +191,6 @@ def main():
                 "accums":            g.get("accums", {}),
             }
 
-    # Trim to retention window
     events = {k: v for k, v in events.items() if v["last_seen"] > log_cutoff}
     log_data = {
         "updated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
