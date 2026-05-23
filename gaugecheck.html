@@ -1282,9 +1282,12 @@ function openLeftPopup(id, defaultTab, isoTime) {
   if (liveLatestReadingTime) liveLatestMs = new Date(liveLatestReadingTime).getTime();
   else if (results && results.latest_reading_time) liveLatestMs = new Date(results.latest_reading_time).getTime();
 
+  liveLatestMs = Math.floor(liveLatestMs / 900000) * 900000;
+
   var endMs = liveLatestMs;
   if (isoTime) {
     var T = new Date(isoTime).getTime();
+    T = Math.floor(T / 900000) * 900000;
     endMs = Math.min(T + 12 * 3600000, liveLatestMs);
   }
 
@@ -1417,8 +1420,8 @@ function generateSeriesTable(id, endMs) {
     if (logData && logData.events) {
       logData.events.forEach(function(ev) {
         if (ev.station_id === id) {
-          var tStart = new Date(ev.first_flagged_at).getTime() - 450000; // 7.5m buffer
-          var tEnd = new Date(ev.last_seen).getTime() + 450000;
+          var tStart = Math.floor(new Date(ev.first_flagged_at).getTime() / 900000) * 900000 - 450000; // 7.5m buffer
+          var tEnd = Math.floor(new Date(ev.last_seen).getTime() / 900000) * 900000 + 450000;
           if (slotMs >= tStart && slotMs <= tEnd) {
             flaggedQi = (ev.qi !== undefined) ? ev.qi : 0.0;
           }
