@@ -1006,6 +1006,65 @@ function selectGauge(id, isoTime) {
     tblRowById[id].classList.add('selected');
     tblRowById[id].scrollIntoView({ behavior:'smooth', block:'nearest' });
   }
+
+  var clickedEvent = null;
+  if (isoTime && logData && logData.events) {
+    logData.events.forEach(function(ev) {
+      if (ev.station_id === id && (ev.first_flagged_at === isoTime || ev.last_seen === isoTime)) {
+        clickedEvent = ev;
+      }
+    });
+  }
+
+  function injectClickedEvent() {
+    if (!clickedEvent || !results) return;
+    var foundGauge = false;
+    results.gauges = results.gauges || [];
+    results.gauges.forEach(function(g) { if (g.station_id === id) foundGauge = true; });
+    if (!foundGauge) {
+      results.gauges.push({
+        station_id: clickedEvent.station_id,
+        name: clickedEvent.name,
+        county: clickedEvent.county,
+        region: clickedEvent.region,
+        lat: clickedEvent.lat,
+        lon: clickedEvent.lon,
+        accums: clickedEvent.accums,
+        latest_value_mm: clickedEvent.latest_value_mm,
+        latest_slot_time: clickedEvent.last_seen,
+        checks_flag: clickedEvent.checks_flag,
+        qi: clickedEvent.qi,
+        checks: clickedEvent.checks,
+        consecutive_flags: clickedEvent.consecutive_flags,
+        llm_verdict: clickedEvent.llm_verdict,
+        llm_reasoning: clickedEvent.llm_reasoning,
+      });
+    }
+    results.summary = results.summary || [];
+    var foundSummary = false;
+    results.summary.forEach(function(s) {
+      if (s.id === id) {
+        foundSummary = true;
+        s.f = clickedEvent.checks_flag;
+        s.qi = clickedEvent.qi;
+        s.mm = clickedEvent.latest_value_mm;
+      }
+    });
+    if (!foundSummary) {
+      results.summary.push({
+        id: clickedEvent.station_id,
+        n: clickedEvent.name,
+        lat: clickedEvent.lat,
+        lon: clickedEvent.lon,
+        c: clickedEvent.county,
+        mm: clickedEvent.latest_value_mm,
+        ac: clickedEvent.accums,
+        f: clickedEvent.checks_flag,
+        qi: clickedEvent.qi,
+      });
+    }
+  }
+
   function focusGauge() {
     var m = mMidById[id] || mLeftById[id];
     if (!m) return;
@@ -1016,16 +1075,15 @@ function selectGauge(id, isoTime) {
     if (mMidById[id]) setTimeout(function(){ mMidById[id].openPopup(); }, 550);
     if (mLeftById[id]) setTimeout(function(){ openLeftPopup(id); }, 550);
   }
+
   if (isoTime && manifest && manifest.runs && manifest.runs.length) {
     var target = new Date(isoTime).getTime();
-    // Archive key = 15-min floor of generated_at, so correct archive is always
-    // the latest key that is <= target (not just the nearest key).
     var bestIdx = 0, bestMs = -Infinity;
     manifest.runs.forEach(function(ts, i) {
       var tsMs = parseRunTs(ts);
       if (tsMs <= target && tsMs > bestMs) { bestMs = tsMs; bestIdx = i; }
     });
-    if (bestMs === -Infinity) { // target before all runs — fall back to nearest
+    if (bestMs === -Infinity) {
       var bestDiff = Infinity;
       manifest.runs.forEach(function(ts, i) {
         var diff = Math.abs(parseRunTs(ts) - target);
@@ -1034,11 +1092,23 @@ function selectGauge(id, isoTime) {
     }
     var sl    = document.getElementById('timeSlider');
     var slVal = manifest.runs.length - 1 - bestIdx;
-    if (parseInt(sl.value) === slVal) { focusGauge(); return; }
+    if (parseInt(sl.value) === slVal) {
+      injectClickedEvent();
+      renderLeftMarkers();
+      renderMidMarkers();
+      focusGauge();
+      return;
+    }
     sl.value = slVal;
     var url = cdnUrl('gaugecheck/runs/' + manifest.runs[bestIdx] + '.json');
     fetch(url).then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
-      if (d) { results = d; updateDateDisplay(d.latest_reading_time); renderLeftMarkers(); renderMidMarkers(); }
+      if (d) {
+        results = d;
+        injectClickedEvent();
+        updateDateDisplay(d.latest_reading_time);
+        renderLeftMarkers();
+        renderMidMarkers();
+      }
       focusGauge();
     }).catch(function(){ focusGauge(); });
     return;
