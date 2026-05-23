@@ -894,7 +894,12 @@ function formatDetail(c) {
 
 // ── Right panel: rolling log ───────────────────────────────────────────────
 function renderLog() {
-  var events = (logData && logData.events) || [];
+  var rawEvents = (logData && logData.events) || [];
+  var oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  var events = rawEvents.filter(function(e) {
+    return new Date(e.last_seen).getTime() > oneWeekAgo;
+  });
+
   var tbody  = document.getElementById('qcTbody');
   tblRowById = {};
 
@@ -904,12 +909,13 @@ function renderLog() {
 
   if (logData && logData.updated_at) {
     var d = new Date(logData.updated_at);
+    var tz = ukTzLabel(d);
     document.getElementById('rightSub').textContent =
-      'Last 48h · updated ' + ukTime(d);
+      'Last 7d · updated ' + ukTime(d) + (tz ? ' ' + tz : '');
   }
 
   if (!events.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="tbl-empty">No flagged gauges in the last 48h</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="tbl-empty">No flagged gauges in the last 7d</td></tr>';
     return;
   }
 
@@ -987,14 +993,17 @@ function fmtLogTime(iso) {
     var now = new Date();
     var sameDay = d.toLocaleDateString('en-GB', { timeZone:'Europe/London' }) ===
                   now.toLocaleDateString('en-GB', { timeZone:'Europe/London' });
-    return sameDay ? ukTime(d) : ukDateShort(d) + ' ' + ukTime(d);
+    var tz = ukTzLabel(d);
+    var tStr = ukTime(d) + (tz ? ' ' + tz : '');
+    return sameDay ? tStr : ukDateShort(d) + ' ' + tStr;
   } catch(e) { return '—'; }
 }
 function fmtLogDateTime(iso) {
   if (!iso) return '—';
   try {
     var d = new Date(iso);
-    return ukDateShort(d) + '<br><span style="font-size:10px;color:#64748b">' + ukTime(d) + '</span>';
+    var tz = ukTzLabel(d);
+    return ukDateShort(d) + '<br><span style="font-size:10px;color:#64748b">' + ukTime(d) + (tz ? ' ' + tz : '') + '</span>';
   } catch(e) { return '—'; }
 }
 
@@ -1288,7 +1297,11 @@ function ukDateShort(date) {
 }
 function fmtTime(iso) {
   if (!iso) return '—';
-  try { return ukTime(new Date(iso)); } catch(e) { return iso; }
+  try {
+    var d = new Date(iso);
+    var tz = ukTzLabel(d);
+    return ukTime(d) + (tz ? ' ' + tz : '');
+  } catch(e) { return iso; }
 }
 function parseRunTs(ts) {
   try { return new Date(ts.slice(0,4)+'-'+ts.slice(4,6)+'-'+ts.slice(6,8)+'T'+ts.slice(9,11)+':'+ts.slice(11,13)+':00Z').getTime(); }
