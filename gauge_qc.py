@@ -1092,20 +1092,12 @@ def main():
                     g.get("llm_from_run")
                 )
 
-        # Build most-recent reading for ALL registered stations, looking back from target_slot
-        LOOKBACK_SLOTS = 3
+        # Build exact slot readings for ALL registered stations at target_slot (no lookback fallback)
         latest_readings = {}
         for sid in stations:
-            for back in range(LOOKBACK_SLOTS + 1):
-                slot_b = target_slot - back
-                date_b = target_date_str
-                if slot_b < 0:
-                    slot_b += 96
-                    date_b = (target_dt - timedelta(days=1)).strftime("%Y%m%d")
-                val = days.get(date_b, {}).get(sid, {}).get(str(slot_b))
-                if isinstance(val, (int, float)) and val >= 0:
-                    latest_readings[sid] = float(val)
-                    break
+            val = days.get(target_date_str, {}).get(sid, {}).get(str(target_slot))
+            if isinstance(val, (int, float)) and val >= 0:
+                latest_readings[sid] = float(val)
 
         # QC loop for target_slot
         flagged_gauges    = []
