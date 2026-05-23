@@ -1185,10 +1185,10 @@ def main():
                 else:
                     consecutive_flags = prev.get("consecutive_flags", 1)
                 first_flagged_at  = prev.get("first_flagged_at",
-                                             now.strftime("%Y-%m-%dT%H:%M:%SZ"))
+                                             target_dt.strftime("%Y-%m-%dT%H:%M:%SZ"))
             else:
                 consecutive_flags = 1
-                first_flagged_at  = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+                first_flagged_at  = target_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
             llm_verdict   = None
             llm_reasoning = None
@@ -1295,7 +1295,10 @@ def main():
         print(f"Uploading run archive: {RUNS_KEY_TPL.format(ts=target_run_ts)}...")
         r2_put_json(r2, RUNS_KEY_TPL.format(ts=target_run_ts), result)
 
-        # 2. If this is the latest slot (offset == 0), update results.json, manifest, and active event log
+        # 2. Update the active event log for this slot (both historical and current)
+        update_log(r2, flagged_gauges, target_dt)
+
+        # 3. If this is the latest slot (offset == 0), update results.json and manifest
         if offset == 0:
             print("Updating live results.json...")
             r2_put_json(r2, OUTPUT_KEY, result)
@@ -1306,8 +1309,6 @@ def main():
                 runs_list.insert(0, target_run_ts)
             r2_put_json(r2, MANIFEST_KEY, {"runs": runs_list[:MAX_RUNS]})
             print(f"Archived run {target_run_ts} ({min(len(runs_list), MAX_RUNS)} in manifest).")
-            
-            update_log(r2, flagged_gauges, now)
             print("Done.")
 
         # Update prev_flags for the next target_dt in our loop
