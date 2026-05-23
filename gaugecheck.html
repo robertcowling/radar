@@ -253,7 +253,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
     <span>Checks</span>
   </div>
   <div class="header-cell" style="border-left:2px solid #374151; flex:none; width:460px; box-sizing:border-box;">
-    <span>Log</span>
+    <span>QC Log</span>
     <span id="rightCounts" class="h-sub">—</span>
   </div>
 </div>
@@ -835,7 +835,10 @@ function buildPopup(g) {
   html += '<h4>' + escHtml(g.name) + '</h4>';
   if (loc) html += '<div class="pop-loc">' + escHtml(loc) + '</div>';
   html += '<div class="pop-reading"><span class="pop-value">' + g.latest_value_mm.toFixed(1) + ' mm</span>';
-  html += '<span class="pop-time">at ' + fmtTime(g.latest_slot_time) + '</span></div>';
+  var pd = new Date(g.latest_slot_time);
+  var tz = ukTzLabel(pd);
+  var popDate = ukTime(pd) + (tz ? ' ' + tz : '') + ' on ' + ukDateShort(pd);
+  html += '<span class="pop-time">at ' + popDate + '</span></div>';
   if (g.qi !== undefined) {
     var qi = g.qi;
     var qiCol = qi < 0.25 ? '#c62828' : qi < 0.50 ? '#e53935' : qi < 0.75 ? '#ef6c00' : '#4caf50';
@@ -1079,8 +1082,10 @@ function selectGauge(id, isoTime) {
     if (!m) return;
     var ll = m.getLatLng();
     var z  = Math.max(mapMid.getZoom(), 8);
-    mapLeft.flyTo(ll, z, { duration:0.5 });
-    mapMid.flyTo(ll, z, { duration:0.5 });
+    var latOffset = 0.22 / Math.pow(2, z - 8);
+    var center = L.latLng(ll.lat + latOffset, ll.lng);
+    mapLeft.flyTo(center, z, { duration:0.5 });
+    mapMid.flyTo(center, z, { duration:0.5 });
     if (mMidById[id]) setTimeout(function(){ mMidById[id].openPopup(); }, 550);
     if (mLeftById[id]) setTimeout(function(){ openLeftPopup(id); }, 550);
   }
@@ -1135,7 +1140,7 @@ function hyetoDateKey(ms) {
 
 function loadHyetoDays(endMs, cb) {
   var needed = {};
-  for (var di = 0; di <= 1; di++) needed[hyetoDateKey(endMs - di * 86400000)] = true;
+  for (var di = 0; di <= 2; di++) needed[hyetoDateKey(endMs - di * 86400000)] = true;
   var pending = 0;
   Object.keys(needed).forEach(function(k) {
     if (hyetoCache[k] !== undefined) return;
@@ -1276,7 +1281,136 @@ function openLeftPopup(id) {
 
   loadHyetoDays(endMs, function() {
     if (!m._popup || !m._map) return;
-    m.setPopupContent(hdr + generateHyetoSVG(id, endMs, 250));
+    
+    var safeId = id.replace(/[^A-Za-z0-9]/g, '_');
+    _popStIds[safeId] = id;
+    _popEndMs[safeId] = endMs;
+    
+    var hyetoHtml = generateHyetoSVG(id, endMs, 250);
+    
+    var tabBtnStyle = 'background:none;border:none;border-bottom:2px solid transparent;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit';
+    var tabsHtml = '<div style="margin-top:6px;border-top:1px solid #e8eaed;padding-top:4px">'
+        + '<div style="display:flex;gap:0;margin-bottom:4px">'
+        + '<button id="ptab0_' + safeId + '" style="' + tabBtnStyle + ';border-bottom:2px solid #1a73e8;color:#1a73e8"'
+        + ' onclick="showPopTabFor(\'' + safeId + '\',0)">Totals</button>'
+        + '<button id="ptab1_' + safeId + '" style="' + tabBtnStyle + ';color:#5f6368"'
+        + ' onclick="showPopTabFor(\'' + safeId + '\',1)">15-min</button>'
+        + '</div>'
+        + '<div id="ppanel_' + safeId + '">' + generateAccumTable(id, endMs) + '</div>'
+        + '</div>';
+        
+    m.setPopupContent(hdr + hyetoHtml + tabsHtml);
+  });
+}
+
+var _popStIds = {};
+var _popEndMs = {};
+
+function computeAccum(stationId, validityMs, accumHrs) {
+  var total = 0;
+  var slots = accumHrs * 4;
+  for (var s = 0; s < slots; s++) {
+    var t = new Date(validityMs - s * 900000);
+    var dk = hyetoDateKey(t);
+    var slotIdx = String(Math.round((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15));
+    var rd = hyetoCache[dk];
+    if (!rd) continue;
+    var stData = rd[stationId];
+    if (!stData) continue;
+    var v = stData[slotIdx];
+    if (typeof v === 'number' && v >= 0) total += v;
+  }
+  return total;
+}
+
+function generateAccumTable(id, endMs) {
+  var nowD = new Date(endMs);
+  var tz = ukTzLabel(nowD);
+  var untilStr = ukDateShort(nowD) + ' ' + ukTime(nowD) + (tz ? ' ' + tz : '');
+  var periods = [1, 3, 6, 12, 24, 48];
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.7">';
+  html += '<thead><tr>'
+      + '<th style="text-align:left;color:#5f6368;font-weight:500;padding:1px 0">Period until ' + untilStr + '</th>'
+      + '<th style="text-align:right;color:#5f6368;font-weight:500;padding:1px 6px">Total</th></tr></thead><tbody>';
+  periods.forEach(function(hrs) {
+      var val = computeAccum(id, endMs, hrs);
+      html += '<tr>'
+          + '<td style="padding:1px 0;color:#202124">' + hrs + ' hr</td>'
+          + '<td style="padding:1px 6px;text-align:right;font-weight:600;color:#202124">' + val.toFixed(1) + ' mm</td></tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function generateSeriesTable(id, endMs) {
+  var SLOTS = 96;
+  var cadence = 1;
+  var populated = [];
+  for (var i = 0; i < SLOTS; i++) {
+    var slotMs = endMs - i * 15 * 60000;
+    var t2 = new Date(slotMs);
+    var dk2 = hyetoDateKey(slotMs);
+    var si2 = String(Math.round((t2.getUTCHours() * 60 + t2.getUTCMinutes()) / 15));
+    var rd2 = hyetoCache[dk2];
+    if (rd2 && rd2[id] && rd2[id][si2] != null) {
+      populated.push(+si2);
+    }
+  }
+  if (populated.length >= 3) {
+    if (populated.every(function(s) { return s % 4 === 0; })) {
+      cadence = 4;
+    } else if (populated.every(function(s) { return s % 2 === 0; })) {
+      cadence = 2;
+    }
+  }
+
+  var rows = [];
+  for (var i = 0; i < SLOTS; i++) {
+    var slotMs = endMs - i * 15 * 60000;
+    var t = new Date(slotMs);
+    var slotMins = Math.round((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15);
+    if (cadence > 1 && slotMins % cadence !== 0) continue;
+
+    var dk = hyetoDateKey(slotMs);
+    var si = String(slotMins);
+    var rd = hyetoCache[dk];
+    var v = (rd && rd[id] && rd[id][si] != null) ? +rd[id][si] : null;
+
+    var ts = ukTime(t);
+    var ds = ukDateShort(t);
+    if (v === null || v < 0) {
+      rows.push('<tr>'
+        + '<td style="padding:1px 0;color:#5f6368;white-space:nowrap">' + ds + ' ' + ts + '</td>'
+        + '<td style="padding:1px 6px;text-align:right;color:#9aa0a6;font-style:italic">No data</td></tr>');
+      continue;
+    }
+    rows.push('<tr>'
+      + '<td style="padding:1px 0;color:#5f6368;white-space:nowrap">' + ds + ' ' + ts + '</td>'
+      + '<td style="padding:1px 6px;text-align:right;color:#202124">' + v.toFixed(1) + '</td></tr>');
+  }
+
+  if (!rows.length) return '<div style="color:#9aa0a6;font-size:11px;padding:4px 0">No data in window</div>';
+  var cadenceNote = cadence === 4 ? ' (60-min gauge)' : cadence === 2 ? ' (30-min gauge)' : '';
+  return '<div style="max-height:130px;overflow-y:auto">'
+      + '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.5">'
+      + '<thead><tr>'
+      + '<th style="text-align:left;color:#5f6368;font-weight:500;padding:1px 0">Time' + cadenceNote + '</th>'
+      + '<th style="text-align:right;color:#5f6368;font-weight:500;padding:1px 6px">mm</th>'
+      + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+}
+
+function showPopTabFor(safeId, tab) {
+  var stId = _popStIds[safeId];
+  var endMs = _popEndMs[safeId];
+  if (!stId || !endMs) return;
+  var panel = document.getElementById('ppanel_' + safeId);
+  if (!panel) return;
+  panel.innerHTML = tab === 0 ? generateAccumTable(stId, endMs) : generateSeriesTable(stId, endMs);
+  [0, 1].forEach(function(i) {
+      var btn = document.getElementById('ptab' + i + '_' + safeId);
+      if (!btn) return;
+      btn.style.borderBottom = i === tab ? '2px solid #1a73e8' : '2px solid transparent';
+      btn.style.color = i === tab ? '#1a73e8' : '#5f6368';
   });
 }
 
