@@ -1089,8 +1089,9 @@ function selectGauge(id, isoTime) {
     var center = L.latLng(ll.lat + latOffset, ll.lng);
     mapLeft.flyTo(center, z, { duration:0.5 });
     mapMid.flyTo(center, z, { duration:0.5 });
+    var defaultTab = isoTime ? 1 : 0;
     if (mMidById[id]) setTimeout(function(){ mMidById[id].openPopup(); }, 550);
-    if (mLeftById[id]) setTimeout(function(){ openLeftPopup(id); }, 550);
+    if (mLeftById[id]) setTimeout(function(){ openLeftPopup(id, defaultTab, isoTime); }, 550);
   }
 
   if (isoTime && manifest && manifest.runs && manifest.runs.length) {
@@ -1247,7 +1248,7 @@ function generateHyetoSVG(id, endMs, W) {
   return svg;
 }
 
-function openLeftPopup(id) {
+function openLeftPopup(id, defaultTab, isoTime) {
   var m = mLeftById[id];
   if (!m) return;
 
@@ -1277,9 +1278,15 @@ function openLeftPopup(id) {
   });
   if (pills) hdr += '<div>' + pills + '</div>';
 
-  var endMs = Date.now();
-  if (liveLatestReadingTime) endMs = new Date(liveLatestReadingTime).getTime();
-  else if (results && results.latest_reading_time) endMs = new Date(results.latest_reading_time).getTime();
+  var liveLatestMs = Date.now();
+  if (liveLatestReadingTime) liveLatestMs = new Date(liveLatestReadingTime).getTime();
+  else if (results && results.latest_reading_time) liveLatestMs = new Date(results.latest_reading_time).getTime();
+
+  var endMs = liveLatestMs;
+  if (isoTime) {
+    var T = new Date(isoTime).getTime();
+    endMs = Math.min(T + 12 * 3600000, liveLatestMs);
+  }
 
   m.setPopupContent(hdr + '<span style="color:#94a3b8;font-size:12px">Loading…</span>');
   m.openPopup();
@@ -1293,18 +1300,35 @@ function openLeftPopup(id) {
     
     var hyetoHtml = generateHyetoSVG(id, endMs, 250);
     
+    var tab = (defaultTab !== undefined) ? defaultTab : 0;
+    var tab0Style = (tab === 0) ? 'border-bottom:2px solid #1a73e8;color:#1a73e8' : 'color:#5f6368';
+    var tab1Style = (tab === 1) ? 'border-bottom:2px solid #1a73e8;color:#1a73e8' : 'color:#5f6368';
+    var panelContent = (tab === 0) ? generateAccumTable(id, endMs) : generateSeriesTable(id, endMs);
+
     var tabBtnStyle = 'background:none;border:none;border-bottom:2px solid transparent;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit';
     var tabsHtml = '<div style="margin-top:6px;border-top:1px solid #e8eaed;padding-top:4px">'
         + '<div style="display:flex;gap:0;margin-bottom:4px">'
-        + '<button id="ptab0_' + safeId + '" style="' + tabBtnStyle + ';border-bottom:2px solid #1a73e8;color:#1a73e8"'
+        + '<button id="ptab0_' + safeId + '" style="' + tabBtnStyle + ';' + tab0Style + '"'
         + ' onclick="showPopTabFor(\'' + safeId + '\',0)">Totals</button>'
-        + '<button id="ptab1_' + safeId + '" style="' + tabBtnStyle + ';color:#5f6368"'
+        + '<button id="ptab1_' + safeId + '" style="' + tabBtnStyle + ';' + tab1Style + '"'
         + ' onclick="showPopTabFor(\'' + safeId + '\',1)">15-min</button>'
         + '</div>'
-        + '<div id="ppanel_' + safeId + '">' + generateAccumTable(id, endMs) + '</div>'
+        + '<div id="ppanel_' + safeId + '">' + panelContent + '</div>'
         + '</div>';
         
     m.setPopupContent(hdr + hyetoHtml + tabsHtml);
+
+    if (tab === 1) {
+      setTimeout(function() {
+        var panel = document.getElementById('ppanel_' + safeId);
+        if (panel) {
+          var flaggedEl = panel.querySelector('tr[style*="background"]');
+          if (flaggedEl) {
+            flaggedEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          }
+        }
+      }, 150);
+    }
   });
 }
 
