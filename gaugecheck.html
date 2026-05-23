@@ -942,7 +942,7 @@ function renderLog() {
     var el = document.getElementById('tblrow-' + e.station_id);
     if (el) {
       tblRowById[e.station_id] = el;
-      el.addEventListener('click', (function(ev){ return function(){ selectGauge(ev.station_id, ev.last_seen); }; })(e));
+      el.addEventListener('click', (function(ev){ return function(){ selectGauge(ev.station_id, ev.first_flagged_at); }; })(e));
     }
   });
 }
