@@ -708,6 +708,7 @@ function updateDateDisplay(readingTime) {
 var latestGeneratedAt = null;
 
 function loadResults(runTs) {
+  if (!runTs) { hyetoCache = {}; }
   var url = runTs ? cdnUrl('gaugecheck/runs/' + runTs + '.json') : cdnUrl('gaugecheck/results.json');
   fetch(url)
     .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
@@ -1142,8 +1143,9 @@ function loadHyetoDays(endMs, cb) {
   var needed = {};
   for (var di = 0; di <= 2; di++) needed[hyetoDateKey(endMs - di * 86400000)] = true;
   var pending = 0;
+  var todayKey = hyetoDateKey(Date.now());
   Object.keys(needed).forEach(function(k) {
-    if (hyetoCache[k] !== undefined) return;
+    if (k !== todayKey && hyetoCache[k] !== undefined) return;
     hyetoCache[k] = null;
     pending++;
     fetch(cdnUrl('rain/readings/' + k + '.json'))
