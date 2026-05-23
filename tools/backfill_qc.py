@@ -33,8 +33,8 @@ from gauge_qc import (
     DRIP_WINDOW_SLOTS,
 )
 
-BACKFILL_HRS = 48
-PRELOAD_DAYS = 4  # covers 54-hour lookback from the oldest run in the window
+BACKFILL_HRS = 168
+PRELOAD_DAYS = 9  # covers 174-hour lookback from the oldest run in the window
 
 
 def parse_run_ts(ts):
