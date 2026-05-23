@@ -526,6 +526,7 @@ var flagLayerMid   = L.layerGroup().addTo(mapMid);
 
 // ── State ──────────────────────────────────────────────────────────────────
 var results       = null;
+var liveLatestReadingTime = null;
 var manifest      = null;
 var logData       = null;
 var selectedId    = null;
@@ -715,6 +716,7 @@ function loadResults(runTs) {
     .then(function(d){
       results = d;
       if (!runTs && d.generated_at) latestGeneratedAt = d.generated_at;
+      if (!runTs && d.latest_reading_time) liveLatestReadingTime = d.latest_reading_time;
       updateDateDisplay(d.latest_reading_time);
       renderLeftMarkers();
       renderMidMarkers();
@@ -1276,7 +1278,8 @@ function openLeftPopup(id) {
   if (pills) hdr += '<div>' + pills + '</div>';
 
   var endMs = Date.now();
-  if (results && results.latest_reading_time) endMs = new Date(results.latest_reading_time).getTime();
+  if (liveLatestReadingTime) endMs = new Date(liveLatestReadingTime).getTime();
+  else if (results && results.latest_reading_time) endMs = new Date(results.latest_reading_time).getTime();
 
   m.setPopupContent(hdr + '<span style="color:#94a3b8;font-size:12px">Loading…</span>');
   m.openPopup();
@@ -1380,23 +1383,62 @@ function generateSeriesTable(id, endMs) {
 
     var ts = ukTime(t);
     var ds = ukDateShort(t);
+
+    var rowStyle = 'padding:1px 0;';
+    var valStyle = 'padding:1px 6px;text-align:right;font-weight:600;';
+    var trStyle = '';
+
+    // Check if slot falls in a flagged episode
+    var flaggedQi = null;
+    if (logData && logData.events) {
+      logData.events.forEach(function(ev) {
+        if (ev.station_id === id) {
+          var tStart = new Date(ev.first_flagged_at).getTime() - 450000; // 7.5m buffer
+          var tEnd = new Date(ev.last_seen).getTime() + 450000;
+          if (slotMs >= tStart && slotMs <= tEnd) {
+            flaggedQi = (ev.qi !== undefined) ? ev.qi : 0.0;
+          }
+        }
+      });
+    }
+
+    if (flaggedQi !== null) {
+      if (flaggedQi < 0.50) {
+        trStyle = 'background-color:#ffebee;border-left:3px solid #c62828;';
+        rowStyle += 'color:#c62828;font-weight:600;padding-left:4px;';
+        valStyle += 'color:#c62828;';
+      } else {
+        trStyle = 'background-color:#fff3e0;border-left:3px solid #ef6c00;';
+        rowStyle += 'color:#e65100;font-weight:600;padding-left:4px;';
+        valStyle += 'color:#e65100;';
+      }
+    } else {
+      rowStyle += 'color:#5f6368;';
+      valStyle += 'color:#202124;';
+    }
+
     if (v === null || v < 0) {
-      rows.push('<tr>'
-        + '<td style="padding:1px 0;color:#5f6368;white-space:nowrap">' + ds + ' ' + ts + '</td>'
+      rows.push('<tr style="' + trStyle + '">'
+        + '<td style="' + rowStyle + 'white-space:nowrap">' + ds + ' ' + ts + '</td>'
         + '<td style="padding:1px 6px;text-align:right;color:#9aa0a6;font-style:italic">No data</td></tr>');
       continue;
     }
-    rows.push('<tr>'
-      + '<td style="padding:1px 0;color:#5f6368;white-space:nowrap">' + ds + ' ' + ts + '</td>'
-      + '<td style="padding:1px 6px;text-align:right;color:#202124">' + v.toFixed(1) + '</td></tr>');
+    rows.push('<tr style="' + trStyle + '">'
+      + '<td style="' + rowStyle + 'white-space:nowrap">' + ds + ' ' + ts + '</td>'
+      + '<td style="' + valStyle + '">' + v.toFixed(1) + '</td></tr>');
   }
 
   if (!rows.length) return '<div style="color:#9aa0a6;font-size:11px;padding:4px 0">No data in window</div>';
   var cadenceNote = cadence === 4 ? ' (60-min gauge)' : cadence === 2 ? ' (30-min gauge)' : '';
+  
+  var firstT = new Date(endMs);
+  var tz = ukTzLabel(firstT);
+  var headerTime = "Time" + (tz ? ' (' + tz + ')' : '');
+
   return '<div style="max-height:130px;overflow-y:auto">'
       + '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.5">'
       + '<thead><tr>'
-      + '<th style="text-align:left;color:#5f6368;font-weight:500;padding:1px 0">Time' + cadenceNote + '</th>'
+      + '<th style="text-align:left;color:#5f6368;font-weight:500;padding:1px 0">' + headerTime + cadenceNote + '</th>'
       + '<th style="text-align:right;color:#5f6368;font-weight:500;padding:1px 6px">mm</th>'
       + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
 }
