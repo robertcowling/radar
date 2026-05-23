@@ -1035,10 +1035,6 @@ def main():
         sys.exit(1)
     print(f"Latest reading time: {latest_dt.isoformat()}")
 
-    # Previous results for consecutive_flags tracking
-    prev_results = r2_get_json(r2, OUTPUT_KEY, {})
-    prev_flags   = {g["station_id"]: g for g in prev_results.get("gauges", [])}
-
     # Load 2 days of readings (covers all windows: 7-slot, 24-slot, 96-slot)
     print("Loading gauge readings...")
     days = {}
@@ -1046,24 +1042,6 @@ def main():
         d        = latest_dt - timedelta(days=delta)
         date_str = d.strftime("%Y%m%d")
         days[date_str] = load_day(r2, date_str)
-
-    # Build most-recent reading for ALL registered stations, looking back up to 3 slots (45 min).
-    # Many telemetry stations have 15–45 min latency, so checking the exact latest slot
-    # would silently skip the majority of the network.
-    LOOKBACK_SLOTS = 3
-    latest_readings = {}
-    for sid in stations:
-        for back in range(LOOKBACK_SLOTS + 1):
-            slot_b = latest_slot - back
-            date_b = latest_date_str
-            if slot_b < 0:
-                slot_b += 96
-                date_b = (latest_dt - timedelta(days=1)).strftime("%Y%m%d")
-            val = days.get(date_b, {}).get(sid, {}).get(str(slot_b))
-            if isinstance(val, (int, float)) and val >= 0:
-                latest_readings[sid] = float(val)
-                break
-    print(f"  {len(latest_readings)} stations with a reading in the last {LOOKBACK_SLOTS+1} slots")
 
     # Radar (optional)
     print("Loading radar H5...")
@@ -1082,208 +1060,260 @@ def main():
     print(f"  UKV: {len(ukv_gauge_data)} stations loaded"
           + (f" ({ukv_step_info})" if ukv_step_info else " (unavailable)"))
 
-    # QC loop
-    print(f"Running QC on {len(latest_readings)} active stations...")
-    flagged_gauges    = []
-    station_summaries = []
-    total_checked     = 0
+    # Target offsets: process the last 4 slots (45m, 30m, 15m ago, and now), oldest first
+    offsets = [3, 2, 1, 0]
 
-    for station_id, latest_value in latest_readings.items():
-        if station_id not in stations:
-            continue
-        total_checked += 1
-        s   = stations[station_id]
-        lat = s["lat"]
-        lon = s["lon"]
+    # Initialize prev_flags for the oldest slot (45 mins ago) by loading the run from 60 mins ago
+    t_prev = latest_dt - timedelta(minutes=60)
+    slot_mins = (t_prev.hour * 60 + t_prev.minute) // 15 * 15
+    ts_prev = t_prev.strftime("%Y%m%d") + "T{:02d}{:02d}Z".format(slot_mins // 60, slot_mins % 60)
+    prev_run = r2_get_json(r2, RUNS_KEY_TPL.format(ts=ts_prev), {})
+    prev_flags = {g["station_id"]: g for g in prev_run.get("gauges", [])} if prev_run else {}
 
-        # Slot histories
-        history_7     = get_station_slots(days, station_id, latest_date_str,
-                                          latest_slot - 1, TEMPORAL_WINDOW)
-        history_pzero = get_station_slots(days, station_id, latest_date_str,
-                                          latest_slot, PZERO_WINDOW_SLOTS)
-        history_drip  = get_station_slots(days, station_id, latest_date_str,
-                                          latest_slot, DRIP_WINDOW_SLOTS)
-        history_96    = get_station_slots(days, station_id, latest_date_str,
-                                          latest_slot, 96)
+    for offset in offsets:
+        target_dt = latest_dt - timedelta(minutes=offset * 15)
+        target_date_str = target_dt.strftime("%Y%m%d")
+        target_slot = target_dt.hour * 4 + target_dt.minute // 15
+        
+        target_slot_mins = (target_dt.hour * 60 + target_dt.minute) // 15 * 15
+        target_run_ts = target_dt.strftime("%Y%m%d") + "T{:02d}{:02d}Z".format(target_slot_mins // 60, target_slot_mins % 60)
 
-        # Accumulation totals (always computed for every station)
-        def _ac(n): return round(sum(v for v in history_96[-n:] if v is not None and v >= 0), 1)
-        accums = {'1hr': _ac(4), '3hr': _ac(12), '6hr': _ac(24), '12hr': _ac(48), '24hr': _ac(96)}
+        print(f"\n--- Processing slot {target_run_ts} (offset {offset * 15}m ago) ---")
 
-        # Station summary entry (flag filled in below if flagged)
-        summary_entry = {
-            'id': station_id, 'n': s.get('name', station_id),
-            'lat': round(lat, 5), 'lon': round(lon, 5),
-            'c': s.get('county'), 'mm': round(latest_value, 2), 'ac': accums,
-        }
-        station_summaries.append(summary_entry)
-
-        # Neighbours and their 6-hr means (for persistent-zero check)
-        neighbours = find_neighbours(station_id, stations, latest_readings)
-        nbr_6hr_means = []
-        for nbr_id, _, _, _ in neighbours:
-            h = get_station_slots(days, nbr_id, latest_date_str,
-                                  latest_slot, PZERO_WINDOW_SLOTS)
-            valid_vals = [v for v in h if v is not None and v >= 0]
-            nbr_6hr_means.append(
-                sum(valid_vals) / len(valid_vals) if valid_vals else None
-            )
-
-        # Radar estimate
-        radar_mm = extract_radar(lat, lon) if extract_radar else None
-
-        # Eight checks (GEC · RC · TCC · SCC · RCC-zero · RCC-pos · Pattern · Accum)
-        _nbr_mean = (sum(v for v in nbr_6hr_means if v is not None)
-                     / max(sum(1 for v in nbr_6hr_means if v is not None), 1)
-                     if nbr_6hr_means else None)
-        checks = {
-            "hard_threshold":  check_hard_threshold(latest_value),
-            "range_check":     check_range(latest_value, latest_dt.month),
-            "temporal":        check_temporal(latest_value, history_7),
-            "spatial":         check_spatial_consistency(
-                                   latest_value, station_id, stations, latest_readings),
-            "persistent_zero": check_persistent_zero(
-                                   latest_value, history_pzero,
-                                   nbr_6hr_means, radar_mm),
-            "radar":           check_radar(latest_value, radar_mm),
-            "drip_leak":       check_drip_leak(history_drip, nbr_mean_mm=_nbr_mean),
-            "accum_anomaly":   check_accumulation_anomaly(
-                                   station_id, history_96, neighbours,
-                                   days, latest_date_str, latest_slot),
-        }
-        qi = compute_qi(checks)
-
-        # Only record this gauge if at least one check failed or reading is high
-        if not any_check_failed(checks) and latest_value < LLM_TRIGGER_MM:
-            continue
-
-        # Consecutive-flags tracking
-        prev = prev_flags.get(station_id, {})
-        was_flagged_before = (prev and
-                              prev.get("checks_flag") in ("FLAGGED", "ELEVATED"))
-        if was_flagged_before:
-            consecutive_flags = prev.get("consecutive_flags", 0) + 1
-            first_flagged_at  = prev.get("first_flagged_at",
-                                         now.strftime("%Y-%m-%dT%H:%M:%SZ"))
-        else:
-            consecutive_flags = 1
-            first_flagged_at  = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-        # LLM: run on first flag; re-run every 4 consecutive flags (~1 hr) to
-        # refresh the assessment if conditions have changed during a persistent event.
-        llm_verdict   = None
-        llm_reasoning = None
-        llm_from_run  = None
-
-        _month  = latest_dt.strftime("%B")
-        _season = {12:"Winter",1:"Winter",2:"Winter",3:"Spring",4:"Spring",5:"Spring",
-                   6:"Summer",7:"Summer",8:"Summer",9:"Autumn",10:"Autumn",11:"Autumn"}[latest_dt.month]
-
-        if should_call_llm(checks, latest_value):
-            prev_verdict  = prev.get("llm_verdict") if prev else None
-            needs_refresh = not prev_verdict or consecutive_flags % 4 == 0
-            if needs_refresh:
-                neighbours_info = []
-                for nbr_id, dist_km, nbr_name, nbr_val in neighbours[:3]:
-                    h24 = get_station_slots(days, nbr_id, latest_date_str,
-                                            latest_slot, 24)
-                    nbr_ukv = ukv_gauge_data.get(nbr_id, {}).get("accum_1h")
-                    neighbours_info.append({
-                        "name":       nbr_name,
-                        "dist_km":    dist_km,
-                        "value_mm":   round(nbr_val, 2) if nbr_val is not None else None,
-                        "history_24": h24,
-                        "ukv_1h_mm":  nbr_ukv,
-                    })
-
-                radar_30km_mm   = extract_radar(lat, lon, radius_km=30.0) if extract_radar else None
-                _spell          = compute_spell_summary(history_96)
-                _regional       = regional_wetness_count(station_id, stations, latest_readings)
-                _pattern        = check_failure_pattern(checks, prev.get("checks") if prev else None)
-                _ukv_1h         = ukv_gauge_data.get(station_id, {}).get("accum_1h")
-
-                llm_verdict, llm_reasoning = call_llm(
-                    station_id, s.get("name", station_id), lat, lon,
-                    latest_value, latest_dt.strftime("%Y-%m-%dT%H:%M"),
-                    checks, history_96, neighbours_info, radar_mm,
-                    accums, consecutive_flags, _month, _season,
-                    radar_30km_mm=radar_30km_mm, spell_summary=_spell,
-                    regional_wet=_regional, check_pattern_str=_pattern,
-                    ukv_1h_mm=_ukv_1h, ukv_step_info=ukv_step_info,
-                    qi=qi,
+        # Load existing LLM verdicts for this slot from R2 to reuse them and avoid API calls
+        existing_llm = {}
+        target_run = r2_get_json(r2, RUNS_KEY_TPL.format(ts=target_run_ts), {})
+        if target_run:
+            for g in target_run.get("gauges", []):
+                existing_llm[g["station_id"]] = (
+                    g.get("llm_verdict"),
+                    g.get("llm_reasoning"),
+                    g.get("llm_from_run")
                 )
-                if llm_verdict:
-                    llm_from_run = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        # Build most-recent reading for ALL registered stations, looking back from target_slot
+        LOOKBACK_SLOTS = 3
+        latest_readings = {}
+        for sid in stations:
+            for back in range(LOOKBACK_SLOTS + 1):
+                slot_b = target_slot - back
+                date_b = target_date_str
+                if slot_b < 0:
+                    slot_b += 96
+                    date_b = (target_dt - timedelta(days=1)).strftime("%Y%m%d")
+                val = days.get(date_b, {}).get(sid, {}).get(str(slot_b))
+                if isinstance(val, (int, float)) and val >= 0:
+                    latest_readings[sid] = float(val)
+                    break
+
+        # QC loop for target_slot
+        flagged_gauges    = []
+        station_summaries = []
+        total_checked     = 0
+
+        for station_id, latest_value in latest_readings.items():
+            if station_id not in stations:
+                continue
+            total_checked += 1
+            s   = stations[station_id]
+            lat = s["lat"]
+            lon = s["lon"]
+
+            # Slot histories ending at target_slot
+            history_7     = get_station_slots(days, station_id, target_date_str,
+                                              target_slot - 1, TEMPORAL_WINDOW)
+            history_pzero = get_station_slots(days, station_id, target_date_str,
+                                              target_slot, PZERO_WINDOW_SLOTS)
+            history_drip  = get_station_slots(days, station_id, target_date_str,
+                                              target_slot, DRIP_WINDOW_SLOTS)
+            history_96    = get_station_slots(days, station_id, target_date_str,
+                                              target_slot, 96)
+
+            # Accumulation totals ending at target_slot
+            def _ac(n): return round(sum(v for v in history_96[-n:] if v is not None and v >= 0), 1)
+            accums = {'1hr': _ac(4), '3hr': _ac(12), '6hr': _ac(24), '12hr': _ac(48), '24hr': _ac(96)}
+
+            # Station summary entry
+            summary_entry = {
+                'id': station_id, 'n': s.get('name', station_id),
+                'lat': round(lat, 5), 'lon': round(lon, 5),
+                'c': s.get('county'), 'mm': round(latest_value, 2), 'ac': accums,
+            }
+            station_summaries.append(summary_entry)
+
+            # Neighbours and their 6-hr means relative to target_slot
+            neighbours = find_neighbours(station_id, stations, latest_readings)
+            nbr_6hr_means = []
+            for nbr_id, _, _, _ in neighbours:
+                h = get_station_slots(days, nbr_id, target_date_str,
+                                      target_slot, PZERO_WINDOW_SLOTS)
+                valid_vals = [v for v in h if v is not None and v >= 0]
+                nbr_6hr_means.append(
+                    sum(valid_vals) / len(valid_vals) if valid_vals else None
+                )
+
+            # Radar estimate
+            radar_mm = extract_radar(lat, lon) if extract_radar else None
+
+            # Eight checks
+            _nbr_mean = (sum(v for v in nbr_6hr_means if v is not None)
+                         / max(sum(1 for v in nbr_6hr_means if v is not None), 1)
+                         if nbr_6hr_means else None)
+            checks = {
+                "hard_threshold":  check_hard_threshold(latest_value),
+                "range_check":     check_range(latest_value, target_dt.month),
+                "temporal":        check_temporal(latest_value, history_7),
+                "spatial":         check_spatial_consistency(
+                                       latest_value, station_id, stations, latest_readings),
+                "persistent_zero": check_persistent_zero(
+                                       latest_value, history_pzero,
+                                       nbr_6hr_means, radar_mm),
+                "radar":           check_radar(latest_value, radar_mm),
+                "drip_leak":       check_drip_leak(history_drip, nbr_mean_mm=_nbr_mean),
+                "accum_anomaly":   check_accumulation_anomaly(
+                                       station_id, history_96, neighbours,
+                                       days, target_date_str, target_slot),
+            }
+            qi = compute_qi(checks)
+
+            # Only record this gauge if at least one check failed or reading is high
+            if not any_check_failed(checks) and latest_value < LLM_TRIGGER_MM:
+                continue
+
+            # Consecutive-flags tracking
+            prev = prev_flags.get(station_id, {})
+            was_flagged_before = (prev and
+                                  prev.get("checks_flag") in ("FLAGGED", "ELEVATED"))
+            if was_flagged_before:
+                consecutive_flags = prev.get("consecutive_flags", 0) + 1
+                first_flagged_at  = prev.get("first_flagged_at",
+                                             now.strftime("%Y-%m-%dT%H:%M:%SZ"))
             else:
-                # Carry forward existing assessment between refresh cycles
-                llm_verdict   = prev_verdict
-                llm_reasoning = prev.get("llm_reasoning")
-                llm_from_run  = prev.get("llm_from_run")
+                consecutive_flags = 1
+                first_flagged_at  = now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        checks_flag = "FLAGGED" if any_check_failed(checks) else "ELEVATED"
-        summary_entry['f']  = checks_flag
-        summary_entry['qi'] = qi
+            llm_verdict   = None
+            llm_reasoning = None
+            llm_from_run  = None
 
-        flagged_gauges.append({
-            "station_id":        station_id,
-            "name":              s.get("name", station_id),
-            "county":            s.get("county"),
-            "region":            s.get("region"),
-            "lat":               round(lat, 5),
-            "lon":               round(lon, 5),
-            "accums":            accums,
-            "latest_value_mm":   round(latest_value, 2),
-            "latest_slot_time":  latest_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "checks_flag":       checks_flag,
-            "qi":                qi,
-            "checks":            checks,
-            "consecutive_flags": consecutive_flags,
-            "first_flagged_at":  first_flagged_at,
-            "llm_verdict":       llm_verdict,
-            "llm_reasoning":     llm_reasoning,
-            "llm_from_run":      llm_from_run,
-        })
+            _month  = target_dt.strftime("%B")
+            _season = {12:"Winter",1:"Winter",2:"Winter",3:"Spring",4:"Spring",5:"Spring",
+                       6:"Summer",7:"Summer",8:"Summer",9:"Autumn",10:"Autumn",11:"Autumn"}[target_dt.month]
 
-    # Sort: newest flags first, then persistent
-    flagged_gauges.sort(key=lambda g: g["consecutive_flags"])
+            # Reuse existing LLM verdict if we are re-running a historical slot
+            if offset > 0 and station_id in existing_llm:
+                llm_verdict, llm_reasoning, llm_from_run = existing_llm[station_id]
+            elif should_call_llm(checks, latest_value):
+                # Call LLM only for the latest slot (offset == 0)
+                prev_verdict  = prev.get("llm_verdict") if prev else None
+                needs_refresh = not prev_verdict or consecutive_flags % 4 == 0
+                if needs_refresh:
+                    neighbours_info = []
+                    for nbr_id, dist_km, nbr_name, nbr_val in neighbours[:3]:
+                        h24 = get_station_slots(days, nbr_id, target_date_str,
+                                                target_slot, 24)
+                        nbr_ukv = ukv_gauge_data.get(nbr_id, {}).get("accum_1h")
+                        neighbours_info.append({
+                            "name":       nbr_name,
+                            "dist_km":    dist_km,
+                            "value_mm":   round(nbr_val, 2) if nbr_val is not None else None,
+                            "history_24": h24,
+                            "ukv_1h_mm":  nbr_ukv,
+                        })
 
-    flagged_by_checks = sum(1 for g in flagged_gauges
-                            if g["checks_flag"] == "FLAGGED")
-    flagged_by_llm    = sum(1 for g in flagged_gauges
-                            if g.get("llm_verdict") == "SUSPECT")
+                    radar_30km_mm   = extract_radar(lat, lon, radius_km=30.0) if extract_radar else None
+                    _spell          = compute_spell_summary(history_96)
+                    _regional       = regional_wetness_count(station_id, stations, latest_readings)
+                    _pattern        = check_failure_pattern(checks, prev.get("checks") if prev else None)
+                    _ukv_1h         = ukv_gauge_data.get(station_id, {}).get("accum_1h")
 
-    result = {
-        "generated_at":       now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "latest_reading_time": latest_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "total_checked":      total_checked,
-        "flagged_by_checks":  flagged_by_checks,
-        "flagged_by_llm":     flagged_by_llm,
-        "gauges":             flagged_gauges,
-        "summary":            station_summaries,
-    }
+                    llm_verdict, llm_reasoning = call_llm(
+                        station_id, s.get("name", station_id), lat, lon,
+                        latest_value, target_dt.strftime("%Y-%m-%dT%H:%M"),
+                        checks, history_96, neighbours_info, radar_mm,
+                        accums, consecutive_flags, _month, _season,
+                        radar_30km_mm=radar_30km_mm, spell_summary=_spell,
+                        regional_wet=_regional, check_pattern_str=_pattern,
+                        ukv_1h_mm=_ukv_1h, ukv_step_info=ukv_step_info,
+                        qi=qi,
+                    )
+                    if llm_verdict:
+                        llm_from_run = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+                else:
+                    llm_verdict   = prev_verdict
+                    llm_reasoning = prev.get("llm_reasoning")
+                    llm_from_run  = prev.get("llm_from_run")
 
-    print(
-        f"Results: {total_checked} checked  |  "
-        f"{flagged_by_checks} flagged by checks  |  "
-        f"{flagged_by_llm} flagged by LLM  |  "
-        f"{len(flagged_gauges)} total entries"
-    )
-    print("Uploading gaugecheck/results.json...")
-    r2_put_json(r2, OUTPUT_KEY, result)
+            checks_flag = "FLAGGED" if any_check_failed(checks) else "ELEVATED"
+            summary_entry['f']  = checks_flag
+            summary_entry['qi'] = qi
 
-    # Archive timestamped snapshot and update manifest.
-    # Round to 15-min floor so 10-min runs overwrite the same slot.
-    slot_mins = (now.hour * 60 + now.minute) // 15 * 15
-    run_ts = now.strftime("%Y%m%d") + "T{:02d}{:02d}Z".format(slot_mins // 60, slot_mins % 60)
-    r2_put_json(r2, RUNS_KEY_TPL.format(ts=run_ts), result)
-    manifest = r2_get_json(r2, MANIFEST_KEY, {"runs": []})
-    runs_list = manifest.get("runs", [])
-    if run_ts not in runs_list:
-        runs_list.insert(0, run_ts)
-    r2_put_json(r2, MANIFEST_KEY, {"runs": runs_list[:MAX_RUNS]})
-    print(f"Archived run {run_ts} ({min(len(runs_list), MAX_RUNS)} in manifest).")
-    update_log(r2, flagged_gauges, now)
-    print("Done.")
+            flagged_gauges.append({
+                "station_id":        station_id,
+                "name":              s.get("name", station_id),
+                "county":            s.get("county"),
+                "region":            s.get("region"),
+                "lat":               round(lat, 5),
+                "lon":               round(lon, 5),
+                "accums":            accums,
+                "latest_value_mm":   round(latest_value, 2),
+                "latest_slot_time":  target_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "checks_flag":       checks_flag,
+                "qi":                qi,
+                "checks":            checks,
+                "consecutive_flags": consecutive_flags,
+                "first_flagged_at":  first_flagged_at,
+                "llm_verdict":       llm_verdict,
+                "llm_reasoning":     llm_reasoning,
+                "llm_from_run":      llm_from_run,
+            })
+
+        # Sort: newest flags first
+        flagged_gauges.sort(key=lambda g: g["consecutive_flags"])
+
+        flagged_by_checks = sum(1 for g in flagged_gauges
+                                if g["checks_flag"] == "FLAGGED")
+        flagged_by_llm    = sum(1 for g in flagged_gauges
+                                if g.get("llm_verdict") == "SUSPECT")
+
+        result = {
+            "generated_at":       now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "latest_reading_time": target_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "total_checked":      total_checked,
+            "flagged_by_checks":  flagged_by_checks,
+            "flagged_by_llm":     flagged_by_llm,
+            "gauges":             flagged_gauges,
+            "summary":            station_summaries,
+        }
+
+        print(
+            f"Results for slot {target_run_ts}: {total_checked} checked  |  "
+            f"{flagged_by_checks} flagged by checks  |  "
+            f"{flagged_by_llm} flagged by LLM  |  "
+            f"{len(flagged_gauges)} total entries"
+        )
+
+        # 1. Update timestamped run archive for this slot on R2
+        print(f"Uploading run archive: {RUNS_KEY_TPL.format(ts=target_run_ts)}...")
+        r2_put_json(r2, RUNS_KEY_TPL.format(ts=target_run_ts), result)
+
+        # 2. If this is the latest slot (offset == 0), update results.json, manifest, and active event log
+        if offset == 0:
+            print("Updating live results.json...")
+            r2_put_json(r2, OUTPUT_KEY, result)
+
+            manifest_data = r2_get_json(r2, MANIFEST_KEY, {"runs": []})
+            runs_list = manifest_data.get("runs", [])
+            if target_run_ts not in runs_list:
+                runs_list.insert(0, target_run_ts)
+            r2_put_json(r2, MANIFEST_KEY, {"runs": runs_list[:MAX_RUNS]})
+            print(f"Archived run {target_run_ts} ({min(len(runs_list), MAX_RUNS)} in manifest).")
+            
+            update_log(r2, flagged_gauges, now)
+            print("Done.")
+
+        # Update prev_flags for the next target_dt in our loop
+        prev_flags = {g["station_id"]: g for g in flagged_gauges}
 
 
 if __name__ == "__main__":
