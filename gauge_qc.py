@@ -975,6 +975,7 @@ def update_log(r2, flagged_gauges, now):
             'lon':              g['lon'],
             'first_flagged_at': g['first_flagged_at'],
             'last_seen':        now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'latest_slot_time': g['latest_slot_time'],
             'consecutive_flags': g['consecutive_flags'],
             'checks_flag':      g['checks_flag'],
             'qi':               g.get('qi'),
@@ -1185,7 +1186,12 @@ def main():
             was_flagged_before = (prev and
                                   prev.get("checks_flag") in ("FLAGGED", "ELEVATED"))
             if was_flagged_before:
-                consecutive_flags = prev.get("consecutive_flags", 0) + 1
+                prev_slot_time = prev.get("latest_slot_time")
+                current_slot_time = target_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+                if prev_slot_time and current_slot_time > prev_slot_time:
+                    consecutive_flags = prev.get("consecutive_flags", 0) + 1
+                else:
+                    consecutive_flags = prev.get("consecutive_flags", 1)
                 first_flagged_at  = prev.get("first_flagged_at",
                                              now.strftime("%Y-%m-%dT%H:%M:%SZ"))
             else:

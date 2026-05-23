@@ -1420,8 +1420,11 @@ function generateSeriesTable(id, endMs) {
     if (logData && logData.events) {
       logData.events.forEach(function(ev) {
         if (ev.station_id === id) {
-          var tStart = Math.floor(new Date(ev.first_flagged_at).getTime() / 900000) * 900000 - 450000; // 7.5m buffer
-          var tEnd = Math.floor(new Date(ev.last_seen).getTime() / 900000) * 900000 + 450000;
+          var slotTime = ev.latest_slot_time || ev.last_seen;
+          var slotTimeMs = Math.floor(new Date(slotTime).getTime() / 900000) * 900000;
+          var N = ev.consecutive_flags || 1;
+          var tStart = slotTimeMs - (N - 1) * 900000 - 450000; // Snap exactly to the N consecutive slots
+          var tEnd = slotTimeMs + 450000;
           if (slotMs >= tStart && slotMs <= tEnd) {
             flaggedQi = (ev.qi !== undefined) ? ev.qi : 0.0;
           }
