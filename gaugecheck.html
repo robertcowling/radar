@@ -329,6 +329,16 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         </select>
       </div>
       <div class="bar-sep"></div>
+      <div class="control-group">
+        <span class="control-label">History</span>
+        <select id="scopeSelect" onchange="onScopeChange(this.value)">
+          <option value="24">24h</option>
+          <option value="48" selected>48h</option>
+          <option value="120">5d</option>
+          <option value="168">7d</option>
+        </select>
+      </div>
+      <div class="bar-sep"></div>
       <div class="timeline-container" id="timelineContainer" style="display:none">
         <div class="timeline-track"></div>
         <div id="timelineMarks" style="position:absolute;left:9px;right:9px;top:50%;height:4px;margin-top:-14px;pointer-events:none;z-index:2"></div>
@@ -555,6 +565,7 @@ var flagLayerMid   = L.layerGroup().addTo(mapMid);
 var results       = null;
 var liveLatestReadingTime = null;
 var manifest      = null;
+var activeRuns    = [];
 var logData       = null;
 var selectedId    = null;
 var currentPeriod = '3hr';
@@ -693,7 +704,11 @@ function loadManifest() {
 }
 
 function buildSlider() {
-  var n  = manifest.runs.length;
+  var scope = parseInt(document.getElementById('scopeSelect').value) || 48;
+  var limit = scope * 4;
+  activeRuns = manifest.runs.slice(0, limit);
+
+  var n  = activeRuns.length;
   var sl = document.getElementById('timeSlider');
   sl.min = 0; sl.max = n - 1; sl.value = n - 1;
   document.getElementById('timelineContainer').style.display = '';
@@ -702,11 +717,18 @@ function buildSlider() {
   renderTimelineMarks();
 }
 
+function onScopeChange(val) {
+  buildSlider();
+  var sl = document.getElementById('timeSlider');
+  sl.value = sl.max;
+  loadResults(null);
+}
+
 function onSliderInput() {
   var sl    = document.getElementById('timeSlider');
   var val   = parseInt(sl.value);
   var isLive = val === parseInt(sl.max);
-  var ts    = manifest ? manifest.runs[manifest.runs.length - 1 - val] : null;
+  var ts    = activeRuns.length ? activeRuns[activeRuns.length - 1 - val] : null;
   loadResults(isLive ? null : ts);
 }
 
@@ -1125,20 +1147,43 @@ function selectGauge(id, isoTime) {
 
   if (isoTime && manifest && manifest.runs && manifest.runs.length) {
     var target = new Date(isoTime).getTime();
+
+    // Smart Auto-Expansion: Check if the historical event is older than the oldest run in activeRuns
+    var oldestActiveMs = activeRuns.length ? parseRunTs(activeRuns[activeRuns.length - 1]) : Infinity;
+    if (target < oldestActiveMs) {
+      var hrsAgo = (Date.now() - target) / (3600 * 1000);
+      var newScope = 48;
+      if (hrsAgo <= 24) newScope = 24;
+      else if (hrsAgo <= 48) newScope = 48;
+      else if (hrsAgo <= 120) newScope = 120;
+      else newScope = 168;
+
+      var scopeSel = document.getElementById('scopeSelect');
+      if (scopeSel) {
+        scopeSel.value = String(newScope);
+        var limit = newScope * 4;
+        activeRuns = manifest.runs.slice(0, limit);
+        var n  = activeRuns.length;
+        var sl = document.getElementById('timeSlider');
+        sl.min = 0; sl.max = n - 1; sl.value = n - 1;
+        renderTimelineMarks();
+      }
+    }
+
     var bestIdx = 0, bestMs = -Infinity;
-    manifest.runs.forEach(function(ts, i) {
+    activeRuns.forEach(function(ts, i) {
       var tsMs = parseRunTs(ts);
       if (tsMs <= target && tsMs > bestMs) { bestMs = tsMs; bestIdx = i; }
     });
     if (bestMs === -Infinity) {
       var bestDiff = Infinity;
-      manifest.runs.forEach(function(ts, i) {
+      activeRuns.forEach(function(ts, i) {
         var diff = Math.abs(parseRunTs(ts) - target);
         if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
       });
     }
     var sl    = document.getElementById('timeSlider');
-    var slVal = manifest.runs.length - 1 - bestIdx;
+    var slVal = activeRuns.length - 1 - bestIdx;
     if (parseInt(sl.value) === slVal) {
       injectClickedEvent();
       renderLeftMarkers();
@@ -1147,7 +1192,7 @@ function selectGauge(id, isoTime) {
       return;
     }
     sl.value = slVal;
-    var url = cdnUrl('gaugecheck/runs/' + manifest.runs[bestIdx] + '.json');
+    var url = cdnUrl('gaugecheck/runs/' + activeRuns[bestIdx] + '.json');
     fetch(url).then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
       if (d) {
         results = d;
@@ -1545,16 +1590,16 @@ function parseRunTs(ts) {
   catch(e) { return 0; }
 }
 function renderTimelineMarks() {
-  if (!manifest || !manifest.runs || !logData || !logData.events) return;
+  if (!activeRuns || !activeRuns.length || !logData || !logData.events) return;
   var container = document.getElementById('timelineMarks');
   if (!container) return;
   container.innerHTML = '';
 
-  var n = manifest.runs.length;
+  var n = activeRuns.length;
   if (n < 2) return;
 
   var runStatus = new Array(n);
-  manifest.runs.forEach(function(ts, runIdx) {
+  activeRuns.forEach(function(ts, runIdx) {
     var runMs = parseRunTs(ts);
     var minQi = 1.0;
     var hasFlag = false;
