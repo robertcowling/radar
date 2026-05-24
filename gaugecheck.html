@@ -168,10 +168,16 @@ table.qc-table thead th {
   border-bottom: 1px solid #e8eaed; white-space: nowrap;
 }
 table.qc-table tbody tr {
-  border-bottom: 1px solid #f1f3f4; cursor: pointer; transition: background 0.1s;
+  border-bottom: 1px solid #f1f3f4;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: background 0.1s, border-left-color 0.1s;
 }
 table.qc-table tbody tr:hover { background: #f8f9fa; }
-table.qc-table tbody tr.selected { background: #e8f0fe; }
+table.qc-table tbody tr.selected {
+  background: #e8f0fe;
+  border-left-color: #1a73e8;
+}
 table.qc-table td { padding: 7px 8px; vertical-align: top; }
 
 .tbl-name { font-size: 12px; font-weight: 600; color: #1e293b; }
@@ -320,6 +326,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
       <div class="bar-sep"></div>
       <div class="timeline-container" id="timelineContainer" style="display:none">
         <div class="timeline-track"></div>
+        <div id="timelineMarks" style="position:absolute;left:9px;right:9px;top:50%;height:6px;margin-top:-3px;pointer-events:none;z-index:2"></div>
         <input type="range" id="timeSlider" min="0" max="0" value="0" oninput="onSliderInput()">
       </div>
       <div id="playerDateTime" style="display:none">
@@ -519,6 +526,21 @@ function syncMaps(src) {
 mapLeft.on('move', function() { syncMaps(mapLeft); });
 mapMid.on('move',  function() { syncMaps(mapMid); });
 
+// Popup sync (closing popups synchronously)
+var _closingPopup = false;
+mapLeft.on('popupclose', function() {
+  if (_closingPopup) return;
+  _closingPopup = true;
+  mapMid.closePopup();
+  _closingPopup = false;
+});
+mapMid.on('popupclose', function() {
+  if (_closingPopup) return;
+  _closingPopup = true;
+  mapLeft.closePopup();
+  _closingPopup = false;
+});
+
 // ── Layers ─────────────────────────────────────────────────────────────────
 var accumLayerLeft = L.layerGroup().addTo(mapLeft);
 var greyLayerMid   = L.layerGroup().addTo(mapMid);
@@ -672,6 +694,7 @@ function buildSlider() {
   document.getElementById('timelineContainer').style.display = '';
   document.getElementById('playerDateTime').style.display = '';
   updateDateDisplay(null);
+  renderTimelineMarks();
 }
 
 function onSliderInput() {
@@ -937,7 +960,7 @@ function renderLog() {
     var qiCell      = qi !== undefined
       ? '<span style="font-size:11px;font-weight:700;color:' + (qi < 0.5 ? '#c62828' : '#ef6c00') + '">' + qi.toFixed(2) + '</span>'
       : '<span style="font-size:11px;color:#94a3b8">—</span>';
-    html += '<tr class="tbl-row" id="tblrow-' + e.station_id + '" style="border-left:3px solid ' + borderColor + '">' +
+    html += '<tr class="tbl-row" id="tblrow-' + e.station_id + '">' +
       '<td><div class="tbl-name">' + escHtml(e.name) + '</div>' +
         (loc ? '<div class="tbl-loc">' + escHtml(loc) + '</div>' : '') +
         '<div class="tbl-loc">' + dur + '</div></td>' +
@@ -957,6 +980,7 @@ function renderLog() {
       el.addEventListener('click', (function(ev){ return function(){ selectGauge(ev.station_id, ev.first_flagged_at); }; })(e));
     }
   });
+  renderTimelineMarks();
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -1514,6 +1538,69 @@ function fmtTime(iso) {
 function parseRunTs(ts) {
   try { return new Date(ts.slice(0,4)+'-'+ts.slice(4,6)+'-'+ts.slice(6,8)+'T'+ts.slice(9,11)+':'+ts.slice(11,13)+':00Z').getTime(); }
   catch(e) { return 0; }
+}
+function renderTimelineMarks() {
+  if (!manifest || !manifest.runs || !logData || !logData.events) return;
+  var container = document.getElementById('timelineMarks');
+  if (!container) return;
+  container.innerHTML = '';
+
+  var n = manifest.runs.length;
+  if (n < 2) return;
+
+  var runStatus = new Array(n);
+  manifest.runs.forEach(function(ts, runIdx) {
+    var runMs = parseRunTs(ts);
+    var minQi = 1.0;
+    var hasFlag = false;
+
+    logData.events.forEach(function(ev) {
+      var tStart = new Date(ev.first_flagged_at).getTime();
+      var tEnd = new Date(ev.latest_slot_time || ev.last_seen).getTime();
+      if (runMs >= tStart && runMs <= tEnd) {
+        hasFlag = true;
+        var qi = ev.qi !== undefined ? ev.qi : 0.0;
+        if (qi < minQi) minQi = qi;
+      }
+    });
+
+    if (hasFlag) {
+      runStatus[runIdx] = minQi < 0.5 ? '#c62828' : '#ef6c00';
+    } else {
+      runStatus[runIdx] = null;
+    }
+  });
+
+  var html = '';
+  var currentStart = null;
+  var currentColor = null;
+
+  for (var i = 0; i < n; i++) {
+    var runIdx = n - 1 - i;
+    var col = runStatus[runIdx];
+    if (col !== currentColor) {
+      if (currentColor !== null) {
+        var startPct = (currentStart / (n - 1)) * 100;
+        var endPct = ((i - 1) / (n - 1)) * 100;
+        var widthPct = Math.max(endPct - startPct, 0.15);
+        html += '<div style="position:absolute;left:' + startPct + '%;width:' + widthPct + '%;min-width:3px;height:100%;background:' + currentColor + ';border-radius:2px"></div>';
+      }
+      if (col !== null) {
+        currentStart = i;
+      } else {
+        currentStart = null;
+      }
+      currentColor = col;
+    }
+  }
+  if (currentColor !== null) {
+    var startPct = (currentStart / (n - 1)) * 100;
+    var endPct = 100;
+    var widthPct = endPct - startPct;
+    html += '<div style="position:absolute;left:' + startPct + '%;width:' + widthPct + '%;min-width:3px;height:100%;background:' + currentColor + ';border-radius:2px"></div>';
+  }
+
+  container.innerHTML = html;
 }
 function toggleInfoModal() { document.getElementById('infoModalBackdrop').classList.toggle('open'); }
 
