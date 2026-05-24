@@ -410,44 +410,44 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         <div class="check-item">
           <div class="ci-name">Gross error (GEC)</div>
           <div class="ci-desc">Catches physically impossible or extremely rare readings in a single 15-min slot.</div>
-          <div class="ci-rule">&#8805; 60 mm: hard reject (QI = 0) — beyond any credible UK 15-min total (UK 30-min record &#8776;80 mm). &#8805; 35 mm: very suspicious (QI &#8722;0.50) — around the T50–100 return level for most UK sites.</div>
-          <div class="ci-eg">E.g. a reading of 65 mm is implausible — even the most extreme documented UK convective events have not produced 15-min totals this high.</div>
+          <div class="ci-rule">&#8805; 60 mm: hard reject (QI = 0), beyond any credible UK 15-min total (UK 30-min record &#8776;80 mm). &#8805; 35 mm: very suspicious (QI &#8722;0.50), around the T50–100 return level for most UK sites.</div>
+          <div class="ci-eg">E.g. a reading of 65 mm is implausible, since even the most extreme documented UK convective events have not produced 15-min totals this high.</div>
         </div>
         <div class="check-item">
           <div class="ci-name">Range check (RC)</div>
           <div class="ci-desc">Flags readings that are climatologically unusual for the season, even if not physically impossible.</div>
           <div class="ci-rule">Warm season (Apr–Sep): &#8805; 25 mm suspicious. Cold season (Oct–Mar): &#8805; 15 mm suspicious. QI &#8722;0.25 if triggered. Thresholds approximate T20–50 return periods; per-station 30-year data is unavailable so UK-wide estimates are used.</div>
-          <div class="ci-eg">E.g. 16 mm in January — plausible in intense frontal rain but sufficiently unusual to warrant scrutiny; other checks and the AI assessment will provide context.</div>
+          <div class="ci-eg">E.g. 16 mm in January, which is plausible in intense frontal rain but sufficiently unusual to warrant scrutiny; other checks and the AI assessment will provide context.</div>
         </div>
         <div class="check-item">
           <div class="ci-name">Temporal consistency (TCC)</div>
           <div class="ci-desc">Detects an isolated spike out of all proportion with the recent reading history.</div>
           <div class="ci-rule">Triggers when the reading is &#8805; 8&#215; the median of the preceding 7 slots (1 hr 45 min) AND &#8805; 5 mm absolute. QI &#8722;0.25 if triggered.</div>
-          <div class="ci-eg">E.g. previous 7 slots averaged 0.5 mm, then 12 mm appears — a 24&#215; ratio with no spatial or radar support.</div>
+          <div class="ci-eg">E.g. previous 7 slots averaged 0.5 mm, then 12 mm appears, representing a 24&#215; ratio with no spatial or radar support.</div>
         </div>
         <div class="check-item">
           <div class="ci-name">Spatial consistency (SCC)</div>
           <div class="ci-desc">Detects statistical outliers within a 100 km domain using the median and median absolute deviation (MAD).</div>
           <div class="ci-rule">Computes a deviation index Di = |gauge &#8722; domain median| / MAD. Di &gt; 4: weak outlier (QI &#8722;0.10); Di &gt; 8: medium (QI &#8722;0.25); Di &gt; 15: strong (QI &#8722;0.50). Requires &#8805; 5 domain stations.</div>
-          <div class="ci-eg">E.g. gauge reports 12 mm while the domain median is 0 mm and MAD is 0 mm — Di = 24, a strong outlier. Isolated genuine convective events may also score here; the AI assessment provides contextual disambiguation.</div>
+          <div class="ci-eg">E.g. gauge reports 12 mm while the domain median is 0 mm and MAD is 0 mm, yielding Di = 24, a strong outlier. Isolated genuine convective events may also score here; the AI assessment provides contextual disambiguation.</div>
         </div>
         <div class="check-item">
           <div class="ci-name">Persistent zero</div>
           <div class="ci-desc">Identifies a gauge stuck at zero while surrounding gauges and radar confirm active rainfall (RCC false-zero).</div>
           <div class="ci-rule">Triggers when &#8805; 80% of the last 6 hrs are zero, &#8805; 3 neighbours are actively recording, and radar shows &#8805; 2 mm. QI &#8722;0.75 if triggered.</div>
-          <div class="ci-eg">E.g. a blocked funnel or frozen sensor during an active rain event — the tipping bucket simply never tips.</div>
+          <div class="ci-eg">E.g. a blocked funnel or frozen sensor during an active rain event, meaning the tipping bucket simply never tips.</div>
         </div>
         <div class="check-item">
           <div class="ci-name">Radar conformity (RCC)</div>
           <div class="ci-desc">Compares the gauge reading against the Met Office 1 km radar composite at the same location (RCC false-positive).</div>
           <div class="ci-rule">Triggers when the reading is &#8805; 5 mm, radar QPE is &lt; 0.5 mm at that point, and the gauge/radar ratio exceeds 15&#215;. QI &#8722;0.25 if triggered.</div>
-          <div class="ci-eg">E.g. gauge reports 9 mm, radar sees 0.02 mm — a 450&#215; ratio. Even allowing for radar attenuation, this is implausible.</div>
+          <div class="ci-eg">E.g. gauge reports 9 mm, radar sees 0.02 mm, which is a 450&#215; ratio. Even allowing for radar attenuation, this is implausible.</div>
         </div>
         <div class="check-item">
           <div class="ci-name">Drip/leak pattern</div>
-          <div class="ci-desc">Detects a leaking or blocked tipping bucket producing near-constant low-amplitude tips over a sustained period — a telltale hardware fault signature (no direct paper equivalent).</div>
-          <div class="ci-rule">Two triggers over a 6-hour (24-slot) look-back window: (1) <em>Uniform drip</em> — &#8805; 18 of 24 slots non-zero, mean &lt; 1.5 mm, and CV &lt; 0.15 (highly uniform intensity). QI &#8722;0.25. (2) <em>Stuck counter</em> — &#8805; 12 consecutive slots recording the same value to the nearest 0.1 mm. QI &#8722;0.50. Both are suppressed if neighbours are also consistently wet (widespread drizzle). Note: tipping buckets record in 0.1 mm increments, so short runs of identical low values (under 12 slots) are a normal resolution artefact during genuine light rain.</div>
-          <div class="ci-eg">E.g. exactly 0.2 mm every slot for six hours with dry neighbours and no radar signal — a blocked funnel drip rate is near-constant in a way real rain is not. By contrast, 8 consecutive 0.1 mm slots during a tapering frontal event is likely genuine post-frontal drizzle.</div>
+          <div class="ci-desc">Detects a leaking or blocked tipping bucket producing near-constant low-amplitude tips over a sustained period, representing a telltale hardware fault signature (no direct paper equivalent).</div>
+          <div class="ci-rule">Two triggers over a 6-hour (24-slot) look-back window: (1) <em>Uniform drip</em> where &#8805; 18 of 24 slots non-zero, mean &lt; 1.5 mm, and CV &lt; 0.15 (highly uniform intensity). QI &#8722;0.25. (2) <em>Stuck counter</em> where &#8805; 12 consecutive slots recording the same value to the nearest 0.1 mm. QI &#8722;0.50. Both are suppressed if neighbours are also consistently wet (widespread drizzle). Note: tipping buckets record in 0.1 mm increments, so short runs of identical low values (under 12 slots) are a normal resolution artefact during genuine light rain.</div>
+          <div class="ci-eg">E.g. exactly 0.2 mm every slot for six hours with dry neighbours and no radar signal, since a blocked funnel drip rate is near-constant in a way real rain is not. By contrast, 8 consecutive 0.1 mm slots during a tapering frontal event is likely genuine post-frontal drizzle.</div>
         </div>
         <div class="check-item">
           <div class="ci-name">Accumulation anomaly</div>
@@ -458,8 +458,8 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         <div class="check-item" style="padding-top:10px; border-bottom:none">
           <div style="font-size:11px;color:#64748b;line-height:1.8">
             Checks combine into a <strong>Quality Index (QI)</strong> from 0.0 (reject) to 1.0 (fully trusted).<br>
-            <span style="color:#ef6c00">&#x25CF;</span> <strong>QI 0.50–0.99</strong> — uncertain; one or more weak signals.<br>
-            <span style="color:#c62828">&#x25CF;</span> <strong>QI &lt; 0.50</strong> — poor; multiple or severe failures.
+            <span style="color:#ef6c00">&#x25CF;</span> <strong>QI 0.50–0.99</strong> (uncertain; one or more weak signals).<br>
+            <span style="color:#c62828">&#x25CF;</span> <strong>QI &lt; 0.50</strong> (poor; multiple or severe failures).
           </div>
         </div>
       </div>
@@ -477,10 +477,10 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
             <li>Latest reading and how long the gauge has been continuously flagged</li>
             <li>Accumulation totals: 1 hr / 3 hr / 6 hr / 12 hr / 24 hr</li>
             <li>Wet/dry spell context: last significant rain, current spell length, 24-hr peak slot</li>
-            <li>All 7 check results with full numeric detail — ratios, slot counts, CV values, neighbour readings</li>
+            <li>All 7 check results with full numeric detail, including ratios, slot counts, CV values, neighbour readings</li>
             <li>Which checks are new this run vs persistent from previous runs</li>
             <li>Met Office radar QPE at 5 km and 30 km radius around the station</li>
-            <li>UKV NWP 1-hr forecast accumulation at the station (treated as soft corroboration — NWP point data commonly underestimates localised convective totals)</li>
+            <li>UKV NWP 1-hr forecast accumulation at the station (treated as soft corroboration, as NWP point data commonly underestimates localised convective totals)</li>
             <li>Regional wetness: how many stations within 50 km are recording any rain or heavy rain</li>
             <li>Full 24-hr slot history: 96 &#215; 15-min readings oldest to newest</li>
             <li>3 nearest neighbours: latest reading, 6-hr slot history, and UKV forecast at each location</li>
@@ -488,7 +488,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         </div>
         <div class="ai-section">
           <div class="ai-section-title">What it's asked to do</div>
-          <p>Act as an independent UK rainfall QC expert. Weigh all available evidence and return one of three verdicts — <strong>Genuine</strong>, <strong>Uncertain</strong>, or <strong>Suspect</strong> — with a 2–3 sentence explanation shown in the station popup. It is explicitly told not to re-run the deterministic calculations, only to interpret the pre-computed results in context. For the drip/leak check specifically, it is instructed to apply extra caution: tipping-bucket resolution means short runs of identical low values are normal during genuine light rain, and a drip flag on the tail of a real event at an upland site should lean toward Uncertain or Genuine unless other evidence clearly contradicts real rainfall.</p>
+          <p>Act as an independent UK rainfall QC expert. Weigh all available evidence and return one of three verdicts (<strong>Genuine</strong>, <strong>Uncertain</strong>, or <strong>Suspect</strong>) accompanied by a 2–3 sentence explanation shown in the station popup. It is explicitly told not to re-run the deterministic calculations, only to interpret the pre-computed results in context. For the drip/leak check specifically, it is instructed to apply extra caution: tipping-bucket resolution means short runs of identical low values are normal during genuine light rain, and a drip flag on the tail of a real event at an upland site should lean toward Uncertain or Genuine unless other evidence clearly contradicts real rainfall.</p>
         </div>
         <div class="ai-section">
           <div class="ai-section-title">Why AI alongside deterministic checks?</div>
@@ -506,12 +506,12 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
             <a href="https://doi.org/10.5194/amt-15-5581-2022" style="color:#1a73e8" target="_blank">https://doi.org/10.5194/amt-15-5581-2022</a>
           </p>
           <p style="margin-top:8px">Each check reduces a Quality Index (QI) from a starting value of 1.0. The reductions are taken directly from Table 1 of the paper where applicable. Combined QI &lt; 0.50 is treated as poor quality.</p>
-          <p style="margin-top:8px">GEC and RC thresholds are informed by UK extreme rainfall records (Wikipedia, verified 2026-05-21): 5-min record 32 mm (Preston, 1893); 30-min record 80 mm (Eskdalemuir, 1953); 60-min record 92 mm (Maidenhead, 1901). These constrain what is plausible for a 15-min gauge slot — roughly up to ~50 mm in the most extreme historic UK convective events. These records are also included verbatim in the AI assessment prompt.</p>
+          <p style="margin-top:8px">GEC and RC thresholds are informed by UK extreme rainfall records (Wikipedia, verified 2026-05-21): 5-min record 32 mm (Preston, 1893); 30-min record 80 mm (Eskdalemuir, 1953); 60-min record 92 mm (Maidenhead, 1901). These constrain what is plausible for a 15-min gauge slot, which is roughly up to ~50 mm in the most extreme historic UK convective events. These records are also included verbatim in the AI assessment prompt.</p>
         </div>
         <div class="ai-section">
           <div class="ai-section-title">UK adaptations</div>
           <ul class="ai-list">
-            <li><strong>No dual-sensor TCC.</strong> The paper's temporal consistency check compares paired heated and unheated sensors at the same site. UK Environment Agency telemetry gauges are single tipping buckets — this comparison is not possible. The temporal check is therefore limited to spike detection rather than sensor agreement.</li>
+            <li><strong>No dual-sensor TCC.</strong> The paper's temporal consistency check compares paired heated and unheated sensors at the same site. UK Environment Agency telemetry gauges are single tipping buckets, so this comparison is not possible. The temporal check is therefore limited to spike detection rather than sensor agreement.</li>
             <li><strong>No per-station climatology (RC).</strong> The paper derives Range Check thresholds from 30-year hourly observations per station (1986–2015). That dataset is not available here. UK-wide seasonal estimates are used instead (15 mm warm season / 10 mm cold season), approximating the 1% annual exceedance probability.</li>
             <li><strong>Single spatial domain (SCC).</strong> The paper uses one primary 100 km subdomain plus four offset 25 km subdomains for robustness. Only the primary domain is implemented here.</li>
             <li><strong>No terrain-dependent RCC.</strong> The paper varies the radar conformity QI reduction by altitude zone (lowland / foothill / mountain). A flat deduction of 0.25 is used instead; no elevation data is incorporated.</li>
@@ -652,7 +652,7 @@ function updateCbarTitle(period) {
 }
 
 // ── Boundary layers (both maps) ────────────────────────────────────────────
-// Each boundary needs two L.geoJSON instances — Leaflet layers can only live on one map.
+// Each boundary needs two L.geoJSON instances, since Leaflet layers can only live on one map.
 var _bLayersL = {}, _bLayersM = {};
 var currentBoundary = 'catchments';
 var BSTYLES = {
@@ -935,7 +935,7 @@ function buildPopup(g) {
 function formatDetail(c) {
   var r = c.reason || '';
   if (r === 'impossible')
-    return c.value_mm + ' mm — exceeds anything physically possible in the UK';
+    return c.value_mm + ' mm (exceeds anything physically possible in the UK)';
   if (r === 'exceeds_uk_record')
     return c.value_mm + ' mm ≥ ' + c.limit_mm + ' mm limit';
   if (r === 'spike_from_zero')
