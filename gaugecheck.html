@@ -89,6 +89,20 @@ select {
 }
 select:hover { background-color: #e8eaed; }
 
+select.header-scope-select {
+  -webkit-appearance: none; appearance: none;
+  background: #374151; color: #f1f5f9; border: 1px solid #4b5563;
+  padding: 4px 24px 4px 10px; border-radius: 16px;
+  font-family: 'Roboto', sans-serif; font-size: 11px; font-weight: 500;
+  cursor: pointer; outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L4 4L7 1' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+  transition: background 0.15s, border-color 0.15s;
+  width: auto;
+}
+select.header-scope-select:hover { background-color: #4b5563; border-color: #6b7280; }
+select.header-scope-select:focus { border-color: #1a73e8; }
+
 /* ── Info icon ─────────────────────────────────────────────────────────────── */
 .info-icon-btn { background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; color: #94a3b8; transition: color 0.2s; }
 .info-icon-btn:hover { color: #5f6368; }
@@ -265,7 +279,15 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
       </button>
     </div>
-    <span id="rightCounts" class="h-sub">—</span>
+    <div style="display:flex; align-items:center; gap:8px">
+      <span id="rightCounts" class="h-sub">—</span>
+      <select id="scopeSelect" class="header-scope-select" onchange="onScopeChange(this.value)">
+        <option value="24">Last 24h</option>
+        <option value="48" selected>Last 2d</option>
+        <option value="120">Last 5d</option>
+        <option value="168">Last 7d</option>
+      </select>
+    </div>
   </div>
 </div>
 
@@ -326,16 +348,6 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         <select id="schemeSelect" onchange="onSchemeChange(this.value)">
           <option value="default" selected>Standard</option>
           <option value="metoffice">Met Office</option>
-        </select>
-      </div>
-      <div class="bar-sep"></div>
-      <div class="control-group">
-        <span class="control-label">History</span>
-        <select id="scopeSelect" onchange="onScopeChange(this.value)">
-          <option value="24">24h</option>
-          <option value="48" selected>48h</option>
-          <option value="120">5d</option>
-          <option value="168">7d</option>
         </select>
       </div>
       <div class="bar-sep"></div>
@@ -719,6 +731,7 @@ function buildSlider() {
 
 function onScopeChange(val) {
   buildSlider();
+  renderLog();
   var sl = document.getElementById('timeSlider');
   sl.value = sl.max;
   loadResults(null);
@@ -951,9 +964,12 @@ function formatDetail(c) {
 // ── Right panel: rolling log ───────────────────────────────────────────────
 function renderLog() {
   var rawEvents = (logData && logData.events) || [];
-  var oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  var scope = 48;
+  var scopeEl = document.getElementById('scopeSelect');
+  if (scopeEl) scope = parseInt(scopeEl.value) || 48;
+  var cutoff = Date.now() - scope * 60 * 60 * 1000;
   var events = rawEvents.filter(function(e) {
-    return new Date(e.last_seen).getTime() > oneWeekAgo;
+    return new Date(e.last_seen).getTime() > cutoff;
   });
 
   var tbody  = document.getElementById('qcTbody');
@@ -963,15 +979,17 @@ function renderLog() {
   var cntTxt = cnt ? cnt + ' flagged' : 'All clear';
   document.getElementById('rightCounts').textContent = cntTxt;
 
+  var scopeLbl = scope === 24 ? '24h' : (scope === 48 ? '2d' : (scope === 120 ? '5d' : '7d'));
+
   if (logData && logData.updated_at) {
     var d = new Date(logData.updated_at);
     var tz = ukTzLabel(d);
     document.getElementById('rightSub').textContent =
-      'Last 7d · updated ' + ukTime(d) + (tz ? ' ' + tz : '');
+      'Last ' + scopeLbl + ' · updated ' + ukTime(d) + (tz ? ' ' + tz : '');
   }
 
   if (!events.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="tbl-empty">No flagged gauges in the last 7d</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="tbl-empty">No flagged gauges in the last ' + scopeLbl + '</td></tr>';
     return;
   }
 
