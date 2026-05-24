@@ -259,7 +259,12 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
     <span>Checks</span>
   </div>
   <div class="header-cell" style="border-left:2px solid #374151; flex:none; width:460px; box-sizing:border-box;">
-    <span>QC Log</span>
+    <div style="display:flex; align-items:center; gap:6px">
+      <span>QC Log</span>
+      <button onclick="toggleInfoModal()" title="How QC checks & AI work" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:2px;display:flex;align-items:center;transition:color 0.15s" onmouseover="this.style.color='#f1f5f9'" onmouseout="this.style.color='#94a3b8'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      </button>
+    </div>
     <span id="rightCounts" class="h-sub">—</span>
   </div>
 </div>
@@ -326,16 +331,13 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
       <div class="bar-sep"></div>
       <div class="timeline-container" id="timelineContainer" style="display:none">
         <div class="timeline-track"></div>
-        <div id="timelineMarks" style="position:absolute;left:9px;right:9px;top:50%;height:6px;margin-top:-3px;pointer-events:none;z-index:2"></div>
+        <div id="timelineMarks" style="position:absolute;left:9px;right:9px;top:50%;height:4px;margin-top:-14px;pointer-events:none;z-index:2"></div>
         <input type="range" id="timeSlider" min="0" max="0" value="0" oninput="onSliderInput()">
       </div>
       <div id="playerDateTime" style="display:none">
         <div id="playerDateLine">Live</div>
         <div id="playerTimeLine">—</div>
       </div>
-      <button class="info-icon-btn" onclick="toggleInfoModal()" title="How QC works">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-      </button>
     </div>
   </div>
 
@@ -367,10 +369,13 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
 <div id="infoModalBackdrop" class="info-modal-backdrop" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="info-modal">
     <button class="info-modal-close" onclick="toggleInfoModal()">&times;</button>
-    <h3>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-      Gauge QC
+    <h3 style="margin-bottom:6px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      Real-Time Rain Gauge Quality Control
     </h3>
+    <div style="font-size:11px;color:#475569;margin-bottom:12px;line-height:1.4">
+      This dashboard monitors live rainfall telemetry across the UK. It automatically executes a suite of deterministic spatial, temporal, and physical quality control checks, combining them with AI-powered contextual analysis to verify genuine rain and flag hardware faults (e.g. blocked funnels, leaking counter buckets, or stuck sensors).
+    </div>
     <div class="modal-tabs">
       <div class="modal-tab active"  onclick="switchModalTab('checks')">Checks</div>
       <div class="modal-tab"         onclick="switchModalTab('ai')">AI assessment</div>
