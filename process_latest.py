@@ -147,7 +147,7 @@ def upload_to_r2(r2, local_path, r2_key, content_type, existing_keys, force=Fals
         return False
 
 
-def cleanup_r2(r2, retention_days=14):
+def cleanup_r2(r2, retention_days=3):
     """Delete R2 objects in sat_gh/ older than retention_days.
     Also purges all objects in legacy sat/, radar/, and radar_gh/ prefixes."""
     cutoff = datetime.utcnow() - timedelta(days=retention_days)

@@ -503,6 +503,62 @@ def valid_label_str(valid_ts):
     return parse_run_dt(valid_ts).strftime("%-d %b %Y %H:%M GMT")
 
 
+def cleanup_old_ukv_runs(r2, active_run_ts):
+    """Delete R2 objects for UKV runs that are no longer in the active metadata run list."""
+    print("Cleaning up old UKV runs from R2...")
+    
+    r2_runs = []
+    try:
+        paginator = r2.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=R2_BUCKET, Prefix="ukv/", Delimiter="/"):
+            for cp in page.get("CommonPrefixes", []):
+                prefix = cp["Prefix"]  # e.g. "ukv/20260515T0600Z/"
+                run_ts = prefix.rstrip("/").split("/")[-1]
+                if run_ts:
+                    r2_runs.append(run_ts)
+    except Exception as e:
+        print(f"Error listing R2 folders under ukv/: {e}")
+        return
+
+    print(f"Found {len(r2_runs)} runs on R2 under ukv/")
+    
+    deleted_runs = 0
+    # For each run on R2, if it's not active, delete all associated objects
+    for run_ts in r2_runs:
+        if run_ts in active_run_ts:
+            continue
+            
+        print(f"  Purging inactive run {run_ts}...")
+        deleted_runs += 1
+        
+        # Deleting all objects under associated prefixes
+        prefixes_to_delete = [
+            f"ukv/{run_ts}/",
+            f"ukv_poly/{run_ts}/",
+            f"ukv_gauge/{run_ts}/",
+        ]
+        for prefix in prefixes_to_delete:
+            deleted_count = 0
+            paginator_del = r2.get_paginator("list_objects_v2")
+            for page in paginator_del.paginate(Bucket=R2_BUCKET, Prefix=prefix):
+                keys = [{"Key": o["Key"]} for o in page.get("Contents", [])]
+                if keys:
+                    r2.delete_objects(Bucket=R2_BUCKET, Delete={"Objects": keys})
+                    deleted_count += len(keys)
+            if deleted_count > 0:
+                print(f"    Deleted {deleted_count} objects under {prefix}")
+                
+        # Also delete the single ukv_area_ts file
+        area_ts_key = f"ukv_area_ts/{run_ts}.json"
+        try:
+            r2.delete_object(Bucket=R2_BUCKET, Key=area_ts_key)
+            print(f"    Deleted {area_ts_key}")
+        except Exception:
+            pass
+
+    print(f"UKV cleanup complete. Purged {deleted_runs} runs.")
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────────
 def main():
     if not USE_R2:
@@ -714,12 +770,12 @@ def main():
     }
 
     # Keep at most KEEP_RUNS older runs.
-    # Medium runs (03Z, 15Z — T+120h) are retained 6 days; all others 48h.
+    # Medium runs (03Z, 15Z — T+120h) are retained 6 days; all others 72h (3 days).
     def _retention_hours(rt):
         try:
-            return 144 if parse_run_dt(rt).hour in _MEDIUM_HOURS else 48
+            return 144 if parse_run_dt(rt).hour in _MEDIUM_HOURS else 72
         except Exception:
-            return 48
+            return 72
 
     now  = datetime.utcnow()
     seen = {run_ts}
@@ -746,6 +802,10 @@ def main():
         json.dump(meta, f, indent=2)
     json_to_r2(r2, "ukv_meta.json", meta)
     print(f"Done: {len(meta['runs'])} run(s) in meta, {len(step_entries)} steps this run.")
+
+    # Run paginated cleanup of old inactive UKV runs from Cloudflare R2
+    active_run_ts = {r["run_ts"] for r in meta["runs"]}
+    cleanup_old_ukv_runs(r2, active_run_ts)
 
 
 if __name__ == "__main__":
