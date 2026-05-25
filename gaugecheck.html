@@ -286,6 +286,8 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         <option value="48" selected>Last 2d</option>
         <option value="120">Last 5d</option>
         <option value="168">Last 7d</option>
+        <option value="720">Last 30d</option>
+        <option value="2160">Last 90d</option>
       </select>
     </div>
   </div>
@@ -979,7 +981,7 @@ function renderLog() {
   var cntTxt = cnt ? cnt + ' flagged' : 'All clear';
   document.getElementById('rightCounts').textContent = cntTxt;
 
-  var scopeLbl = scope === 24 ? '24h' : (scope === 48 ? '2d' : (scope === 120 ? '5d' : '7d'));
+  var scopeLbl = scope === 24 ? '24h' : (scope === 48 ? '2d' : (scope === 120 ? '5d' : (scope === 168 ? '7d' : (scope === 720 ? '30d' : '90d'))));
 
   if (logData && logData.updated_at) {
     var d = new Date(logData.updated_at);
@@ -1174,7 +1176,9 @@ function selectGauge(id, isoTime) {
       if (hrsAgo <= 24) newScope = 24;
       else if (hrsAgo <= 48) newScope = 48;
       else if (hrsAgo <= 120) newScope = 120;
-      else newScope = 168;
+      else if (hrsAgo <= 168) newScope = 168;
+      else if (hrsAgo <= 720) newScope = 720;
+      else newScope = 2160;
 
       var scopeSel = document.getElementById('scopeSelect');
       if (scopeSel) {
