@@ -1041,6 +1041,12 @@ def update_log(r2, flagged_gauges, now):
 
 # ── Main ────────────────────────────────────────────────────────────────────────
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Real-time rain gauge quality control.")
+    parser.add_argument("--backfill-days", type=int, default=None,
+                        help="Reprocess data for the last N days instead of the last 4 slots.")
+    args = parser.parse_args()
+
     if not USE_R2:
         print("R2 credentials not set — aborting.")
         sys.exit(1)
@@ -1080,10 +1086,19 @@ def main():
         sys.exit(1)
     print(f"Latest reading time: {latest_dt.isoformat()}")
 
-    # Load 2 days of readings (covers all windows: 7-slot, 24-slot, 96-slot)
-    print("Loading gauge readings...")
+    if args.backfill_days is not None:
+        print(f"Backfill mode: reprocessing last {args.backfill_days} days...")
+        num_slots = args.backfill_days * 96
+        offsets = list(range(num_slots, -1, -1))
+        load_days_count = args.backfill_days + 2
+    else:
+        offsets = [3, 2, 1, 0]
+        load_days_count = 2
+
+    # Load readings (covers lookback windows for offsets)
+    print(f"Loading gauge readings ({load_days_count} days)...")
     days = {}
-    for delta in range(2):
+    for delta in range(load_days_count):
         d        = latest_dt - timedelta(days=delta)
         date_str = d.strftime("%Y%m%d")
         days[date_str] = load_day(r2, date_str)
@@ -1106,11 +1121,8 @@ def main():
     print(f"  UKV: {len(ukv_gauge_data)} stations loaded"
           + (f" ({ukv_step_info})" if ukv_step_info else " (unavailable)"))
 
-    # Target offsets: process the last 4 slots (45m, 30m, 15m ago, and now), oldest first
-    offsets = [3, 2, 1, 0]
-
-    # Initialize prev_flags for the oldest slot (45 mins ago) by loading the run from 60 mins ago
-    t_prev = latest_dt - timedelta(minutes=60)
+    # Initialize prev_flags for the oldest slot by loading the run preceding it
+    t_prev = latest_dt - timedelta(minutes=(offsets[0] + 1) * 15)
     slot_mins = (t_prev.hour * 60 + t_prev.minute) // 15 * 15
     ts_prev = t_prev.strftime("%Y%m%d") + "T{:02d}{:02d}Z".format(slot_mins // 60, slot_mins % 60)
     prev_run = r2_get_json(r2, RUNS_KEY_TPL.format(ts=ts_prev), {})
