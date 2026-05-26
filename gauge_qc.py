@@ -577,6 +577,21 @@ def load_latest_radar(s3):
     return None
 
 
+def load_radar_for_time(s3, target_dt):
+    """Download and build radar extractor for the exact target_dt (UTC)."""
+    key = f"radar/{target_dt.strftime('%Y/%m/%d')}/{target_dt.strftime('%Y%m%d%H%M')}_ODIM_ng_radar_rainrate_composite_1km_UK.h5"
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as tmp:
+            tmp_path = tmp.name
+        s3.download_file(MET_OFFICE_BUCKET, key, tmp_path)
+        extractor = build_radar_extractor(tmp_path)
+        os.unlink(tmp_path)
+        return extractor
+    except Exception as e:
+        print(f"  Specific radar S3 download failed for {target_dt.strftime('%Y-%m-%d %H:%M UTC')}: {e}")
+        return None
+
+
 def load_ukv_gauge_data(r2, target_dt):
     """Load UKV gauge-point values for the forecast step nearest to target_dt.
 
@@ -1076,6 +1091,7 @@ def main():
     # Radar (optional)
     print("Loading radar H5...")
     extract_radar = None
+    s3 = None
     try:
         s3 = boto3.client("s3", region_name="eu-west-2",
                           config=Config(signature_version=UNSIGNED))
@@ -1109,6 +1125,15 @@ def main():
         target_run_ts = target_dt.strftime("%Y%m%d") + "T{:02d}{:02d}Z".format(target_slot_mins // 60, target_slot_mins % 60)
 
         print(f"\n--- Processing slot {target_run_ts} (offset {offset * 15}m ago) ---")
+
+        # Load radar extractor for this specific target_dt
+        slot_extract_radar = None
+        if s3:
+            print(f"  Loading specific radar for {target_run_ts}...")
+            slot_extract_radar = load_radar_for_time(s3, target_dt)
+            if not slot_extract_radar:
+                print("    Fallback to latest radar...")
+                slot_extract_radar = extract_radar
 
         # Load existing LLM verdicts for this slot from R2 to reuse them and avoid API calls
         existing_llm = {}
@@ -1158,8 +1183,8 @@ def main():
             accums = {'1hr': _ac(4), '3hr': _ac(12), '6hr': _ac(24), '12hr': _ac(48), '24hr': _ac(96)}
 
             # Radar estimate
-            radar_5km = extract_radar(lat, lon, radius_km=5.0) if extract_radar else None
-            radar_1km = extract_radar(lat, lon, radius_km=1.0) if extract_radar else None
+            radar_5km = slot_extract_radar(lat, lon, radius_km=5.0) if slot_extract_radar else None
+            radar_1km = slot_extract_radar(lat, lon, radius_km=1.0) if slot_extract_radar else None
             radar_mm = radar_5km
 
             if radar_5km is not None:
@@ -1259,7 +1284,7 @@ def main():
                             "ukv_1h_mm":  nbr_ukv,
                         })
 
-                    radar_30km_mm   = extract_radar(lat, lon, radius_km=30.0) if extract_radar else None
+                    radar_30km_mm   = slot_extract_radar(lat, lon, radius_km=30.0) if slot_extract_radar else None
                     _spell          = compute_spell_summary(history_96)
                     _regional       = regional_wetness_count(station_id, stations, latest_readings)
                     _pattern        = check_failure_pattern(checks, prev.get("checks") if prev else None)
@@ -1358,7 +1383,7 @@ def main():
         update_log(r2, flagged_gauges, target_dt)
 
         # ── Update R2 Radar Readings time series ─────────────────────────────
-        if extract_radar and (radar_updates_5km or radar_updates_1km):
+        if slot_extract_radar and (radar_updates_5km or radar_updates_1km):
             r2_key = f"rain/radar_readings/{target_date_str}.json"
             radar_data = r2_get_json(r2, r2_key, {"date": target_date_str, "readings_5km": {}, "readings_1km": {}})
             
