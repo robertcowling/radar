@@ -1369,6 +1369,7 @@ function selectGauge(id, isoTime) {
       injectClickedEvent();
       renderLeftMarkers();
       renderMidMarkers();
+      updateRadarOverlay(activeRuns[bestIdx]);
       focusGauge();
       return;
     }
@@ -1381,6 +1382,7 @@ function selectGauge(id, isoTime) {
         updateDateDisplay(d.latest_reading_time);
         renderLeftMarkers();
         renderMidMarkers();
+        updateRadarOverlay(activeRuns[bestIdx]);
       }
       focusGauge();
     }).catch(function(){ focusGauge(); });

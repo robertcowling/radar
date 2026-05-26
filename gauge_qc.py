@@ -206,6 +206,11 @@ def load_day(r2, date_str):
     return data.get("readings", {}) if data else {}
 
 
+def load_radar_day(r2, date_str):
+    data = r2_get_json(r2, f"rain/radar_readings/{date_str}.json")
+    return data if data else {"readings_5km": {}, "readings_1km": {}}
+
+
 def get_station_slots(days, station_id, end_date_str, end_slot, n):
     """Return n slot values oldest-first ending at (end_date_str, end_slot) inclusive."""
     result = []
@@ -624,7 +629,7 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
              consecutive_flags, month_name, season,
              radar_30km_mm=None, spell_summary=None, regional_wet=None,
              check_pattern_str=None, ukv_1h_mm=None, ukv_step_info=None,
-             qi=None):
+             qi=None, radar_adj=None):
     """Return (verdict, reasoning) or (None, None) if unavailable."""
     if not OPENAI_API_KEY:
         return None, None
@@ -685,6 +690,29 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
     radar_30km_str = (f"{radar_30km_mm:.2f} mm/15 min" if radar_30km_mm is not None
                       else "unavailable")
 
+    radar_adj_str = ""
+    if radar_adj:
+        b5 = radar_adj.get("before_5km")
+        b1 = radar_adj.get("before_1km")
+        a5 = radar_adj.get("after_5km")
+        a1 = radar_adj.get("after_1km")
+        
+        b5_val = f"{b5:.2f} mm" if b5 is not None else "unavailable"
+        b1_val = f"{b1:.2f} mm" if b1 is not None else "unavailable"
+        a5_val = f"{a5:.2f} mm" if a5 is not None else "unavailable"
+        a1_val = f"{a1:.2f} mm" if a1 is not None else "unavailable"
+        
+        radar_adj_str = (
+            f"  Radar a timestep before (15 min ago):\n"
+            f"    1 km site: {b1_val}  |  5 km area: {b5_val}\n"
+            f"  Radar a timestep after (15 min later, if available):\n"
+            f"    1 km site: {a1_val}  |  5 km area: {a5_val}\n"
+            f"  [Note: Weigh the temporal continuity of these radar QPE readings. A genuine rain event\n"
+            f"   should typically show persistent or moving radar reflectivity in adjacent timesteps,\n"
+            f"   whereas isolated spikes in time or space may indicate radar clutter, beam attenuation,\n"
+            f"   or telemetry anomalies.]\n"
+        )
+
     flag_history = (f"This is the first time this gauge has been flagged in this episode."
                     if consecutive_flags == 1
                     else f"This gauge has been flagged for {consecutive_flags} consecutive 15-min runs "
@@ -739,6 +767,7 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
         f"\nRadar QPE at station:\n"
         f"  5 km radius:  {radar_5km_str}\n"
         f"  30 km radius: {radar_30km_str}  (near-zero confirms spatial isolation)\n"
+        f"{radar_adj_str}"
         f"{ukv_block}"
         f"{regional_block}"
         f"\nThis gauge last 24 hr (96 × 15-min slots, oldest→newest, mm, '-'=missing):\n"
@@ -1236,6 +1265,25 @@ def main():
                     _pattern        = check_failure_pattern(checks, prev.get("checks") if prev else None)
                     _ukv_1h         = ukv_gauge_data.get(station_id, {}).get("accum_1h")
 
+                    # Load radar readings for adjacent slots
+                    radar_adj = {"before_5km": None, "before_1km": None, "after_5km": None, "after_1km": None}
+                    try:
+                        t_b = target_dt - timedelta(minutes=15)
+                        tb_date_str = t_b.strftime("%Y%m%d")
+                        tb_slot = t_b.hour * 4 + t_b.minute // 15
+                        tb_data = load_radar_day(r2, tb_date_str)
+                        radar_adj["before_5km"] = tb_data.get("readings_5km", {}).get(station_id, {}).get(str(tb_slot))
+                        radar_adj["before_1km"] = tb_data.get("readings_1km", {}).get(station_id, {}).get(str(tb_slot))
+                        
+                        t_a = target_dt + timedelta(minutes=15)
+                        ta_date_str = t_a.strftime("%Y%m%d")
+                        ta_slot = t_a.hour * 4 + t_a.minute // 15
+                        ta_data = load_radar_day(r2, ta_date_str)
+                        radar_adj["after_5km"] = ta_data.get("readings_5km", {}).get(station_id, {}).get(str(ta_slot))
+                        radar_adj["after_1km"] = ta_data.get("readings_1km", {}).get(station_id, {}).get(str(ta_slot))
+                    except Exception as e:
+                        print(f"  Error loading adjacent radar readings: {e}")
+
                     llm_verdict, llm_reasoning = call_llm(
                         station_id, s.get("name", station_id), lat, lon,
                         latest_value, target_dt.strftime("%Y-%m-%dT%H:%M"),
@@ -1244,7 +1292,7 @@ def main():
                         radar_30km_mm=radar_30km_mm, spell_summary=_spell,
                         regional_wet=_regional, check_pattern_str=_pattern,
                         ukv_1h_mm=_ukv_1h, ukv_step_info=ukv_step_info,
-                        qi=qi,
+                        qi=qi, radar_adj=radar_adj,
                     )
                     if llm_verdict:
                         llm_from_run = now.strftime("%Y-%m-%dT%H:%M:%SZ")
