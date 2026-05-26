@@ -259,6 +259,56 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
   .header-cell:nth-child(2) { flex: 1; }
   .header-cell:nth-child(3) { flex: none; width: auto; }
 }
+
+/* ── Rain Gauge Markers (L.divIcon) ────────────────────────────────────────── */
+.rg-wrap {
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+}
+.rg-icon {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.55);
+  transform: translateZ(0); will-change: transform;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Roboto', sans-serif;
+  font-size: 8.5px; font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+  box-sizing: border-box;
+  cursor: pointer;
+  line-height: 1;
+}
+.rg-icon.rg-nodata {
+  width: 7px; height: 7px;
+  background: #90a4ae;
+  opacity: 0.35;
+  border: none;
+}
+
+/* Prevent browser from blurring upscaled radar images */
+.sharp-radar {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+/* Custom checkbox */
+.custom-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: #3c4043;
+}
+.custom-checkbox input {
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  accent-color: #1a73e8;
+}
 </style>
 </head>
 <body>
@@ -306,6 +356,14 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         <p id="mapCbarTitle">24 hr accumulation</p>
         <div class="cbar" id="mapCbar"></div>
         <div class="cbar-labels" id="mapCbarLabels"></div>
+        <!-- Radar transparency control submenu -->
+        <div id="radarSubmenu" style="margin-top:8px; padding-top:6px; border-top:1px solid #dde1e7; display:none; flex-direction:column; gap:4px; pointer-events:auto">
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#5f6368; font-weight:600">
+            <span>Radar Opacity</span>
+            <span id="opacityVal">70%</span>
+          </div>
+          <input type="range" id="radarOpacitySlider" min="10" max="100" value="70" oninput="onRadarOpacityInput(this.value)" style="width:100%; margin:2px 0 0 0; cursor:pointer; accent-color:#1a73e8">
+        </div>
       </div>
     </div>
 
@@ -351,6 +409,14 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
           <option value="default" selected>Standard</option>
           <option value="metoffice">Met Office</option>
         </select>
+      </div>
+      <div class="bar-sep"></div>
+      <div class="control-group">
+        <span class="control-label" style="opacity: 0; pointer-events: none;">&nbsp;</span>
+        <label class="custom-checkbox">
+          <input type="checkbox" id="radarToggle" onchange="toggleRadarOverlay(this.checked)">
+          Radar
+        </label>
       </div>
       <div class="bar-sep"></div>
       <div class="timeline-container" id="timelineContainer" style="display:none">
@@ -575,6 +641,13 @@ var accumLayerLeft = L.layerGroup().addTo(mapLeft);
 var greyLayerMid   = L.layerGroup().addTo(mapMid);
 var flagLayerMid   = L.layerGroup().addTo(mapMid);
 
+// ── Radar Overlays ──────────────────────────────────────────────────────────
+var PARALLEL_BOUNDS = [[43.7009, -17.9739], [62.9207, 16.1291]];
+var radarOverlayLeft = L.imageOverlay('', PARALLEL_BOUNDS, { opacity: 0.7, className: 'sharp-radar' });
+var radarOverlayMid  = L.imageOverlay('', PARALLEL_BOUNDS, { opacity: 0.7, className: 'sharp-radar' });
+var radarEnabled = false;
+var radarOpacity = 0.7;
+
 // ── State ──────────────────────────────────────────────────────────────────
 var results       = null;
 var liveLatestReadingTime = null;
@@ -620,16 +693,22 @@ function getVal(s) {
 }
 
 function makeGaugeMarker(val, latlng) {
+  var iconHtml = '';
   if (!val || val < 0.03) {
-    return L.circleMarker(latlng, {
-      radius: 3, fillColor: '#90a4ae', fillOpacity: 0.3,
-      color: 'transparent', weight: 0
-    });
+    iconHtml = '<div class="rg-wrap"><div class="rg-icon rg-nodata"></div></div>';
+  } else {
+    var bg = accumColor(val);
+    var fg = accumTextColor(val);
+    var text = val < 10 ? val.toFixed(1) : Math.round(val).toString();
+    iconHtml = '<div class="rg-wrap"><div class="rg-icon" style="background:' + bg + ';color:' + fg + '">' + text + '</div></div>';
   }
-  return L.circleMarker(latlng, {
-    radius: 6, fillColor: accumColor(val), fillOpacity: 0.92,
-    color: 'white', weight: 1.5
+  var icon = L.divIcon({
+    className: '',
+    html: iconHtml,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
   });
+  return L.marker(latlng, { icon: icon });
 }
 
 // ── Colour key (left map) ──────────────────────────────────────────────────
@@ -670,6 +749,7 @@ function loadBoundary(val) {
   if (_bLayersL[val]) {
     _bLayersL[val].addTo(mapLeft);
     _bLayersM[val].addTo(mapMid);
+    enforceZOrder();
     return;
   }
   fetch(BFILES[val]).then(function(r){ return r.json(); }).then(function(d){
@@ -678,6 +758,7 @@ function loadBoundary(val) {
     if (currentBoundary === val) {
       _bLayersL[val].addTo(mapLeft);
       _bLayersM[val].addTo(mapMid);
+      enforceZOrder();
     }
   }).catch(function(){});
 }
@@ -705,6 +786,82 @@ function onSchemeChange(val) {
   currentScheme = val;
   buildCbar();
   renderLeftMarkers();
+}
+
+// ── Radar overlay toggle & opacity ─────────────────────────────────────────
+function toggleRadarOverlay(checked) {
+  radarEnabled = checked;
+  var sub = document.getElementById('radarSubmenu');
+  if (checked) {
+    radarOverlayLeft.addTo(mapLeft);
+    radarOverlayMid.addTo(mapMid);
+    if (sub) sub.style.display = 'flex';
+    
+    enforceZOrder();
+    
+    // Trigger update immediately for the current timeline position
+    var sl = document.getElementById('timeSlider');
+    var runTs = null;
+    if (sl && activeRuns && activeRuns.length) {
+      var val = parseInt(sl.value);
+      var idx = activeRuns.length - 1 - val;
+      if (idx >= 0 && idx < activeRuns.length) {
+        runTs = activeRuns[idx];
+      }
+    }
+    updateRadarOverlay(runTs);
+  } else {
+    if (mapLeft.hasLayer(radarOverlayLeft)) mapLeft.removeLayer(radarOverlayLeft);
+    if (mapMid.hasLayer(radarOverlayMid)) mapMid.removeLayer(radarOverlayMid);
+    if (sub) sub.style.display = 'none';
+  }
+}
+
+function onRadarOpacityInput(val) {
+  var pct = parseInt(val);
+  radarOpacity = pct / 100;
+  
+  radarOverlayLeft.setOpacity(radarOpacity);
+  radarOverlayMid.setOpacity(radarOpacity);
+  
+  var el = document.getElementById('opacityVal');
+  if (el) el.textContent = pct + '%';
+}
+
+function updateRadarOverlay(runTs) {
+  if (!radarEnabled) return;
+  
+  var activeRunTs = runTs;
+  if (!activeRunTs && activeRuns && activeRuns.length) {
+    var sl = document.getElementById('timeSlider');
+    if (sl) {
+      var val = parseInt(sl.value);
+      var idx = activeRuns.length - 1 - val;
+      if (idx >= 0 && idx < activeRuns.length) {
+        activeRunTs = activeRuns[idx];
+      }
+    }
+    if (!activeRunTs) {
+      activeRunTs = activeRuns[0];
+    }
+  }
+  
+  if (!activeRunTs) return;
+  
+  // Format: YYYYMMDDTHHMMZ -> YYYYMMDDHHMM
+  var dateStr = activeRunTs.replace('T', '').replace('Z', '');
+  var radarUrl = R2_CDN + '/radar_parallel/' + dateStr + '_ODIM_ng_radar_rainrate_composite_1km_UK.png';
+  
+  radarOverlayLeft.setUrl(radarUrl);
+  radarOverlayMid.setUrl(radarUrl);
+}
+
+function enforceZOrder() {
+  // Bring active boundary layers to front so they remain visible above the radar overlay
+  ['regions','counties','catchments','grid'].forEach(function(n) {
+    if (_bLayersL[n] && mapLeft.hasLayer(_bLayersL[n])) _bLayersL[n].bringToFront();
+    if (_bLayersM[n] && mapMid.hasLayer(_bLayersM[n])) _bLayersM[n].bringToFront();
+  });
 }
 
 // ── Manifest + timeline ────────────────────────────────────────────────────
@@ -785,6 +942,7 @@ function loadResults(runTs) {
       updateDateDisplay(d.latest_reading_time);
       renderLeftMarkers();
       renderMidMarkers();
+      updateRadarOverlay(runTs);
     })
     .catch(function(){});
 }
@@ -823,7 +981,7 @@ function renderLeftMarkers() {
     var m   = makeGaugeMarker(val, [s.lat, s.lon]);
     var tipCounty = s.c ? '<br><span style="font-size:10px;color:#80868b">' + escHtml(s.c) + '</span>' : '';
     m.bindTooltip('<b>' + escHtml(s.n) + '</b>' + tipCounty + '<br>' + lbl + ': ' + val.toFixed(1) + ' mm',
-      { direction:'top', className:'gauge-tip', offset:[0,-6] });
+      { direction:'top', className:'gauge-tip', offset:[0,-12] });
     m.bindPopup('<span style="color:#94a3b8;font-size:12px">Loading…</span>',
       { maxWidth:270, minWidth:200 });
     m.on('click', (function(sid){ return function(){ selectGauge(sid); }; })(s.id));
