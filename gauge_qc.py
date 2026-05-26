@@ -1103,6 +1103,8 @@ def main():
         flagged_gauges    = []
         station_summaries = []
         total_checked     = 0
+        radar_updates_5km = {}
+        radar_updates_1km = {}
 
         for station_id, latest_value in latest_readings.items():
             if station_id not in stations:
@@ -1126,11 +1128,23 @@ def main():
             def _ac(n): return round(sum(v for v in history_96[-n:] if v is not None and v >= 0), 1)
             accums = {'1hr': _ac(4), '3hr': _ac(12), '6hr': _ac(24), '12hr': _ac(48), '24hr': _ac(96)}
 
+            # Radar estimate
+            radar_5km = extract_radar(lat, lon, radius_km=5.0) if extract_radar else None
+            radar_1km = extract_radar(lat, lon, radius_km=1.0) if extract_radar else None
+            radar_mm = radar_5km
+
+            if radar_5km is not None:
+                radar_updates_5km[station_id] = radar_5km
+            if radar_1km is not None:
+                radar_updates_1km[station_id] = radar_1km
+
             # Station summary entry
             summary_entry = {
                 'id': station_id, 'n': s.get('name', station_id),
                 'lat': round(lat, 5), 'lon': round(lon, 5),
                 'c': s.get('county'), 'mm': round(latest_value, 2), 'ac': accums,
+                'rad_5km': round(radar_5km, 2) if radar_5km is not None else None,
+                'rad_1km': round(radar_1km, 2) if radar_1km is not None else None,
             }
             station_summaries.append(summary_entry)
 
@@ -1144,9 +1158,6 @@ def main():
                 nbr_6hr_means.append(
                     sum(valid_vals) / len(valid_vals) if valid_vals else None
                 )
-
-            # Radar estimate
-            radar_mm = extract_radar(lat, lon) if extract_radar else None
 
             # Eight checks
             _nbr_mean = (sum(v for v in nbr_6hr_means if v is not None)
@@ -1297,6 +1308,26 @@ def main():
 
         # 2. Update the active event log for this slot (both historical and current)
         update_log(r2, flagged_gauges, target_dt)
+
+        # ── Update R2 Radar Readings time series ─────────────────────────────
+        if extract_radar and (radar_updates_5km or radar_updates_1km):
+            r2_key = f"rain/radar_readings/{target_date_str}.json"
+            radar_data = r2_get_json(r2, r2_key, {"date": target_date_str, "readings_5km": {}, "readings_1km": {}})
+            
+            # Ensure keys exist
+            if "readings_5km" not in radar_data: radar_data["readings_5km"] = {}
+            if "readings_1km" not in radar_data: radar_data["readings_1km"] = {}
+            
+            for sid, val in radar_updates_5km.items():
+                st_5 = radar_data["readings_5km"].setdefault(sid, {})
+                st_5[str(target_slot)] = round(val, 3)
+                
+            for sid, val in radar_updates_1km.items():
+                st_1 = radar_data["readings_1km"].setdefault(sid, {})
+                st_1[str(target_slot)] = round(val, 3)
+                
+            r2_put_json(r2, r2_key, radar_data)
+            print(f"  Uploaded radar readings time series to {r2_key}")
 
         # 3. If this is the latest slot (offset == 0), update results.json and manifest
         if offset == 0:

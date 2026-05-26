@@ -316,7 +316,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
 <!-- Header row -->
 <div class="header-row">
   <div class="header-cell">
-    <span>Gauge Readings</span>
+    <span>Observations (gauge and radar)</span>
     <span id="leftStat" class="h-sub">—</span>
   </div>
   <div class="header-cell">
@@ -659,6 +659,7 @@ var currentPeriod = '3hr';
 var tblRowById    = {};
 var mLeftById     = {};
 var mMidById      = {};
+var radarCache    = {};
 
 // ── Colour schemes ─────────────────────────────────────────────────────────
 var SCHEMES = {
@@ -1390,6 +1391,7 @@ function selectGauge(id, isoTime) {
 
 // ── Hyetograph ──────────────────────────────────────────────────────────────
 var hyetoCache = {};
+var radarCache = {};
 
 function hyetoDateKey(ms) {
   var d = new Date(ms);
@@ -1402,13 +1404,22 @@ function loadHyetoDays(endMs, cb) {
   var pending = 0;
   var todayKey = hyetoDateKey(Date.now());
   Object.keys(needed).forEach(function(k) {
-    if (k !== todayKey && hyetoCache[k] !== undefined) return;
+    if (k !== todayKey && hyetoCache[k] !== undefined && radarCache[k] !== undefined) return;
     hyetoCache[k] = null;
-    pending++;
+    radarCache[k] = null;
+    pending += 2;
+    
+    // 1. Fetch gauge readings
     fetch(cdnUrl('rain/readings/' + k + '.json'))
       .then(function(r) { return r.ok ? r.json() : null; })
       .then(function(dd) { hyetoCache[k] = (dd && dd.readings) ? dd.readings : {}; if (--pending === 0) cb(); })
       .catch(function()  { hyetoCache[k] = {};                                      if (--pending === 0) cb(); });
+      
+    // 2. Fetch radar readings
+    fetch(cdnUrl('rain/radar_readings/' + k + '.json'))
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(dd) { radarCache[k] = dd ? dd : { readings_5km: {}, readings_1km: {} }; if (--pending === 0) cb(); })
+      .catch(function()  { radarCache[k] = { readings_5km: {}, readings_1km: {} };         if (--pending === 0) cb(); });
   });
   if (pending === 0) cb();
 }
@@ -1662,6 +1673,10 @@ function generateSeriesTable(id, endMs) {
     var rd = hyetoCache[dk];
     var v = (rd && rd[id] && rd[id][si] != null) ? +rd[id][si] : null;
 
+    var rData = radarCache[dk];
+    var rad5k = (rData && rData.readings_5km && rData.readings_5km[id] && rData.readings_5km[id][si] != null) ? +rData.readings_5km[id][si] : null;
+    var rad1k = (rData && rData.readings_1km && rData.readings_1km[id] && rData.readings_1km[id][si] != null) ? +rData.readings_1km[id][si] : null;
+
     var ts = ukTime(t);
     var ds = ukDateShort(t);
 
@@ -1701,15 +1716,16 @@ function generateSeriesTable(id, endMs) {
       valStyle += 'color:#202124;';
     }
 
-    if (v === null || v < 0) {
-      rows.push('<tr style="' + trStyle + '">'
-        + '<td style="' + rowStyle + 'white-space:nowrap">' + ds + ' ' + ts + '</td>'
-        + '<td style="padding:1px 6px;text-align:right;color:#9aa0a6;font-style:italic">No data</td></tr>');
-      continue;
-    }
+    var valStr  = (v !== null && v >= 0) ? v.toFixed(1) : '<span style="color:#9aa0a6">No data</span>';
+    var rad1kStr = (rad1k !== null && rad1k >= 0) ? rad1k.toFixed(1) : '<span style="color:#9aa0a6">—</span>';
+    var rad5kStr = (rad5k !== null && rad5k >= 0) ? rad5k.toFixed(1) : '<span style="color:#9aa0a6">—</span>';
+
     rows.push('<tr style="' + trStyle + '">'
       + '<td style="' + rowStyle + 'white-space:nowrap">' + ds + ' ' + ts + '</td>'
-      + '<td style="' + valStyle + '">' + v.toFixed(1) + '</td></tr>');
+      + '<td style="' + valStyle + '">' + valStr + '</td>'
+      + '<td style="' + valStyle + 'color:#5f6368;font-weight:400">' + rad1kStr + '</td>'
+      + '<td style="' + valStyle + 'color:#5f6368;font-weight:400">' + rad5kStr + '</td>'
+      + '</tr>');
   }
 
   if (!rows.length) return '<div style="color:#9aa0a6;font-size:11px;padding:4px 0">No data in window</div>';
@@ -1723,7 +1739,9 @@ function generateSeriesTable(id, endMs) {
       + '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.5">'
       + '<thead><tr>'
       + '<th style="text-align:left;color:#5f6368;font-weight:500;padding:1px 0">' + headerTime + cadenceNote + '</th>'
-      + '<th style="text-align:right;color:#5f6368;font-weight:500;padding:1px 6px">mm</th>'
+      + '<th style="text-align:right;color:#5f6368;font-weight:500;padding:1px 6px">Gauge (mm)</th>'
+      + '<th style="text-align:right;color:#5f6368;font-weight:500;padding:1px 6px">Radar Site</th>'
+      + '<th style="text-align:right;color:#5f6368;font-weight:500;padding:1px 6px">Radar 5km</th>'
       + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
 }
 
