@@ -30,9 +30,9 @@ ARCHIVE_PFX    = "warnings/archive"
 
 # ── EUMETNET MeteoGate API Config ─────────────────────────────────────────────
 # We fallback to the user's active API key so it works out-of-the-box in all environments
-METEOGATE_API_KEY = os.environ.get(
-    "METEOGATE_API_KEY", 
-    "6a52afd3ac0e491f265f331a52de29eb04a559787e8ff2777682f3ca88619bc8"
+METEOGATE_API_KEY = (
+    os.environ.get("METEOGATE_API_KEY", "").strip()
+    or "6a52afd3ac0e491f265f331a52de29eb04a559787e8ff2777682f3ca88619bc8"
 )
 
 
