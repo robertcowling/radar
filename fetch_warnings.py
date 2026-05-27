@@ -93,91 +93,6 @@ def read_local_json(path, default=None):
         return default
 
 
-def generate_mock_alerts():
-    """Generates realistic UK Met Office mock warnings for local and fallback testing."""
-    now = datetime.now(timezone.utc)
-    
-    # Yellow Rain Warning: active today and tomorrow
-    start_rain = (now - timedelta(hours=6)).replace(minute=0, second=0, microsecond=0)
-    end_rain = (now + timedelta(hours=30)).replace(minute=0, second=0, microsecond=0)
-    
-    # Amber Thunderstorm Warning: active today only (intense event)
-    start_thunder = (now - timedelta(hours=2)).replace(minute=0, second=0, microsecond=0)
-    end_thunder = (now + timedelta(hours=6)).replace(minute=0, second=0, microsecond=0)
-    
-    # Yellow Wind Warning: active tomorrow
-    start_wind = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-    end_wind = (now + timedelta(days=1, hours=23, minutes=59)).replace(second=0, microsecond=0)
-    
-    return [
-        {
-            "alert_id": "mock-alert-rain-001",
-            "source": "government",
-            "title": "Yellow Rain Warning",
-            "description": "Heavy rain is expected to affect parts of Wales and South West England, potentially causing localized flooding of homes, businesses, and transport links. Spray and flooding will lead to difficult driving conditions and some road closures.",
-            "severity": "moderate",
-            "certainty": "likely",
-            "urgency": "expected",
-            "tag": ["rain"],
-            "start_date": start_rain.isoformat(),
-            "end_date": end_rain.isoformat(),
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [[
-                    [-5.5, 50.2],
-                    [-3.0, 50.2],
-                    [-2.5, 53.4],
-                    [-5.3, 53.4],
-                    [-5.5, 50.2]
-                ]]
-            }
-        },
-        {
-            "alert_id": "mock-alert-thunder-002",
-            "source": "government",
-            "title": "Amber Thunderstorm Warning",
-            "description": "Severe thunderstorms are active across the East Midlands and East Anglia, producing very heavy downpours, frequent lightning strikes, hail, and strong gusts. Fast flowing or deep floodwater is possible, causing danger to life.",
-            "severity": "severe",
-            "certainty": "observed",
-            "urgency": "immediate",
-            "tag": ["thunderstorm"],
-            "start_date": start_thunder.isoformat(),
-            "end_date": end_thunder.isoformat(),
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [[
-                    [-1.6, 51.8],
-                    [1.7, 51.8],
-                    [1.7, 53.3],
-                    [-1.6, 53.3],
-                    [-1.6, 51.8]
-                ]]
-            }
-        },
-        {
-            "alert_id": "mock-alert-wind-003",
-            "source": "government",
-            "title": "Yellow Wind Warning",
-            "description": "Strong southwesterly winds will develop across western Scotland, with gusts of 55-65 mph possible. Some delays to road, rail, air, and ferry transport are likely, with high waves affecting coastal communities.",
-            "severity": "minor",
-            "certainty": "possible",
-            "urgency": "future",
-            "tag": ["wind"],
-            "start_date": start_wind.isoformat(),
-            "end_date": end_wind.isoformat(),
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [[
-                    [-7.2, 54.8],
-                    [-4.2, 54.8],
-                    [-4.2, 58.2],
-                    [-7.2, 58.2],
-                    [-7.2, 54.8]
-                ]]
-            }
-        }
-    ]
-
 
 def fetch_warnings_from_api():
     """Queries the OpenWeather Alerts API and parses raw alerts securely."""
@@ -263,6 +178,10 @@ def main():
     now = datetime.now(timezone.utc)
     today_str = now.strftime("%Y%m%d")
     
+    if not OWM_API_KEY:
+        print("Error: OPENWEATHER_API_KEY environment variable is not configured.")
+        sys.exit(1)
+        
     r2 = get_r2_client()
     if r2:
         print("Connected to Cloudflare R2 successfully.")
@@ -270,32 +189,17 @@ def main():
         print("Cloudflare R2 not configured. Operating in LOCAL ONLY / DRY RUN mode.")
     
     # ── Step 1: Ingest Alerts ─────────────────────────────────────────────────
-    api_alerts = None
-    if OWM_API_KEY:
-        api_alerts = fetch_warnings_from_api()
-    else:
-        print("OPENWEATHER_API_KEY environment variable is not configured. Falling back to mock warnings.")
-    
-    # Check if we should use fallback mock alerts
-    use_fallback = False
-    if api_alerts is None:
-        print("API call failed, was unauthorized, or bypassed. Activating fallback to mock Met Office warnings.")
-        use_fallback = True
-    elif len(api_alerts) == 0:
-        print("API returned 0 active warnings in the UK bounding box. Generating mock warnings for developer visual testing.")
-        use_fallback = True
-    
-    if use_fallback:
-        active_alerts = generate_mock_alerts()
-    else:
-        active_alerts = api_alerts
-    
+    active_alerts = fetch_warnings_from_api()
+    if active_alerts is None:
+        print("Error: Weather warnings ingestion failed or was unauthorized.")
+        sys.exit(1)
+        
     print(f"Active Warnings to save: {len(active_alerts)}")
     
     # ── Step 2: Write warnings_latest.json ────────────────────────────────────
     latest_obj = {
         "generated_at": now.isoformat(),
-        "is_mock": use_fallback,
+        "is_mock": False,
         "warnings": active_alerts
     }
     
