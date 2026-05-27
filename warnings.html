@@ -219,12 +219,16 @@ body {
 
     <!-- Filters Section -->
     <div class="filter-panel">
-      <!-- Today's Warnings Switch -->
-      <div class="today-toggle-container">
-        <span style="font-size: 11px; font-weight: 700; color: #3c4043;">Show only today's active warnings</span>
-        <label class="custom-checkbox" style="margin:0">
-          <input type="checkbox" id="todayToggle" onchange="filterAndRender()">
-        </label>
+      <!-- Day Filters -->
+      <div>
+        <div class="filter-title">Filter by Day</div>
+        <div class="filter-grid" style="grid-template-columns: repeat(5, 1fr); gap: 4px;">
+          <label class="custom-checkbox"><input type="checkbox" class="filter-day" value="0" checked onchange="filterAndRender()">Day 1</label>
+          <label class="custom-checkbox"><input type="checkbox" class="filter-day" value="1" checked onchange="filterAndRender()">Day 2</label>
+          <label class="custom-checkbox"><input type="checkbox" class="filter-day" value="2" checked onchange="filterAndRender()">Day 3</label>
+          <label class="custom-checkbox"><input type="checkbox" class="filter-day" value="3" checked onchange="filterAndRender()">Day 4</label>
+          <label class="custom-checkbox"><input type="checkbox" class="filter-day" value="4" checked onchange="filterAndRender()">Day 5</label>
+        </div>
       </div>
 
       <!-- Tag Filters -->
@@ -415,12 +419,13 @@ function loadWarnings() {
 // ── Filter and Render Engine ───────────────────────────────────────────────
 function filterAndRender() {
   // 1. Gather filter states
-  var todayOnly = document.getElementById('todayToggle').checked;
+  var activeDays = Array.from(document.querySelectorAll('.filter-day:checked')).map(function(cb) { return parseInt(cb.value); });
   
   var activeTags = Array.from(document.querySelectorAll('.filter-tag:checked')).map(function(cb) { return cb.value; });
   var activeSevs = Array.from(document.querySelectorAll('.filter-sev:checked')).map(function(cb) { return cb.value; });
   
   var now = new Date();
+  now.setHours(0, 0, 0, 0);
 
   // 2. Perform filtering
   filteredWarnings = allWarnings.filter(function(w) {
@@ -438,19 +443,19 @@ function filterAndRender() {
     });
     if (!tagMatches && wTags.length > 0) return false;
     
-    // Today's Warnings Check (Warning active interval overlaps current calendar hour)
-    if (todayOnly) {
-      var start = w.start_date ? new Date(w.start_date) : null;
-      var end = w.end_date ? new Date(w.end_date) : null;
-      
-      // Start of today, end of today local bounds
-      var startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-      var endOfToday = new Date();
-      endOfToday.setHours(23, 59, 59, 999);
-      
-      if (start && start > endOfToday) return false; // Starts in the future
-      if (end && end < startOfToday) return false;    // Ended in the past
+    // Day Match
+    var start = w.start_date ? new Date(w.start_date) : null;
+    var end = w.end_date ? new Date(w.end_date) : null;
+    
+    if (start && end) {
+      var overlapsActiveDay = activeDays.some(function(dayOffset) {
+        var dayStart = new Date(now);
+        dayStart.setDate(dayStart.getDate() + dayOffset);
+        var dayEnd = new Date(dayStart);
+        dayEnd.setHours(23, 59, 59, 999);
+        return start <= dayEnd && end >= dayStart;
+      });
+      if (!overlapsActiveDay) return false;
     }
     
     return true;
@@ -472,7 +477,7 @@ function renderMapPolygons() {
   geojsonLayers = {};
   
   filteredWarnings.forEach(function(w) {
-    if (!w.geometry || !w.geometry.coordinates) return;
+    if (!w.geometry || (!w.geometry.coordinates && !w.geometry.geometries)) return;
     
     var geojsonFeature = {
       type: "Feature",
@@ -500,8 +505,15 @@ function renderMapPolygons() {
           selectWarning(w.alert_id, true);
         });
         
-        // Simple map tooltip
-        l.bindTooltip('<strong>' + w.title + '</strong><br>' + severity.toUpperCase(), {
+        // Detailed map tooltip
+        var style = getWarningStyle(severity, false);
+        var timeRange = formatUKTime(w.start_date) + ' - ' + formatUKTime(w.end_date);
+        l.bindTooltip('<div style="font-size:11px; max-width: 200px; white-space: normal;">' +
+          '<strong style="font-size:12.5px;">' + w.title + '</strong><br>' +
+          '<span style="color:' + style.color + '; font-weight:bold; font-size:10px; text-transform:uppercase;">' + severity + '</span><br>' +
+          '<div style="margin-top:4px; margin-bottom:4px; font-weight:500; color:#444;">' + timeRange + '</div>' +
+          '<div style="font-size:10px; color:#666; line-height:1.3;">' + (w.description ? w.description.substring(0, 110) + '...' : '') + '</div>' +
+          '</div>', {
           sticky: true,
           className: 'sharp-radar'
         });
