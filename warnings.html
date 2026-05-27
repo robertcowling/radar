@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather Warnings | Flood Forecast</title>
+<link rel="icon" type="image/png" href="https://floodforecast.co.uk/static/images/avatar.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+html { height: 100%; }
+body {
+  margin: 0; padding: 0;
+  font-family: 'Roboto', sans-serif;
+  background: #1e293b; color: #f1f5f9;
+  height: 100%; display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* ── Top Header Bar ────────────────────────────────────────────────────────── */
+.header-row {
+  display: flex; background: #1e293b; height: 40px; flex-shrink: 0;
+  position: relative; z-index: 1001; border-bottom: 2px solid #374151;
+}
+.header-cell {
+  flex: 1; display: flex; align-items: center; padding: 0 18px;
+  font-size: 12px; font-weight: 600; color: #f1f5f9; letter-spacing: 0.2px;
+  border-left: 2px solid #374151; gap: 10px; justify-content: space-between;
+}
+.header-cell:first-child { border-left: none; }
+.header-cell .h-sub { font-size: 10px; color: #94a3b8; font-weight: 400; white-space: nowrap; }
+.header-cell .h-nav { font-size: 11px; color: #94a3b8; font-weight: 500; text-decoration: none; display: flex; align-items: center; gap: 4px; transition: color 0.15s; }
+.header-cell .h-nav:hover { color: #f1f5f9; }
+
+.panels-row { flex: 1; display: flex; min-height: 0; }
+
+/* ── Map Wrapper ───────────────────────────────────────────────────────────── */
+.maps-wrap { flex: 1; display: flex; position: relative; min-height: 0; }
+.panel-wrap { position: relative; flex: 1; overflow: hidden; }
+.panel-map { width: 100%; height: 100%; background: #0f172a; }
+
+/* ── Right Sidebar (Warnings Log & Filters) ────────────────────────────────── */
+.right-wrap {
+  width: 420px; flex: none; border-left: 2px solid #374151;
+  display: flex; flex-direction: column; background: #0f172a; overflow: hidden;
+}
+.right-header {
+  background: #1e293b; color: #f1f5f9; flex-shrink: 0;
+  padding: 0 16px; height: 40px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #374151;
+}
+.right-header-title { font-size: 12px; font-weight: 600; letter-spacing: 0.3px; }
+
+/* ── Filter Panel ──────────────────────────────────────────────────────────── */
+.filter-panel {
+  background: #1e293b; padding: 14px 16px; border-bottom: 1px solid #374151;
+  display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
+}
+.filter-title { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px; }
+.filter-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 12px; }
+.custom-checkbox { display: flex; align-items: center; cursor: pointer; font-size: 11px; font-weight: 500; color: #cbd5e1; user-select: none; }
+.custom-checkbox input { cursor: pointer; width: 13px; height: 13px; margin-right: 6px; accent-color: #1a73e8; }
+.custom-checkbox:hover { color: #f1f5f9; }
+
+/* Today's Warning Toggle Accent */
+.today-toggle-container {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 10px; background: #0f172a; border-radius: 8px; border: 1px solid #374151;
+}
+
+/* ── Warnings Cards List ───────────────────────────────────────────────────── */
+.tbl-wrap { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.tbl-wrap::-webkit-scrollbar { width: 5px; }
+.tbl-wrap::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+.warning-card {
+  background: #1e293b; border-radius: 10px; padding: 14px;
+  border-left: 5px solid #64748b; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.warning-card:hover {
+  background: #273549; transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+}
+.warning-card.selected {
+  background: #2d3d54; border-color: #1a73e8;
+  box-shadow: 0 0 0 2px #1a73e8, 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* Severity Borders */
+.warning-card.sev-extreme,
+.warning-card.sev-severe { border-left-color: #f44336; }  /* Red */
+.warning-card.sev-moderate { border-left-color: #ffb300; }  /* Amber */
+.warning-card.sev-minor    { border-left-color: #1e88e5; }  /* Blue */
+
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+.card-title { font-size: 13px; font-weight: 700; color: #f1f5f9; }
+.sev-badge {
+  font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 12px;
+  text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap;
+}
+.badge-extreme, .badge-severe { background: rgba(244, 67, 54, 0.2); color: #ef5350; border: 1px solid rgba(244, 67, 54, 0.4); }
+.badge-moderate { background: rgba(255, 179, 0, 0.2); color: #ffca28; border: 1px solid rgba(255, 179, 0, 0.4); }
+.badge-minor    { background: rgba(30, 136, 229, 0.2); color: #42a5f5; border: 1px solid rgba(30, 136, 229, 0.4); }
+.badge-unknown  { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4); }
+
+.card-time { font-size: 10px; color: #94a3b8; display: flex; align-items: center; gap: 4px; margin-bottom: 6px; font-weight: 500; }
+.card-desc { font-size: 11.5px; color: #cbd5e1; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+.card-footer { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+.tag-badge { background: #374151; color: #94a3b8; font-size: 9px; font-weight: 600; padding: 1.5px 5px; border-radius: 4px; text-transform: uppercase; }
+
+/* ── Banner and Demo alerts ────────────────────────────────────────────────── */
+.demo-banner {
+  background: rgba(255, 179, 0, 0.1); border: 1px solid rgba(255, 179, 0, 0.25);
+  border-radius: 8px; padding: 10px 12px; font-size: 10.5px; color: #ffca28;
+  line-height: 1.4; display: flex; gap: 8px; margin-bottom: 8px;
+}
+
+.empty-state { text-align: center; padding: 40px 20px; color: #94a3b8; font-size: 12px; font-weight: 500; }
+
+/* ── Leaflet Controls Overlay ─────────────────────────────────────────────── */
+.map-theme-toggle {
+  position: absolute; top: 10px; left: 10px; z-index: 500;
+  background: white; border-radius: 8px; padding: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; gap: 2px;
+}
+.theme-btn {
+  background: transparent; border: none; font-size: 10.5px; font-weight: 700;
+  padding: 4px 8px; border-radius: 6px; cursor: pointer; color: #5f6368;
+  transition: background 0.15s, color 0.15s; outline: none;
+}
+.theme-btn.active { background: #1a73e8; color: white; }
+
+/* ── Details Drawer ───────────────────────────────────────────────────────── */
+.details-drawer {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 260px;
+  background: #1e293b; border-top: 2px solid #374151; z-index: 2000;
+  transform: translateY(100%); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex; flex-direction: column; box-shadow: 0 -10px 40px rgba(0,0,0,0.4);
+}
+.details-drawer.open { transform: translateY(0); }
+.drawer-header {
+  height: 44px; background: #0f172a; padding: 0 20px; display: flex;
+  align-items: center; justify-content: space-between; border-bottom: 1px solid #374151;
+}
+.drawer-title { font-size: 13px; font-weight: 700; color: #f1f5f9; display: flex; align-items: center; gap: 8px; }
+.drawer-close { background: transparent; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; padding: 4px; }
+.drawer-close:hover { color: #f1f5f9; }
+.drawer-body { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+.drawer-body::-webkit-scrollbar { width: 5px; }
+.drawer-body::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+.drawer-desc-col h4 { margin: 0 0 8px; font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+.drawer-desc-col p { margin: 0; font-size: 12.5px; color: #cbd5e1; line-height: 1.6; }
+.drawer-meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 16px; align-content: start; }
+.meta-item-lbl { font-size: 9.5px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 2px; }
+.meta-item-val { font-size: 11.5px; color: #f1f5f9; font-weight: 500; text-transform: capitalize; }
+
+/* ── Mobile responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .panels-row { flex-direction: column; }
+  .maps-wrap { flex: none; height: 40vh; }
+  .right-wrap { width: 100%; border-left: none; border-top: 2px solid #374151; flex: 1; min-height: 0; }
+  
+  .details-drawer { height: 75vh; max-height: 75vh; }
+  .drawer-body { grid-template-columns: 1fr; gap: 16px; padding: 16px; }
+  
+  .filter-grid { grid-template-columns: 1fr; gap: 4px; }
+  .header-cell:first-child { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header row -->
+<div class="header-row">
+  <div class="header-cell" style="flex: 1.2">
+    <span>Met Office National Weather Warnings</span>
+    <span id="warningsCounter" class="h-sub">Loading active alerts…</span>
+  </div>
+  <div class="header-cell" style="flex: 0.8; justify-content: center">
+    <span>UK Alerts Monitor</span>
+  </div>
+  <div class="header-cell" style="justify-content: flex-end; gap: 18px">
+    <a href="index.html" class="h-nav">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Radar
+    </a>
+    <a href="gaugecheck.html" class="h-nav">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Gauge QC
+    </a>
+    <a href="ukv.html" class="h-nav">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+      UKV Multi
+    </a>
+  </div>
+</div>
+
+<!-- Main Panels -->
+<div class="panels-row">
+
+  <!-- Left: Leaflet Map -->
+  <div class="maps-wrap">
+    <div class="panel-wrap">
+      <div id="map" class="panel-map"></div>
+      
+      <!-- Premium Theme Switcher overlay -->
+      <div class="map-theme-toggle">
+        <button id="themeLight" class="theme-btn" onclick="setBasemap('light')">Light Map</button>
+        <button id="themeDark" class="theme-btn active" onclick="setBasemap('dark')">Dark Map</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Sidebar Filters & Active Cards List -->
+  <div class="right-wrap" id="rightWrap">
+    
+    <div class="right-header">
+      <span class="right-header-title">ACTIVE WEATHER WARNINGS</span>
+      <span id="sidebarCounts" style="font-size: 10px; color: #94a3b8; font-weight: 700;">0 SHOWN</span>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filter-panel">
+      <!-- Today's Warnings Switch -->
+      <div class="today-toggle-container">
+        <span style="font-size: 11px; font-weight: 700; color: #f1f5f9;">Show only today's active warnings</span>
+        <label class="custom-checkbox" style="margin:0">
+          <input type="checkbox" id="todayToggle" onchange="filterAndRender()">
+        </label>
+      </div>
+
+      <!-- Tag Filters -->
+      <div>
+        <div class="filter-title">Filter by Phenomenon</div>
+        <div class="filter-grid">
+          <label class="custom-checkbox"><input type="checkbox" class="filter-tag" value="rain" checked onchange="filterAndRender()">Rain</label>
+          <label class="custom-checkbox"><input type="checkbox" class="filter-tag" value="thunderstorm" checked onchange="filterAndRender()">Thunderstorm</label>
+          <label class="custom-checkbox"><input type="checkbox" class="filter-tag" value="wind" checked onchange="filterAndRender()">Wind</label>
+          <label class="custom-checkbox"><input type="checkbox" class="filter-tag" value="flood" checked onchange="filterAndRender()">Flood</label>
+          <label class="custom-checkbox"><input type="checkbox" class="filter-tag" value="snow" checked onchange="filterAndRender()">Snow &amp; Ice</label>
+          <label class="custom-checkbox"><input type="checkbox" class="filter-tag" value="fog" checked onchange="filterAndRender()">Fog</label>
+        </div>
+      </div>
+
+      <!-- Severity Filters -->
+      <div>
+        <div class="filter-title">Filter by Severity</div>
+        <div class="filter-grid">
+          <label class="custom-checkbox"><input type="checkbox" class="filter-sev" value="extreme" checked onchange="filterAndRender()">Extreme</label>
+          <label class="custom-checkbox"><input type="checkbox" class="filter-sev" value="severe" checked onchange="filterAndRender()">Severe / Amber</label>
+          <label class="custom-checkbox"><input type="checkbox" class="filter-sev" value="moderate" checked onchange="filterAndRender()">Moderate / Yellow</label>
+          <label class="custom-checkbox"><input type="checkbox" class="filter-sev" value="minor" checked onchange="filterAndRender()">Minor</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cards Scroll Area -->
+    <div class="tbl-wrap" id="cardsList">
+      <div class="empty-state">Ingesting data from R2 bucket...</div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Details Drawer -->
+<div class="details-drawer" id="detailsDrawer">
+  <div class="drawer-header">
+    <div class="drawer-title" id="drawerTitle">
+      <span class="sev-badge badge-moderate" id="drawerSeverityBadge">Moderate</span>
+      <span id="drawerTitleText">Yellow Rain Warning</span>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+  </div>
+  <div class="drawer-body">
+    <!-- Description Column -->
+    <div class="drawer-desc-col">
+      <h4>Warning Description &amp; Guidance</h4>
+      <p id="drawerDescription">Heavy rain is expected to affect parts of the country, causing localized flooding and transport disruption.</p>
+    </div>
+    <!-- Meta Details Grid -->
+    <div class="drawer-meta-grid">
+      <div>
+        <div class="meta-item-lbl">Start Time</div>
+        <div class="meta-item-val" id="drawerStart">Wednesday 27 May 12:00</div>
+      </div>
+      <div>
+        <div class="meta-item-lbl">End Time</div>
+        <div class="meta-item-val" id="drawerEnd">Thursday 28 May 18:00</div>
+      </div>
+      <div>
+        <div class="meta-item-lbl">Certainty</div>
+        <div class="meta-item-val" id="drawerCertainty">Likely</div>
+      </div>
+      <div>
+        <div class="meta-item-lbl">Urgency</div>
+        <div class="meta-item-val" id="drawerUrgency">Expected</div>
+      </div>
+      <div>
+        <div class="meta-item-lbl">Source</div>
+        <div class="meta-item-val" id="drawerSource">Government</div>
+      </div>
+      <div>
+        <div class="meta-item-lbl">Alert ID</div>
+        <div class="meta-item-val" id="drawerId" style="font-family: monospace; font-size:10px;">mock-alert-rain-001</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+var latestData = null;
+var allWarnings = [];
+var filteredWarnings = [];
+var selectedId = null;
+
+var geojsonLayers = {};
+var mapFeatureGroup = L.featureGroup();
+
+// ── Leaflet Initialization ─────────────────────────────────────────────────
+var map = L.map('map', { zoomControl: false }).setView([54.2, -3.0], 6);
+L.control.zoom({ position: 'topleft' }).addTo(map);
+
+// Basemap Tiles Definition
+var BASEMAPS = {
+  light: L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+  }),
+  dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+  })
+};
+
+// Start with Dark map for high visual warning polygon presence
+BASEMAPS.dark.addTo(map);
+mapFeatureGroup.addTo(map);
+
+function setBasemap(type) {
+  Object.keys(BASEMAPS).forEach(function(k) { map.removeLayer(BASEMAPS[k]); });
+  BASEMAPS[type].addTo(map);
+  document.getElementById('themeLight').classList.toggle('active', type === 'light');
+  document.getElementById('themeDark').classList.toggle('active', type === 'dark');
+}
+
+// ── Severity Styling Rules ────────────────────────────────────────────────
+var SEV_COLORS = {
+  extreme:   { stroke: '#e53935', fill: '#ef5350' }, // Dark Red
+  severe:    { stroke: '#e53935', fill: '#ef5350' }, // Red (Amber)
+  moderate:  { stroke: '#ffb300', fill: '#ffca28' }, // Amber (Yellow)
+  minor:     { stroke: '#1e88e5', fill: '#42a5f5' }, // Blue
+  unknown:   { stroke: '#78909c', fill: '#b0bec5' }  // Grey
+};
+
+function getWarningStyle(sev, isHovered) {
+  var colors = SEV_COLORS[sev] || SEV_COLORS.unknown;
+  return {
+    color: colors.stroke,
+    fillColor: colors.fill,
+    fillOpacity: isHovered ? 0.6 : 0.25,
+    weight: isHovered ? 5.0 : 2.5,
+    lineCap: 'round',
+    lineJoin: 'round'
+  };
+}
+
+// ── Date helper ────────────────────────────────────────────────────────────
+// Format ISO date string into readable UK representation
+function formatUKTime(isoStr) {
+  if (!isoStr) return 'Continuous';
+  var date = new Date(isoStr);
+  var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  var d = days[date.getDay()];
+  var day = date.getDate();
+  var m = months[date.getMonth()];
+  var hrs = date.getHours().toString().padStart(2, '0');
+  var mins = date.getMinutes().toString().padStart(2, '0');
+  
+  return d + ' ' + day + ' ' + m + ' ' + hrs + ':' + mins;
+}
+
+// ── Ingest Warnings Data ────────────────────────────────────────────────────
+function loadWarnings() {
+  // First try to fetch from R2 CDN, with a cache-buster
+  var fetchUrl = 'https://radar.floodforecast.co.uk/warnings/warnings_latest.json?_cb=' + Date.now();
+  
+  fetch(fetchUrl)
+    .then(function(r) {
+      if (!r.ok) throw new Error("R2 read failed");
+      return r.json();
+    })
+    .catch(function() {
+      // Local fallback for robust developer environment offline testing
+      return fetch('warnings/warnings_latest.json?_cb=' + Date.now())
+        .then(function(r) { return r.json(); });
+    })
+    .then(function(data) {
+      latestData = data;
+      allWarnings = data.warnings || [];
+      
+      // Update header meta counter
+      var genTime = formatUKTime(data.generated_at);
+      var text = allWarnings.length + ' active ' + (allWarnings.length === 1 ? 'warning' : 'warnings');
+      if (data.is_mock) {
+        text += ' (DEMO MODE)';
+      }
+      document.getElementById('warningsCounter').innerText = text + ' — updated ' + genTime;
+      
+      filterAndRender();
+    })
+    .catch(function(err) {
+      document.getElementById('cardsList').innerHTML = 
+        '<div class="empty-state">Error loading warnings. Please ensure fetch_warnings.py has run.<br><span style="font-size:10px; color:#ef5350">' + err.message + '</span></div>';
+      console.error("Warnings load failed:", err);
+    });
+}
+
+// ── Filter and Render Engine ───────────────────────────────────────────────
+function filterAndRender() {
+  // 1. Gather filter states
+  var todayOnly = document.getElementById('todayToggle').checked;
+  
+  var activeTags = Array.from(document.querySelectorAll('.filter-tag:checked')).map(function(cb) { return cb.value; });
+  var activeSevs = Array.from(document.querySelectorAll('.filter-sev:checked')).map(function(cb) { return cb.value; });
+  
+  var now = new Date();
+
+  // 2. Perform filtering
+  filteredWarnings = allWarnings.filter(function(w) {
+    // Severity Match
+    var sev = w.severity || 'unknown';
+    if (!activeSevs.includes(sev)) return false;
+    
+    // Tag Phenomenon Match
+    var wTags = w.tag || [];
+    var tagMatches = wTags.some(function(t) {
+      // Map composite subcategories to main tags
+      if (t === 'snow_ice' || t === 'snow' || t === 'ice') return activeTags.includes('snow');
+      if (t === 'coastal_event') return activeTags.includes('fog') || activeTags.includes('wind');
+      return activeTags.includes(t);
+    });
+    if (!tagMatches && wTags.length > 0) return false;
+    
+    // Today's Warnings Check (Warning active interval overlaps current calendar hour)
+    if (todayOnly) {
+      var start = w.start_date ? new Date(w.start_date) : null;
+      var end = w.end_date ? new Date(w.end_date) : null;
+      
+      // Start of today, end of today local bounds
+      var startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      var endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+      
+      if (start && start > endOfToday) return false; // Starts in the future
+      if (end && end < startOfToday) return false;    // Ended in the past
+    }
+    
+    return true;
+  });
+
+  // Update shown counter
+  document.getElementById('sidebarCounts').innerText = filteredWarnings.length + ' SHOWN';
+
+  // 3. Render Leaflet Map Polygons
+  renderMapPolygons();
+
+  // 4. Render Sidebar List Cards
+  renderSidebarCards();
+}
+
+function renderMapPolygons() {
+  // Clear previous layers
+  mapFeatureGroup.clearLayers();
+  geojsonLayers = {};
+  
+  filteredWarnings.forEach(function(w) {
+    if (!w.geometry || !w.geometry.coordinates) return;
+    
+    var geojsonFeature = {
+      type: "Feature",
+      properties: w,
+      geometry: w.geometry
+    };
+    
+    var severity = w.severity || 'unknown';
+    
+    var layer = L.geoJSON(geojsonFeature, {
+      style: getWarningStyle(severity, false),
+      onEachFeature: function(feature, l) {
+        // Bind hover actions
+        l.on('mouseover', function() {
+          l.setStyle(getWarningStyle(severity, true));
+        });
+        l.on('mouseout', function() {
+          if (selectedId !== w.alert_id) {
+            l.setStyle(getWarningStyle(severity, false));
+          }
+        });
+        // Bind Click actions
+        l.on('click', function(e) {
+          L.DomEvent.stopPropagation(e);
+          selectWarning(w.alert_id, true);
+        });
+        
+        // Simple map tooltip
+        l.bindTooltip('<strong>' + w.title + '</strong><br>' + severity.toUpperCase(), {
+          sticky: true,
+          className: 'sharp-radar'
+        });
+      }
+    });
+    
+    geojsonLayers[w.alert_id] = layer;
+    mapFeatureGroup.addLayer(layer);
+  });
+}
+
+function renderSidebarCards() {
+  var container = document.getElementById('cardsList');
+  container.innerHTML = '';
+  
+  if (filteredWarnings.length === 0) {
+    container.innerHTML = '<div class="empty-state">No warnings match your active filters. Try adjusting toggles or phenomenons.</div>';
+    return;
+  }
+  
+  // Render demo banner if operating in Mock Mode
+  if (latestData && latestData.is_mock) {
+    var banner = document.createElement('div');
+    banner.className = 'demo-banner';
+    banner.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>Showing active Met Office demo warnings. Check your GitHub repository secrets if you wish to link live OpenWeather Alerts API results.</span>';
+    container.appendChild(banner);
+  }
+  
+  filteredWarnings.forEach(function(w) {
+    var card = document.createElement('div');
+    card.className = 'warning-card';
+    card.id = 'card-' + w.alert_id;
+    
+    // Severity styling class
+    var severity = w.severity || 'unknown';
+    card.classList.add('sev-' + severity);
+    if (selectedId === w.alert_id) {
+      card.classList.add('selected');
+    }
+    
+    // Top row: Title and Badge
+    var topRow = '<div class="card-top"><span class="card-title">' + w.title + '</span><span class="sev-badge badge-' + severity + '">' + severity + '</span></div>';
+    
+    // Date validity row
+    var timeRange = formatUKTime(w.start_date) + ' &ndash; ' + formatUKTime(w.end_date);
+    var timeRow = '<div class="card-time"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>' + timeRange + '</span></div>';
+    
+    // Description preview
+    var descRow = '<div class="card-desc">' + w.description + '</div>';
+    
+    // Footer tags
+    var tagsHtml = (w.tag || []).map(function(t) { return '<span class="tag-badge">' + t + '</span>'; }).join('');
+    var footerRow = '<div class="card-footer">' + tagsHtml + '</div>';
+    
+    card.innerHTML = topRow + timeRow + descRow + footerRow;
+    
+    // Click actions
+    card.addEventListener('click', function() {
+      selectWarning(w.alert_id, true);
+    });
+    
+    // Hover synchronizations (Glow map polygon on card hover)
+    card.addEventListener('mouseenter', function() {
+      if (geojsonLayers[w.alert_id]) {
+        geojsonLayers[w.alert_id].setStyle(getWarningStyle(severity, true));
+      }
+    });
+    card.addEventListener('mouseleave', function() {
+      if (selectedId !== w.alert_id && geojsonLayers[w.alert_id]) {
+        geojsonLayers[w.alert_id].setStyle(getWarningStyle(severity, false));
+      }
+    });
+    
+    container.appendChild(card);
+  });
+}
+
+// ── Interactive Synchronizer ───────────────────────────────────────────────
+function selectWarning(alertId, flyToMap) {
+  var prevId = selectedId;
+  selectedId = alertId;
+  
+  // Reset previous style
+  if (prevId && geojsonLayers[prevId]) {
+    var prevW = allWarnings.find(function(w) { return w.alert_id === prevId; });
+    var prevSev = prevW ? prevW.severity : 'unknown';
+    geojsonLayers[prevId].setStyle(getWarningStyle(prevSev, false));
+  }
+  
+  // Highlight selected polygon
+  if (alertId && geojsonLayers[alertId]) {
+    var activeW = allWarnings.find(function(w) { return w.alert_id === alertId; });
+    var activeSev = activeW ? activeW.severity : 'unknown';
+    geojsonLayers[alertId].setStyle(getWarningStyle(activeSev, true));
+    
+    // Fly to boundary
+    if (flyToMap) {
+      map.flyToBounds(geojsonLayers[alertId].getBounds(), {
+        padding: [30, 30],
+        maxZoom: 10,
+        duration: 1.2
+      });
+    }
+  }
+  
+  // Sync sidebar cards active classes
+  document.querySelectorAll('.warning-card').forEach(function(c) {
+    c.classList.remove('selected');
+  });
+  var activeCard = document.getElementById('card-' + alertId);
+  if (activeCard) {
+    activeCard.classList.add('selected');
+    activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  
+  // Open details drawer
+  if (alertId) {
+    var warning = allWarnings.find(function(w) { return w.alert_id === alertId; });
+    if (warning) {
+      openDrawer(warning);
+    }
+  } else {
+    closeDrawer();
+  }
+}
+
+// ── Details Drawer Controls ────────────────────────────────────────────────
+function openDrawer(w) {
+  var drawer = document.getElementById('detailsDrawer');
+  
+  // Style severity badge
+  var badge = document.getElementById('drawerSeverityBadge');
+  badge.className = 'sev-badge badge-' + w.severity;
+  badge.innerText = w.severity;
+  
+  // Populate drawer
+  document.getElementById('drawerTitleText').innerText = w.title;
+  document.getElementById('drawerDescription').innerText = w.description;
+  document.getElementById('drawerStart').innerText = formatUKTime(w.start_date);
+  document.getElementById('drawerEnd').innerText = formatUKTime(w.end_date);
+  document.getElementById('drawerCertainty').innerText = w.certainty;
+  document.getElementById('drawerUrgency').innerText = w.urgency;
+  document.getElementById('drawerSource').innerText = w.source;
+  document.getElementById('drawerId').innerText = w.alert_id;
+  
+  drawer.classList.add('open');
+}
+
+function closeDrawer() {
+  var drawer = document.getElementById('detailsDrawer');
+  drawer.classList.remove('open');
+  
+  // Reset map selected highlight
+  if (selectedId && geojsonLayers[selectedId]) {
+    var activeW = allWarnings.find(function(w) { return w.alert_id === selectedId; });
+    var activeSev = activeW ? activeW.severity : 'unknown';
+    geojsonLayers[selectedId].setStyle(getWarningStyle(activeSev, false));
+  }
+  selectedId = null;
+  document.querySelectorAll('.warning-card').forEach(function(c) {
+    c.classList.remove('selected');
+  });
+}
+
+// Close drawer when map is clicked (outside polygons)
+map.on('click', function() {
+  closeDrawer();
+});
+
+// ── Inception ──────────────────────────────────────────────────────────────
+loadWarnings();
+</script>
+
+</body>
+</html>
