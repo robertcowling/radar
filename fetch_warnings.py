@@ -195,24 +195,45 @@ def fetch_warnings_from_onecall():
         else:
             severity = "moderate"  # default standard warning severity
             
-        # Determine tags
+        # Determine tags using precise regex word boundaries to avoid false positives (e.g. "advice" -> "ice")
+        import re
         tags = []
         desc_lower = description.lower()
         title_lower = event_lower
         
-        if "thunderstorm" in title_lower or "thunderstorm" in desc_lower or "lightning" in desc_lower:
+        # 1. Prioritize matching the primary warning type explicitly named in the event title
+        if "thunderstorm" in title_lower:
             tags.append("thunderstorm")
-        if "rain" in title_lower or "rain" in desc_lower or "precipitation" in desc_lower:
+        elif "rain" in title_lower or "shower" in title_lower:
             tags.append("rain")
-        if "wind" in title_lower or "wind" in desc_lower or "gale" in desc_lower or "storm" in desc_lower:
+        elif "wind" in title_lower or "gale" in title_lower:
             tags.append("wind")
-        if "flood" in title_lower or "flood" in desc_lower:
+        elif "flood" in title_lower:
             tags.append("flood")
-        if "snow" in title_lower or "snow" in desc_lower or "ice" in title_lower or "ice" in desc_lower:
+        elif "snow" in title_lower or "ice" in title_lower:
             tags.append("snow")
-        if "fog" in title_lower or "fog" in desc_lower or "mist" in desc_lower:
+        elif "fog" in title_lower:
             tags.append("fog")
             
+        # 2. If title is generic, match using strict word boundaries from description
+        if not tags:
+            def has_word(pattern, text):
+                return bool(re.search(r'\b(?:' + pattern + r')\b', text))
+                
+            if has_word("thunderstorm|thunderstorms|lightning", title_lower) or has_word("thunderstorm|thunderstorms|lightning", desc_lower):
+                tags.append("thunderstorm")
+            if has_word("rain|precipitation|showers?", title_lower) or has_word("rain|precipitation|showers?", desc_lower):
+                tags.append("rain")
+            if has_word("wind|winds|gale|gales|storm|storms", title_lower) or has_word("wind|winds|gale|gales|storm|storms", desc_lower):
+                tags.append("wind")
+            if has_word("flood|flooding", title_lower) or has_word("flood|flooding", desc_lower):
+                tags.append("flood")
+            # For snow/ice, check specifically to avoid matching 'advice'
+            if has_word("snow|snowing|ice|icy", title_lower) or (has_word("snow|snowing|ice|icy", desc_lower) and "advice" not in desc_lower):
+                tags.append("snow")
+            if has_word("fog|foggy|mist|misty", title_lower) or has_word("fog|foggy|mist|misty", desc_lower):
+                tags.append("fog")
+                
         if not tags:
             tags.append("rain")  # default fallback tag
             

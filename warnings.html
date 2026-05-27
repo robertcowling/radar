@@ -115,6 +115,16 @@ body {
 
 .empty-state { text-align: center; padding: 40px 20px; color: #5f6368; font-size: 12px; font-weight: 500; }
 
+.premium-select {
+  width: 100%; padding: 6px 10px; border: 1px solid #dde1e7; border-radius: 6px;
+  font-size: 11px; font-weight: 500; outline: none; background: white;
+  cursor: pointer; color: #3c4043; transition: border 0.15s, box-shadow 0.15s;
+}
+.premium-select:focus {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
+}
+
 /* ── Leaflet Controls Overlay ─────────────────────────────────────────────── */
 .map-theme-toggle {
   position: absolute; top: 10px; left: 10px; z-index: 500;
@@ -253,6 +263,17 @@ body {
           <label class="custom-checkbox"><input type="checkbox" class="filter-sev" value="moderate" checked onchange="filterAndRender()">Moderate / Yellow</label>
           <label class="custom-checkbox"><input type="checkbox" class="filter-sev" value="minor" checked onchange="filterAndRender()">Minor</label>
         </div>
+      </div>
+
+      <!-- Map Layers Overlay -->
+      <div>
+        <div class="filter-title">Map Overlay Layers</div>
+        <select id="layerSelect" class="premium-select" onchange="onLayerSelectChange(this.value)">
+          <option value="none" selected>None</option>
+          <option value="regions">Regions</option>
+          <option value="catchments">River Catchments</option>
+          <option value="counties">Counties</option>
+        </select>
       </div>
     </div>
 
@@ -674,6 +695,62 @@ function closeDrawer() {
 map.on('click', function() {
   closeDrawer();
 });
+
+// ── Boundary layers ────────────────────────────────────────────────────────
+var boundaryLayers = {};
+var currentBoundary = 'none';
+
+var BSTYLES = {
+  regions:    { color: '#5f6368', weight: 1.5, fillOpacity: 0 },
+  counties:   { color: '#5f6368', weight: 1.0, fillOpacity: 0 },
+  catchments: { color: '#5f6368', weight: 1.0, fillOpacity: 0 }
+};
+
+var BFILES = {
+  regions:    'uk_regions.geojson',
+  counties:   'uk-counties.geojson',
+  catchments: 'uk_catchments.geojson'
+};
+
+function loadBoundary(val) {
+  if (!BFILES[val]) return;
+  if (boundaryLayers[val]) {
+    map.addLayer(boundaryLayers[val]);
+    try {
+      boundaryLayers[val].bringToBack();
+    } catch(e){}
+    return;
+  }
+  
+  fetch(BFILES[val])
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      boundaryLayers[val] = L.geoJSON(d, {
+        style: BSTYLES[val],
+        interactive: false
+      });
+      if (currentBoundary === val) {
+        map.addLayer(boundaryLayers[val]);
+        try {
+          boundaryLayers[val].bringToBack();
+        } catch(e){}
+      }
+    })
+    .catch(function(err) {
+      console.error("Failed to load boundary layer " + val + ":", err);
+    });
+}
+
+function onLayerSelectChange(val) {
+  if (currentBoundary !== 'none' && boundaryLayers[currentBoundary]) {
+    map.removeLayer(boundaryLayers[currentBoundary]);
+  }
+  
+  currentBoundary = val;
+  if (val !== 'none') {
+    loadBoundary(val);
+  }
+}
 
 // ── Inception ──────────────────────────────────────────────────────────────
 loadWarnings();
