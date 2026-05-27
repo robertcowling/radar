@@ -286,6 +286,23 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
   border: none;
 }
 
+/* ── Quality Index Markers (L.divIcon) ─────────────────────────────────────── */
+.qi-wrap {
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px;
+}
+.qi-icon {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  transform: translateZ(0); will-change: transform;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Roboto', sans-serif;
+  font-size: 8px; font-weight: 700;
+  box-sizing: border-box;
+  cursor: pointer;
+  line-height: 1;
+}
+
 /* Prevent browser from blurring upscaled radar images */
 .sharp-radar {
   image-rendering: -webkit-optimize-contrast;
@@ -371,11 +388,37 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
     <div class="panel-wrap" id="midWrap">
       <div id="mapMid" class="panel-map"></div>
       <!-- QC flag key -->
-      <div class="qc-key">
-        <p>Quality index (QI)</p>
-        <div class="qc-swatch-row"><div class="qc-dot" style="background:#c62828"></div><span class="qc-swatch-lbl">QI &lt; 0.50 (poor)</span></div>
-        <div class="qc-swatch-row"><div class="qc-dot" style="background:#ef6c00"></div><span class="qc-swatch-lbl">QI 0.50–0.99 (uncertain)</span></div>
-        <div class="qc-swatch-row"><div class="qc-dot" style="background:#90a4ae;opacity:0.6"></div><span class="qc-swatch-lbl">No flags</span></div>
+      <div class="qc-key" style="width: 190px; pointer-events: none">
+        <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #1e293b">Quality Index (QI)</p>
+        <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; border-bottom: 1px solid #dde1e7; padding-bottom: 6px">
+          <div class="qc-swatch-row">
+            <div style="width: 14px; height: 14px; background: #cbd5e1; border-radius: 50%; border: 1.5px solid #94a3b8; flex-shrink: 0"></div>
+            <span class="qc-swatch-lbl">QI 1.00 (High / Trusted)</span>
+          </div>
+          <div class="qc-swatch-row">
+            <div style="width: 14px; height: 14px; background: #252525; border-radius: 50%; border: 1.5px solid #94a3b8; flex-shrink: 0"></div>
+            <span class="qc-swatch-lbl">QI 0.00 (Low / Suspect)</span>
+          </div>
+        </div>
+        <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #1e293b">LLM QC Verdict Ring</p>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <div class="qc-swatch-row">
+            <div style="width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid #4caf50; box-shadow: 0 0 2px #4caf50; flex-shrink: 0"></div>
+            <span class="qc-swatch-lbl">Genuine (Green Ring)</span>
+          </div>
+          <div class="qc-swatch-row">
+            <div style="width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid #ffb300; box-shadow: 0 0 2px #ffb300; flex-shrink: 0"></div>
+            <span class="qc-swatch-lbl">Uncertain (Amber Ring)</span>
+          </div>
+          <div class="qc-swatch-row">
+            <div style="width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid #f44336; box-shadow: 0 0 2px #f44336; flex-shrink: 0"></div>
+            <span class="qc-swatch-lbl">Suspect (Red Ring)</span>
+          </div>
+          <div class="qc-swatch-row" style="margin-top: 2px">
+            <div style="background:#90a4ae; opacity:0.35; width:7px; height:7px; border-radius:50%; margin-left:3px; flex-shrink:0"></div>
+            <span class="qc-swatch-lbl" style="margin-left: 2px">No flags (Passed)</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1013,18 +1056,46 @@ function renderMidMarkers() {
   summary.forEach(function(s) {
     if (!s.f) return;
     var qi = (s.qi !== undefined) ? s.qi : (s.f === 'FLAGGED' ? 0.25 : 0.75);
-    var fillColor = qi < 0.5 ? '#c62828' : '#ef6c00';
-    var m = L.circleMarker([s.lat, s.lon], {
-      radius:9, color:'white', weight:1.5, fillColor:fillColor, fillOpacity:0.9
-    });
     var g = flagMap[s.id];
+    
+    // Grey color graduated to dark grey (lower QI = darker grey)
+    // QI = 1.0 (lightest): HSL lightness = 75%
+    // QI = 0.0 (darkest): HSL lightness = 15%
+    var lightness = 15 + Math.round(qi * 60);
+    var bg = 'hsl(0, 0%, ' + lightness + '%)';
+    var fg = qi < 0.5 ? '#ffffff' : '#1e293b';
+    
+    // Ring styling based on LLM verdict
+    var borderStyle = 'border: 2px solid #94a3b8;'; // neutral default
+    if (g && g.llm_verdict) {
+      var v = g.llm_verdict.toUpperCase();
+      if (v === 'GENUINE') {
+        borderStyle = 'border: 3px solid #4caf50; box-shadow: 0 0 4px #4caf50;';
+      } else if (v === 'UNCERTAIN') {
+        borderStyle = 'border: 3px solid #ffb300; box-shadow: 0 0 4px #ffb300;';
+      } else if (v === 'SUSPECT') {
+        borderStyle = 'border: 3px solid #f44336; box-shadow: 0 0 4px #f44336;';
+      }
+    }
+    
+    var qiText = qi.toFixed(2);
+    var iconHtml = '<div class="qi-wrap"><div class="qi-icon" style="background:' + bg + ';color:' + fg + ';' + borderStyle + '">' + qiText + '</div></div>';
+    
+    var icon = L.divIcon({
+      className: '',
+      html: iconHtml,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
+    });
+    
+    var m = L.marker([s.lat, s.lon], { icon: icon });
     var failN = g ? countCheckFails(g.checks) : (s.f === 'FLAGGED' ? 2 : 1);
     var failStr = failN === 1 ? '1 check fails' : failN + ' checks fail';
     var verdict = (g && g.llm_verdict) ? ' &middot; ' + g.llm_verdict.charAt(0) + g.llm_verdict.slice(1).toLowerCase() : '';
     var tipCounty = s.c ? '<br><span style="font-size:10px;color:#80868b">' + escHtml(s.c) + '</span>' : '';
     var qiTip = s.qi !== undefined ? ' &middot; QI ' + s.qi.toFixed(2) : '';
     m.bindTooltip('<b>' + escHtml(s.n) + '</b>' + tipCounty + '<br>' + s.mm.toFixed(1) + ' mm &middot; ' + failStr + qiTip + verdict,
-      { direction:'top', className:'gauge-tip', offset:[0,-11] });
+      { direction:'top', className:'gauge-tip', offset:[0,-14] });
     if (g) m.bindPopup(buildPopup(g), { maxWidth:300, minWidth:210 });
     m.on('click', (function(sid){ return function(){ selectGauge(sid); }; })(s.id));
     m.addTo(flagLayerMid);
