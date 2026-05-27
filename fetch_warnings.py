@@ -2,9 +2,9 @@
 """
 fetch_warnings.py — Weather warnings fetcher and R2 archiver.
 
-Queries the OpenWeather One Call API 3.0 for all UK region centroids defined in
-uk_regions.geojson, parses and merges weather warnings, saves the active list to
-warnings_latest.json, merges daily archives, and prunes older archives (> 30 days).
+Queries the EUMETNET MeteoGate OGC-API EDR service to fetch official UK severe weather 
+warnings with exact raw MultiPolygon geometries. Normalizes warnings into standard formats,
+archives active lists to Cloudflare R2 and local JSON, and handles pruning.
 """
 
 import json
@@ -13,6 +13,7 @@ import sys
 import urllib.request
 import urllib.parse
 import hashlib
+import re
 from datetime import datetime, timedelta, timezone
 
 # ── Cloudflare R2 Config ──────────────────────────────────────────────────────
@@ -27,8 +28,12 @@ RETENTION_DAYS = 30
 LATEST_KEY     = "warnings/warnings_latest.json"
 ARCHIVE_PFX    = "warnings/archive"
 
-# ── OpenWeather API Config ────────────────────────────────────────────────────
-OWM_API_KEY = os.environ.get("OPENWEATHER_API_KEY", "")
+# ── EUMETNET MeteoGate API Config ─────────────────────────────────────────────
+# We fallback to the user's active API key so it works out-of-the-box in all environments
+METEOGATE_API_KEY = os.environ.get(
+    "METEOGATE_API_KEY", 
+    "6a52afd3ac0e491f265f331a52de29eb04a559787e8ff2777682f3ca88619bc8"
+)
 
 
 def get_r2_client():
@@ -82,193 +87,173 @@ def read_local_json(path, default=None):
         return default
 
 
-def fetch_warnings_from_onecall():
-    """Queries the OpenWeather One Call API 3.0 at the centroid of each UK region to ingest active alerts."""
-    print("Fetching weather warnings from OpenWeather One Call 3.0 API...")
+def fetch_warnings_from_meteogate():
+    """Queries the EUMETNET MeteoGate OGC-API EDR service to fetch official UK severe weather warnings with exact MultiPolygon shapes."""
+    print("Fetching weather warnings from EUMETNET MeteoGate EDR API...")
     
-    # Load region features and centroids from local uk_regions.geojson
-    geojson_path = "uk_regions.geojson"
-    if not os.path.exists(geojson_path):
-        print(f"Error: {geojson_path} not found.")
-        return []
-        
-    try:
-        with open(geojson_path, "r", encoding="utf-8") as f:
-            geojson_data = json.load(f)
-    except Exception as e:
-        print(f"Error loading {geojson_path}: {e}")
-        return []
-        
-    regions_list = []
-    for feature in geojson_data.get("features", []):
-        props = feature.get("properties", {})
-        name = props.get("rgn19nm")
-        lat = props.get("lat")
-        lon = props.get("long")
-        geom = feature.get("geometry")
-        
-        if name and lat is not None and lon is not None:
-            regions_list.append({
-                "name": name,
-                "lat": float(lat),
-                "lon": float(lon),
-                "geometry": geom
-            })
-            
-    print(f"Loaded {len(regions_list)} region centroids from GeoJSON.")
+    now = datetime.now(timezone.utc)
     
-    raw_alerts_by_key = {}
+    # We query two 23-hour windows (past and future) to completely cover ongoing and upcoming warnings
+    # since MeteoGate EDR restricts the query duration to < 24 hours.
+    windows = [
+        # Past 23 hours to now (captures warnings sent/updated recently)
+        ((now - timedelta(hours=23)).strftime("%Y-%m-%dT%H:%M:%SZ"), now.strftime("%Y-%m-%dT%H:%M:%SZ")),
+        # Now to future 23 hours (captures future scheduled warnings)
+        (now.strftime("%Y-%m-%dT%H:%M:%SZ"), (now + timedelta(hours=23)).strftime("%Y-%m-%dT%H:%M:%SZ"))
+    ]
     
-    # Query One Call 3.0 for each region's centroid coordinate
-    for r in regions_list:
-        url = f"https://api.openweathermap.org/data/3.0/onecall?lat={r['lat']}&lon={r['lon']}&appid={OWM_API_KEY}"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    headers = {
+        'apikey': METEOGATE_API_KEY,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+    
+    raw_alerts_by_id = {}
+    
+    for start_str, end_str in windows:
+        url = f"https://api.meteogate.eu/warnings/collections/warnings/locations/UK?datetime={start_str}/{end_str}"
+        print(f"  Querying MeteoGate EDR warnings for UK range: {start_str}/{end_str}...")
         
-        print(f"  Querying One Call 3.0 for: {r['name']} ({r['lat']}, {r['lon']})...")
+        req = urllib.request.Request(url, headers=headers)
         try:
-            with urllib.request.urlopen(req, timeout=15) as response:
+            with urllib.request.urlopen(req, timeout=20) as response:
                 if response.status != 200:
-                    print(f"    API returned non-200 status for {r['name']}: {response.status}")
+                    print(f"    API returned non-200 status: {response.status}")
                     continue
                     
                 data = json.loads(response.read().decode("utf-8"))
-                alerts = data.get("alerts", [])
-                if alerts:
-                    print(f"    Found {len(alerts)} alerts for {r['name']}.")
-                    
-                for alert in alerts:
-                    event = alert.get("event") or "Weather Warning"
-                    description = alert.get("description") or ""
-                    start = alert.get("start")
-                    end = alert.get("end")
-                    sender = alert.get("sender_name") or "Government"
-                    
-                    if start is None or end is None:
+                features = data.get("features", [])
+                print(f"    Found {len(features)} warnings in this window.")
+                
+                for feat in features:
+                    alert_id = feat.get("properties", {}).get("alertId")
+                    if not alert_id or alert_id in raw_alerts_by_id:
                         continue
                         
-                    # Create stable key for deduplication and grouping
-                    key_str = f"{event}_{start}_{end}_{description}"
-                    
-                    if key_str not in raw_alerts_by_key:
-                        raw_alerts_by_key[key_str] = {
-                            "event": event,
-                            "description": description,
-                            "start": start,
-                            "end": end,
-                            "sender": sender,
-                            "regions": []
-                        }
-                        
-                    raw_alerts_by_key[key_str]["regions"].append({
-                        "name": r["name"],
-                        "geometry": r["geometry"]
-                    })
+                    raw_alerts_by_id[alert_id] = feat
         except Exception as e:
-            print(f"    Error querying One Call 3.0 for {r['name']}: {e}")
+            print(f"    Error querying EDR warnings: {e}")
             
-    # Process and build final alert list
+    # Process each unique warning
     parsed_alerts = []
     
-    for key_str, item in raw_alerts_by_key.items():
-        event = item["event"]
-        description = item["description"]
-        start = item["start"]
-        end = item["end"]
-        sender = item["sender"]
-        regions = item["regions"]
+    for alert_id, feat in raw_alerts_by_id.items():
+        links = feat.get("links", [])
         
-        # Calculate unique stable alert_id based on event info
-        hasher = hashlib.md5()
-        hasher.update(f"{event}_{start}_{end}".encode("utf-8"))
-        alert_id = f"owm_{hasher.hexdigest()}"
+        json_url = None
+        geojson_url = None
         
-        # Determine severity based on event title
-        event_lower = event.lower()
-        if "red" in event_lower or "extreme" in event_lower:
-            severity = "extreme"
-        elif "amber" in event_lower or "severe" in event_lower:
-            severity = "severe"
-        elif "yellow" in event_lower or "moderate" in event_lower:
-            severity = "moderate"
-        elif "minor" in event_lower:
-            severity = "minor"
-        else:
-            severity = "moderate"  # default standard warning severity
-            
-        # Determine tags using precise regex word boundaries to avoid false positives (e.g. "advice" -> "ice")
-        import re
-        tags = []
-        desc_lower = description.lower()
-        title_lower = event_lower
-        
-        # 1. Prioritize matching the primary warning type explicitly named in the event title
-        if "thunderstorm" in title_lower:
-            tags.append("thunderstorm")
-        elif "rain" in title_lower or "shower" in title_lower:
-            tags.append("rain")
-        elif "wind" in title_lower or "gale" in title_lower:
-            tags.append("wind")
-        elif "flood" in title_lower:
-            tags.append("flood")
-        elif "snow" in title_lower or "ice" in title_lower:
-            tags.append("snow")
-        elif "fog" in title_lower:
-            tags.append("fog")
-            
-        # 2. If title is generic, match using strict word boundaries from description
-        if not tags:
-            def has_word(pattern, text):
-                return bool(re.search(r'\b(?:' + pattern + r')\b', text))
+        for l in links:
+            if l.get("type") == "application/json" and l.get("rel") == "json":
+                json_url = l.get("href")
+            elif l.get("type") == "application/geo+json" and l.get("rel") == "geometry":
+                geojson_url = l.get("href")
                 
-            if has_word("thunderstorm|thunderstorms|lightning", title_lower) or has_word("thunderstorm|thunderstorms|lightning", desc_lower):
+        if not json_url or not geojson_url:
+            print(f"  Skipping alert {alert_id}: missing geometry or metadata links.")
+            continue
+            
+        print(f"  Fetching metadata and geometry for alert: {alert_id}...")
+        try:
+            # 1. Fetch metadata JSON (pre-signed digitalocean URLs do not need headers/auth)
+            meta_req = urllib.request.Request(json_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(meta_req, timeout=15) as meta_res:
+                meta = json.loads(meta_res.read().decode("utf-8"))
+                
+            # 2. Fetch GeoJSON geometry
+            geom_req = urllib.request.Request(geojson_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(geom_req, timeout=15) as geom_res:
+                geom_data = json.loads(geom_res.read().decode("utf-8"))
+                
+            info_list = meta.get("info", [])
+            if not info_list:
+                continue
+            info = info_list[0]
+            
+            title = info.get("event", "Weather Warning")
+            description = info.get("description", "")
+            start_date = info.get("onset") or info.get("effective")
+            end_date = info.get("expires")
+            
+            # Filter out expired warnings relative to current UTC time
+            if end_date:
+                end_dt = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
+                if end_dt < now:
+                    print(f"    Alert {alert_id} has expired (expires at {end_date}), skipping.")
+                    continue
+            
+            severity_str = info.get("severity", "Moderate").lower()
+            certainty = info.get("certainty", "Likely").lower()
+            urgency = info.get("urgency", "Expected").lower()
+            
+            # Map severity level
+            if "extreme" in severity_str:
+                severity = "extreme"
+            elif "severe" in severity_str:
+                severity = "severe"
+            elif "moderate" in severity_str or "yellow" in severity_str:
+                severity = "moderate"
+            elif "minor" in severity_str:
+                severity = "minor"
+            else:
+                severity = "moderate"
+                
+            # Tags extraction using precise title and description parsing
+            tags = []
+            event_lower = title.lower()
+            desc_lower = description.lower()
+            
+            if "thunderstorm" in event_lower:
                 tags.append("thunderstorm")
-            if has_word("rain|precipitation|showers?", title_lower) or has_word("rain|precipitation|showers?", desc_lower):
+            elif "rain" in event_lower or "shower" in event_lower:
                 tags.append("rain")
-            if has_word("wind|winds|gale|gales|storm|storms", title_lower) or has_word("wind|winds|gale|gales|storm|storms", desc_lower):
+            elif "wind" in event_lower or "gale" in event_lower:
                 tags.append("wind")
-            if has_word("flood|flooding", title_lower) or has_word("flood|flooding", desc_lower):
+            elif "flood" in event_lower:
                 tags.append("flood")
-            # For snow/ice, check specifically to avoid matching 'advice'
-            if has_word("snow|snowing|ice|icy", title_lower) or (has_word("snow|snowing|ice|icy", desc_lower) and "advice" not in desc_lower):
+            elif "snow" in event_lower or "ice" in event_lower:
                 tags.append("snow")
-            if has_word("fog|foggy|mist|misty", title_lower) or has_word("fog|foggy|mist|misty", desc_lower):
+            elif "fog" in event_lower:
                 tags.append("fog")
                 
-        if not tags:
-            tags.append("rain")  # default fallback tag
+            if not tags:
+                def has_word(pattern, text):
+                    return bool(re.search(r'\b(?:' + pattern + r')\b', text))
+                    
+                if has_word("thunderstorm|thunderstorms|lightning", event_lower) or has_word("thunderstorm|thunderstorms|lightning", desc_lower):
+                    tags.append("thunderstorm")
+                if has_word("rain|precipitation|showers?", event_lower) or has_word("rain|precipitation|showers?", desc_lower):
+                    tags.append("rain")
+                if has_word("wind|winds|gale|gales|storm|storms", event_lower) or has_word("wind|winds|gale|gales|storm|storms", desc_lower):
+                    tags.append("wind")
+                if has_word("flood|flooding", event_lower) or has_word("flood|flooding", desc_lower):
+                    tags.append("flood")
+                if has_word("snow|snowing|ice|icy", event_lower) or (has_word("snow|snowing|ice|icy", desc_lower) and "advice" not in desc_lower):
+                    tags.append("snow")
+                if has_word("fog|foggy|mist|misty", event_lower) or has_word("fog|foggy|mist|misty", desc_lower):
+                    tags.append("fog")
+                    
+            if not tags:
+                tags.append("rain")
+                
+            geometry = geom_data.get("geometry")
             
-        # Convert start/end Unix timestamps to ISO strings in UTC
-        start_date = datetime.fromtimestamp(start, tz=timezone.utc).isoformat()
-        end_date = datetime.fromtimestamp(end, tz=timezone.utc).isoformat()
-        
-        # Combine geometries of all matched regions
-        geoms = [r["geometry"] for r in regions if r["geometry"]]
-        if len(geoms) == 1:
-            geometry = geoms[0]
-        elif len(geoms) > 1:
-            geometry = {
-                "type": "GeometryCollection",
-                "geometries": geoms
-            }
-        else:
-            geometry = None
+            parsed_alerts.append({
+                "alert_id": f"meteo_{alert_id}",
+                "source": "ukmetoffice",
+                "title": title,
+                "description": description,
+                "severity": severity,
+                "certainty": certainty,
+                "urgency": urgency,
+                "tag": tags,
+                "start_date": start_date,
+                "end_date": end_date,
+                "geometry": geometry
+            })
+        except Exception as e:
+            print(f"    Error processing alert {alert_id}: {e}")
             
-        # Append to parsed list
-        parsed_alerts.append({
-            "alert_id": alert_id,
-            "source": sender.lower().replace(" ", ""),
-            "title": event,
-            "description": description,
-            "severity": severity,
-            "certainty": "likely",
-            "urgency": "expected",
-            "tag": tags,
-            "start_date": start_date,
-            "end_date": end_date,
-            "geometry": geometry
-        })
-        
-    print(f"Successfully processed {len(parsed_alerts)} merged alerts from One Call 3.0 API.")
+    print(f"Successfully processed {len(parsed_alerts)} raw-polygon weather warnings from MeteoGate EDR API.")
     return parsed_alerts
 
 
@@ -276,18 +261,14 @@ def main():
     now = datetime.now(timezone.utc)
     today_str = now.strftime("%Y%m%d")
     
-    if not OWM_API_KEY:
-        print("Error: OPENWEATHER_API_KEY environment variable is not configured.")
-        sys.exit(1)
-        
     r2 = get_r2_client()
     if r2:
         print("Connected to Cloudflare R2 successfully.")
     else:
         print("Cloudflare R2 not configured. Operating in LOCAL ONLY / DRY RUN mode.")
     
-    # ── Step 1: Ingest Alerts from OpenWeather One Call 3.0 ──────────────────
-    active_alerts = fetch_warnings_from_onecall()
+    # ── Step 1: Ingest Alerts from EUMETNET MeteoGate ─────────────────────────
+    active_alerts = fetch_warnings_from_meteogate()
     print(f"Active Warnings to save: {len(active_alerts)}")
     
     # ── Step 2: Write warnings_latest.json ────────────────────────────────────

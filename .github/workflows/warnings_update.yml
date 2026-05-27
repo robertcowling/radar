@@ -34,6 +34,7 @@ jobs:
         R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
         OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+        METEOGATE_API_KEY: ${{ secrets.METEOGATE_API_KEY }}
       run: python fetch_warnings.py
 
     - name: Commit local JSON results
