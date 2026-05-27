@@ -1276,7 +1276,7 @@ def main():
                        6:"Summer",7:"Summer",8:"Summer",9:"Autumn",10:"Autumn",11:"Autumn"}[target_dt.month]
 
             # Reuse existing LLM verdict if we are re-running a historical slot
-            if offset > 0 and station_id in existing_llm:
+            if False and offset > 0 and station_id in existing_llm:
                 llm_verdict, llm_reasoning, llm_from_run = existing_llm[station_id]
             elif should_call_llm(checks, latest_value):
                 # Call LLM only for the latest slot (offset == 0)

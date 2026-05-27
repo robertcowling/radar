@@ -249,15 +249,234 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
 .ai-list li::before { content: '·'; position: absolute; left: 3px; color: #94a3b8; font-size: 14px; line-height: 1.2; }
 
 /* ── Mobile responsive ─────────────────────────────────────────────────────── */
+.tbl-mobile-time {
+  display: none;
+}
+.desktop-only {
+  display: inline;
+}
+.mobile-map-toggle {
+  display: none;
+}
+
 @media (max-width: 767px) {
   .panels-row { flex-direction: column; }
   #leftWrap { display: none; }
-  .maps-wrap { flex: none; height: 42vh; }
+  .maps-wrap { flex: none; height: 40vh; }
   .right-wrap { width: 100%; border-left: none; border-top: 2px solid #374151; flex: 1; min-height: 0; }
-  .shared-bar { bottom: 10px; padding: 8px 10px; gap: 8px; overflow-x: auto; max-width: calc(100vw - 20px); }
-  .header-cell:first-child { display: none; }
-  .header-cell:nth-child(2) { flex: 1; }
-  .header-cell:nth-child(3) { flex: none; width: auto; }
+  
+  .desktop-only {
+    display: none !important;
+  }
+  
+  /* Sleek Map Toggle pill inside header */
+  .mobile-map-toggle {
+    display: flex;
+    background: #374151;
+    border-radius: 20px;
+    padding: 2px;
+    border: 1px solid #4b5563;
+  }
+  .map-toggle-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-family: 'Roboto', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 16px;
+    cursor: pointer;
+    outline: none;
+    transition: background 0.15s, color 0.15s;
+  }
+  .map-toggle-btn.active {
+    background: #1a73e8;
+    color: white;
+  }
+  
+  /* Sleek, app-like mobile player bar */
+  .shared-bar {
+    width: calc(100vw - 16px) !important;
+    max-width: 440px !important;
+    bottom: 6px !important;
+    padding: 6px 12px !important;
+    gap: 8px !important;
+    border-radius: 20px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.22) !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Hide standard selectors that are only relevant to the Left Map (which is hidden on mobile) */
+  .shared-bar .ctrl-period,
+  .shared-bar .ctrl-colours,
+  .shared-bar .ctrl-areas,
+  .shared-bar .bar-sep {
+    display: none !important;
+  }
+  
+  /* Mobile checkbox and radar toggle */
+  .shared-bar .ctrl-radar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+  }
+  .shared-bar .ctrl-radar .control-label {
+    display: none !important;
+  }
+  .shared-bar .custom-checkbox {
+    font-size: 10px !important;
+  }
+  .shared-bar .custom-checkbox input {
+    width: 12px !important;
+    height: 12px !important;
+    margin-right: 4px !important;
+  }
+  
+  /* Full-width timeline range slider on mobile */
+  .shared-bar .timeline-container {
+    display: flex !important;
+    flex: 1 !important;
+    width: auto !important;
+    min-width: 70px !important;
+    height: 32px !important;
+    margin: 0 !important;
+  }
+  
+  /* Mobile player date/time spacing */
+  #playerDateTime {
+    padding-left: 6px !important;
+    gap: 0px !important;
+    border-left: 1px solid #e8eaed !important;
+  }
+  #playerDateLine {
+    font-size: 8px !important;
+    font-weight: 600 !important;
+  }
+  #playerTimeLine {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+  }
+  
+  /* Header flex override for mobile */
+  .header-row .header-cell:first-child { display: none; }
+  .header-row .header-cell:nth-child(2) { flex: 1; }
+  .header-row .header-cell:nth-child(3) {
+    width: auto !important;
+    flex: 1 !important;
+    border-left: 2px solid #374151 !important;
+  }
+  
+  /* Sleek, scaled-down middle legend key for mobile screens */
+  .qc-key {
+    padding: 5px 8px !important;
+    border-radius: 6px !important;
+    width: 142px !important;
+    top: 6px !important;
+    right: 6px !important;
+  }
+  .qc-key p {
+    font-size: 9px !important;
+    margin-bottom: 4px !important;
+  }
+  .qc-key div[style*="border-bottom"] {
+    margin-bottom: 5px !important;
+    padding-bottom: 5px !important;
+  }
+  .qc-swatch-lbl {
+    font-size: 8.5px !important;
+  }
+  .qc-dot, 
+  .qc-key div[style*="width: 14px"], 
+  .qc-key div[style*="width: 12px"] {
+    width: 10px !important;
+    height: 10px !important;
+  }
+  .qc-swatch-row {
+    gap: 4px !important;
+    margin-bottom: 2px !important;
+  }
+  
+  /* Downscaled Rainfall colorbar key on mobile */
+  .map-cbar {
+    width: 142px !important;
+    padding: 5px 8px !important;
+    top: 6px !important;
+    right: 6px !important;
+    border-radius: 6px !important;
+  }
+  .map-cbar p {
+    font-size: 8.5px !important;
+    margin-bottom: 3px !important;
+  }
+  .cbar {
+    height: 12px !important;
+  }
+  .cbar-block {
+    font-size: 7px !important;
+  }
+  #radarSubmenu {
+    margin-top: 5px !important;
+    padding-top: 4px !important;
+  }
+  #radarSubmenu span {
+    font-size: 8px !important;
+  }
+  #radarOpacitySlider {
+    margin-top: 1px !important;
+  }
+  
+  /* Mobile-only period selector inside key */
+  .mobile-only-period {
+    display: flex !important;
+  }
+  
+  /* Leaflet popup and zoom optimizations on mobile */
+  .leaflet-popup-content-wrapper {
+    padding: 2px !important;
+    border-radius: 8px !important;
+  }
+  .leaflet-popup-content {
+    margin: 8px 10px !important;
+    width: auto !important;
+  }
+  .leaflet-control-zoom {
+    display: none !important;
+  }
+  
+  /* Mobile log table spacing and responsive columns */
+  .tbl-mobile-time {
+    display: block !important;
+    font-size: 10px !important;
+    color: #64748b !important;
+    margin-top: 2px !important;
+    font-weight: 500 !important;
+  }
+  .tbl-name {
+    font-size: 11.5px !important;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tbl-loc {
+    font-size: 9.5px !important;
+  }
+  
+  /* Hide Columns 2 (Time) and 4 (24hr) on mobile log table */
+  table.qc-table th:nth-child(2),
+  table.qc-table td:nth-child(2),
+  table.qc-table th:nth-child(4),
+  table.qc-table td:nth-child(4) {
+    display: none !important;
+  }
+  
+  table.qc-table td {
+    padding: 6px 6px !important;
+  }
 }
 
 /* ── Rain Gauge Markers (L.divIcon) ────────────────────────────────────────── */
@@ -336,8 +555,12 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
     <span>Observations (gauge and radar)</span>
     <span id="leftStat" class="h-sub">—</span>
   </div>
-  <div class="header-cell">
-    <span>Checks</span>
+  <div class="header-cell" id="headerCellMid">
+    <span class="desktop-only">Checks</span>
+    <div class="mobile-map-toggle">
+      <button class="map-toggle-btn active" id="toggleMidBtn" onclick="setMobileMap('mid')">QC Flags</button>
+      <button class="map-toggle-btn" id="toggleLeftBtn" onclick="setMobileMap('left')">Rainfall</button>
+    </div>
   </div>
   <div class="header-cell" style="border-left:2px solid #374151; flex:none; width:460px; box-sizing:border-box;">
     <div style="display:flex; align-items:center; gap:6px">
@@ -373,6 +596,18 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         <p id="mapCbarTitle">24 hr accumulation</p>
         <div class="cbar" id="mapCbar"></div>
         <div class="cbar-labels" id="mapCbarLabels"></div>
+        <!-- Mobile period selector -->
+        <div class="mobile-only-period" style="margin-top:6px; padding-top:4px; border-top:1px solid #dde1e7; display:none; flex-direction:column; gap:2px; pointer-events:auto">
+          <span style="font-size:9px; font-weight:600; color:#5f6368">Period</span>
+          <select id="mobilePeriodSelect" onchange="onMobilePeriodChange(this.value)" style="padding: 3px 20px 3px 8px; font-size: 10px; border-radius: 12px; background-position: right 6px center;">
+            <option value="mm">15 min</option>
+            <option value="1hr">1 Hour</option>
+            <option value="3hr" selected>3 Hours</option>
+            <option value="6hr">6 Hours</option>
+            <option value="12hr">12 Hours</option>
+            <option value="24hr">24 Hours</option>
+          </select>
+        </div>
         <!-- Radar transparency control submenu -->
         <div id="radarSubmenu" style="margin-top:8px; padding-top:6px; border-top:1px solid #dde1e7; display:none; flex-direction:column; gap:4px; pointer-events:auto">
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#5f6368; font-weight:600">
@@ -392,26 +627,26 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #1e293b">Quality Index (QI)</p>
         <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; border-bottom: 1px solid #dde1e7; padding-bottom: 6px">
           <div class="qc-swatch-row">
-            <div style="width: 14px; height: 14px; background: #cbd5e1; border-radius: 50%; border: 1.5px solid #94a3b8; flex-shrink: 0"></div>
-            <span class="qc-swatch-lbl">QI 1.00 (High / Trusted)</span>
+            <div style="width: 14px; height: 14px; background: #cbd5e1; border-radius: 50%; border: 2px solid #94a3b8; flex-shrink: 0"></div>
+            <span class="qc-swatch-lbl">QI 1.0 (High / Trusted)</span>
           </div>
           <div class="qc-swatch-row">
-            <div style="width: 14px; height: 14px; background: #252525; border-radius: 50%; border: 1.5px solid #94a3b8; flex-shrink: 0"></div>
-            <span class="qc-swatch-lbl">QI 0.00 (Low / Suspect)</span>
+            <div style="width: 14px; height: 14px; background: #252525; border-radius: 50%; border: 2px solid #94a3b8; flex-shrink: 0"></div>
+            <span class="qc-swatch-lbl">QI .00 (Low / Suspect)</span>
           </div>
         </div>
         <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #1e293b">LLM QC Verdict Ring</p>
         <div style="display: flex; flex-direction: column; gap: 4px">
           <div class="qc-swatch-row">
-            <div style="width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid #4caf50; box-shadow: 0 0 2px #4caf50; flex-shrink: 0"></div>
+            <div style="width: 12px; height: 12px; border-radius: 50%; border: 3.5px solid #4caf50; box-shadow: 0 0 3px #4caf50; flex-shrink: 0"></div>
             <span class="qc-swatch-lbl">Genuine (Green Ring)</span>
           </div>
           <div class="qc-swatch-row">
-            <div style="width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid #ffb300; box-shadow: 0 0 2px #ffb300; flex-shrink: 0"></div>
+            <div style="width: 12px; height: 12px; border-radius: 50%; border: 3.5px solid #ffb300; box-shadow: 0 0 3px #ffb300; flex-shrink: 0"></div>
             <span class="qc-swatch-lbl">Uncertain (Amber Ring)</span>
           </div>
           <div class="qc-swatch-row">
-            <div style="width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid #f44336; box-shadow: 0 0 2px #f44336; flex-shrink: 0"></div>
+            <div style="width: 12px; height: 12px; border-radius: 50%; border: 3.5px solid #f44336; box-shadow: 0 0 3px #f44336; flex-shrink: 0"></div>
             <span class="qc-swatch-lbl">Suspect (Red Ring)</span>
           </div>
           <div class="qc-swatch-row" style="margin-top: 2px">
@@ -424,7 +659,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
 
     <!-- Shared control bar centered across both maps -->
     <div class="shared-bar">
-      <div class="control-group">
+      <div class="control-group ctrl-period">
         <span class="control-label">Period</span>
         <select id="periodSelect" onchange="onPeriodChange(this.value)">
           <option value="mm">15 min</option>
@@ -436,7 +671,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         </select>
       </div>
       <div class="bar-sep"></div>
-      <div class="control-group">
+      <div class="control-group ctrl-areas">
         <span class="control-label">Areas</span>
         <select id="areaSelect" onchange="onAreaSelectChange(this.value)">
           <option value="catchments" selected>Catchments</option>
@@ -446,7 +681,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         </select>
       </div>
       <div class="bar-sep"></div>
-      <div class="control-group">
+      <div class="control-group ctrl-colours">
         <span class="control-label">Colours</span>
         <select id="schemeSelect" onchange="onSchemeChange(this.value)">
           <option value="default" selected>Standard</option>
@@ -454,7 +689,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         </select>
       </div>
       <div class="bar-sep"></div>
-      <div class="control-group">
+      <div class="control-group ctrl-radar">
         <span class="control-label" style="opacity: 0; pointer-events: none;">&nbsp;</span>
         <label class="custom-checkbox">
           <input type="checkbox" id="radarToggle" onchange="toggleRadarOverlay(this.checked)">
@@ -819,6 +1054,38 @@ function onPeriodChange(val) {
   currentPeriod = val;
   updateCbarTitle(val);
   renderLeftMarkers();
+  
+  // Sync mobile period selector
+  var mSel = document.getElementById('mobilePeriodSelect');
+  if (mSel) mSel.value = val;
+}
+
+// ── Mobile Map Toggling & Synchronization ───────────────────────────────────
+function setMobileMap(mapName) {
+  var left = document.getElementById('leftWrap');
+  var mid = document.getElementById('midWrap');
+  var btnLeft = document.getElementById('toggleLeftBtn');
+  var btnMid = document.getElementById('toggleMidBtn');
+  
+  if (mapName === 'left') {
+    left.style.display = 'block';
+    mid.style.display = 'none';
+    if (btnLeft) btnLeft.classList.add('active');
+    if (btnMid) btnMid.classList.remove('active');
+    setTimeout(function() { mapLeft.invalidateSize(); }, 50);
+  } else {
+    left.style.display = 'none';
+    mid.style.display = 'block';
+    if (btnLeft) btnLeft.classList.remove('active');
+    if (btnMid) btnMid.classList.add('active');
+    setTimeout(function() { mapMid.invalidateSize(); }, 50);
+  }
+}
+
+function onMobilePeriodChange(val) {
+  var pSel = document.getElementById('periodSelect');
+  if (pSel) pSel.value = val;
+  onPeriodChange(val);
 }
 
 // ── Colour scheme change ───────────────────────────────────────────────────
@@ -1063,22 +1330,25 @@ function renderMidMarkers() {
     // QI = 0.0 (darkest): HSL lightness = 15%
     var lightness = 15 + Math.round(qi * 60);
     var bg = 'hsl(0, 0%, ' + lightness + '%)';
-    var fg = qi < 0.5 ? '#ffffff' : '#1e293b';
     
-    // Ring styling based on LLM verdict
-    var borderStyle = 'border: 2px solid #94a3b8;'; // neutral default
+    // High-contrast slate-900 for lighter greys, white for darker greys (mathematical cutoff at 0.55)
+    var fg = qi < 0.55 ? '#ffffff' : '#0f172a';
+    
+    // Ring styling based on LLM verdict (made slightly wider for stronger visual presence)
+    var borderStyle = 'border: 2.5px solid #94a3b8;'; // neutral default
     if (g && g.llm_verdict) {
       var v = g.llm_verdict.toUpperCase();
       if (v === 'GENUINE') {
-        borderStyle = 'border: 3px solid #4caf50; box-shadow: 0 0 4px #4caf50;';
+        borderStyle = 'border: 4px solid #4caf50; box-shadow: 0 0 5px #4caf50;';
       } else if (v === 'UNCERTAIN') {
-        borderStyle = 'border: 3px solid #ffb300; box-shadow: 0 0 4px #ffb300;';
+        borderStyle = 'border: 4px solid #ffb300; box-shadow: 0 0 5px #ffb300;';
       } else if (v === 'SUSPECT') {
-        borderStyle = 'border: 3px solid #f44336; box-shadow: 0 0 4px #f44336;';
+        borderStyle = 'border: 4px solid #f44336; box-shadow: 0 0 5px #f44336;';
       }
     }
     
-    var qiText = qi.toFixed(2);
+    // Omit leading '0.' from fractional QI labels (e.g. 0.75 -> .75, 0.00 -> .00, 1.00 -> 1.0)
+    var qiText = qi < 1.0 ? qi.toFixed(2).substring(1) : "1.0";
     var iconHtml = '<div class="qi-wrap"><div class="qi-icon" style="background:' + bg + ';color:' + fg + ';' + borderStyle + '">' + qiText + '</div></div>';
     
     var icon = L.divIcon({
@@ -1240,6 +1510,7 @@ function renderLog() {
     html += '<tr class="tbl-row" id="tblrow-' + e.station_id + '">' +
       '<td><div class="tbl-name">' + escHtml(e.name) + '</div>' +
         (loc ? '<div class="tbl-loc">' + escHtml(loc) + '</div>' : '') +
+        '<div class="tbl-mobile-time">' + t + '</div>' +
         '<div class="tbl-loc">' + dur + '</div></td>' +
       '<td class="tbl-time">' + t + '</td>' +
       '<td class="tbl-num">' + e.latest_value_mm.toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
