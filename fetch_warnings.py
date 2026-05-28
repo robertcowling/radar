@@ -181,11 +181,11 @@ def fetch_warnings_from_meteogate():
             end_date = info.get("expires")
             
             # Filter out expired warnings relative to current UTC time
-            if end_date:
-                end_dt = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
-                if end_dt < now:
-                    print(f"    Alert {alert_id} has expired (expires at {end_date}), skipping.")
-                    continue
+            # if end_date:
+            #     end_dt = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
+            #     if end_dt < now:
+            #         print(f"    Alert {alert_id} has expired (expires at {end_date}), skipping.")
+            #         continue
             
             severity_str = info.get("severity", "Moderate").lower()
             certainty = info.get("certainty", "Likely").lower()
