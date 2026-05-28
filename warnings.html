@@ -313,18 +313,18 @@ select.premium-select:focus { background-color: #e8eaed; }
         
         <div class="control-group">
           <span class="control-label">Phenomenon</span>
-          <div class="custom-multiselect" id="phenomenonSelect">
-            <div class="multiselect-trigger" onclick="toggleMultiselect(event, 'phenomenonSelect')">
-              <span class="trigger-text" id="phenomenonSelectText">All Phenomena</span>
+          <div class="custom-multiselect" id="hazardSelect">
+            <div class="multiselect-trigger" onclick="toggleMultiselect(event, 'hazardSelect')">
+              <span class="trigger-text" id="hazardSelectText">All Hazards</span>
               <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <div class="multiselect-options">
-              <label class="option-item"><input type="checkbox" class="filter-tag" value="rain" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Rain</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-tag" value="thunderstorm" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Thunderstorm</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-tag" value="wind" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Wind</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-tag" value="flood" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Flood</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-tag" value="snow" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Snow &amp; Ice</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-tag" value="fog" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Fog</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-tag" value="rain" checked onchange="onMultiselectChange('hazardSelect')"><span>Rain</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-tag" value="thunderstorm" checked onchange="onMultiselectChange('hazardSelect')"><span>Thunderstorm</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-tag" value="wind" checked onchange="onMultiselectChange('hazardSelect')"><span>Wind</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-tag" value="flood" checked onchange="onMultiselectChange('hazardSelect')"><span>Flood</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-tag" value="snow" checked onchange="onMultiselectChange('hazardSelect')"><span>Snow &amp; Ice</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-tag" value="fog" checked onchange="onMultiselectChange('hazardSelect')"><span>Fog</span></label>
             </div>
           </div>
         </div>
@@ -465,7 +465,7 @@ function onMultiselectChange(dropdownId) {
   
   if (checked.length === checkboxes.length) {
     if (dropdownId === 'daySelect') triggerText.innerText = "All Days";
-    else if (dropdownId === 'phenomenonSelect') triggerText.innerText = "All Phenomena";
+    else if (dropdownId === 'hazardSelect') triggerText.innerText = "All Hazards";
     else if (dropdownId === 'severitySelect') triggerText.innerText = "All Severities";
   } else if (checked.length === 0) {
     triggerText.innerText = "None Selected";
@@ -658,7 +658,7 @@ function renderMapPolygons() {
         var descPreview = w.description ? (w.description.length > 120 ? w.description.substring(0, 120) + '...' : w.description) : '';
         
         l.bindTooltip(
-          '<div style="font-family:'Roboto', sans-serif; padding: 2px;">' +
+          '<div style="font-family:Roboto, sans-serif; padding: 2px;">' +
             '<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">' +
               '<span style="width: 8px; height: 8px; border-radius: 50%; background-color: ' + style.color + '; display: inline-block;"></span>' +
               '<strong style="font-size: 13px; color: #202124; font-weight: 700;">' + w.title + '</strong>' +
