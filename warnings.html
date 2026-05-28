@@ -500,9 +500,16 @@ select.premium-select:focus { background-color: #e8eaed; }
   <div class="drawer-body">
     <!-- Description Column -->
     <div class="drawer-desc-col" style="display: flex; flex-direction: column; gap: 14px;">
+      <div id="drawerHeadlineContainer" style="display: none;">
+        <p id="drawerHeadline" style="margin: 0; font-size: 14px; font-weight: 600; color: #1e293b; line-height: 1.45; border-left: 4px solid #e2e8f0; padding-left: 10px;"></p>
+      </div>
       <div>
         <h4 style="margin: 0 0 6px;">Description</h4>
         <p id="drawerDescription" style="margin: 0;"></p>
+      </div>
+      <div id="drawerImpactsContainer" style="display: none;">
+        <h4 style="margin: 0 0 6px;">Key Impacts</h4>
+        <ul id="drawerImpacts" style="margin: 0; padding-left: 18px; font-size: 12.5px; color: #3c4043; line-height: 1.6; font-weight: 500; list-style-type: square;"></ul>
       </div>
       <div id="drawerInstructionContainer" style="display: none;">
         <h4 style="margin: 0 0 6px;">Safety Advice &amp; Guidance</h4>
@@ -1127,6 +1134,56 @@ function openDrawer(w) {
   document.getElementById('drawerSource').innerText = w.source;
   document.getElementById('drawerId').innerText = w.alert_id;
   
+  // Dynamic headline container handling
+  var headlineContainer = document.getElementById('drawerHeadlineContainer');
+  var headlineEl = document.getElementById('drawerHeadline');
+  if (headlineContainer && headlineEl) {
+    if (w.headline && w.headline.trim() !== '') {
+      headlineEl.innerText = w.headline.trim();
+      var activeSev = w.severity || 'unknown';
+      var colors = SEV_COLORS[activeSev] || SEV_COLORS.unknown;
+      var borderCol = colors.stroke;
+      if (activeSev === 'moderate' && borderCol === '#ffd300') {
+        borderCol = '#e0a300';
+      }
+      headlineEl.style.borderLeftColor = borderCol;
+      headlineContainer.style.display = 'block';
+    } else {
+      headlineContainer.style.display = 'none';
+    }
+  }
+
+  // Dynamic impacts handling (extract structural impacts from raw CAP feed parameters)
+  var impactsContainer = document.getElementById('drawerImpactsContainer');
+  var impactsEl = document.getElementById('drawerImpacts');
+  if (impactsContainer && impactsEl) {
+    impactsEl.innerHTML = '';
+    var impacts = [];
+    
+    if (w.raw_meta && w.raw_meta.info && w.raw_meta.info.length > 0) {
+      var info = w.raw_meta.info[0];
+      if (info.parameter && Array.isArray(info.parameter)) {
+        info.parameter.forEach(function(param) {
+          if (param.valueName === 'impacts' && param.value) {
+            impacts.push(param.value);
+          }
+        });
+      }
+    }
+    
+    if (impacts.length > 0) {
+      impacts.forEach(function(imp) {
+        var li = document.createElement('li');
+        li.style.marginBottom = '6px';
+        li.innerText = imp;
+        impactsEl.appendChild(li);
+      });
+      impactsContainer.style.display = 'block';
+    } else {
+      impactsContainer.style.display = 'none';
+    }
+  }
+  
   // Dynamic instruction container handling
   var instContainer = document.getElementById('drawerInstructionContainer');
   var instEl = document.getElementById('drawerInstruction');
@@ -1179,6 +1236,10 @@ function closeDrawer() {
   });
   
   // Reset containers to prevent layout flickering on next click
+  var headlineContainer = document.getElementById('drawerHeadlineContainer');
+  if (headlineContainer) headlineContainer.style.display = 'none';
+  var impactsContainer = document.getElementById('drawerImpactsContainer');
+  if (impactsContainer) impactsContainer.style.display = 'none';
   var instContainer = document.getElementById('drawerInstructionContainer');
   if (instContainer) instContainer.style.display = 'none';
   var areaContainer = document.getElementById('drawerAreaContainer');
