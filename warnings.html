@@ -685,7 +685,11 @@ function renderSidebarCards() {
   container.innerHTML = '';
   
   if (filteredWarnings.length === 0) {
-    container.innerHTML = '<div class="empty-state">No warnings match your active filters. Try adjusting dropdown option toggles.</div>';
+    if (allWarnings.length === 0) {
+      container.innerHTML = '<div class="empty-state">There are currently no active weather warnings in force.</div>';
+    } else {
+      container.innerHTML = '<div class="empty-state">No warnings match your active filters. Try adjusting dropdown option toggles.</div>';
+    }
     return;
   }
   
