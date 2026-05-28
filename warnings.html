@@ -68,8 +68,8 @@ body {
 .player-panel {
   position: absolute; bottom: 24px; left: 50%;
   transform: translateX(-50%); padding: 12px 20px;
-  z-index: 1000; width: 90%; max-width: 800px;
-  display: flex; align-items: center; gap: 14px;
+  z-index: 1000; width: 90%; max-width: 950px;
+  display: flex; align-items: center; gap: 10px;
   background: white; border-radius: 24px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
   box-sizing: border-box;
@@ -210,6 +210,49 @@ select.premium-select:focus { background-color: #e8eaed; }
 .tag-badge { background: #e8eaed; color: #3c4043; font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 4px;  letter-spacing: 0.3px; }
 
 .empty-state { text-align: center; padding: 40px 20px; color: #5f6368; font-size: 12px; font-weight: 500; }
+
+/* Segmented Control Styles */
+.segmented-control {
+  display: flex;
+  position: relative;
+  background: #f1f3f4;
+  border-radius: 24px;
+  padding: 3px;
+  width: 100%;
+  box-sizing: border-box;
+  user-select: none;
+}
+.segmented-slider {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.08);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+}
+.segment-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 6px 0;
+  font-family: 'Roboto', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5f6368;
+  cursor: pointer;
+  outline: none;
+  z-index: 2;
+  position: relative;
+  text-align: center;
+  transition: color 0.2s;
+}
+.segment-btn.active {
+  color: #202124;
+}
 
 .warning-card.expired {
   opacity: 0.65;
@@ -389,6 +432,15 @@ select.premium-select:focus { background-color: #e8eaed; }
           </div>
         </div>
         
+        <div class="control-group" style="flex: 1.2; min-width: 135px;">
+          <span class="control-label">Status</span>
+          <div class="segmented-control">
+            <div class="segmented-slider" id="statusSlider"></div>
+            <button type="button" class="segment-btn active" id="btn-live" onclick="onStatusToggle('live')">Live</button>
+            <button type="button" class="segment-btn" id="btn-expired" onclick="onStatusToggle('expired')">Expired</button>
+          </div>
+        </div>
+        
         <div class="control-group">
           <span class="control-label">View Period</span>
           <div style="position: relative; width: 100%;">
@@ -487,6 +539,7 @@ var latestData = null;
 var allWarnings = [];
 var filteredWarnings = [];
 var selectedId = null;
+var activeStatus = 'live';
 
 var geojsonLayers = {};
 var mapFeatureGroup = L.featureGroup();
@@ -726,6 +779,28 @@ function onPeriodSelectChange(val) {
   loadWarnings();
 }
 
+function onStatusToggle(status) {
+  if (activeStatus === status) return;
+  activeStatus = status;
+  
+  var slider = document.getElementById('statusSlider');
+  var btnLive = document.getElementById('btn-live');
+  var btnExpired = document.getElementById('btn-expired');
+  
+  if (status === 'live') {
+    slider.style.transform = 'translateX(0)';
+    btnLive.classList.add('active');
+    btnExpired.classList.remove('active');
+  } else {
+    slider.style.transform = 'translateX(100%)';
+    btnLive.classList.remove('active');
+    btnExpired.classList.add('active');
+  }
+  
+  closeDrawer();
+  filterAndRender();
+}
+
 // ── Filter and Render Engine ───────────────────────────────────────────────
 function filterAndRender() {
   // 1. Gather filter states
@@ -752,8 +827,15 @@ function filterAndRender() {
     });
     if (!tagMatches && wTags.length > 0) return false;
     
-    // View Period Trimming Match
+    // Status Filter (Live vs Expired Segmented Toggle)
     var isExpired = isWarningExpired(w);
+    if (activeStatus === 'live') {
+      if (isExpired) return false;
+    } else {
+      if (!isExpired) return false;
+    }
+    
+    // View Period Trimming Match
     var periodSelect = document.getElementById('periodSelect');
     var period = periodSelect ? periodSelect.value : 'live';
     if (period !== 'live') {
