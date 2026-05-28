@@ -553,7 +553,10 @@ function loadWarnings() {
       // Update header meta counter
       var genTime = formatUKTime(data.generated_at);
       var text = allWarnings.length + ' active ' + (allWarnings.length === 1 ? 'warning' : 'warnings');
-      document.getElementById('warningsCounter').innerText = text + ' — updated ' + genTime;
+      var counterEl = document.getElementById('warningsCounter');
+      if (counterEl) {
+        counterEl.innerText = text + ' — updated ' + genTime;
+      }
       
       filterAndRender();
     })
