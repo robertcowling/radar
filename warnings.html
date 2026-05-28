@@ -557,6 +557,8 @@ var allWarnings = [];
 var filteredWarnings = [];
 var selectedId = null;
 var activeStatus = 'live';
+var visibleWarnings = {};
+var initializedExpired = false;
 
 var geojsonLayers = {};
 var mapFeatureGroup = L.featureGroup();
@@ -895,6 +897,30 @@ function filterAndRender() {
     return true;
   });
 
+  // Initialize visibility state based on activeStatus (Live vs Expired defaults)
+  if (activeStatus === 'expired') {
+    if (!initializedExpired) {
+      visibleWarnings = {};
+      filteredWarnings.forEach(function(w, index) {
+        visibleWarnings[w.alert_id] = (index === 0);
+      });
+      initializedExpired = true;
+    } else {
+      filteredWarnings.forEach(function(w) {
+        if (visibleWarnings[w.alert_id] === undefined) {
+          visibleWarnings[w.alert_id] = false;
+        }
+      });
+    }
+  } else {
+    initializedExpired = false;
+    filteredWarnings.forEach(function(w) {
+      if (visibleWarnings[w.alert_id] === undefined) {
+        visibleWarnings[w.alert_id] = true;
+      }
+    });
+  }
+
   // Update shown counter
   document.getElementById('sidebarCounts').innerText = filteredWarnings.length + ' shown';
 
@@ -937,7 +963,7 @@ function renderMapPolygons() {
         // Bind Click actions
         l.on('click', function(e) {
           L.DomEvent.stopPropagation(e);
-          selectWarning(w.alert_id, true);
+          toggleWarningVisibility(w.alert_id);
         });
         
         // Detailed map dark tooltip (compare.html style)
@@ -961,7 +987,9 @@ function renderMapPolygons() {
     });
     
     geojsonLayers[w.alert_id] = layer;
-    mapFeatureGroup.addLayer(layer);
+    if (visibleWarnings[w.alert_id]) {
+      mapFeatureGroup.addLayer(layer);
+    }
   });
 }
 
@@ -986,7 +1014,7 @@ function renderSidebarCards() {
     // Severity styling class
     var severity = w.severity || 'unknown';
     card.classList.add('sev-' + severity);
-    if (selectedId === w.alert_id) {
+    if (visibleWarnings[w.alert_id]) {
       card.classList.add('selected');
     }
     
@@ -1031,7 +1059,7 @@ function renderSidebarCards() {
     
     // Click actions
     card.addEventListener('click', function() {
-      selectWarning(w.alert_id, true);
+      toggleWarningVisibility(w.alert_id);
     });
     
     // Hover synchronizations (Glow map polygon on card hover)
@@ -1051,53 +1079,59 @@ function renderSidebarCards() {
 }
 
 // ── Interactive Synchronizer ───────────────────────────────────────────────
-function selectWarning(alertId, flyToMap) {
-  var prevId = selectedId;
-  selectedId = alertId;
+function toggleWarningVisibility(alertId) {
+  var w = allWarnings.find(function(item) { return item.alert_id === alertId; });
+  if (!w) return;
   
-  // Reset previous style
-  if (prevId && geojsonLayers[prevId]) {
-    var prevW = allWarnings.find(function(w) { return w.alert_id === prevId; });
-    var prevSev = prevW ? prevW.severity : 'unknown';
-    var prevExp = prevW ? isWarningExpired(prevW) : false;
-    geojsonLayers[prevId].setStyle(getWarningStyle(prevSev, false, prevExp));
-  }
+  var isNowVisible = !visibleWarnings[alertId];
+  visibleWarnings[alertId] = isNowVisible;
   
-  // Highlight selected polygon
-  if (alertId && geojsonLayers[alertId]) {
-    var activeW = allWarnings.find(function(w) { return w.alert_id === alertId; });
-    var activeSev = activeW ? activeW.severity : 'unknown';
-    var activeExp = activeW ? isWarningExpired(activeW) : false;
-    geojsonLayers[alertId].setStyle(getWarningStyle(activeSev, true, activeExp));
+  var layer = geojsonLayers[alertId];
+  if (layer) {
+    var severity = w.severity || 'unknown';
+    var isExpired = isWarningExpired(w);
     
-    // Fly to boundary
-    if (flyToMap) {
-      map.flyToBounds(geojsonLayers[alertId].getBounds(), {
+    if (isNowVisible) {
+      if (!mapFeatureGroup.hasLayer(layer)) {
+        mapFeatureGroup.addLayer(layer);
+      }
+      
+      // Make it highlighted style
+      layer.setStyle(getWarningStyle(severity, true, isExpired));
+      
+      // Fly to boundary
+      map.flyToBounds(layer.getBounds(), {
         padding: [30, 30],
         maxZoom: 10,
         duration: 1.2
       });
+      
+      // Open details drawer
+      openDrawer(w);
+      selectedId = alertId;
+    } else {
+      if (mapFeatureGroup.hasLayer(layer)) {
+        mapFeatureGroup.removeLayer(layer);
+      }
+      
+      // Reset style
+      layer.setStyle(getWarningStyle(severity, false, isExpired));
+      
+      // Close drawer if this was the open warning
+      if (selectedId === alertId) {
+        closeDrawer();
+      }
     }
   }
   
-  // Sync sidebar cards active classes
-  document.querySelectorAll('.warning-card').forEach(function(c) {
-    c.classList.remove('selected');
-  });
-  var activeCard = document.getElementById('card-' + alertId);
-  if (activeCard) {
-    activeCard.classList.add('selected');
-    activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-  
-  // Open details drawer
-  if (alertId) {
-    var warning = allWarnings.find(function(w) { return w.alert_id === alertId; });
-    if (warning) {
-      openDrawer(warning);
+  // Sync card active class
+  var card = document.getElementById('card-' + alertId);
+  if (card) {
+    if (isNowVisible) {
+      card.classList.add('selected');
+    } else {
+      card.classList.remove('selected');
     }
-  } else {
-    closeDrawer();
   }
 }
 
@@ -1231,9 +1265,6 @@ function closeDrawer() {
     geojsonLayers[selectedId].setStyle(getWarningStyle(activeSev, false, activeExp));
   }
   selectedId = null;
-  document.querySelectorAll('.warning-card').forEach(function(c) {
-    c.classList.remove('selected');
-  });
   
   // Reset containers to prevent layout flickering on next click
   var headlineContainer = document.getElementById('drawerHeadlineContainer');
