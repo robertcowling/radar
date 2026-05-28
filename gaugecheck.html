@@ -1618,6 +1618,50 @@ function renderLog() {
 
   var html = '';
   events.forEach(function(e) {
+    // Proactively synthesize instances list for older historical entries
+    var needsSynthesis = !e.instances || e.instances.length === 0;
+    if (e.instances && e.instances.length === 1 && e.consecutive_flags > 1) {
+      needsSynthesis = true;
+    }
+    
+    if (needsSynthesis) {
+      var insts = [];
+      var firstMs = new Date(e.first_flagged_at).getTime();
+      var lastMs = new Date(e.latest_slot_time || e.last_seen).getTime();
+      
+      if (firstMs && lastMs && lastMs >= firstMs) {
+        var diffMins = Math.round((lastMs - firstMs) / (60 * 1000));
+        var steps = Math.floor(diffMins / 15) + 1;
+        var count = Math.max(steps, e.consecutive_flags || 1);
+        
+        for (var i = 0; i < count; i++) {
+          var slotMs = lastMs - (count - 1 - i) * 15 * 60 * 1000;
+          var slotTimeStr = new Date(slotMs).toISOString().replace(/\.\d+Z$/, 'Z');
+          
+          insts.push({
+            slot_time:     slotTimeStr,
+            value_mm:      i === count - 1 ? e.latest_value_mm : 0, 
+            qi:            e.qi,
+            checks_flag:   e.checks_flag,
+            checks:        e.checks || {},
+            llm_verdict:   i === count - 1 ? e.llm_verdict : null,
+            llm_reasoning: i === count - 1 ? e.llm_reasoning : null,
+          });
+        }
+      } else {
+        insts.push({
+          slot_time:     e.latest_slot_time || e.last_seen,
+          value_mm:      e.latest_value_mm,
+          qi:            e.qi,
+          checks_flag:   e.checks_flag,
+          checks:        e.checks || {},
+          llm_verdict:   e.llm_verdict,
+          llm_reasoning: e.llm_reasoning,
+        });
+      }
+      e.instances = insts;
+    }
+
     var hasInstances = e.instances && e.instances.length > 1;
     var llmPill     = buildLlmPill(e.llm_verdict);
     var loc         = e.county || '';
