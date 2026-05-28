@@ -312,7 +312,7 @@ select.premium-select:focus { background-color: #e8eaed; }
         </div>
         
         <div class="control-group">
-          <span class="control-label">Phenomenon</span>
+          <span class="control-label">Hazard</span>
           <div class="custom-multiselect" id="hazardSelect">
             <div class="multiselect-trigger" onclick="toggleMultiselect(event, 'hazardSelect')">
               <span class="trigger-text" id="hazardSelectText">All Hazards</span>
@@ -583,7 +583,7 @@ function filterAndRender() {
     var sev = w.severity || 'unknown';
     if (!activeSevs.includes(sev)) return false;
     
-    // Tag Phenomenon Match
+    // Tag Hazard Match
     var wTags = w.tag || [];
     var tagMatches = wTags.some(function(t) {
       // Map composite subcategories to main tags
