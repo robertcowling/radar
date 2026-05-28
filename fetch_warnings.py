@@ -171,6 +171,12 @@ def fetch_warnings_from_meteogate():
             
             title = info.get("event", "Weather Warning")
             description = info.get("description", "")
+            instruction = info.get("instruction", "")
+            headline = info.get("headline", "")
+            
+            area_list = info.get("area", [])
+            area_desc = area_list[0].get("areaDesc", "") if area_list else ""
+            
             start_date = info.get("onset") or info.get("effective")
             end_date = info.get("expires")
             
@@ -242,13 +248,18 @@ def fetch_warnings_from_meteogate():
                 "source": "ukmetoffice",
                 "title": title,
                 "description": description,
+                "instruction": instruction,
+                "headline": headline,
+                "area_desc": area_desc,
                 "severity": severity,
                 "certainty": certainty,
                 "urgency": urgency,
                 "tag": tags,
                 "start_date": start_date,
                 "end_date": end_date,
-                "geometry": geometry
+                "geometry": geometry,
+                "raw_meta": meta,
+                "raw_properties": feat.get("properties", {})
             })
         except Exception as e:
             print(f"    Error processing alert {alert_id}: {e}")

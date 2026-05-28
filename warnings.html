@@ -498,9 +498,19 @@ select.premium-select:focus { background-color: #e8eaed; }
   </div>
   <div class="drawer-body">
     <!-- Description Column -->
-    <div class="drawer-desc-col">
-      <h4>Warning Description &amp; Guidance</h4>
-      <p id="drawerDescription">Heavy rain is expected to affect parts of the country, causing localized flooding and transport disruption.</p>
+    <div class="drawer-desc-col" style="display: flex; flex-direction: column; gap: 14px;">
+      <div>
+        <h4 style="margin: 0 0 6px;">Description</h4>
+        <p id="drawerDescription" style="margin: 0;"></p>
+      </div>
+      <div id="drawerInstructionContainer" style="display: none;">
+        <h4 style="margin: 0 0 6px;">Safety Advice &amp; Guidance</h4>
+        <p id="drawerInstruction" style="margin: 0; background: #f8f9fa; border-left: 4px solid #b06000; padding: 10px 14px; border-radius: 4px; font-weight: 500; line-height: 1.5;"></p>
+      </div>
+      <div id="drawerAreaContainer" style="display: none;">
+        <h4 style="margin: 0 0 6px;">Counties &amp; Regions Affected</h4>
+        <p id="drawerArea" style="margin: 0; font-size: 11.5px; color: #5f6368; line-height: 1.5; font-weight: 500;"></p>
+      </div>
     </div>
     <!-- Meta Details Grid -->
     <div class="drawer-meta-grid">
