@@ -445,8 +445,7 @@ select.premium-select:focus { background-color: #e8eaed; }
           <span class="control-label">View Period</span>
           <div style="position: relative; width: 100%;">
             <select id="periodSelect" class="premium-select" onchange="onPeriodSelectChange(this.value)">
-              <option value="live" selected>Live Warnings</option>
-              <option value="1">Last 24 Hours</option>
+              <option value="1" selected>Last 24 Hours</option>
               <option value="3">Last 3 Days</option>
               <option value="7">Last 7 Days</option>
               <option value="14">Last 14 Days</option>
@@ -698,7 +697,7 @@ function fetchArchive(url) {
 // ── Ingest Warnings Data ────────────────────────────────────────────────────
 function loadWarnings() {
   var periodSelect = document.getElementById('periodSelect');
-  var period = periodSelect ? periodSelect.value : 'live';
+  var period = periodSelect ? periodSelect.value : '1';
   
   // 1. Always fetch the latest active warnings
   var latestUrl = 'https://radar.floodforecast.co.uk/warnings/warnings_latest.json?_cb=' + Date.now();
@@ -837,7 +836,7 @@ function filterAndRender() {
     
     // View Period Trimming Match
     var periodSelect = document.getElementById('periodSelect');
-    var period = periodSelect ? periodSelect.value : 'live';
+    var period = periodSelect ? periodSelect.value : '1';
     if (period !== 'live') {
       var days = parseInt(period);
       var periodMs = days * 24 * 60 * 60 * 1000;
