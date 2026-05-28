@@ -186,9 +186,9 @@ select.premium-select:focus { background-color: #e8eaed; }
 }
 
 /* Severity Borders */
-.warning-card.sev-extreme,
-.warning-card.sev-severe { border-left-color: #c5221f; }  /* Red */
-.warning-card.sev-moderate { border-left-color: #b06000; }  /* Amber */
+.warning-card.sev-extreme  { border-left-color: #d60000; }  /* Red */
+.warning-card.sev-severe   { border-left-color: #e35c00; }  /* Amber */
+.warning-card.sev-moderate { border-left-color: #e0a300; }  /* Yellow */
 .warning-card.sev-minor    { border-left-color: #1a73e8; }  /* Blue */
 
 .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
@@ -197,8 +197,9 @@ select.premium-select:focus { background-color: #e8eaed; }
   font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 12px;
    letter-spacing: 0.5px; white-space: nowrap;
 }
-.badge-extreme, .badge-severe { background: #fce8e6; color: #c5221f; border: 1px solid #fad2cf; }
-.badge-moderate { background: #fef7e0; color: #b06000; border: 1px solid #feebc8; }
+.badge-extreme  { background: #fce8e6; color: #d60000; border: 1px solid #fad2cf; }
+.badge-severe   { background: #fff3e0; color: #e35c00; border: 1px solid #ffe0b2; }
+.badge-moderate { background: #fffde7; color: #b77900; border: 1px solid #fff9c4; }
 .badge-minor    { background: #e8f0fe; color: #1a73e8; border: 1px solid #d2e3fc; }
 .badge-unknown  { background: #f1f3f4; color: #5f6368; border: 1px solid #dadce0; }
 
@@ -505,7 +506,7 @@ select.premium-select:focus { background-color: #e8eaed; }
       </div>
       <div id="drawerInstructionContainer" style="display: none;">
         <h4 style="margin: 0 0 6px;">Safety Advice &amp; Guidance</h4>
-        <p id="drawerInstruction" style="margin: 0; background: #f8f9fa; border-left: 4px solid #b06000; padding: 10px 14px; border-radius: 4px; font-weight: 500; line-height: 1.5;"></p>
+        <p id="drawerInstruction" style="margin: 0; background: #f8f9fa; border-left: 4px solid #e0a300; padding: 10px 14px; border-radius: 4px; font-weight: 500; line-height: 1.5;"></p>
       </div>
       <div id="drawerAreaContainer" style="display: none;">
         <h4 style="margin: 0 0 6px;">Counties &amp; Regions Affected</h4>
@@ -616,22 +617,33 @@ mapFeatureGroup.addTo(map);
 
 // ── Severity Styling Rules ────────────────────────────────────────────────
 var SEV_COLORS = {
-  extreme:   { stroke: '#c5221f', fill: '#c5221f' }, // Red
-  severe:    { stroke: '#c5221f', fill: '#c5221f' }, // Red (Amber)
-  moderate:  { stroke: '#b06000', fill: '#b06000' }, // Amber (Yellow)
-  minor:     { stroke: '#1a73e8', fill: '#1a73e8' }, // Blue
-  unknown:   { stroke: '#5f6368', fill: '#5f6368' }  // Grey
+  extreme:   { stroke: '#d60000', fill: '#e60000' }, // Red (Extreme)
+  severe:    { stroke: '#e35c00', fill: '#ff7900' }, // Amber (Severe)
+  moderate:  { stroke: '#ffd300', fill: '#ffe500' }, // Yellow (Moderate)
+  minor:     { stroke: '#1a73e8', fill: '#8ab4f8' }, // Blue (Minor)
+  unknown:   { stroke: '#5f6368', fill: '#9aa0a6' }  // Grey
 };
 
 function getWarningStyle(sev, isHoveredOrSelected, isExpired) {
   var colors = SEV_COLORS[sev] || SEV_COLORS.unknown;
   var isExp = !!isExpired;
+  
+  // Set stroke color slightly darker on standard yellow to keep it highly visible on light Voyager basemaps
+  var strokeColor = colors.stroke;
+  if (sev === 'moderate' && strokeColor === '#ffd300') {
+    strokeColor = '#e0a300';
+  }
+  
+  var strokeOpacity = isExp ? 0.35 : 0.85;
+  var fillOpacity = isExp ? (isHoveredOrSelected ? 0.10 : 0.03) : (isHoveredOrSelected ? 0.40 : 0.22);
+  
   return {
-    color: colors.stroke,
+    color: strokeColor,
+    opacity: strokeOpacity,
     fillColor: colors.fill,
-    fillOpacity: isExp ? (isHoveredOrSelected ? 0.12 : 0.04) : (isHoveredOrSelected ? 0.40 : 0.18),
-    weight: isHoveredOrSelected ? 4.5 : 2.0,
-    dashArray: isExp ? '5, 5' : null,
+    fillOpacity: fillOpacity,
+    weight: isHoveredOrSelected ? 4.5 : 2.5,
+    dashArray: isExp ? '6, 6' : null,
     lineCap: 'round',
     lineJoin: 'round'
   };
@@ -1105,7 +1117,7 @@ function openDrawer(w) {
     }
   }
   
-  // Populate drawer
+  // Populate drawer standard fields
   document.getElementById('drawerTitleText').innerText = w.title;
   document.getElementById('drawerDescription').innerText = w.description;
   document.getElementById('drawerStart').innerText = formatUKTime(w.start_date);
@@ -1114,6 +1126,38 @@ function openDrawer(w) {
   document.getElementById('drawerUrgency').innerText = w.urgency;
   document.getElementById('drawerSource').innerText = w.source;
   document.getElementById('drawerId').innerText = w.alert_id;
+  
+  // Dynamic instruction container handling
+  var instContainer = document.getElementById('drawerInstructionContainer');
+  var instEl = document.getElementById('drawerInstruction');
+  if (instContainer && instEl) {
+    if (w.instruction && w.instruction.trim() !== '') {
+      instEl.innerText = w.instruction.trim();
+      var activeSev = w.severity || 'unknown';
+      var colors = SEV_COLORS[activeSev] || SEV_COLORS.unknown;
+      // Use the stroke color of the active severity color scheme for the safety guidance border
+      var borderCol = colors.stroke;
+      if (activeSev === 'moderate' && borderCol === '#ffd300') {
+        borderCol = '#e0a300';
+      }
+      instEl.style.borderLeftColor = borderCol;
+      instContainer.style.display = 'block';
+    } else {
+      instContainer.style.display = 'none';
+    }
+  }
+  
+  // Dynamic area container handling
+  var areaContainer = document.getElementById('drawerAreaContainer');
+  var areaEl = document.getElementById('drawerArea');
+  if (areaContainer && areaEl) {
+    if (w.area_desc && w.area_desc.trim() !== '') {
+      areaEl.innerText = w.area_desc.trim();
+      areaContainer.style.display = 'block';
+    } else {
+      areaContainer.style.display = 'none';
+    }
+  }
   
   drawer.classList.add('open');
 }
@@ -1133,6 +1177,12 @@ function closeDrawer() {
   document.querySelectorAll('.warning-card').forEach(function(c) {
     c.classList.remove('selected');
   });
+  
+  // Reset containers to prevent layout flickering on next click
+  var instContainer = document.getElementById('drawerInstructionContainer');
+  if (instContainer) instContainer.style.display = 'none';
+  var areaContainer = document.getElementById('drawerAreaContainer');
+  if (areaContainer) areaContainer.style.display = 'none';
 }
 
 // Close drawer when map is clicked (outside polygons)
