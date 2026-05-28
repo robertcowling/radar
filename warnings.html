@@ -752,11 +752,12 @@ function filterAndRender() {
     });
     if (!tagMatches && wTags.length > 0) return false;
     
-    // Day Match
+    // Day Match (Only apply to active/future warnings; expired historical warnings bypass it)
     var start = w.start_date ? new Date(w.start_date) : null;
     var end = w.end_date ? new Date(w.end_date) : null;
+    var isExpired = isWarningExpired(w);
     
-    if (start && end) {
+    if (start && end && !isExpired) {
       var overlapsActiveDay = activeDays.some(function(dayOffset) {
         var dayStart = new Date(now);
         dayStart.setDate(dayStart.getDate() + dayOffset);
