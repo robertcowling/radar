@@ -407,9 +407,9 @@ select.premium-select:focus { background-color: #e8eaed; }
           <span class="control-label">Map Overlay</span>
           <div style="position: relative; width: 100%;">
             <select id="layerSelect" class="premium-select" onchange="onLayerSelectChange(this.value)">
-              <option value="none" selected>None Overlay</option>
+              <option value="none">None Overlay</option>
               <option value="regions">Regions</option>
-              <option value="catchments">River Catchments</option>
+              <option value="catchments" selected>River Catchments</option>
               <option value="counties">Counties</option>
             </select>
           </div>
@@ -422,7 +422,7 @@ select.premium-select:focus { background-color: #e8eaed; }
   <div class="right-wrap" id="rightWrap">
     
     <div class="right-header">
-      <span class="right-header-title">Active Weather Warnings</span>
+      <span class="right-header-title">Met Office Weather Warnings</span>
       <span id="sidebarCounts" style="font-size: 10px; color: #94a3b8; font-weight: 700;">0 shown</span>
     </div>
 
@@ -610,7 +610,7 @@ function isWarningLive(w) {
 function getArchiveUrls(days) {
   var urls = [];
   var now = new Date();
-  for (var i = 0; i < days; i++) {
+  for (var i = 0; i <= days; i++) {
     var d = new Date(now);
     d.setDate(d.getDate() - i);
     var yyyy = d.getFullYear();
@@ -752,10 +752,24 @@ function filterAndRender() {
     });
     if (!tagMatches && wTags.length > 0) return false;
     
+    // View Period Trimming Match
+    var isExpired = isWarningExpired(w);
+    var periodSelect = document.getElementById('periodSelect');
+    var period = periodSelect ? periodSelect.value : 'live';
+    if (period !== 'live') {
+      var days = parseInt(period);
+      var periodMs = days * 24 * 60 * 60 * 1000;
+      var nowTime = new Date();
+      if (isExpired && (nowTime - new Date(w.end_date) > periodMs)) {
+        return false;
+      }
+    } else {
+      if (isExpired) return false;
+    }
+    
     // Day Match (Only apply to active/future warnings; expired historical warnings bypass it)
     var start = w.start_date ? new Date(w.start_date) : null;
     var end = w.end_date ? new Date(w.end_date) : null;
-    var isExpired = isWarningExpired(w);
     
     if (start && end && !isExpired) {
       var overlapsActiveDay = activeDays.some(function(dayOffset) {
@@ -1037,7 +1051,7 @@ map.on('click', function() {
 
 // ── Boundary layers ────────────────────────────────────────────────────────
 var boundaryLayers = {};
-var currentBoundary = 'none';
+var currentBoundary = 'catchments';
 
 var BSTYLES = {
   regions:    { color: '#5f6368', weight: 1.5, fillOpacity: 0 },
@@ -1106,6 +1120,7 @@ function onLayerSelectChange(val) {
 
 // ── Inception ──────────────────────────────────────────────────────────────
 loadWarnings();
+loadBoundary(currentBoundary);
 </script>
 
 </body>
