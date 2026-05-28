@@ -638,6 +638,7 @@ possible in the most extreme historic UK convective events.  60 mm/15 min would
 be extraordinary; ≥ 60 mm warrants immediate scrutiny for sensor error.\
 """
 
+
 # ── LLM assessment ─────────────────────────────────────────────────────────────
 def call_llm(station_id, name, lat, lon, value, slot_time_str,
              checks, history_96, neighbours_info, radar_mm, accums,
@@ -654,13 +655,27 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
         print("  openai package not installed — skipping LLM")
         return None, None
 
-    def _fmt_slots(slots):
+    def _fmt_slots_compressed(slots):
+        if not slots:
+            return "[]"
         parts = []
-        for i, v in enumerate(slots):
+        i = 0
+        n = len(slots)
+        while i < n:
+            v = slots[i]
+            count = 1
+            if v == 0.0 or v is None:
+                target = v
+                while i + count < n and slots[i + count] == target:
+                    count += 1
+                if count >= 4:  # Compress consecutive blocks of at least 1 hour
+                    label = "dry slots (0.0 mm)" if target == 0.0 else "missing slots"
+                    parts.append(f"{count} consecutive {label}")
+                    i += count
+                    continue
             parts.append(f"{v:.1f}" if v is not None else "-")
-            if (i + 1) % 24 == 0 and i < len(slots) - 1:
-                parts.append("\n  ")
-        return "[" + " ".join(parts) + "]"
+            i += 1
+        return "[" + ", ".join(parts) + "]"
 
     def _fmt_check(label, c):
         if c.get("skipped"):
@@ -693,8 +708,11 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
     nbr_block = ""
     for nbr in neighbours_info[:3]:
         hist = nbr.get("history_24", [])
-        hist_str = "[" + " ".join(f"{v:.1f}" if v is not None else "-"
-                                  for v in hist) + "]"
+        if all(v == 0.0 or v is None for v in hist):
+            hist_str = "[Dry / No rain recorded]"
+        else:
+            hist_str = "[" + " ".join(f"{v:.1f}" if v is not None else "-"
+                                      for v in hist) + "]"
         ukv_nbr = nbr.get("ukv_1h_mm")
         ukv_tag = f"  UKV={ukv_nbr:.1f}mm" if ukv_nbr is not None else ""
         nbr_block += (f"\n  {nbr['name']} ({nbr['dist_km']:.1f} km): "
@@ -765,30 +783,9 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
     pattern_block = (f"\nCheck failure pattern: {check_pattern_str}\n"
                      if check_pattern_str else "")
 
-    prompt = (
+    system_prompt = (
         f"You are a UK rainfall quality-control expert advising a flood forecasting team.\n\n"
         f"Reference — {UK_EXTREME_RAINFALL}\n\n"
-        f"Station: {name} (ID {station_id}), "
-        f"{lat:.4f}°N  {abs(lon):.4f}°{'W' if lon < 0 else 'E'}\n"
-        f"Season: {season} ({month_name})\n"
-        f"Latest reading: {value:.1f} mm in 15-min slot at {slot_time_str} UTC\n"
-        f"{flag_history}\n\n"
-        f"Accumulation totals ending at this slot:\n{accum_str}\n"
-        f"{spell_block}"
-        f"\nAutomated QC check results (computed externally — do not recalculate):\n"
-        f"{check_block}\n"
-        f"{qi_str}"
-        f"{pattern_block}"
-        f"\nRadar QPE at station:\n"
-        f"  5 km radius:  {radar_5km_str}\n"
-        f"  30 km radius: {radar_30km_str}  (near-zero confirms spatial isolation)\n"
-        f"{radar_adj_str}"
-        f"{ukv_block}"
-        f"{regional_block}"
-        f"\nThis gauge last 24 hr (96 × 15-min slots, oldest→newest, mm, '-'=missing):\n"
-        f"  {_fmt_slots(history_96)}\n\n"
-        f"Nearest neighbours (latest reading + last 6-hr slot history + UKV 1-hr forecast where available):"
-        f"{nbr_block if nbr_block else chr(10) + '  None available'}\n\n"
         f"Guidance on interpreting specific checks:\n\n"
         f"Drip/leak flag:\n"
         f"  Tipping bucket gauges record rainfall in discrete 0.1 mm tips. In genuine light\n"
@@ -812,18 +809,46 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
         f"  is expected — isolated intense cells routinely outpace their nearest neighbours.\n"
         f"  Treat a spatial flag as weaker evidence of a fault when the 24-hr history and\n"
         f"  radar both show a coherent event, even if neighbours are relatively dry.\n\n"
-        f"Based on the above, assess whether the reading at {slot_time_str} is genuine "
+        f"Instructions:\n"
+        f"Based on the provided telemetry, assess whether the latest station reading is genuine "
         f"rainfall or a sensor/telemetry fault. Consider the UK climate context.\n"
         f"Give a 2–3 sentence explanation.\n"
         f"On the final line write exactly one of:\n"
         f"VERDICT: GENUINE\nVERDICT: SUSPECT\nVERDICT: UNCERTAIN"
     )
 
+    user_prompt = (
+        f"Station: {name} (ID {station_id}), "
+        f"{lat:.4f}°N  {abs(lon):.4f}°{'W' if lon < 0 else 'E'}\n"
+        f"Season: {season} ({month_name})\n"
+        f"Latest reading: {value:.1f} mm in 15-min slot at {slot_time_str} UTC\n"
+        f"{flag_history}\n\n"
+        f"Accumulation totals ending at this slot:\n{accum_str}\n"
+        f"{spell_block}"
+        f"\nAutomated QC check results (computed externally):\n"
+        f"{check_block}\n"
+        f"{qi_str}"
+        f"{pattern_block}"
+        f"\nRadar QPE at station:\n"
+        f"  5 km radius:  {radar_5km_str}\n"
+        f"  30 km radius: {radar_30km_str}  (near-zero confirms spatial isolation)\n"
+        f"{radar_adj_str}"
+        f"{ukv_block}"
+        f"{regional_block}"
+        f"\nThis gauge last 24 hr (96 × 15-min slots, oldest→newest, mm, compressed):\n"
+        f"  {_fmt_slots_compressed(history_96)}\n\n"
+        f"Nearest neighbours (latest reading + last 6-hr slot history + UKV 1-hr forecast):\n"
+        f"  {nbr_block if nbr_block else 'None available'}\n"
+    )
+
     try:
         client = openai.OpenAI(api_key=OPENAI_API_KEY)
         resp   = client.chat.completions.create(
             model=OPENAI_MODEL,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
             max_completion_tokens=300,
             temperature=0.2,
         )
