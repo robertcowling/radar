@@ -1011,23 +1011,54 @@ def update_log(r2, flagged_gauges, now):
 
     for g in flagged_gauges:
         key = (g['station_id'], g['first_flagged_at'])
+        existing_event = events.get(key, {})
+        instances = existing_event.get('instances', [])
+
+        # If existing event doesn't have an instances list yet, migrate it
+        if not instances and existing_event:
+            instances = [{
+                'slot_time':     existing_event.get('latest_slot_time', existing_event.get('first_flagged_at')),
+                'value_mm':      existing_event.get('latest_value_mm'),
+                'qi':            existing_event.get('qi'),
+                'checks_flag':   existing_event.get('checks_flag'),
+                'checks':        existing_event.get('checks', {}),
+                'llm_verdict':   existing_event.get('llm_verdict'),
+                'llm_reasoning': existing_event.get('llm_reasoning'),
+            }]
+
+        new_instance = {
+            'slot_time':     g['latest_slot_time'],
+            'value_mm':      g['latest_value_mm'],
+            'qi':            g.get('qi'),
+            'checks_flag':   g['checks_flag'],
+            'checks':        g['checks'],
+            'llm_verdict':   g.get('llm_verdict'),
+            'llm_reasoning': g.get('llm_reasoning'),
+        }
+
+        # Key by slot_time to prevent duplicate additions
+        instance_map = {inst['slot_time']: inst for inst in instances}
+        instance_map[new_instance['slot_time']] = new_instance
+        sorted_instances = sorted(instance_map.values(), key=lambda inst: inst['slot_time'])
+
         events[key] = {
-            'station_id':       g['station_id'],
-            'name':             g['name'],
-            'county':           g.get('county'),
-            'lat':              g['lat'],
-            'lon':              g['lon'],
-            'first_flagged_at': g['first_flagged_at'],
-            'last_seen':        now.strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'latest_slot_time': g['latest_slot_time'],
+            'station_id':        g['station_id'],
+            'name':              g['name'],
+            'county':            g.get('county'),
+            'lat':               g['lat'],
+            'lon':               g['lon'],
+            'first_flagged_at':  g['first_flagged_at'],
+            'last_seen':         now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'latest_slot_time':  g['latest_slot_time'],
             'consecutive_flags': g['consecutive_flags'],
-            'checks_flag':      g['checks_flag'],
-            'qi':               g.get('qi'),
-            'latest_value_mm':  g['latest_value_mm'],
-            'checks':           g['checks'],
-            'llm_verdict':      g.get('llm_verdict'),
-            'llm_reasoning':    g.get('llm_reasoning'),
-            'accums':           g.get('accums', {}),
+            'checks_flag':       g['checks_flag'],
+            'qi':                g.get('qi'),
+            'latest_value_mm':   g['latest_value_mm'],
+            'checks':            g['checks'],
+            'llm_verdict':       g.get('llm_verdict'),
+            'llm_reasoning':     g.get('llm_reasoning'),
+            'accums':            g.get('accums', {}),
+            'instances':         sorted_instances,
         }
 
     events = {k: v for k, v in events.items() if v['last_seen'] > cutoff}
@@ -1279,64 +1310,57 @@ def main():
             if offset > 0 and station_id in existing_llm:
                 llm_verdict, llm_reasoning, llm_from_run = existing_llm[station_id]
             elif should_call_llm(checks, latest_value):
-                # Call LLM only for the latest slot (offset == 0)
-                prev_verdict  = prev.get("llm_verdict") if prev else None
-                needs_refresh = not prev_verdict or consecutive_flags % 4 == 0
-                if needs_refresh:
-                    neighbours_info = []
-                    for nbr_id, dist_km, nbr_name, nbr_val in neighbours[:3]:
-                        h24 = get_station_slots(days, nbr_id, target_date_str,
-                                                target_slot, 24)
-                        nbr_ukv = ukv_gauge_data.get(nbr_id, {}).get("accum_1h")
-                        neighbours_info.append({
-                            "name":       nbr_name,
-                            "dist_km":    dist_km,
-                            "value_mm":   round(nbr_val, 2) if nbr_val is not None else None,
-                            "history_24": h24,
-                            "ukv_1h_mm":  nbr_ukv,
-                        })
+                # Call LLM for every new flagged slot (offset == 0) in real-time
+                neighbours_info = []
+                for nbr_id, dist_km, nbr_name, nbr_val in neighbours[:3]:
+                    h24 = get_station_slots(days, nbr_id, target_date_str,
+                                            target_slot, 24)
+                    nbr_ukv = ukv_gauge_data.get(nbr_id, {}).get("accum_1h")
+                    neighbours_info.append({
+                        "name":       nbr_name,
+                        "dist_km":    dist_km,
+                        "value_mm":   round(nbr_val, 2) if nbr_val is not None else None,
+                        "history_24": h24,
+                        "ukv_1h_mm":  nbr_ukv,
+                    })
 
-                    radar_30km_mm   = slot_extract_radar(lat, lon, radius_km=30.0) if slot_extract_radar else None
-                    _spell          = compute_spell_summary(history_96)
-                    _regional       = regional_wetness_count(station_id, stations, latest_readings)
-                    _pattern        = check_failure_pattern(checks, prev.get("checks") if prev else None)
-                    _ukv_1h         = ukv_gauge_data.get(station_id, {}).get("accum_1h")
+                radar_30km_mm   = slot_extract_radar(lat, lon, radius_km=30.0) if slot_extract_radar else None
+                _spell          = compute_spell_summary(history_96)
+                _regional       = regional_wetness_count(station_id, stations, latest_readings)
+                _pattern        = check_failure_pattern(checks, prev.get("checks") if prev else None)
+                _ukv_1h         = ukv_gauge_data.get(station_id, {}).get("accum_1h")
 
-                    # Load radar readings for adjacent slots
-                    radar_adj = {"before_5km": None, "before_1km": None, "after_5km": None, "after_1km": None}
-                    try:
-                        t_b = target_dt - timedelta(minutes=15)
-                        tb_date_str = t_b.strftime("%Y%m%d")
-                        tb_slot = t_b.hour * 4 + t_b.minute // 15
-                        tb_data = load_radar_day(r2, tb_date_str)
-                        radar_adj["before_5km"] = tb_data.get("readings_5km", {}).get(station_id, {}).get(str(tb_slot))
-                        radar_adj["before_1km"] = tb_data.get("readings_1km", {}).get(station_id, {}).get(str(tb_slot))
-                        
-                        t_a = target_dt + timedelta(minutes=15)
-                        ta_date_str = t_a.strftime("%Y%m%d")
-                        ta_slot = t_a.hour * 4 + t_a.minute // 15
-                        ta_data = load_radar_day(r2, ta_date_str)
-                        radar_adj["after_5km"] = ta_data.get("readings_5km", {}).get(station_id, {}).get(str(ta_slot))
-                        radar_adj["after_1km"] = ta_data.get("readings_1km", {}).get(station_id, {}).get(str(ta_slot))
-                    except Exception as e:
-                        print(f"  Error loading adjacent radar readings: {e}")
+                # Load radar readings for adjacent slots
+                radar_adj = {"before_5km": None, "before_1km": None, "after_5km": None, "after_1km": None}
+                try:
+                    t_b = target_dt - timedelta(minutes=15)
+                    tb_date_str = t_b.strftime("%Y%m%d")
+                    tb_slot = t_b.hour * 4 + t_b.minute // 15
+                    tb_data = load_radar_day(r2, tb_date_str)
+                    radar_adj["before_5km"] = tb_data.get("readings_5km", {}).get(station_id, {}).get(str(tb_slot))
+                    radar_adj["before_1km"] = tb_data.get("readings_1km", {}).get(station_id, {}).get(str(tb_slot))
+                    
+                    t_a = target_dt + timedelta(minutes=15)
+                    ta_date_str = t_a.strftime("%Y%m%d")
+                    ta_slot = t_a.hour * 4 + t_a.minute // 15
+                    ta_data = load_radar_day(r2, ta_date_str)
+                    radar_adj["after_5km"] = ta_data.get("readings_5km", {}).get(station_id, {}).get(str(ta_slot))
+                    radar_adj["after_1km"] = ta_data.get("readings_1km", {}).get(station_id, {}).get(str(ta_slot))
+                except Exception as e:
+                    print(f"  Error loading adjacent radar readings: {e}")
 
-                    llm_verdict, llm_reasoning = call_llm(
-                        station_id, s.get("name", station_id), lat, lon,
-                        latest_value, target_dt.strftime("%Y-%m-%dT%H:%M"),
-                        checks, history_96, neighbours_info, radar_mm,
-                        accums, consecutive_flags, _month, _season,
-                        radar_30km_mm=radar_30km_mm, spell_summary=_spell,
-                        regional_wet=_regional, check_pattern_str=_pattern,
-                        ukv_1h_mm=_ukv_1h, ukv_step_info=ukv_step_info,
-                        qi=qi, radar_adj=radar_adj,
-                    )
-                    if llm_verdict:
-                        llm_from_run = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-                else:
-                    llm_verdict   = prev_verdict
-                    llm_reasoning = prev.get("llm_reasoning")
-                    llm_from_run  = prev.get("llm_from_run")
+                llm_verdict, llm_reasoning = call_llm(
+                    station_id, s.get("name", station_id), lat, lon,
+                    latest_value, target_dt.strftime("%Y-%m-%dT%H:%M"),
+                    checks, history_96, neighbours_info, radar_mm,
+                    accums, consecutive_flags, _month, _season,
+                    radar_30km_mm=radar_30km_mm, spell_summary=_spell,
+                    regional_wet=_regional, check_pattern_str=_pattern,
+                    ukv_1h_mm=_ukv_1h, ukv_step_info=ukv_step_info,
+                    qi=qi, radar_adj=radar_adj,
+                )
+                if llm_verdict:
+                    llm_from_run = now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
             checks_flag = "FLAGGED" if any_check_failed(checks) else "ELEVATED"
             summary_entry['f']  = checks_flag

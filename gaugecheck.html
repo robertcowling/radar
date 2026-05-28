@@ -201,6 +201,46 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
 .tbl-unit { font-size: 9px; color: #5f6368; font-weight: 400; }
 .tbl-empty { text-align: center; padding: 30px; color: #4caf50; font-size: 12px; font-weight: 500; }
 
+/* ── Collapsible Log Child Rows ────────────────────────────────────────────── */
+table.qc-table tbody tr.tbl-child-row {
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+  border-left: 3px solid #cbd5e1;
+}
+table.qc-table tbody tr.tbl-child-row:hover {
+  background: #f1f5f9;
+}
+table.qc-table tbody tr.tbl-child-row.selected {
+  background: #e2e8f0;
+  border-left-color: #64748b;
+}
+
+.qc-chevron {
+  display: inline-block;
+  font-size: 10px;
+  color: #94a3b8;
+  transition: transform 0.2s ease;
+  user-select: none;
+  margin-right: 6px;
+}
+.qc-chevron.expanded {
+  transform: rotate(90deg);
+  color: #475569;
+}
+
+.qc-run-badge {
+  font-size: 9px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-weight: 500;
+  margin-left: 6px;
+  vertical-align: middle;
+  display: inline-block;
+}
+
 /* ── Check pills ───────────────────────────────────────────────────────────── */
 .pill { font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px; white-space: nowrap; display: inline-block; margin: 1px 1px 1px 0; }
 .pill.fail-threshold,
@@ -676,7 +716,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
         <div class="cbar-labels" id="mapCbarLabels"></div>
         <!-- Mobile period selector -->
         <div class="mobile-only-period" style="margin-top:6px; padding-top:4px; border-top:1px solid #dde1e7; display:none; flex-direction:column; gap:2px; pointer-events:auto">
-          <span style="font-size:9px; font-weight:600; color:#5f6368">Period</span>
+          <span style="font-size:9px; font-weight:600; color:#5f6368">Gauge period</span>
           <select id="mobilePeriodSelect" onchange="onMobilePeriodChange(this.value)" style="padding: 3px 20px 3px 8px; font-size: 10px; border-radius: 12px; background-position: right 6px center;">
             <option value="mm">15 min</option>
             <option value="1hr">1 Hour</option>
@@ -738,7 +778,7 @@ table.qc-table td { padding: 7px 8px; vertical-align: top; }
     <!-- Shared control bar centered across both maps -->
     <div class="shared-bar">
       <div class="control-group ctrl-period">
-        <span class="control-label">Period</span>
+        <span class="control-label">Gauge period</span>
         <select id="periodSelect" onchange="onPeriodChange(this.value)">
           <option value="mm">15 min</option>
           <option value="1hr">1 Hour</option>
@@ -1064,7 +1104,8 @@ function makeGaugeMarker(val, latlng) {
     className: '',
     html: iconHtml,
     iconSize: [20, 20],
-    iconAnchor: [10, 10]
+    iconAnchor: [10, 10],
+    popupAnchor: [0, -10]
   });
   return L.marker(latlng, { icon: icon });
 }
@@ -1434,7 +1475,8 @@ function renderMidMarkers() {
       className: '',
       html: iconHtml,
       iconSize: [24, 24],
-      iconAnchor: [12, 12]
+      iconAnchor: [12, 12],
+      popupAnchor: [0, -14]
     });
     
     var m = L.marker([s.lat, s.lon], { icon: icon });
@@ -1576,18 +1618,22 @@ function renderLog() {
 
   var html = '';
   events.forEach(function(e) {
+    var hasInstances = e.instances && e.instances.length > 1;
     var llmPill     = buildLlmPill(e.llm_verdict);
     var loc         = e.county || '';
     var dur         = fmtDuration(e.consecutive_flags);
     var t           = fmtLogDateTime(e.last_seen);
     var mm24        = (e.accums && e.accums['24hr']) || 0;
     var qi          = e.qi;
-    var borderColor = (qi !== undefined && qi < 0.5) ? '#c62828' : (e.checks_flag === 'FLAGGED' ? '#c62828' : '#ef6c00');
     var qiCell      = qi !== undefined
       ? '<span style="font-size:11px;font-weight:700;color:' + (qi < 0.5 ? '#c62828' : '#ef6c00') + '">' + qi.toFixed(2) + '</span>'
       : '<span style="font-size:11px;color:#94a3b8">—</span>';
+    
+    var chevron = hasInstances ? '<span class="qc-chevron" id="chevron-' + e.station_id + '">▶</span>' : '';
+    var runBadge = hasInstances ? '<span class="qc-run-badge">' + e.instances.length + ' runs</span>' : '';
+
     html += '<tr class="tbl-row" id="tblrow-' + e.station_id + '">' +
-      '<td><div class="tbl-name">' + escHtml(e.name) + '</div>' +
+      '<td><div class="tbl-name" style="display:flex; align-items:center;">' + chevron + escHtml(e.name) + runBadge + '</div>' +
         (loc ? '<div class="tbl-loc">' + escHtml(loc) + '</div>' : '') +
         '<div class="tbl-mobile-time">' + t + '</div>' +
         '<div class="tbl-loc">' + dur + '</div></td>' +
@@ -1597,6 +1643,27 @@ function renderLog() {
       '<td class="checks-cell">' + qiCell + '</td>' +
       '<td>' + llmPill + '</td>' +
       '</tr>';
+      
+    if (e.instances && e.instances.length > 0) {
+      e.instances.forEach(function(inst, idx) {
+        var instQi = inst.qi;
+        var instQiCell = instQi !== undefined
+          ? '<span style="font-size:11px;font-weight:700;color:' + (instQi < 0.5 ? '#c62828' : '#ef6c00') + '">' + instQi.toFixed(2) + '</span>'
+          : '<span style="font-size:11px;color:#94a3b8">—</span>';
+        var instLlmPill = buildLlmPill(inst.llm_verdict);
+        var instChecks = buildCheckPills(inst.checks);
+        var childId = 'tblrow-' + e.station_id + '-child-' + idx;
+        
+        html += '<tr class="tbl-child-row tbl-child-row-' + e.station_id + '" id="' + childId + '" data-time="' + inst.slot_time + '" style="display:none;">' +
+          '<td style="padding-left:20px; font-weight: 500; color: #475569;"><span style="color: #cbd5e1; margin-right: 6px;">└─</span>' + fmtLogTime(inst.slot_time) + '</td>' +
+          '<td>' + instChecks + '</td>' +
+          '<td class="tbl-num">' + inst.value_mm.toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
+          '<td class="tbl-num" style="color:#94a3b8">—</td>' +
+          '<td class="checks-cell">' + instQiCell + '</td>' +
+          '<td>' + instLlmPill + '</td>' +
+          '</tr>';
+      });
+    }
   });
   tbody.innerHTML = html;
 
@@ -1604,7 +1671,50 @@ function renderLog() {
     var el = document.getElementById('tblrow-' + e.station_id);
     if (el) {
       tblRowById[e.station_id] = el;
-      el.addEventListener('click', (function(ev){ return function(){ selectGauge(ev.station_id, ev.first_flagged_at); }; })(e));
+      
+      el.addEventListener('click', function(evt) {
+        var children = document.querySelectorAll('.tbl-child-row-' + e.station_id);
+        var chevron = document.getElementById('chevron-' + e.station_id);
+        var isExpanded = false;
+        
+        children.forEach(function(child) {
+          if (child.style.display === 'none') {
+            child.style.display = '';
+            isExpanded = true;
+          } else {
+            child.style.display = 'none';
+          }
+        });
+        
+        if (chevron) {
+          if (isExpanded) {
+            chevron.classList.add('expanded');
+          } else {
+            chevron.classList.remove('expanded');
+          }
+        }
+        
+        selectGauge(e.station_id, e.first_flagged_at);
+      });
+    }
+    
+    if (e.instances && e.instances.length > 0) {
+      e.instances.forEach(function(inst, idx) {
+        var childId = 'tblrow-' + e.station_id + '-child-' + idx;
+        var cel = document.getElementById(childId);
+        if (cel) {
+          tblRowById[childId] = cel;
+          cel.addEventListener('click', function(evt) {
+            evt.stopPropagation();
+            
+            if (selectedId && tblRowById[selectedId]) tblRowById[selectedId].classList.remove('selected');
+            selectedId = childId;
+            cel.classList.add('selected');
+            
+            selectGauge(e.station_id, inst.slot_time);
+          });
+        }
+      });
     }
   });
   renderTimelineMarks();
@@ -1666,18 +1776,58 @@ function fmtLogDateTime(iso) {
 
 // ── Select gauge ───────────────────────────────────────────────────────────
 function selectGauge(id, isoTime) {
+  var highlightedId = id;
+  if (isoTime) {
+    var childRows = document.querySelectorAll('.tbl-child-row-' + id);
+    childRows.forEach(function(row) {
+      if (row.getAttribute('data-time') === isoTime) {
+        highlightedId = row.id;
+      }
+    });
+  }
+
   if (selectedId && tblRowById[selectedId]) tblRowById[selectedId].classList.remove('selected');
-  selectedId = id;
-  if (tblRowById[id]) {
-    tblRowById[id].classList.add('selected');
-    tblRowById[id].scrollIntoView({ behavior:'smooth', block:'nearest' });
+  selectedId = highlightedId;
+  if (tblRowById[selectedId]) {
+    tblRowById[selectedId].classList.add('selected');
+    tblRowById[selectedId].scrollIntoView({ behavior:'smooth', block:'nearest' });
   }
 
   var clickedEvent = null;
   if (isoTime && logData && logData.events) {
     logData.events.forEach(function(ev) {
-      if (ev.station_id === id && (ev.first_flagged_at === isoTime || ev.last_seen === isoTime)) {
-        clickedEvent = ev;
+      if (ev.station_id === id) {
+        var matchedInstance = null;
+        if (ev.instances) {
+          ev.instances.forEach(function(inst) {
+            if (inst.slot_time === isoTime) {
+              matchedInstance = inst;
+            }
+          });
+        }
+        
+        if (matchedInstance) {
+          clickedEvent = {
+            station_id:        ev.station_id,
+            name:              ev.name,
+            county:            ev.county,
+            region:            ev.region,
+            lat:               ev.lat,
+            lon:               ev.lon,
+            first_flagged_at:  ev.first_flagged_at,
+            last_seen:         ev.last_seen,
+            latest_value_mm:   matchedInstance.value_mm,
+            checks_flag:       matchedInstance.checks_flag,
+            qi:                matchedInstance.qi,
+            checks:            matchedInstance.checks,
+            llm_verdict:       matchedInstance.llm_verdict,
+            llm_reasoning:     matchedInstance.llm_reasoning,
+            accums:            ev.accums,
+            consecutive_flags: ev.consecutive_flags,
+          };
+        } else if (ev.first_flagged_at === isoTime || ev.last_seen === isoTime) {
+          clickedEvent = ev;
+        }
       }
     });
   }
