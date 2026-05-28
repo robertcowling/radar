@@ -79,13 +79,21 @@ body {
 }
 .right-header-title { font-size: 12px; font-weight: 700; letter-spacing: 0.6px; }
 
-/* ── Filter Panel ──────────────────────────────────────────────────────────── */
-.filter-panel {
-  background: #1e293b; padding: 14px 16px; border-bottom: 1px solid #334155;
-  display: flex; flex-direction: column; gap: 12px; flex-shrink: 0;
+/* ── Player Panel (bottom bar matching compare.html style) ────────────────── */
+.player-panel {
+  position: fixed; bottom: 20px; left: 50%;
+  transform: translateX(-50%); padding: 12px 20px;
+  z-index: 1000; width: 90%; max-width: 960px;
+  display: flex; align-items: center; gap: 16px;
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid #475569;
+  border-radius: 24px;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 8px 16px -8px rgba(0, 0, 0, 0.5);
 }
-.filter-group { display: flex; flex-direction: column; gap: 4px; }
-.filter-title { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px; }
+.control-group { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; flex: 1; min-width: 0; }
+.control-label { font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px; padding-left: 6px; text-transform: uppercase; }
 
 /* Premium Select Box Styles */
 select.premium-select {
@@ -135,15 +143,15 @@ select.premium-select:focus { border-color: #3b82f6; }
 .multiselect-options {
   display: none;
   position: absolute;
-  top: calc(100% + 6px);
+  bottom: calc(100% + 8px); /* Pop upwards */
   left: 0;
   right: 0;
-  background: rgba(30, 41, 59, 0.96);
+  background: rgba(15, 23, 42, 0.96);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid #475569;
   border-radius: 12px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.5), 0 -8px 10px -6px rgba(0, 0, 0, 0.5);
   z-index: 1010;
   padding: 8px;
   max-height: 240px;
@@ -267,7 +275,23 @@ select.premium-select:focus { border-color: #3b82f6; }
   .details-drawer { height: 60vh; max-height: 60vh; }
   .drawer-body { grid-template-columns: 1fr; gap: 20px; padding: 16px; }
   
-  .filter-panel { padding: 10px 12px; gap: 8px; }
+    .player-panel {
+    position: relative;
+    bottom: auto; left: auto;
+    transform: none;
+    width: calc(100% - 24px);
+    margin: 10px auto;
+    border-radius: 12px;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+  }
+  .control-group {
+    width: 100%;
+  }
+  .multiselect-options {
+    bottom: calc(100% + 4px);
+  }
   .header-cell:first-child { display: none; }
 }
 </style>
@@ -323,76 +347,6 @@ select.premium-select:focus { border-color: #3b82f6; }
       <span id="sidebarCounts" style="font-size: 10px; color: #94a3b8; font-weight: 700;">0 SHOWN</span>
     </div>
 
-    <!-- Filters Section -->
-    <div class="filter-panel">
-      <!-- Day Filters Custom Dropdown -->
-      <div class="filter-group">
-        <div class="filter-title">Filter by Day</div>
-        <div class="custom-multiselect" id="daySelect">
-          <div class="multiselect-trigger" onclick="toggleMultiselect(event, 'daySelect')">
-            <span class="trigger-text" id="daySelectText">All Days</span>
-            <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <div class="multiselect-options">
-            <label class="option-item"><input type="checkbox" class="filter-day" value="0" checked onchange="onMultiselectChange('daySelect')"><span>Day 1 (Today)</span></label>
-            <label class="option-item"><input type="checkbox" class="filter-day" value="1" checked onchange="onMultiselectChange('daySelect')"><span>Day 2</span></label>
-            <label class="option-item"><input type="checkbox" class="filter-day" value="2" checked onchange="onMultiselectChange('daySelect')"><span>Day 3</span></label>
-            <label class="option-item"><input type="checkbox" class="filter-day" value="3" checked onchange="onMultiselectChange('daySelect')"><span>Day 4</span></label>
-            <label class="option-item"><input type="checkbox" class="filter-day" value="4" checked onchange="onMultiselectChange('daySelect')"><span>Day 5</span></label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tag Filters Custom Dropdown -->
-      <div class="filter-group">
-        <div class="filter-title">Filter by Phenomenon</div>
-        <div class="custom-multiselect" id="phenomenonSelect">
-          <div class="multiselect-trigger" onclick="toggleMultiselect(event, 'phenomenonSelect')">
-            <span class="trigger-text" id="phenomenonSelectText">All Phenomena</span>
-            <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <div class="multiselect-options">
-            <label class="option-item"><input type="checkbox" class="filter-tag" value="rain" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Rain</span></label>
-            <label class="option-item"><input type="checkbox" class="filter-tag" value="thunderstorm" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Thunderstorm</span></label>
-            <label class="option-item"><input type="checkbox" class="filter-tag" value="wind" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Wind</span></label>
-            <label class="option-item"><input type="checkbox" class="filter-tag" value="flood" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Flood</span></label>
-            <label class="option-item"><input type="checkbox" class="filter-tag" value="snow" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Snow &amp; Ice</span></label>
-            <label class="option-item"><input type="checkbox" class="filter-tag" value="fog" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Fog</span></label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Severity Filters Custom Dropdown -->
-      <div class="filter-group">
-        <div class="filter-title">Filter by Severity</div>
-        <div class="custom-multiselect" id="severitySelect">
-          <div class="multiselect-trigger" onclick="toggleMultiselect(event, 'severitySelect')">
-            <span class="trigger-text" id="severitySelectText">All Severities</span>
-            <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <div class="multiselect-options">
-            <label class="option-item"><input type="checkbox" class="filter-sev" value="extreme" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #fca5a5;">Extreme</span></label>
-            <label class="option-item"><input type="checkbox" class="filter-sev" value="severe" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #fde047;">Severe / Amber</span></label>
-            <label class="option-item"><input type="checkbox" class="filter-sev" value="moderate" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #fef08a;">Moderate / Yellow</span></label>
-            <label class="option-item"><input type="checkbox" class="filter-sev" value="minor" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #93c5fd;">Minor</span></label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Map Layers Overlay (Pill select design matching compare.html) -->
-      <div class="filter-group">
-        <div class="filter-title">Map Overlay Layers</div>
-        <div style="position: relative;">
-          <select id="layerSelect" class="premium-select" onchange="onLayerSelectChange(this.value)">
-            <option value="none" selected>None Overlay</option>
-            <option value="regions">Regions</option>
-            <option value="catchments">River Catchments</option>
-            <option value="counties">Counties</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
     <!-- Cards Scroll Area -->
     <div class="tbl-wrap" id="cardsList">
       <div class="empty-state">Ingesting weather alerts...</div>
@@ -400,6 +354,72 @@ select.premium-select:focus { border-color: #3b82f6; }
 
   </div>
 
+</div>
+
+<!-- Player panel (bottom bar) -->
+<div class="player-panel">
+  <div class="control-group">
+    <span class="control-label">Day</span>
+    <div class="custom-multiselect" id="daySelect">
+      <div class="multiselect-trigger" onclick="toggleMultiselect(event, 'daySelect')">
+        <span class="trigger-text" id="daySelectText">All Days</span>
+        <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="multiselect-options">
+        <label class="option-item"><input type="checkbox" class="filter-day" value="0" checked onchange="onMultiselectChange('daySelect')"><span>Day 1 (Today)</span></label>
+        <label class="option-item"><input type="checkbox" class="filter-day" value="1" checked onchange="onMultiselectChange('daySelect')"><span>Day 2</span></label>
+        <label class="option-item"><input type="checkbox" class="filter-day" value="2" checked onchange="onMultiselectChange('daySelect')"><span>Day 3</span></label>
+        <label class="option-item"><input type="checkbox" class="filter-day" value="3" checked onchange="onMultiselectChange('daySelect')"><span>Day 4</span></label>
+        <label class="option-item"><input type="checkbox" class="filter-day" value="4" checked onchange="onMultiselectChange('daySelect')"><span>Day 5</span></label>
+      </div>
+    </div>
+  </div>
+  
+  <div class="control-group">
+    <span class="control-label">Phenomenon</span>
+    <div class="custom-multiselect" id="phenomenonSelect">
+      <div class="multiselect-trigger" onclick="toggleMultiselect(event, 'phenomenonSelect')">
+        <span class="trigger-text" id="phenomenonSelectText">All Phenomena</span>
+        <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="multiselect-options">
+        <label class="option-item"><input type="checkbox" class="filter-tag" value="rain" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Rain</span></label>
+        <label class="option-item"><input type="checkbox" class="filter-tag" value="thunderstorm" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Thunderstorm</span></label>
+        <label class="option-item"><input type="checkbox" class="filter-tag" value="wind" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Wind</span></label>
+        <label class="option-item"><input type="checkbox" class="filter-tag" value="flood" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Flood</span></label>
+        <label class="option-item"><input type="checkbox" class="filter-tag" value="snow" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Snow &amp; Ice</span></label>
+        <label class="option-item"><input type="checkbox" class="filter-tag" value="fog" checked onchange="onMultiselectChange('phenomenonSelect')"><span>Fog</span></label>
+      </div>
+    </div>
+  </div>
+  
+  <div class="control-group">
+    <span class="control-label">Severity</span>
+    <div class="custom-multiselect" id="severitySelect">
+      <div class="multiselect-trigger" onclick="toggleMultiselect(event, 'severitySelect')">
+        <span class="trigger-text" id="severitySelectText">All Severities</span>
+        <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="multiselect-options">
+        <label class="option-item"><input type="checkbox" class="filter-sev" value="extreme" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #fca5a5;">Extreme</span></label>
+        <label class="option-item"><input type="checkbox" class="filter-sev" value="severe" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #fde047;">Severe / Amber</span></label>
+        <label class="option-item"><input type="checkbox" class="filter-sev" value="moderate" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #fef08a;">Moderate / Yellow</span></label>
+        <label class="option-item"><input type="checkbox" class="filter-sev" value="minor" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #93c5fd;">Minor</span></label>
+      </div>
+    </div>
+  </div>
+  
+  <div class="control-group">
+    <span class="control-label">Map Overlay</span>
+    <div style="position: relative; width: 100%;">
+      <select id="layerSelect" class="premium-select" onchange="onLayerSelectChange(this.value)">
+        <option value="none" selected>None Overlay</option>
+        <option value="regions">Regions</option>
+        <option value="catchments">River Catchments</option>
+        <option value="counties">Counties</option>
+      </select>
+    </div>
+  </div>
 </div>
 
 <!-- Details Drawer -->
