@@ -459,7 +459,7 @@ select.premium-select:focus { background-color: #e8eaed; }
           <span class="control-label">Map Overlay</span>
           <div style="position: relative; width: 100%;">
             <select id="layerSelect" class="premium-select" onchange="onLayerSelectChange(this.value)">
-              <option value="none">None Overlay</option>
+              <option value="none">No Overlay</option>
               <option value="regions">Regions</option>
               <option value="catchments" selected>Catchments</option>
               <option value="counties">Counties</option>
@@ -556,6 +556,30 @@ select.premium-select:focus { background-color: #e8eaed; }
 </div>
 
 <script>
+// ── Helpers ────────────────────────────────────────────────────────────────
+var TAG_LABELS = {
+  thunderstorm: 'Thunderstorm',
+  rain: 'Rain',
+  wind: 'Wind',
+  flood: 'Flood',
+  snow: 'Snow & Ice',
+  fog: 'Fog'
+};
+
+function capitalize(str) {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function formatSource(source, w) {
+  var url = (w && w.raw_meta && w.raw_meta.info && w.raw_meta.info.length > 0)
+    ? w.raw_meta.info[0].web
+    : 'https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings';
+  
+  var cleanSource = source === 'ukmetoffice' || source === 'metoffice' ? 'Met Office' : capitalize(source);
+  return '<a href="' + url + '" target="_blank" style="color: #1a73e8; text-decoration: none; font-weight: 600; border-bottom: 1px dashed #1a73e8; padding-bottom: 1px;">' + cleanSource + '</a>';
+}
+
 // ── State ──────────────────────────────────────────────────────────────────
 var latestData = null;
 var allWarnings = [];
@@ -1044,7 +1068,7 @@ function renderSidebarCards() {
     var topRow = '<div class="card-top" style="display:flex; flex-direction:column; gap:6px;">' +
                    '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; width:100%;">' +
                      '<span class="card-title">' + w.title + '</span>' +
-                     '<span class="sev-badge badge-' + severity + '">' + severity + '</span>' +
+                     '<span class="sev-badge badge-' + severity + '">' + capitalize(severity) + '</span>' +
                    '</div>' +
                    '<div style="display:flex; gap:6px;">' + statusHtml + '</div>' +
                  '</div>';
@@ -1057,7 +1081,10 @@ function renderSidebarCards() {
     var descRow = '<div class="card-desc">' + w.description + '</div>';
     
     // Footer tags
-    var tagsHtml = (w.tag || []).map(function(t) { return '<span class="tag-badge">' + t + '</span>'; }).join('');
+    var tagsHtml = (w.tag || []).map(function(t) {
+      var label = TAG_LABELS[t] || capitalize(t);
+      return '<span class="tag-badge">' + label + '</span>';
+    }).join('');
     var footerRow = '<div class="card-footer">' + tagsHtml + '</div>';
     
     card.innerHTML = topRow + timeRow + descRow + footerRow;
@@ -1147,7 +1174,7 @@ function openDrawer(w) {
   // Style severity badge
   var badge = document.getElementById('drawerSeverityBadge');
   badge.className = 'sev-badge badge-' + w.severity;
-  badge.innerText = w.severity;
+  badge.innerText = capitalize(w.severity);
   
   // Populate status badge in drawer
   var isExpired = isWarningExpired(w);
@@ -1168,9 +1195,9 @@ function openDrawer(w) {
   document.getElementById('drawerDescription').innerText = w.description;
   document.getElementById('drawerStart').innerText = formatUKTime(w.start_date);
   document.getElementById('drawerEnd').innerText = formatUKTime(w.end_date);
-  document.getElementById('drawerCertainty').innerText = w.certainty;
-  document.getElementById('drawerUrgency').innerText = w.urgency;
-  document.getElementById('drawerSource').innerText = w.source;
+  document.getElementById('drawerCertainty').innerText = capitalize(w.certainty);
+  document.getElementById('drawerUrgency').innerText = capitalize(w.urgency);
+  document.getElementById('drawerSource').innerHTML = formatSource(w.source, w);
   document.getElementById('drawerId').innerText = w.alert_id;
   
   // Dynamic headline container handling
