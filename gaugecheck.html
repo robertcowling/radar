@@ -174,10 +174,10 @@ select.header-scope-select:focus { border-color: #1a73e8; }
 .tbl-wrap::-webkit-scrollbar { width: 4px; }
 .tbl-wrap::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 2px; }
 
-table.qc-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+table.qc-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 table.qc-table thead th {
   position: sticky; top: 0; background: #f8f9fa; z-index: 1;
-  padding: 6px 8px; text-align: left; font-size: 10px; font-weight: 700;
+  padding: 8px 10px; text-align: left; font-size: 11.5px; font-weight: 700;
   color: #64748b; letter-spacing: 0.2px;
   border-bottom: 1px solid #e8eaed; white-space: nowrap;
 }
@@ -192,14 +192,14 @@ table.qc-table tbody tr.selected {
   background: #e8f0fe;
   border-left-color: #1a73e8;
 }
-table.qc-table td { padding: 7px 8px; vertical-align: top; }
+table.qc-table td { padding: 9px 10px; vertical-align: top; }
 
-.tbl-name { font-size: 12px; font-weight: 600; color: #1e293b; }
-.tbl-loc  { font-size: 10px; color: #64748b; margin-top: 1px; }
-.tbl-num  { font-size: 12px; font-weight: 600; color: #202124; white-space: nowrap; text-align: right; }
-.tbl-time { font-size: 11px; font-weight: 500; color: #3c4043; white-space: nowrap; }
-.tbl-unit { font-size: 9px; color: #5f6368; font-weight: 400; }
-.tbl-empty { text-align: center; padding: 30px; color: #4caf50; font-size: 12px; font-weight: 500; }
+.tbl-name { font-size: 13.5px; font-weight: 600; color: #1e293b; }
+.tbl-loc  { font-size: 11px; color: #64748b; margin-top: 2px; }
+.tbl-num  { font-size: 13px; font-weight: 600; color: #202124; white-space: nowrap; text-align: right; }
+.tbl-time { font-size: 12px; font-weight: 500; color: #3c4043; white-space: nowrap; }
+.tbl-unit { font-size: 10px; color: #5f6368; font-weight: 400; }
+.tbl-empty { text-align: center; padding: 30px; color: #4caf50; font-size: 13px; font-weight: 500; }
 
 /* ── Collapsible Log Child Rows ────────────────────────────────────────────── */
 table.qc-table tbody tr.tbl-child-row {
@@ -214,31 +214,39 @@ table.qc-table tbody tr.tbl-child-row.selected {
   background: #e2e8f0;
   border-left-color: #64748b;
 }
+table.qc-table tbody tr.tbl-child-row td {
+  font-size: 11.5px;
+  color: #475569;
+  padding: 6px 10px;
+}
 
 .qc-chevron {
   display: inline-block;
-  font-size: 10px;
+  font-size: 11px;
   color: #94a3b8;
   transition: transform 0.2s ease;
   user-select: none;
-  margin-right: 6px;
+  margin-right: 8px;
 }
 .qc-chevron.expanded {
   transform: rotate(90deg);
   color: #475569;
 }
 
-.qc-run-badge {
-  font-size: 9px;
-  background: #f1f5f9;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  padding: 1px 4px;
-  font-weight: 500;
-  margin-left: 6px;
+.qc-duration-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  white-space: nowrap;
   vertical-align: middle;
-  display: inline-block;
 }
 
 /* ── Check pills ───────────────────────────────────────────────────────────── */
@@ -1665,22 +1673,20 @@ function renderLog() {
     var hasInstances = e.instances && e.instances.length > 1;
     var llmPill     = buildLlmPill(e.llm_verdict);
     var loc         = e.county || '';
-    var dur         = fmtDuration(e.consecutive_flags);
     var t           = fmtLogDateTime(e.last_seen);
     var mm24        = (e.accums && e.accums['24hr']) || 0;
     var qi          = e.qi;
     var qiCell      = qi !== undefined
-      ? '<span style="font-size:11px;font-weight:700;color:' + (qi < 0.5 ? '#c62828' : '#ef6c00') + '">' + qi.toFixed(2) + '</span>'
-      : '<span style="font-size:11px;color:#94a3b8">—</span>';
+      ? '<span style="font-size:12px;font-weight:700;color:' + (qi < 0.5 ? '#c62828' : '#ef6c00') + '">' + qi.toFixed(2) + '</span>'
+      : '<span style="font-size:12px;color:#94a3b8">—</span>';
     
     var chevron = hasInstances ? '<span class="qc-chevron" id="chevron-' + e.station_id + '">▶</span>' : '';
-    var runBadge = hasInstances ? '<span class="qc-run-badge">' + e.instances.length + ' runs</span>' : '';
+    var durationBadge = hasInstances ? '<span class="qc-duration-badge">' + fmtDurationBadgeText(e.consecutive_flags) + '</span>' : '';
 
     html += '<tr class="tbl-row" id="tblrow-' + e.station_id + '">' +
-      '<td><div class="tbl-name" style="display:flex; align-items:center;">' + chevron + escHtml(e.name) + runBadge + '</div>' +
+      '<td><div class="tbl-name" style="display:flex; align-items:center;">' + chevron + escHtml(e.name) + durationBadge + '</div>' +
         (loc ? '<div class="tbl-loc">' + escHtml(loc) + '</div>' : '') +
-        '<div class="tbl-mobile-time">' + t + '</div>' +
-        '<div class="tbl-loc">' + dur + '</div></td>' +
+        '<div class="tbl-mobile-time">' + t + '</div></td>' +
       '<td class="tbl-time">' + t + '</td>' +
       '<td class="tbl-num">' + e.latest_value_mm.toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
       '<td class="tbl-num">' + mm24.toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
@@ -1692,8 +1698,8 @@ function renderLog() {
       e.instances.forEach(function(inst, idx) {
         var instQi = inst.qi;
         var instQiCell = instQi !== undefined
-          ? '<span style="font-size:11px;font-weight:700;color:' + (instQi < 0.5 ? '#c62828' : '#ef6c00') + '">' + instQi.toFixed(2) + '</span>'
-          : '<span style="font-size:11px;color:#94a3b8">—</span>';
+          ? '<span style="font-size:12px;font-weight:700;color:' + (instQi < 0.5 ? '#c62828' : '#ef6c00') + '">' + instQi.toFixed(2) + '</span>'
+          : '<span style="font-size:12px;color:#94a3b8">—</span>';
         var instLlmPill = buildLlmPill(inst.llm_verdict);
         var instChecks = buildCheckPills(inst.checks);
         var childId = 'tblrow-' + e.station_id + '-child-' + idx;
@@ -1790,11 +1796,13 @@ function buildLlmPill(v) {
   return '<span class="pill '+(cls[v]||'')+'">'+ lbl +'</span>';
 }
 
-function fmtDuration(n) {
+function fmtDurationBadgeText(n) {
   var mins = (n || 1) * 15;
-  if (mins < 60) return mins + 'm';
+  if (mins < 60) return mins + ' mins';
   var h = Math.floor(mins / 60), m = mins % 60;
-  return h + 'h' + (m ? m + 'm' : '');
+  if (h === 1 && m === 0) return '1 hr';
+  if (m === 0) return h + ' hrs';
+  return h + ' hr ' + m + ' mins';
 }
 
 function fmtLogTime(iso) {
