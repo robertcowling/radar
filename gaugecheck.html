@@ -157,7 +157,7 @@ select.header-scope-select:focus { border-color: #1a73e8; }
 
 /* ── Right panel (log table) ───────────────────────────────────────────────── */
 .right-wrap {
-  width: 500px; flex: none; border-left: 2px solid #374151;
+  width: 540px; flex: none; border-left: 2px solid #374151;
   display: flex; flex-direction: column; background: white; overflow: hidden;
 }
 .right-header {
@@ -241,7 +241,7 @@ table.qc-table tbody tr.tbl-child-row td {
   border: 1px solid #bae6fd;
   border-radius: 9999px;
   padding: 2px 8px;
-  margin-left: 8px;
+  margin-left: 0;
   display: inline-flex;
   align-items: center;
   line-height: 1;
@@ -684,7 +684,7 @@ table.qc-table tbody tr.tbl-child-row td {
       <button class="map-toggle-btn" id="toggleLeftBtn" onclick="setMobileMap('left')">Rainfall</button>
     </div>
   </div>
-  <div class="header-cell" style="border-left:2px solid #374151; flex:none; width:500px; box-sizing:border-box;">
+  <div class="header-cell" style="border-left:2px solid #374151; flex:none; width:540px; box-sizing:border-box;">
     <div style="display:flex; align-items:center; gap:6px">
       <span>QC Log</span>
       <button onclick="toggleInfoModal()" title="How QC checks & AI work" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:2px;display:flex;align-items:center;transition:color 0.15s" onmouseover="this.style.color='#f1f5f9'" onmouseout="this.style.color='#94a3b8'">
@@ -1684,8 +1684,11 @@ function renderLog() {
     var durationBadge = hasInstances ? '<span class="qc-duration-badge">' + fmtDurationBadgeText(e.consecutive_flags) + '</span>' : '';
 
     html += '<tr class="tbl-row" id="tblrow-' + e.station_id + '">' +
-      '<td><div class="tbl-name" style="display:flex; align-items:center;">' + chevron + escHtml(e.name) + durationBadge + '</div>' +
-        (loc ? '<div class="tbl-loc">' + escHtml(loc) + '</div>' : '') +
+      '<td><div class="tbl-name" style="display:flex; align-items:center;">' + chevron + escHtml(e.name) + '</div>' +
+        '<div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">' +
+          (loc ? '<span class="tbl-loc" style="margin-top:0;">' + escHtml(loc) + '</span>' : '') +
+          durationBadge +
+        '</div>' +
         '<div class="tbl-mobile-time">' + t + '</div></td>' +
       '<td class="tbl-time">' + t + '</td>' +
       '<td class="tbl-num">' + e.latest_value_mm.toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
