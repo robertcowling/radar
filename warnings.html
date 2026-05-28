@@ -483,6 +483,11 @@ select.premium-select:focus { background-color: #e8eaed; }
       <div class="empty-state">Ingesting weather alerts...</div>
     </div>
 
+    <!-- OGL Attribution Footer -->
+    <div style="font-size: 10px; color: #8a99ad; background: #f8f9fa; border-top: 1px solid #dde1e7; padding: 10px 14px; text-align: center; font-weight: 500; line-height: 1.4;">
+      Contains Met Office public sector info licensed under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" style="color: #1a73e8; text-decoration: none; font-weight: 600;">Open Government Licence v3.0</a>.
+    </div>
+
   </div>
 
 </div>
@@ -619,7 +624,7 @@ L.control.zoom({ position: 'topleft' }).addTo(map);
 
 // Basemap Tiles Definition
 var basemap = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-  maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+  maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a> | Contains Met Office warning info &copy; Crown copyright licensed under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank">OGL v3.0</a>'
 });
 basemap.addTo(map);
 mapFeatureGroup.addTo(map);
