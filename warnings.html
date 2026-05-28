@@ -421,13 +421,13 @@ select.premium-select:focus { background-color: #e8eaed; }
           <span class="control-label">Severity</span>
           <div class="custom-multiselect" id="severitySelect">
             <div class="multiselect-trigger" onclick="toggleMultiselect(event, 'severitySelect')">
-              <span class="trigger-text" id="severitySelectText">All Severities</span>
+              <span class="trigger-text" id="severitySelectText">3 Selected</span>
               <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <div class="multiselect-options">
-              <label class="option-item"><input type="checkbox" class="filter-sev" value="extreme" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #c5221f;">Extreme</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-sev" value="severe" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #c5221f;">Severe</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-sev" value="moderate" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #b06000;">Moderate</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-sev" value="extreme" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #d60000;">Extreme</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-sev" value="severe" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #e35c00;">Severe</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-sev" value="moderate" onchange="onMultiselectChange('severitySelect')"><span style="color: #e0a300;">Moderate</span></label>
               <label class="option-item"><input type="checkbox" class="filter-sev" value="minor" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #1a73e8;">Minor</span></label>
             </div>
           </div>
@@ -1260,6 +1260,7 @@ function onLayerSelectChange(val) {
 }
 
 // ── Inception ──────────────────────────────────────────────────────────────
+onMultiselectChange('severitySelect');
 loadWarnings();
 loadBoundary(currentBoundary);
 </script>
