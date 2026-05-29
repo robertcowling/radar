@@ -1725,12 +1725,11 @@ function renderLog() {
           ? '<span style="font-size:12px;font-weight:700;color:' + (instQi < 0.5 ? '#c62828' : '#ef6c00') + '">' + instQi.toFixed(2) + '</span>'
           : '<span style="font-size:12px;color:#94a3b8">—</span>';
         var instLlmPill = buildLlmPill(inst.llm_verdict);
-        var instChecks = buildCheckPills(inst.checks);
         var childId = 'tblrow-' + e.station_id + '-child-' + idx;
         
         html += '<tr class="tbl-child-row tbl-child-row-' + e.station_id + '" id="' + childId + '" data-time="' + inst.slot_time + '" style="display:none;">' +
           '<td style="padding-left:20px; font-weight: 500; color: #475569;"><span style="color: #cbd5e1; margin-right: 6px;">└─</span>' + fmtLogTime(inst.slot_time) + '</td>' +
-          '<td>' + instChecks + '</td>' +
+          '<td></td>' +
           '<td class="tbl-num">' + inst.value_mm.toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
           '<td class="tbl-num" style="color:#94a3b8">—</td>' +
           '<td class="checks-cell">' + instQiCell + '</td>' +
