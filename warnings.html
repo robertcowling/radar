@@ -992,7 +992,8 @@ function renderMapPolygons() {
         // Bind Click actions
         l.on('click', function(e) {
           L.DomEvent.stopPropagation(e);
-          toggleWarningVisibility(w.alert_id);
+          if (selectedId === w.alert_id) return; // Keep selected, don't deselect
+          selectWarning(w.alert_id);
         });
         
         // Detailed map dark tooltip (compare.html style)
@@ -1108,6 +1109,59 @@ function renderSidebarCards() {
     
     container.appendChild(card);
   });
+}
+
+// Select and highlight a warning without toggling its visibility or deselecting it
+function selectWarning(alertId) {
+  var w = allWarnings.find(function(item) { return item.alert_id === alertId; });
+  if (!w) return;
+  
+  var layer = geojsonLayers[alertId];
+  if (layer) {
+    var severity = w.severity || 'unknown';
+    var isExpired = isWarningExpired(w);
+    
+    // If there was a previously selected warning, reset its styling/card
+    if (selectedId && selectedId !== alertId) {
+      var prevW = allWarnings.find(function(item) { return item.alert_id === selectedId; });
+      var prevLayer = geojsonLayers[selectedId];
+      if (prevW && prevLayer) {
+        var prevSev = prevW.severity || 'unknown';
+        var prevExp = isWarningExpired(prevW);
+        prevLayer.setStyle(getWarningStyle(prevSev, false, prevExp));
+      }
+      var prevCard = document.getElementById('card-' + selectedId);
+      if (prevCard) {
+        prevCard.classList.remove('selected');
+      }
+    }
+    
+    // Ensure it is visible and added to the map
+    visibleWarnings[alertId] = true;
+    if (!mapFeatureGroup.hasLayer(layer)) {
+      mapFeatureGroup.addLayer(layer);
+    }
+    
+    // Make it highlighted style
+    layer.setStyle(getWarningStyle(severity, true, isExpired));
+    
+    // Fly to boundary
+    map.flyToBounds(layer.getBounds(), {
+      padding: [30, 30],
+      maxZoom: 10,
+      duration: 1.2
+    });
+    
+    // Open details drawer
+    openDrawer(w);
+    selectedId = alertId;
+  }
+  
+  // Sync card active class
+  var card = document.getElementById('card-' + alertId);
+  if (card) {
+    card.classList.add('selected');
+  }
 }
 
 // ── Interactive Synchronizer ───────────────────────────────────────────────
