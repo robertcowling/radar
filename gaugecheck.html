@@ -1671,7 +1671,25 @@ function renderLog() {
     }
 
     var hasInstances = e.instances && e.instances.length > 1;
-    var llmPill     = buildLlmPill(e.llm_verdict);
+    
+    // Determine the most pessimistic LLM verdict for the sequence
+    var parentVerdict = e.llm_verdict;
+    if (hasInstances && e.instances) {
+      var hasSuspect = false;
+      var hasUncertain = false;
+      var hasGenuine = false;
+      e.instances.forEach(function(inst) {
+        var v = (inst.llm_verdict || '').toUpperCase();
+        if (v === 'SUSPECT') hasSuspect = true;
+        else if (v === 'UNCERTAIN') hasUncertain = true;
+        else if (v === 'GENUINE') hasGenuine = true;
+      });
+      if (hasSuspect) parentVerdict = 'SUSPECT';
+      else if (hasUncertain) parentVerdict = 'UNCERTAIN';
+      else if (hasGenuine) parentVerdict = 'GENUINE';
+    }
+    
+    var llmPill     = buildLlmPill(parentVerdict);
     var loc         = e.county || '';
     var t           = fmtLogDateTime(e.last_seen);
     var mm24        = (e.accums && e.accums['24hr']) || 0;
@@ -1683,6 +1701,9 @@ function renderLog() {
     var chevron = hasInstances ? '<span class="qc-chevron" id="chevron-' + e.station_id + '">▶</span>' : '';
     var durationBadge = hasInstances ? '<span class="qc-duration-badge">' + fmtDurationBadgeText(e.consecutive_flags) + '</span>' : '';
 
+    var val15Text = hasInstances ? '<span style="color:#94a3b8">—</span>' : e.latest_value_mm.toFixed(1) + '<span class="tbl-unit">mm</span>';
+    var val24Text = hasInstances ? '<span style="color:#94a3b8">—</span>' : mm24.toFixed(1) + '<span class="tbl-unit">mm</span>';
+
     html += '<tr class="tbl-row" id="tblrow-' + e.station_id + '">' +
       '<td><div class="tbl-name" style="display:flex; align-items:center;">' + chevron + escHtml(e.name) + '</div>' +
         '<div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">' +
@@ -1691,13 +1712,13 @@ function renderLog() {
         '</div>' +
         '<div class="tbl-mobile-time">' + t + '</div></td>' +
       '<td class="tbl-time">' + t + '</td>' +
-      '<td class="tbl-num">' + e.latest_value_mm.toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
-      '<td class="tbl-num">' + mm24.toFixed(1) + '<span class="tbl-unit">mm</span></td>' +
+      '<td class="tbl-num">' + val15Text + '</td>' +
+      '<td class="tbl-num">' + val24Text + '</td>' +
       '<td class="checks-cell">' + qiCell + '</td>' +
       '<td>' + llmPill + '</td>' +
       '</tr>';
       
-    if (e.instances && e.instances.length > 0) {
+    if (hasInstances && e.instances && e.instances.length > 0) {
       e.instances.forEach(function(inst, idx) {
         var instQi = inst.qi;
         var instQiCell = instQi !== undefined
@@ -1725,25 +1746,29 @@ function renderLog() {
     if (el) {
       tblRowById[e.station_id] = el;
       
+      var hasInstances = e.instances && e.instances.length > 1;
+      
       el.addEventListener('click', function(evt) {
-        var children = document.querySelectorAll('.tbl-child-row-' + e.station_id);
-        var chevron = document.getElementById('chevron-' + e.station_id);
-        var isExpanded = false;
-        
-        children.forEach(function(child) {
-          if (child.style.display === 'none') {
-            child.style.display = '';
-            isExpanded = true;
-          } else {
-            child.style.display = 'none';
-          }
-        });
-        
-        if (chevron) {
-          if (isExpanded) {
-            chevron.classList.add('expanded');
-          } else {
-            chevron.classList.remove('expanded');
+        if (hasInstances) {
+          var children = document.querySelectorAll('.tbl-child-row-' + e.station_id);
+          var chevron = document.getElementById('chevron-' + e.station_id);
+          var isExpanded = false;
+          
+          children.forEach(function(child) {
+            if (child.style.display === 'none') {
+              child.style.display = '';
+              isExpanded = true;
+            } else {
+              child.style.display = 'none';
+            }
+          });
+          
+          if (chevron) {
+            if (isExpanded) {
+              chevron.classList.add('expanded');
+            } else {
+              chevron.classList.remove('expanded');
+            }
           }
         }
         
@@ -1751,7 +1776,8 @@ function renderLog() {
       });
     }
     
-    if (e.instances && e.instances.length > 0) {
+    var hasInstances = e.instances && e.instances.length > 1;
+    if (hasInstances && e.instances && e.instances.length > 0) {
       e.instances.forEach(function(inst, idx) {
         var childId = 'tblrow-' + e.station_id + '-child-' + idx;
         var cel = document.getElementById(childId);
