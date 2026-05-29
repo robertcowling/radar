@@ -794,14 +794,24 @@
         var satOverlays = {};
         var satUrlKeys = { geo: 'sat_url_bw', vis: 'sat_url_vis', ir: 'sat_url_ir', ir_grey: 'sat_url_ir_grey' };
 
-        // Return only frames that have data for the currently-selected satellite layer.
-        // When sat is 'none', all frames pass through unfiltered.
+        // Return only frames that have both radar and (if enabled) satellite data.
+        // If a satellite layer is active, the frame must have both the radar URL and the satellite URL.
+        // If no satellite layer is active, the frame only needs to have the radar URL.
         function getEffectiveFrames(sliced) {
             var satVal = document.querySelector('input[name="satLayer"]:checked').value;
-            if (satVal === 'none') return sliced;
             var satKey = satUrlKeys[satVal];
-            if (!satKey) return sliced;
-            return sliced.filter(function(f) { return !!f[satKey]; });
+            
+            return sliced.filter(function(f) {
+                // Radar image is always required
+                if (!f.url) return false;
+                
+                // If a satellite layer is active, that specific satellite URL must also exist
+                if (satVal !== 'none' && satKey) {
+                    return !!f[satKey];
+                }
+                
+                return true;
+            });
         }
 
         // Re-filter the current duration slice for the active sat layer while
