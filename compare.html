@@ -360,6 +360,7 @@ select option:disabled { color: #bbb; }
       <option value="catchments" selected>Catchments</option>
       <option value="regions">Regions</option>
       <option value="counties">Counties</option>
+      <option value="summary">Summary</option>
       <option value="grid">Grid (20km)</option>
     </select>
   </div>
@@ -488,14 +489,16 @@ var BOUNDARY_FILES = {
   regions:    'uk_regions.geojson',
   counties:   'uk-counties.geojson',
   catchments: 'uk_catchments.geojson',
-  grid:       'uk_grid_20km.geojson'
+  grid:       'uk_grid_20km.geojson',
+  summary:    'rainfallsummarypolygons.geojson'
 };
-var LAYER_NAME_KEY = { regions: 'rgn19nm', counties: 'name', catchments: 'HA_NAME', grid: 'name' };
+var LAYER_NAME_KEY = { regions: 'rgn19nm', counties: 'name', catchments: 'HA_NAME', grid: 'name', summary: 'NAME' };
 var BOUNDARY_STYLES = {
   regions:    { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
   counties:   { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
   catchments: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
-  grid:       { color: '#5f6368', weight: 0.7, fillOpacity: 0, className: 'region-boundary' }
+  grid:       { color: '#5f6368', weight: 0.7, fillOpacity: 0, className: 'region-boundary' },
+  summary:    { color: '#5f6368', weight: 1.2, fillOpacity: 0, className: 'region-boundary' }
 };
 
 // ── Map initialisation ──────────────────────────────────────────

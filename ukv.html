@@ -539,6 +539,7 @@
       <option value="catchments" selected>Catchments</option>
       <option value="regions">Regions</option>
       <option value="counties">Counties</option>
+      <option value="summary">Summary</option>
       <option value="grid">Grid (20km)</option>
     </select>
   </div>
@@ -706,7 +707,7 @@ var polyVisible = false;
 var polyCache   = {};
 
 var LAYER_NAME_KEY = {
-  regions: 'rgn19nm', counties: 'name', catchments: 'HA_NAME', grid: 'name'
+  regions: 'rgn19nm', counties: 'name', catchments: 'HA_NAME', grid: 'name', summary: 'NAME'
 };
 
 function mmToFillColor(mm, schemeName) {
@@ -769,7 +770,7 @@ function renderPolyChoropleth() {
 }
 
 function clearPolyChoropleth() {
-  ['regions','counties','catchments','grid'].forEach(function(n) {
+  ['regions','counties','catchments','grid','summary'].forEach(function(n) {
     var l = getLayerObj(n);
     if (l) { l.setStyle({ fillOpacity: 0 }); l.eachLayer(function(f) { f.unbindTooltip(); }); }
   });
@@ -1090,6 +1091,7 @@ function scheduleAdvance() {
 var regionLayer     = null;
 var countiesLayer   = null;
 var catchmentsLayer = null;
+var summaryLayer    = null;
 var gridLayer       = null;
 var currentBoundary = 'catchments';
 
@@ -1098,12 +1100,14 @@ var BOUNDARY_STYLES = {
   counties:   { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
   catchments: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
   grid:       { color: '#5f6368', weight: 0.7, fillOpacity: 0, className: 'region-boundary' },
+  summary:    { color: '#5f6368', weight: 1.2, fillOpacity: 0, className: 'region-boundary' },
 };
 
 function getLayerObj(name) {
   if (name === 'regions')    return regionLayer;
   if (name === 'counties')   return countiesLayer;
   if (name === 'catchments') return catchmentsLayer;
+  if (name === 'summary')    return summaryLayer;
   if (name === 'grid')       return gridLayer;
   return null;
 }
@@ -1112,6 +1116,7 @@ function setLayerObj(name, layer) {
   if (name === 'regions')    regionLayer     = layer;
   if (name === 'counties')   countiesLayer   = layer;
   if (name === 'catchments') catchmentsLayer = layer;
+  if (name === 'summary')    summaryLayer    = layer;
   if (name === 'grid')       gridLayer       = layer;
 }
 
@@ -1120,6 +1125,7 @@ function loadBoundary(val) {
     regions:    'uk_regions.geojson',
     counties:   'uk-counties.geojson',
     catchments: 'uk_catchments.geojson',
+    summary:    'rainfallsummarypolygons.geojson',
     grid:       'uk_grid_20km.geojson',
   };
   if (!files[val] || getLayerObj(val)) return;
@@ -1135,7 +1141,7 @@ function loadBoundary(val) {
 
 function onBoundaryChange(val) {
   clearPolyChoropleth();
-  ['regions','counties','catchments','grid'].forEach(function(n) {
+  ['regions','counties','catchments','grid','summary'].forEach(function(n) {
     var l = getLayerObj(n);
     if (l && map.hasLayer(l)) map.removeLayer(l);
   });

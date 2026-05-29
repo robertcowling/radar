@@ -18,6 +18,7 @@ GEOJSON_LAYERS = {
     "counties":   ("uk-counties.geojson",   "name"),
     "catchments": ("uk_catchments.geojson", "HA_NAME"),
     "grid":       ("uk_grid_20km.geojson",  "name"),
+    "summary":    ("rainfallsummarypolygons.geojson", "NAME"),
 }
 
 
