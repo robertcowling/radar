@@ -668,12 +668,18 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
                 target = v
                 while i + count < n and slots[i + count] == target:
                     count += 1
-                if count >= 4:  # Compress consecutive blocks of at least 1 hour
-                    label = "dry slots (0.0 mm)" if target == 0.0 else "missing slots"
-                    parts.append(f"{count} consecutive {label}")
+                if count >= 3:  # Compress runs of 3 or more slots
+                    label = "dry" if target == 0.0 else "null"
+                    parts.append(f"{count}x {label}")
                     i += count
                     continue
-            parts.append(f"{v:.1f}" if v is not None else "-")
+            if v is None:
+                parts.append("-")
+            else:
+                s_val = f"{v:.1f}"
+                if s_val.endswith(".0"):
+                    s_val = s_val[:-2]
+                parts.append(s_val)
             i += 1
         return "[" + ", ".join(parts) + "]"
 
@@ -708,15 +714,11 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
     nbr_block = ""
     for nbr in neighbours_info[:3]:
         hist = nbr.get("history_24", [])
-        if all(v == 0.0 or v is None for v in hist):
-            hist_str = "[Dry / No rain recorded]"
-        else:
-            hist_str = "[" + " ".join(f"{v:.1f}" if v is not None else "-"
-                                      for v in hist) + "]"
+        hist_str = _fmt_slots_compressed(hist)
         ukv_nbr = nbr.get("ukv_1h_mm")
         ukv_tag = f"  UKV={ukv_nbr:.1f}mm" if ukv_nbr is not None else ""
         nbr_block += (f"\n  {nbr['name']} ({nbr['dist_km']:.1f} km): "
-                      f"latest {nbr.get('value_mm', '?')} mm  6hr={hist_str}{ukv_tag}")
+                      f"latest {nbr.get('value_mm', '?')}mm  6hr={hist_str}{ukv_tag}")
 
     radar_5km_str = (f"{radar_mm:.2f} mm/15 min" if radar_mm is not None
                      else "unavailable")
@@ -740,17 +742,13 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
             f"    1 km site: {b1_val}  |  5 km area: {b5_val}\n"
             f"  Radar a timestep after (15 min later, if available):\n"
             f"    1 km site: {a1_val}  |  5 km area: {a5_val}\n"
-            f"  [Note: Weigh the temporal continuity of these radar QPE readings. A genuine rain event\n"
-            f"   should typically show persistent or moving radar reflectivity in adjacent timesteps,\n"
-            f"   whereas isolated spikes in time or space may indicate radar clutter, beam attenuation,\n"
-            f"   or telemetry anomalies.]\n"
         )
 
     flag_history = (f"This is the first time this gauge has been flagged in this episode."
                     if consecutive_flags == 1
                     else f"This gauge has been flagged for {consecutive_flags} consecutive 15-min runs "
-                         f"({consecutive_flags * 15} min = {consecutive_flags * 15 // 60}h "
-                         f"{consecutive_flags * 15 % 60}m).")
+                     f"({consecutive_flags * 15} min = {consecutive_flags * 15 // 60}h "
+                     f"{consecutive_flags * 15 % 60}m).")
 
     spell_block = ""
     if spell_summary:
@@ -775,9 +773,6 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
         ukv_block = (
             f"\nUKV NWP model at station ({ukv_step_info or 'latest run'}):\n"
             f"  Forecast 1-hr accumulation: {ukv_1h_mm:.1f} mm\n"
-            f"  [Point-data from ~1.5 km NWP — treat as soft corroborating evidence only;\n"
-            f"   UKV often underestimates localised convective peaks and should not\n"
-            f"   override observational evidence from the gauge or radar QPE.]\n"
         )
 
     pattern_block = (f"\nCheck failure pattern: {check_pattern_str}\n"
@@ -809,6 +804,15 @@ def call_llm(station_id, name, lat, lon, value, slot_time_str,
         f"  is expected — isolated intense cells routinely outpace their nearest neighbours.\n"
         f"  Treat a spatial flag as weaker evidence of a fault when the 24-hr history and\n"
         f"  radar both show a coherent event, even if neighbours are relatively dry.\n\n"
+        f"Radar temporal consistency:\n"
+        f"  Weigh the temporal continuity of adjacent radar timesteps. A genuine rain event\n"
+        f"  should typically show persistent or moving radar reflectivity in adjacent timesteps\n"
+        f"  (15 mins before/after), whereas isolated spikes in time or space may indicate radar\n"
+        f"  clutter, beam attenuation, or telemetry anomalies.\n\n"
+        f"UKV NWP model context:\n"
+        f"  Treat UKV point-data from the ~1.5 km NWP model as soft corroborating evidence only.\n"
+        f"  UKV often underestimates localised convective peaks and should not override observational\n"
+        f"  evidence from the gauge or radar QPE.\n\n"
         f"Instructions:\n"
         f"Based on the provided telemetry, assess whether the latest station reading is genuine "
         f"rainfall or a sensor/telemetry fault. Consider the UK climate context.\n"
@@ -1331,8 +1335,8 @@ def main():
             _season = {12:"Winter",1:"Winter",2:"Winter",3:"Spring",4:"Spring",5:"Spring",
                        6:"Summer",7:"Summer",8:"Summer",9:"Autumn",10:"Autumn",11:"Autumn"}[target_dt.month]
 
-            # Reuse existing LLM verdict if we are re-running a historical slot
-            if offset > 0 and station_id in existing_llm:
+            # Reuse existing LLM verdict if we are re-running a historical slot and a valid verdict exists
+            if offset > 0 and station_id in existing_llm and existing_llm[station_id][0] is not None:
                 llm_verdict, llm_reasoning, llm_from_run = existing_llm[station_id]
             elif should_call_llm(checks, latest_value):
                 # Call LLM for every new flagged slot (offset == 0) in real-time

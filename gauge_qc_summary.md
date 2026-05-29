@@ -22,10 +22,9 @@ A station with **2+ checks failed** → **Flagged** (red on map).
 ## LLM assessment (OpenAI)
 
 ### When it runs
-- Any Elevated or Flagged station (≥1 check failed)
+- Any Elevated or Flagged station (≥1 check failed) in real-time immediately (on every 15-minute slot)
 - Any reading ≥20 mm even if all checks pass (high-value override)
-- Re-runs every 4 consecutive flags (~1 hr) to refresh stale verdicts during long events
-- Skipped on intermediate runs between refreshes to keep API costs low
+- Prompt guidelines and extreme records are stored in a System Message to take advantage of OpenAI Prompt Caching, while gauge and neighbour telemetry are compressed to keep token loads and API costs highly optimized.
 
 ### What it receives
 

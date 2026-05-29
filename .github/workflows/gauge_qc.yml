@@ -2,6 +2,11 @@ name: Gauge QC
 
 on:
   workflow_dispatch:
+    inputs:
+      backfill_days:
+        description: 'Number of days to backfill and reprocess'
+        required: false
+        default: '0'
 
 permissions:
   contents: read
@@ -30,4 +35,9 @@ jobs:
         R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
-      run: python gauge_qc.py
+      run: |
+        if [ "${{ inputs.backfill_days }}" != "" ] && [ "${{ inputs.backfill_days }}" -gt 0 ]; then
+          python gauge_qc.py --backfill-days ${{ inputs.backfill_days }}
+        else
+          python gauge_qc.py
+        fi
