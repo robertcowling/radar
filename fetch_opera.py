@@ -73,29 +73,6 @@ def get_mapping(h5_sample):
     cols = np.round((X_radar - ul_x) / xscale).astype(np.int32)
     rows = np.round((ul_y - Y_radar) / yscale).astype(np.int32)
     valid = (cols >= 0) & (cols < xsize) & (rows >= 0) & (rows < ysize)
-
-    # Dublin Radar Exclusion (Geographic Masking)
-    # Surgically remove the infamous ground clutter and RFI spikes from Dublin ('iedub') radar
-    DUBLIN_LAT = 53.4285
-    DUBLIN_LON = -6.2408
-    EXCLUDE_RADIUS_KM = 150.0
-
-    # Convert Mercator grid back to Lat/Lon to compute distance
-    merc_to_ll = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
-    MERC_LON, MERC_LAT = merc_to_ll.transform(MERC_X, MERC_Y)
-
-    # Vectorized Haversine distance to Dublin radar
-    lon1, lat1, lon2, lat2 = map(np.radians, [MERC_LON, MERC_LAT, DUBLIN_LON, DUBLIN_LAT])
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-    a = np.sin(dlat/2.0)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2.0)**2
-    c = 2 * np.arcsin(np.sqrt(a))
-    dist_to_dublin_km = 6371.0 * c
-
-    # Mark pixels within Dublin's coverage radius as invalid
-    dublin_mask = dist_to_dublin_km < EXCLUDE_RADIUS_KM
-    valid[dublin_mask] = False
-
     return rows, cols, valid
 
 
