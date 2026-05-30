@@ -2,9 +2,9 @@
 <html>
 
 <head>
-    <title>UK Radar on OpenStreetMap</title>
+    <title>UK 5-Minute Radar (MeteoGate)</title>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="icon" type="image/png" href="../favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Google Fonts: Roboto -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -30,7 +30,6 @@
         .surface {
             background: white;
             border-radius: 12px;
-            /* Elevated shadow for Material/Flat feeling */
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
             transition: box-shadow 0.3s ease;
         }
@@ -214,7 +213,6 @@
             background-color: #e8eaed;
         }
 
-        /* Timeline container & styling */
         .timeline-container {
             position: relative;
             flex-grow: 1;
@@ -248,7 +246,6 @@
             position: absolute;
             top: 50%;
             left: 8px;
-            /* Offset for thumb width center */
             right: 8px;
             height: 20px;
             transform: translateY(-50%);
@@ -357,7 +354,6 @@
             text-align: left;
         }
 
-        /* Colorbar styling */
         .cbar-container {
             margin-top: 20px;
         }
@@ -422,7 +418,6 @@
             padding-left: 8px;
         }
 
-        /* Custom checkbox */
         .custom-checkbox {
             display: flex;
             align-items: center;
@@ -440,7 +435,19 @@
             accent-color: #1a73e8;
         }
 
-        /* Mobile Responsiveness */
+        .badge-5m {
+            display: inline-block;
+            background: #e8f0fe;
+            color: #1a73e8;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 6px;
+            vertical-align: middle;
+            text-transform: uppercase;
+        }
+
         @media (max-width: 768px) {
             .player-panel {
                 width: calc(100% - 20px);
@@ -474,8 +481,6 @@
                 right: 15px;
                 top: 15px;
                 box-sizing: border-box;
-                /* Prevent panel overlapping the player controls at bottom.
-                   Player bar is ~80px tall, 8px from bottom. */
                 max-height: calc(100vh - 120px);
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
@@ -484,7 +489,6 @@
             .timeline-container {
                 width: 100%;
                 order: 4;
-                /* Push slider to bottom row */
                 margin-top: 5px;
             }
 
@@ -513,12 +517,10 @@
             }
         }
 
-        /* Soft white shadow on region boundaries so they read on dark backgrounds */
         .region-boundary {
             filter: drop-shadow(0 0 2.5px rgba(255, 255, 255, 0.75));
         }
 
-        /* Prevent browser from blurring upscaled radar images */
         .sharp-radar {
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
@@ -544,7 +546,7 @@
         </div>
 
         <div id="infoContentTop" class="hide-collapsed">
-            <h3 style="margin-top:0;">Rainfall Radar</h3>
+            <h3 style="margin-top:0;">5-Min Radar<span class="badge-5m">MeteoGate</span></h3>
             <div class="time-box">
                 <p id="tzLabel" style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: 700; color: #1a73e8; letter-spacing: 0.5px;">Time (GMT)</p>
                 <div id="timeDisplay" style="font-size: 22px; font-weight: 700; color: #202124; margin-top: 4px;">Loading...</div>
@@ -577,7 +579,7 @@
             <div class="opacity-control" style="margin-top: 8px;">
                 <label class="custom-checkbox">
                     <input type="checkbox" id="radarToggle" checked onchange="toggleRadar(this.checked)">
-                    Radar
+                    Radar Layer
                 </label>
             </div>
 
@@ -590,61 +592,36 @@
 
             <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Radar Feed</p>
             <div style="margin-bottom: 24px;">
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="radarFeed" value="standard" onchange="onFeedChange('standard')">
-                    UK (standard)
+                <label class="custom-checkbox" style="margin-bottom: 4px; font-weight: 700;">
+                    <input type="radio" name="radarFeed" value="5m" checked disabled>
+                    5-Min MeteoGate (UK)
                 </label>
-                <label class="custom-checkbox" style="margin-bottom: 0;">
-                    <input type="radio" name="radarFeed" value="parallel" checked onchange="onFeedChange('parallel')">
-                    Full domain
-                </label>
-                <a href="radar5/" style="font-size: 11px; color: #1a73e8; text-decoration: none; margin-left: 26px; display: block; margin-top: 4px; font-weight: 500;">
-                    Switch to MeteoGate 5-Min UK feed &rarr;
+                <a href="../" style="font-size: 11px; color: #1a73e8; text-decoration: none; margin-left: 26px; display: block; margin-top: 4px;">
+                    &larr; Switch to Met Office 15-min feeds
                 </a>
             </div>
 
             <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Satellite</p>
-            <div style="margin-bottom: 24px;">
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="none" checked onchange="onSatLayerChange('none')">
-                    None
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="geo" onchange="onSatLayerChange('geo')">
-                    Visible GeoColour
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="vis" onchange="onSatLayerChange('vis')">
-                    Visible Greyscale (day)
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="ir_grey" onchange="onSatLayerChange('ir_grey')">
-                    IR Greyscale
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 0;">
-                    <input type="radio" name="satLayer" value="ir" onchange="onSatLayerChange('ir')">
-                    IR False Colour
-                </label>
+            <div style="margin-bottom: 24px; font-size: 12px; color: #5f6368; line-height: 1.4;">
+                Satellite overlays are only synced with the 15-minute Met Office feeds. 
+                <a href="../" style="color: #1a73e8; text-decoration: none; font-weight: 500;">Go to main map</a> to view GeoColour & thermal infrared.
             </div>
+
             <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Navigation</p>
             <div style="margin-bottom: 24px; font-size: 13px; font-weight: 500; display: flex; flex-direction: column; gap: 8px;">
-                <a href="gaugecheck.html" style="color: #1a73e8; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                <a href="../gaugecheck.html" style="color: #1a73e8; text-decoration: none; display: flex; align-items: center; gap: 6px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                     Gauge QC Dashboard
                 </a>
-                <a href="warnings.html" style="color: #1a73e8; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                <a href="../warnings.html" style="color: #1a73e8; text-decoration: none; display: flex; align-items: center; gap: 6px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     Weather Warnings Map
                 </a>
             </div>
 
             <p style="font-size: 11px; margin-bottom: 4px; line-height: 1.5;">
-                <strong>Radar:</strong> <a href="https://www.metoffice.gov.uk/services/data/share-your-data" target="_blank" style="color:#1a73e8;">Met Office</a> ODIM H5 composite (1km) — Open Government Licence v3.0<br>
-                <strong>MSLP:</strong> <a href="https://www.noaa.gov" target="_blank" style="color:#1a73e8;">NOAA</a> / <a href="https://www.ncep.noaa.gov" target="_blank" style="color:#1a73e8;">NCEP</a> GFS model analysis via <a href="https://nomads.ncep.noaa.gov" target="_blank" style="color:#1a73e8;">NOMADS</a> — U.S. Government Work, public domain<br>
-                <strong>Satellite:</strong> &copy; <a href="https://www.eumetsat.int" target="_blank" style="color:#1a73e8;">EUMETSAT</a> MTG FCI<br>
-                &nbsp;&nbsp;<a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:rgb_geocolour" target="_blank" style="color:#1a73e8;">GeoColour RGB</a> &middot;
-                <a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:vis06_hrfi" target="_blank" style="color:#1a73e8;">HRFI VIS0.6</a> &middot;
-                <a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:ir105_hrfi" target="_blank" style="color:#1a73e8;">HRFI IR10.5</a>
+                <strong>Radar:</strong> EUMETNET OPERA DBZH 5-minute composite via <a href="https://meteogate.eu" target="_blank" style="color:#1a73e8;">MeteoGate</a> — <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" style="color:#1a73e8;">CC BY 4.0</a><br>
+                <strong>MSLP:</strong> <a href="https://www.noaa.gov" target="_blank" style="color:#1a73e8;">NOAA</a> / GFS model analysis — public domain
             </p>
         </div>
     </div>
@@ -676,17 +653,16 @@
                 <option value="6">Last 6 Hours</option>
                 <option value="12">Last 12 Hours</option>
                 <option value="24">Last 24 Hours</option>
-                <option value="48">Last 2 Days</option>
             </select>
         </div>
 
         <div class="control-group">
             <span class="control-label">Speed</span>
             <select id="speedSelect" onchange="updateSpeed(this.value)">
-                <option value="360">Slow</option>
-                <option value="135" selected>Normal</option>
-                <option value="70">Fast</option>
-                <option value="35">Turbo</option>
+                <option value="400">Slow</option>
+                <option value="160" selected>Normal</option>
+                <option value="80">Fast</option>
+                <option value="40">Turbo</option>
             </select>
         </div>
     </div>
@@ -697,36 +673,31 @@
         function cdnJson(r) { return r.text().then(function(t) { return JSON.parse(t.replaceAll(R2_BASE, R2_CDN)); }); }
 
         var allFrames = [];
-        var frames = []; // will be sliced by duration filter
+        var frames = [];
         var currentFrameIdx = 0;
         var playing = false;
         var playInterval;
-        var playSpeed = 135; // default to new normal speed
-        var currentFeed = 'parallel';
-        var STANDARD_BOUNDS = [[49.0, -11.5], [61.5, 3.5]];
+        var playSpeed = 160;
         var PARALLEL_BOUNDS = [[43.7009, -17.9739], [62.9207, 16.1291]];
+        var satBounds = [[37.75, -40.4], [67.5, 32.4]];
 
         // Initialize Map
         var map = L.map('map', { zoomControl: false }).setView([54.5, -3.5], 6);
         L.control.zoom({ position: 'topleft' }).addTo(map);
 
-        // Voyager (Highly attractive OpenStreetMap styling for Flat design)
         var voyagerTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
         }).addTo(map);
 
-        // Radar Overlay
-        var bounds = PARALLEL_BOUNDS;
-        // Satellite Overlay — 2× taller domain, same centre (-4.0°, 55.25°)
-        var satBounds = [[37.75, -40.4], [67.5, 32.4]];
-        var radarOverlay = L.imageOverlay('', bounds, {
+        // Radar Overlay (using identical domain grid coordinates)
+        var radarOverlay = L.imageOverlay('', PARALLEL_BOUNDS, {
             opacity: 0.7,
             interactive: false,
             className: 'sharp-radar'
         }).addTo(map);
 
         // Radar coverage boundary
-        fetch('radar_boundary.geojson')
+        fetch('../radar_boundary.geojson')
             .then(res => res.json())
             .then(data => {
                 L.geoJSON(data, {
@@ -734,13 +705,12 @@
                 }).addTo(map);
             });
 
-        // Boundaries overlay
         var regionLayer = null;
         var countiesLayer = null;
 
         function loadBoundary(val) {
             if (val === 'regions' && !regionLayer) {
-                fetch('uk_regions.geojson')
+                fetch('../uk_regions.geojson')
                     .then(res => res.json())
                     .then(data => {
                         regionLayer = L.geoJSON(data, {
@@ -753,7 +723,7 @@
                     })
                     .catch(err => console.log("Could not load regions:", err));
             } else if (val === 'counties' && !countiesLayer) {
-                fetch('uk-counties.geojson')
+                fetch('../uk-counties.geojson')
                     .then(res => res.json())
                     .then(data => {
                         countiesLayer = L.geoJSON(data, {
@@ -781,7 +751,6 @@
             }
         }
 
-        // Initialize default boundary
         loadBoundary('regions');
 
         function toggleRadar(show) {
@@ -793,98 +762,22 @@
             }
         }
 
-        // Satellite overlays — lazily created, keyed by radio value
-        var satOverlays = {};
-        var satUrlKeys = { geo: 'sat_url_bw', vis: 'sat_url_vis', ir: 'sat_url_ir', ir_grey: 'sat_url_ir_grey' };
-
-        // Return only frames that have both radar and (if enabled) satellite data.
-        // If a satellite layer is active, the frame must have both the radar URL and the satellite URL.
-        // If no satellite layer is active, the frame only needs to have the radar URL.
-        function getEffectiveFrames(sliced) {
-            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
-            var satKey = satUrlKeys[satVal];
-            
-            return sliced.filter(function(f) {
-                // Radar image is always required
-                if (!f.url) return false;
-                
-                // If a satellite layer is active, that specific satellite URL must also exist
-                if (satVal !== 'none' && satKey) {
-                    return !!f[satKey];
-                }
-                
-                return true;
-            });
-        }
-
-        // Re-filter the current duration slice for the active sat layer while
-        // keeping the playhead as close to its current time as possible.
-        function refilterFrames() {
-            var hours = document.getElementById('durationSelect').value;
-            var numFrames = parseInt(hours) * 4;
-            var sliced = allFrames.slice(-Math.min(numFrames, allFrames.length));
-
-            var currentTime = frames.length > 0 ? frames[currentFrameIdx].time : null;
-            frames = getEffectiveFrames(sliced);
-            slider.max = Math.max(0, frames.length - 1);
-            updateTimelineTicks();
-
-            var targetIdx = frames.length - 1;
-            if (currentTime && frames.length > 0) {
-                var targetMs = parseUTCStr(currentTime).getTime();
-                var bestDiff = Infinity;
-                frames.forEach(function(f, i) {
-                    var diff = Math.abs(parseUTCStr(f.time).getTime() - targetMs);
-                    if (diff < bestDiff) { bestDiff = diff; targetIdx = i; }
-                });
-            }
-            if (frames.length > 0) setFrame(targetIdx);
-            preloadVisibleFrames();
-        }
-
-        function onSatLayerChange(val) {
-            // Remove all sat overlays
-            Object.keys(satOverlays).forEach(function(k) {
-                if (map.hasLayer(satOverlays[k])) map.removeLayer(satOverlays[k]);
-            });
-            if (val !== 'none') {
-                if (!satOverlays[val]) {
-                    satOverlays[val] = L.imageOverlay('', satBounds, { opacity: 1.0, interactive: false });
-                }
-                satOverlays[val].addTo(map);
-                enforceZOrder();
-            }
-            // Re-filter frames so radar and sat always share the same timesteps
-            refilterFrames();
-        }
-
-        function onFeedChange(val) {
-            currentFeed = val;
-            bounds = val === 'standard' ? STANDARD_BOUNDS : PARALLEL_BOUNDS;
-            radarOverlay.setBounds(bounds);
-            
-            // Re-fetch frames for the selected feed and reset the timeline
-            fetchFrames(true);
-        }
-
-        // ---- MSLP isobar overlay ----
+        // MSLP isobar overlay
         var mslpOverlay = null;
         var mslpEnabled = false;
-        var mslpFrames = [];   // [{ms: epochMs, url: '...', urlDetail: '...'}]
-        var MSLP_DETAIL_ZOOM = 8;  // switch to narrow-stroke variant at this zoom and above
+        var mslpFrames = [];
+        var MSLP_DETAIL_ZOOM = 8;
 
         function parseMslpMeta(data) {
             if (!data || !Array.isArray(data.frames)) return;
             mslpFrames = data.frames.map(function(f) {
-                return { ms: parseUTCStr(f.valid_time).getTime(), url: f.url, urlDetail: f.url_detail || f.url };
+                return { ms: parseUTCStr(f.valid_time).getTime(), url: f.url.startsWith('http') ? f.url : '../' + f.url, urlDetail: (f.url_detail || f.url).startsWith('http') ? (f.url_detail || f.url) : '../' + (f.url_detail || f.url) };
             }).sort(function(a, b) { return a.ms - b.ms; });
-            console.log('MSLP: loaded ' + mslpFrames.length + ' frames');
-            // Refresh overlay if it is currently visible
             if (mslpEnabled && frames.length > 0) updateMslpFrame();
         }
 
         function fetchMslpMeta() {
-            fetch('mslp_meta.json?_cb=' + Date.now())
+            fetch('../mslp_meta.json?_cb=' + Date.now())
                 .then(cdnJson)
                 .then(function(data) { parseMslpMeta(data); })
                 .catch(function(err) { console.log('MSLP meta not available:', err); });
@@ -897,7 +790,7 @@
                 var diff = Math.abs(mslpFrames[i].ms - frameMs);
                 if (diff < bestDiff) { bestDiff = diff; best = mslpFrames[i]; }
             }
-            return best;  // always return nearest — stale isobars beat none
+            return best;
         }
 
         function updateMslpFrame() {
@@ -918,7 +811,6 @@
                 mslpOverlay.addTo(map);
                 enforceZOrder();
                 if (frames.length > 0) updateMslpFrame();
-                // Fetch meta if not yet loaded
                 if (!mslpFrames.length) fetchMslpMeta();
             } else {
                 if (mslpOverlay && map.hasLayer(mslpOverlay)) map.removeLayer(mslpOverlay);
@@ -927,35 +819,22 @@
 
         map.on('zoomend', function() { if (mslpEnabled) updateMslpFrame(); });
 
-        // Z-order: sat (back) → radar → mslp → regions (front)
-        // MSLP sits above radar so isobars are always readable
         function enforceZOrder() {
-            Object.keys(satOverlays).forEach(function(k) {
-                if (map.hasLayer(satOverlays[k])) satOverlays[k].bringToBack();
-            });
             if (map.hasLayer(radarOverlay)) radarOverlay.bringToFront();
             if (mslpOverlay && map.hasLayer(mslpOverlay)) mslpOverlay.bringToFront();
             if (regionLayer && map.hasLayer(regionLayer)) regionLayer.bringToFront();
         }
 
-        // Load MSLP meta at startup (quietly — no overlay created until checkbox ticked)
         fetchMslpMeta();
-        // Refresh MSLP meta every 30 minutes
         setInterval(fetchMslpMeta, 30 * 60 * 1000);
 
-        // Setup slider
         var slider = document.getElementById('timeSlider');
 
-        // --- FRAME LOADING LOGIC ---
-        // Cache-bust frames.json on every fetch so GitHub Pages CDN / browser
-        // cache never serves a stale manifest after a new push.
         function fetchFrames(isInitial) {
-            const fileName = currentFeed === 'standard' ? 'frames.json' : 'frames_parallel.json';
-            fetch(fileName + '?_cb=' + Date.now())
+            fetch('../frames_5m.json?_cb=' + Date.now())
                 .then(cdnJson)
                 .then(data => {
                     if (!data || data.length === 0) {
-                        if (isInitial) document.getElementById('progressText').innerText = "No data available.";
                         return;
                     }
 
@@ -968,15 +847,12 @@
                         if (window.innerWidth <= 768) {
                             document.getElementById('infoPanel').classList.add('collapsed');
                         }
-                        // Set the initial duration, which also triggers preloadVisibleFrames()
                         updateDuration(document.getElementById('durationSelect').value);
                     } else {
-                        // On poll: update frames slice and ticks
                         const newLatestTime = allFrames[allFrames.length - 1].time;
                         if (newLatestTime !== prevLatestTime) {
-                            console.log('New radar frames available:', newLatestTime);
+                            console.log('New 5m radar frames available:', newLatestTime);
                             updateDuration(document.getElementById('durationSelect').value);
-                            // If user was on the latest frame (or paused at end), advance them
                             if (wasAtLatest || currentFrameIdx >= frames.length - 1) {
                                 setFrame(frames.length - 1);
                             }
@@ -984,12 +860,10 @@
                     }
                 })
                 .catch(err => {
-                    console.error("Manifest load error:", err);
+                    console.error("5m Manifest load error:", err);
                 });
         }
 
-        // Preload only the frames currently visible in the selected duration.
-        // Updates the timeline loading progress bar as images cache.
         var _preloadGeneration = 0;
         function preloadVisibleFrames() {
             _preloadGeneration++;
@@ -1000,12 +874,13 @@
             if (frames.length === 0) return;
 
             var urlsToLoad = [];
-            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
-            var satKey = satUrlKeys[satVal];
-
             frames.forEach(function(f) {
-                urlsToLoad.push(f.url); // radar
-                if (satKey && f[satKey]) urlsToLoad.push(f[satKey]);
+                // Ensure correct relative path if running locally
+                var url = f.url;
+                if (!url.startsWith('http') && !url.startsWith('/')) {
+                    url = '../' + url;
+                }
+                urlsToLoad.push(url);
             });
 
             var total = urlsToLoad.length;
@@ -1015,11 +890,10 @@
             urlsToLoad.forEach(function(url) {
                 var img = new Image();
                 var done = function() {
-                    if (gen !== _preloadGeneration) return; // stale generation
+                    if (gen !== _preloadGeneration) return;
                     loadedCount++;
                     if (pb) pb.style.width = ((loadedCount / total) * 100) + '%';
                     if (loadedCount === total) {
-                        // All visible frames cached, start playing if not already
                         if (!playing) togglePlay();
                         setTimeout(function() { if (pb && gen === _preloadGeneration) pb.style.opacity = '0'; }, 2000);
                     }
@@ -1030,16 +904,12 @@
             });
         }
 
-        // Initial load
         fetchFrames(true);
+        // Poll every 2.5 minutes for new 5m composites
+        setInterval(function() { fetchFrames(false); }, 150 * 1000);
 
-        // Auto-poll every 5 minutes for new frames
-        setInterval(function() { fetchFrames(false); }, 5 * 60 * 1000);
-
-        // UK time helpers — browser handles BST/GMT via Intl, zero processing cost
         const _MONTHS = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
         function parseUTCStr(s) {
-            // "Wed 25 Mar 2026 21:30 UTC"  or  "25 Mar 2026 21:30 UTC"
             const p = s.replace(' UTC','').split(' ');
             const hasDay = p.length === 5;
             const [day, mon, yr, hm] = hasDay ? p.slice(1) : p;
@@ -1055,17 +925,14 @@
             timeZone: 'Europe/London', timeZoneName: 'short'
         });
         function ukTzAbbr(date) {
-            // Returns "GMT" or "BST"
             return _ukTzFmt.formatToParts(date).find(p => p.type === 'timeZoneName').value;
         }
         function formatUK(date) {
-            // "Wed, 25 Mar 2026, 22:30" — strip commas from Intl output
             const parts = _ukFmt.formatToParts(date);
             const get = t => parts.find(p => p.type === t).value;
             return `${get('weekday')} ${get('day')} ${get('month')} ${get('year')} ${get('hour')}:${get('minute')}`;
         }
 
-        // Timeline Ticks logic
         function updateTimelineTicks() {
             const ticksContainer = document.getElementById('timelineTicks');
             ticksContainer.innerHTML = '';
@@ -1076,9 +943,10 @@
             let lastDay = null;
             let lastDayPercent = -100;
 
-            // Determine how often we show a time label (to avoid clutter)
-            // If total frames >= 48 (12 hours+), maybe every 3 hours. If less, 1 hour.
-            const labelInterval = frames.length > 50 ? 3 : (frames.length > 20 ? 2 : 1);
+            // At 5m, we have 12 frames/hr. 
+            // 3 hrs = 36 frames. 6 hrs = 72 frames. 12 hrs = 144 frames. 24 hrs = 288 frames.
+            // Label interval based on width: 24h -> every 3h. 12h -> every 2h. 3h/6h -> every hour.
+            const labelInterval = frames.length > 200 ? 3 : (frames.length > 100 ? 2 : 1);
 
             frames.forEach((frame, idx) => {
                 if (!frame.time || frame.time === "Unknown Date") return;
@@ -1089,6 +957,7 @@
                 const dateStr = `${get('weekday')} ${get('day')} ${get('month')}`;
                 const timeStr = `${get('hour')}:${get('minute')}`;
                 const hourNum = parseInt(get('hour'));
+                const minNum = parseInt(get('minute'));
 
                 const percent = (idx / max) * 100;
 
@@ -1134,7 +1003,7 @@
                     label.style.left = `${percent}%`;
                     label.innerText = '12:00';
                     ticksContainer.appendChild(label);
-                } else if (timeStr.endsWith(':00')) {
+                } else if (minNum === 0) {
                     const tick = document.createElement('div');
                     tick.className = 'tick hour';
                     tick.style.left = `${percent}%`;
@@ -1147,45 +1016,36 @@
                         label.innerText = timeStr;
                         ticksContainer.appendChild(label);
                     }
-                } else if (timeStr.endsWith(':30') && frames.length <= 48) {
-                    const tick = document.createElement('div');
-                    tick.className = 'tick';
-                    tick.style.left = `${percent}%`;
-                    ticksContainer.appendChild(tick);
                 }
             });
         }
 
-        // Player functions
         function setFrame(idx) {
             currentFrameIdx = idx;
             var frameData = frames[currentFrameIdx];
-            radarOverlay.setUrl(frameData.url);
-            updateFrameUI(idx);
-
-            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
-            var satKey = satUrlKeys[satVal];
-            if (satKey && satOverlays[satVal] && map.hasLayer(satOverlays[satVal])) {
-                if (frameData[satKey]) satOverlays[satVal].setUrl(frameData[satKey]);
+            
+            var url = frameData.url;
+            if (!url.startsWith('http') && !url.startsWith('/')) {
+                url = '../' + url;
             }
-
+            radarOverlay.setUrl(url);
+            updateFrameUI(idx);
             updateMslpFrame();
         }
 
         function updateDuration(hours) {
-            var numFrames = parseInt(hours) * 4; // 4 frames per hour (15-min intervals)
+            var numFrames = parseInt(hours) * 12; // 12 frames per hour at 5-minute interval
             if (numFrames > allFrames.length) numFrames = allFrames.length;
-            var sliced = allFrames.slice(-numFrames);
-            frames = getEffectiveFrames(sliced);
-
+            
+            frames = allFrames.slice(-numFrames);
             slider.max = Math.max(0, frames.length - 1);
+            
             updateTimelineTicks();
             preloadVisibleFrames();
             setFrame(frames.length - 1);
         }
 
         function onSliderChange(val) {
-            // When user drags, pause playback if playing
             if (playing) togglePlay();
             setFrame(parseInt(val));
         }
@@ -1193,11 +1053,10 @@
         function updateFrameUI(idx) {
             const ukDate = parseUTCStr(frames[idx].time);
             const tz = ukTzAbbr(ukDate);
-            const formatted = formatUK(ukDate); // "Wed 25 Mar 2026 22:30"
+            const formatted = formatUK(ukDate);
             document.getElementById('timeDisplay').innerText = formatted;
             document.getElementById('tzLabel').innerText = `Time (${tz})`;
 
-            // Mini-display: "Wed 25 Mar 22:30"
             const parts = formatted.split(' ');
             document.getElementById('collapsedTime').innerText =
                 `${parts[0]} ${parts[1]} ${parts[2]} ${parts[4]}`;
@@ -1222,9 +1081,9 @@
             var nextIdx = currentFrameIdx + 1;
             var delay = playSpeed;
             if (nextIdx >= frames.length) {
-                nextIdx = 0; // loop
+                nextIdx = 0;
             } else if (nextIdx === frames.length - 1) {
-                delay = 1000; // 1 second dwell at end
+                delay = 1000; // dwell at end
             }
             setFrame(nextIdx);
             playInterval = setTimeout(playStep, delay);
@@ -1237,16 +1096,14 @@
 
             if (playing) {
                 clearTimeout(playInterval);
-                icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"></polygon>'; // Play shape
+                icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"></polygon>';
                 text.innerText = "Play";
                 playing = false;
             } else {
-                // If at end, loop back to start
                 if (currentFrameIdx >= frames.length - 1) {
                     setFrame(0);
                 }
-
-                icon.innerHTML = '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>'; // Pause shape
+                icon.innerHTML = '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>';
                 text.innerText = "Pause";
                 playing = true;
                 
@@ -1257,7 +1114,6 @@
 
         function updateSpeed(newSpeed) {
             playSpeed = parseInt(newSpeed);
-            // If currently playing, restart the timeout with the new speed
             if (playing) {
                 clearTimeout(playInterval);
                 var delay = (currentFrameIdx === frames.length - 1) ? 1000 : playSpeed;
@@ -1265,14 +1121,6 @@
             }
         }
 
-
-
-        function updateOpacity(val) {
-            document.getElementById('opacityVal').innerText = val;
-            radarOverlay.setOpacity(val / 100);
-        }
-
-        // Draw colormap legend (using modern soft rounded rectangles)
         var radar_colors = [
             '#e1f5fe', '#81d4fa', '#03a9f4', '#01579b', '#2e7d32',
             '#fbc02d', '#ef6c00', '#c62828', '#6a1b9a'
@@ -1286,7 +1134,6 @@
         var labelsDiv = document.getElementById('radarLabels');
         labelsDiv.innerHTML = radar_labels.map((l, i) => `<span class="cbar-label" style="left: ${(i) * 11.11}%">${l}</span>`).join('');
 
-        // Auto-enable layers from URL params, e.g. ?mslp=1
         (function() {
             var params = new URLSearchParams(window.location.search);
             if (params.get('mslp') === '1') {
@@ -1294,7 +1141,6 @@
                 toggleMslp(true);
             }
         })();
-
     </script>
 </body>
 

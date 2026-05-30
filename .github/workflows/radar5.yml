@@ -1,0 +1,81 @@
+name: Process Radar Images (5-Min MeteoGate)
+
+on:
+  push:
+    paths:
+      - 'fetch_opera.py'
+      - '.github/workflows/radar5.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Restore image cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          static/radar5_gh
+        key: radar-5m-images-v1-${{ github.run_id }}
+        restore-keys: radar-5m-images-v1-
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Process latest 5-min radar data
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+      run: python fetch_opera.py
+
+    - name: Delete files older than 2 days
+      run: |
+        cutoff=$(date -u -d '2 days ago' +'%Y%m%d%H%M')
+        for f in static/radar5_gh/*.png; do
+          [ -f "$f" ] || continue
+          base=$(basename "$f")
+          ts="${base:0:12}"
+          [[ "$ts" =~ ^[0-9]{12}$ ]] && [[ "$ts" < "$cutoff" ]] && rm "$f"
+        done
+        exit 0
+
+    - name: Save image cache
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          static/radar5_gh
+        key: radar-5m-images-v1-${{ github.run_id }}
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.name "Radar Automator"
+        git config --global user.email "radar-bot@github.com"
+        git add frames_5m.json
+        git diff --cached --quiet && echo "No changes to commit" || {
+          git commit -m "Update radar 5m frames $(date -u +'%Y-%m-%d %H:%M UTC')" || exit 1
+          n=0
+          until git pull --rebase -X theirs origin main && git push origin main; do
+            n=$((n+1)); [ $n -ge 3 ] && exit 1
+            echo "Push attempt $n/3 failed, retrying in $((n*5))s..."
+            sleep $((n*5))
+          done
+        }
