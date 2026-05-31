@@ -932,7 +932,7 @@
                 })
                 .catch(function() {
                     // Fallback: try local file relative to server
-                    return fetch('/' + url + '?_cb=' + Date.now()).then(function(r) {
+                    return fetch(url + '?_cb=' + Date.now()).then(function(r) {
                         if (!r.ok) throw new Error("Local archive not found");
                         return r.json();
                     });
@@ -950,7 +950,7 @@
                     return r.json();
                 })
                 .catch(function() {
-                    return fetch('/warnings/warnings_latest.json?_cb=' + Date.now()).then(function(r) { return r.json(); });
+                    return fetch('warnings/warnings_latest.json?_cb=' + Date.now()).then(function(r) { return r.json(); });
                 })
                 .catch(function() {
                     return { warnings: [] };
