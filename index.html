@@ -48,16 +48,16 @@
         .multiselect-options {
             display: none;
             position: absolute;
-            bottom: calc(100% + 4px); /* Pop upwards */
+            top: calc(100% + 4px); /* Pop downwards */
             left: 0;
             right: 0;
             background: white;
             border: 1px solid #dadce0;
             border-radius: 12px;
-            box-shadow: 0 -8px 24px rgba(0,0,0,0.12);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
             z-index: 1010;
             padding: 8px;
-            max-height: 200px;
+            max-height: 240px; /* Sightly larger max-height for better scroll area */
             overflow-y: auto;
         }
         .custom-multiselect.open .multiselect-options {
@@ -649,6 +649,19 @@
         </div>
 
         <div id="infoContentBottom" class="hide-collapsed">
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Weather Warnings</p>
+            <div style="margin-bottom: 24px; position: relative;">
+                <div class="custom-multiselect" id="warningsSelect">
+                    <div class="multiselect-trigger" onclick="toggleWarningsMultiselect(event)">
+                        <span class="trigger-text" id="warningsSelectText">No Warnings Overlayed</span>
+                        <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="multiselect-options" id="warningsOptions" style="display: none;">
+                        <div style="padding: 6px 12px; font-size: 12px; color: #5f6368; font-weight: 500;">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
             <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Boundaries</p>
             <div style="margin-bottom: 24px;">
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
@@ -780,18 +793,6 @@
                 <option value="70">Fast</option>
                 <option value="35">Turbo</option>
             </select>
-        </div>
-        <div class="control-group" style="min-width: 150px; position: relative;">
-            <span class="control-label">Warnings</span>
-            <div class="custom-multiselect" id="warningsSelect">
-                <div class="multiselect-trigger" onclick="toggleWarningsMultiselect(event)">
-                    <span class="trigger-text" id="warningsSelectText">None</span>
-                    <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </div>
-                <div class="multiselect-options" id="warningsOptions" style="display: none;">
-                    <div style="padding: 6px 12px; font-size: 12px; color: #5f6368; font-weight: 500;">Loading...</div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -1066,25 +1067,70 @@
             
             _allWarnings.forEach(function(w) {
                 var label = getWarningDropdownLabel(w);
+                var isExpired = new Date() > new Date(w.end_date);
                 
                 var option = document.createElement('label');
                 option.className = 'option-item';
                 option.style.display = 'flex';
                 option.style.alignItems = 'center';
+                option.style.justifyContent = 'space-between';
+                option.style.padding = '8px 12px';
+                
+                var leftSide = document.createElement('div');
+                leftSide.style.display = 'flex';
+                leftSide.style.alignItems = 'center';
+                leftSide.style.gap = '8px';
+                leftSide.style.minWidth = '0';
                 
                 var input = document.createElement('input');
                 input.type = 'checkbox';
                 input.value = w.alert_id;
+                input.style.margin = '0';
                 input.onchange = function() {
                     toggleWarningLayer(w.alert_id, this.checked);
                     updateWarningsDropdownTriggerText();
                 };
                 
-                var span = document.createElement('span');
-                span.textContent = label;
+                var labelText = document.createElement('span');
+                labelText.style.fontSize = '12.5px';
+                labelText.style.fontWeight = '500';
+                labelText.style.color = isExpired ? '#70757a' : '#202124';
+                labelText.style.whiteSpace = 'nowrap';
+                labelText.style.overflow = 'hidden';
+                labelText.style.textOverflow = 'ellipsis';
+                labelText.textContent = label;
                 
-                option.appendChild(input);
-                option.appendChild(span);
+                leftSide.appendChild(input);
+                leftSide.appendChild(labelText);
+                
+                var badge = document.createElement('span');
+                badge.style.fontSize = '9.5px';
+                badge.style.fontWeight = '700';
+                badge.style.textTransform = 'uppercase';
+                badge.style.padding = '2px 6px';
+                badge.style.borderRadius = '8px';
+                badge.style.flexShrink = '0';
+                badge.style.letterSpacing = '0.3px';
+                
+                if (isExpired) {
+                    badge.style.background = '#f1f3f4';
+                    badge.style.color = '#70757a';
+                    badge.style.border = '1px solid #dadce0';
+                    badge.textContent = 'Expired';
+                    option.style.opacity = '0.75';
+                } else {
+                    var severityColors = { extreme: '#d60000', severe: '#e35c00', moderate: '#e0a300', minor: '#1a73e8' };
+                    var severityBg = { extreme: '#fce8e6', severe: '#fff3e0', moderate: '#fffde7', minor: '#e8f0fe' };
+                    var severity = _wSeverity(w);
+                    
+                    badge.style.background = severityBg[severity] || '#e8f0fe';
+                    badge.style.color = severityColors[severity] || '#1a73e8';
+                    badge.style.border = '1px solid ' + (severityColors[severity] || '#8ab4f8');
+                    badge.textContent = 'Active';
+                }
+                
+                option.appendChild(leftSide);
+                option.appendChild(badge);
                 container.appendChild(option);
             });
             
