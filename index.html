@@ -1159,6 +1159,19 @@
             };
         }
 
+        function safeBringToFront(layer) {
+            if (!layer) return;
+            if (typeof layer.bringToFront === 'function') {
+                layer.bringToFront();
+            } else if (typeof layer.eachLayer === 'function') {
+                layer.eachLayer(function(l) {
+                    if (typeof l.bringToFront === 'function') {
+                        l.bringToFront();
+                    }
+                });
+            }
+        }
+
         function toggleWarningLayer(alertId, show) {
             var w = _allWarnings.find(function(item) { return item.alert_id === alertId; });
             if (!w) return;
@@ -1172,8 +1185,9 @@
             
             if (_activeWarningLayers[alertId]) {
                 _activeWarningLayers[alertId].addTo(map);
-                _activeWarningLayers[alertId].bringToFront();
-                if (regionLayer && map.hasLayer(regionLayer)) regionLayer.bringToFront();
+                safeBringToFront(_activeWarningLayers[alertId]);
+                if (regionLayer && map.hasLayer(regionLayer)) safeBringToFront(regionLayer);
+                if (countiesLayer && map.hasLayer(countiesLayer)) safeBringToFront(countiesLayer);
                 return;
             }
             
@@ -1252,8 +1266,9 @@
             
             _activeWarningLayers[alertId] = layer;
             layer.addTo(map);
-            layer.bringToFront();
-            if (regionLayer && map.hasLayer(regionLayer)) regionLayer.bringToFront();
+            safeBringToFront(layer);
+            if (regionLayer && map.hasLayer(regionLayer)) safeBringToFront(regionLayer);
+            if (countiesLayer && map.hasLayer(countiesLayer)) safeBringToFront(countiesLayer);
         }
 
         function capitalize(str) {
@@ -1403,7 +1418,17 @@
             });
             if (map.hasLayer(radarOverlay)) radarOverlay.bringToFront();
             if (mslpOverlay && map.hasLayer(mslpOverlay)) mslpOverlay.bringToFront();
-            if (regionLayer && map.hasLayer(regionLayer)) regionLayer.bringToFront();
+            
+            // Bring active warning layers to front (above radar/mslp)
+            Object.keys(_activeWarningLayers).forEach(function(alertId) {
+                var wLayer = _activeWarningLayers[alertId];
+                if (wLayer && map.hasLayer(wLayer)) {
+                    safeBringToFront(wLayer);
+                }
+            });
+            
+            if (regionLayer && map.hasLayer(regionLayer)) safeBringToFront(regionLayer);
+            if (countiesLayer && map.hasLayer(countiesLayer)) safeBringToFront(countiesLayer);
         }
 
         // Load MSLP meta at startup (quietly — no overlay created until checkbox ticked)
