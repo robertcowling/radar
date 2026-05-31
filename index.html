@@ -1189,17 +1189,20 @@
             }
         });
 
-        function getWarningLayerStyle(severity, isHovered) {
+        function getWarningLayerStyle(severity, isHovered, isExpired) {
             var colors = _warningsSEV_COLORS[severity] || _warningsSEV_COLORS.unknown;
-            var strokeOpacity = 0.85;
-            var fillOpacity = isHovered ? 0.40 : 0.22;
+            var strokeOpacity = isExpired ? 0.45 : 0.85;
+            var fillOpacity = isExpired 
+                ? (isHovered ? 0.20 : 0.08) 
+                : (isHovered ? 0.40 : 0.22);
             
             return {
                 color: colors.stroke,
                 opacity: strokeOpacity,
                 fillColor: colors.fill,
                 fillOpacity: fillOpacity,
-                weight: isHovered ? 4.5 : 2.5,
+                weight: isHovered ? (isExpired ? 3.5 : 4.5) : (isExpired ? 1.8 : 2.5),
+                dashArray: isExpired ? '5, 6' : null,
                 lineCap: 'round',
                 lineJoin: 'round'
             };
@@ -1221,6 +1224,8 @@
         function toggleWarningLayer(alertId, show) {
             var w = _allWarnings.find(function(item) { return item.alert_id === alertId; });
             if (!w) return;
+            
+            var isExpired = new Date() > new Date(w.end_date);
             
             if (!show) {
                 if (_activeWarningLayers[alertId] && map.hasLayer(_activeWarningLayers[alertId])) {
@@ -1246,14 +1251,14 @@
             };
             
             var layer = L.geoJSON(geojsonFeature, {
-                style: getWarningLayerStyle(_wSeverity(w), false),
+                style: getWarningLayerStyle(_wSeverity(w), false, isExpired),
                 onEachFeature: function(feature, l) {
                     // Hover state change
                     l.on('mouseover', function() {
-                        l.setStyle(getWarningLayerStyle(_wSeverity(w), true));
+                        l.setStyle(getWarningLayerStyle(_wSeverity(w), true, isExpired));
                     });
                     l.on('mouseout', function() {
-                        l.setStyle(getWarningLayerStyle(_wSeverity(w), false));
+                        l.setStyle(getWarningLayerStyle(_wSeverity(w), false, isExpired));
                     });
                     
                     // Subtle tooltip on hover
