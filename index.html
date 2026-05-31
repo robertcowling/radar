@@ -14,6 +14,97 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
+        /* Premium Custom Multi-Select Dropdowns for Warnings */
+        .custom-multiselect {
+            position: relative;
+            width: 100%;
+        }
+        .multiselect-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f1f3f4;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #202124;
+            cursor: pointer;
+            transition: background 0.2s;
+            user-select: none;
+            box-sizing: border-box;
+        }
+        .multiselect-trigger:hover {
+            background-color: #e8eaed;
+        }
+        .multiselect-trigger .chevron {
+            color: #5f6368;
+            transition: transform 0.2s ease;
+        }
+        .custom-multiselect.open .chevron {
+            transform: rotate(180deg);
+        }
+        .multiselect-options {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px); /* Pop downwards */
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #dadce0;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            z-index: 1010;
+            padding: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .custom-multiselect.open .multiselect-options {
+            display: block;
+        }
+        .option-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: #3c4043;
+            transition: background 0.15s, color 0.15s;
+            user-select: none;
+        }
+        .option-item:hover {
+            background: #f1f3f4;
+            color: #202124;
+        }
+        .option-item input {
+            cursor: pointer;
+            width: 14px;
+            height: 14px;
+            margin-right: 8px;
+            accent-color: #202124;
+            flex-shrink: 0;
+        }
+
+        /* Custom Leaflet Popup Styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 0;
+            overflow: hidden;
+        }
+        .leaflet-popup-content {
+            margin: 0;
+            width: auto !important;
+        }
+        .leaflet-popup-close-button {
+            top: 10px !important;
+            right: 10px !important;
+            color: #5f6368 !important;
+        }
+
         body {
             padding: 0;
             margin: 0;
@@ -626,6 +717,20 @@
                     IR False Colour
                 </label>
             </div>
+
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Weather Warnings</p>
+            <div style="margin-bottom: 24px; position: relative;">
+                <div class="custom-multiselect" id="warningsSelect">
+                    <div class="multiselect-trigger" onclick="toggleWarningsMultiselect(event)">
+                        <span class="trigger-text" id="warningsSelectText">No Warnings Overlayed</span>
+                        <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="multiselect-options" id="warningsOptions" style="display: none;">
+                        <div style="padding: 6px 12px; font-size: 12px; color: #5f6368; font-weight: 500;">Loading warnings...</div>
+                    </div>
+                </div>
+            </div>
+
             <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Navigation</p>
             <div style="margin-bottom: 24px; font-size: 13px; font-weight: 500; display: flex; flex-direction: column; gap: 8px;">
                 <a href="gaugecheck.html" style="color: #1a73e8; text-decoration: none; display: flex; align-items: center; gap: 6px;">
@@ -705,6 +810,17 @@
         var currentFeed = 'parallel';
         var STANDARD_BOUNDS = [[49.0, -11.5], [61.5, 3.5]];
         var PARALLEL_BOUNDS = [[43.7009, -17.9739], [62.9207, 16.1291]];
+
+        // ── Weather Warnings Overlay state ─────────────────────────
+        var _allWarnings = [];
+        var _activeWarningLayers = {};
+        var _warningsSEV_COLORS = {
+            extreme:   { stroke: '#d60000', fill: '#e60000' },
+            severe:    { stroke: '#e35c00', fill: '#ff7900' },
+            moderate:  { stroke: '#e0a300', fill: '#ffe500' },
+            minor:     { stroke: '#1a73e8', fill: '#8ab4f8' },
+            unknown:   { stroke: '#5f6368', fill: '#9aa0a6' }
+        };
 
         // Initialize Map
         var map = L.map('map', { zoomControl: false }).setView([54.5, -3.5], 6);
@@ -791,6 +907,359 @@
             } else {
                 map.removeLayer(radarOverlay);
             }
+        }
+
+        // ── Weather Warnings Ingest & Rendering Engine ───────────────────────────
+        function getWarningArchiveUrls(days) {
+            var urls = [];
+            var now = new Date();
+            for (var i = 0; i <= days; i++) {
+                var d = new Date(now);
+                d.setDate(d.getDate() - i);
+                var yyyy = d.getFullYear();
+                var mm = (d.getMonth() + 1).toString().padStart(2, '0');
+                var dd = d.getDate().toString().padStart(2, '0');
+                var dateStr = "" + yyyy + mm + dd;
+                urls.push('warnings/archive/warnings_' + dateStr + '.json');
+            }
+            return urls;
+        }
+
+        function fetchWarningArchive(url) {
+            return fetch('https://radar.floodforecast.co.uk/' + url + '?_cb=' + Date.now())
+                .then(function(r) {
+                    if (!r.ok) throw new Error("CDN read failed");
+                    return r.json();
+                })
+                .catch(function() {
+                    // Fallback: try local file relative to server
+                    return fetch('/' + url + '?_cb=' + Date.now()).then(function(r) {
+                        if (!r.ok) throw new Error("Local archive not found");
+                        return r.json();
+                    });
+                })
+                .catch(function() {
+                    return [];
+                });
+        }
+
+        function loadWarningsData() {
+            var latestUrl = 'https://radar.floodforecast.co.uk/warnings/warnings_latest.json?_cb=' + Date.now();
+            var pLatest = fetch(latestUrl)
+                .then(function(r) {
+                    if (!r.ok) throw new Error("CDN read failed");
+                    return r.json();
+                })
+                .catch(function() {
+                    return fetch('/warnings/warnings_latest.json?_cb=' + Date.now()).then(function(r) { return r.json(); });
+                })
+                .catch(function() {
+                    return { warnings: [] };
+                });
+                
+            var promises = [pLatest];
+            var archiveUrls = getWarningArchiveUrls(7);
+            archiveUrls.forEach(function(url) {
+                promises.push(fetchWarningArchive(url));
+            });
+            
+            Promise.all(promises)
+                .then(function(results) {
+                    var latestRes = results[0];
+                    var mergedMap = {};
+                    
+                    // Ingest latest warnings
+                    var latestWarnings = latestRes.warnings || [];
+                    latestWarnings.forEach(function(w) {
+                        mergedMap[w.alert_id] = w;
+                    });
+                    
+                    // Ingest archived warnings
+                    for (var i = 1; i < results.length; i++) {
+                        var archiveWarnings = results[i] || [];
+                        archiveWarnings.forEach(function(w) {
+                            mergedMap[w.alert_id] = w;
+                        });
+                    }
+                    
+                    _allWarnings = Object.values(mergedMap);
+                    
+                    // Sort warnings by start_date descending (newest first)
+                    _allWarnings.sort(function(a, b) {
+                        return new Date(b.start_date) - new Date(a.start_date);
+                    });
+                    
+                    populateWarningsDropdown();
+                })
+                .catch(function(err) {
+                    console.error("Failed to load warnings:", err);
+                    var opts = document.getElementById('warningsOptions');
+                    if (opts) {
+                        opts.innerHTML = '<div style="padding: 6px 12px; font-size: 12px; color: #ea4335; font-weight: 500;">Failed to load warnings</div>';
+                    }
+                });
+        }
+
+        function getWarningDropdownLabel(w) {
+            var sevEmoji = { extreme: '🔴', severe: '🟠', moderate: '🟡', minor: '🔵' }[_wSeverity(w)] || '⚪';
+            
+            // Clean title
+            var eventType = w.title
+                .replace(/warning/i, '')
+                .replace(/yellow/i, '')
+                .replace(/amber/i, '')
+                .replace(/red/i, '')
+                .replace(/minor/i, '')
+                .replace(/severe/i, '')
+                .replace(/extreme/i, '')
+                .trim();
+            
+            if (eventType) {
+                eventType = eventType.charAt(0).toUpperCase() + eventType.slice(1);
+            } else {
+                eventType = 'Weather Warning';
+            }
+            
+            var start = new Date(w.start_date);
+            var end = new Date(w.end_date);
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            var startDay = start.getDate();
+            var startMonth = months[start.getMonth()];
+            var endDay = end.getDate();
+            var endMonth = months[end.getMonth()];
+            
+            var dateStr = '';
+            if (startMonth === endMonth) {
+                if (startDay === endDay) {
+                    dateStr = startDay + ' ' + startMonth;
+                } else {
+                    dateStr = startDay + '-' + endDay + ' ' + startMonth;
+                }
+            } else {
+                dateStr = startDay + ' ' + startMonth + ' - ' + endDay + ' ' + endMonth;
+            }
+            
+            return sevEmoji + ' ' + eventType + ' (' + dateStr + ')';
+        }
+
+        function _wSeverity(w) {
+            var s = w.severity;
+            if (!s && w.title) {
+                var t = w.title.toLowerCase();
+                if (t.includes('yellow') || t.includes('moderate')) return 'moderate';
+                if (t.includes('amber') || t.includes('severe')) return 'severe';
+                if (t.includes('red') || t.includes('extreme')) return 'extreme';
+                if (t.includes('minor') || t.includes('yellow')) return 'minor';
+            }
+            return (s || 'moderate').toLowerCase();
+        }
+
+        function populateWarningsDropdown() {
+            var container = document.getElementById('warningsOptions');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            if (_allWarnings.length === 0) {
+                container.innerHTML = '<div style="padding: 8px 12px; font-size: 12.5px; color: #5f6368; font-weight: 500;">No warnings from the last week</div>';
+                return;
+            }
+            
+            _allWarnings.forEach(function(w) {
+                var label = getWarningDropdownLabel(w);
+                
+                var option = document.createElement('label');
+                option.className = 'option-item';
+                option.style.display = 'flex';
+                option.style.alignItems = 'center';
+                
+                var input = document.createElement('input');
+                input.type = 'checkbox';
+                input.value = w.alert_id;
+                input.onchange = function() {
+                    toggleWarningLayer(w.alert_id, this.checked);
+                    updateWarningsDropdownTriggerText();
+                };
+                
+                var span = document.createElement('span');
+                span.textContent = label;
+                
+                option.appendChild(input);
+                option.appendChild(span);
+                container.appendChild(option);
+            });
+            
+            updateWarningsDropdownTriggerText();
+        }
+
+        function updateWarningsDropdownTriggerText() {
+            var container = document.getElementById('warningsSelect');
+            var checked = container.querySelectorAll('input[type="checkbox"]:checked');
+            var textEl = document.getElementById('warningsSelectText');
+            
+            if (checked.length === 0) {
+                textEl.textContent = "No Warnings Overlayed";
+            } else if (checked.length === 1) {
+                var label = checked[0].nextElementSibling.textContent;
+                var parts = label.split(' (');
+                textEl.textContent = parts[0];
+            } else {
+                textEl.textContent = checked.length + " Overlayed";
+            }
+        }
+
+        function toggleWarningsMultiselect(event) {
+            event.stopPropagation();
+            var container = document.getElementById('warningsSelect');
+            var options = document.getElementById('warningsOptions');
+            var isOpen = container.classList.contains('open');
+            
+            // Close other dropdowns
+            document.querySelectorAll('.custom-multiselect').forEach(function(el) {
+                if (el.id !== 'warningsSelect') {
+                    el.classList.remove('open');
+                    var opts = el.querySelector('.multiselect-options');
+                    if (opts) opts.style.display = 'none';
+                }
+            });
+            
+            if (isOpen) {
+                container.classList.remove('open');
+                options.style.display = 'none';
+            } else {
+                container.classList.add('open');
+                options.style.display = 'block';
+            }
+        }
+
+        // Close warnings options when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#warningsSelect')) {
+                var container = document.getElementById('warningsSelect');
+                if (container) {
+                    container.classList.remove('open');
+                    var options = document.getElementById('warningsOptions');
+                    if (options) options.style.display = 'none';
+                }
+            }
+        });
+
+        function getWarningLayerStyle(severity, isHovered) {
+            var colors = _warningsSEV_COLORS[severity] || _warningsSEV_COLORS.unknown;
+            var strokeOpacity = 0.85;
+            var fillOpacity = isHovered ? 0.40 : 0.22;
+            
+            return {
+                color: colors.stroke,
+                opacity: strokeOpacity,
+                fillColor: colors.fill,
+                fillOpacity: fillOpacity,
+                weight: isHovered ? 4.5 : 2.5,
+                lineCap: 'round',
+                lineJoin: 'round'
+            };
+        }
+
+        function toggleWarningLayer(alertId, show) {
+            var w = _allWarnings.find(function(item) { return item.alert_id === alertId; });
+            if (!w) return;
+            
+            if (!show) {
+                if (_activeWarningLayers[alertId] && map.hasLayer(_activeWarningLayers[alertId])) {
+                    map.removeLayer(_activeWarningLayers[alertId]);
+                }
+                return;
+            }
+            
+            if (_activeWarningLayers[alertId]) {
+                _activeWarningLayers[alertId].addTo(map);
+                _activeWarningLayers[alertId].bringToFront();
+                if (regionLayer && map.hasLayer(regionLayer)) regionLayer.bringToFront();
+                return;
+            }
+            
+            if (!w.geometry || (!w.geometry.coordinates && !w.geometry.geometries)) return;
+            
+            var geojsonFeature = {
+                type: "Feature",
+                properties: w,
+                geometry: w.geometry
+            };
+            
+            var layer = L.geoJSON(geojsonFeature, {
+                style: getWarningLayerStyle(_wSeverity(w), false),
+                onEachFeature: function(feature, l) {
+                    // Hover state change
+                    l.on('mouseover', function() {
+                        l.setStyle(getWarningLayerStyle(_wSeverity(w), true));
+                    });
+                    l.on('mouseout', function() {
+                        l.setStyle(getWarningLayerStyle(_wSeverity(w), false));
+                    });
+                    
+                    // Subtle tooltip on hover
+                    l.bindTooltip('<div style="font-family: \'Roboto\', sans-serif; font-weight:600; font-size:12px;">' + w.title + ' <span style="font-size:10px; font-weight:normal; color:#5f6368;">(Click for details)</span></div>', {
+                        sticky: true,
+                        className: 'map-tip'
+                    });
+                    
+                    // Build premium click popup
+                    var severityNames = { extreme: 'Red / Extreme', severe: 'Amber / Severe', moderate: 'Yellow / Moderate', minor: 'Blue / Minor' };
+                    var severityColors = { extreme: '#d60000', severe: '#e35c00', moderate: '#e0a300', minor: '#1a73e8' };
+                    var severityBg = { extreme: '#fce8e6', severe: '#fff3e0', moderate: '#fffde7', minor: '#e8f0fe' };
+                    
+                    var startStr = formatUK(parseUTCStr(w.start_date));
+                    var endStr = formatUK(parseUTCStr(w.end_date));
+                    var severity = _wSeverity(w);
+                    
+                    var popupHtml = `
+                        <div style="font-family: 'Roboto', sans-serif; padding: 12px; max-width: 300px; line-height: 1.5; color: #3c4043;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <span style="font-size: 9.5px; font-weight: 700; text-transform: uppercase; background: ${severityBg[severity] || '#f1f3f4'}; color: ${severityColors[severity] || '#5f6368'}; padding: 2px 7px; border-radius: 12px; border: 1px solid ${severityColors[severity] || '#dadce0'}; letter-spacing: 0.3px;">
+                                    ${severityNames[severity] || capitalize(severity)}
+                                </span>
+                                <span style="font-size: 11px; font-weight: 600; color: #70757a;">Weather Warning</span>
+                            </div>
+                            <h4 style="margin: 0 0 6px 0; font-size: 14.5px; font-weight: 700; color: #202124;">${w.title}</h4>
+                            ${w.headline ? `<p style="margin: 0 0 8px 0; font-size: 11.5px; font-weight: 600; color: #1e293b; line-height: 1.4; border-left: 3px solid #bdc1c6; padding-left: 8px;">${w.headline}</p>` : ''}
+                            
+                            <div style="font-size: 10.5px; color: #5f6368; font-weight: 500; margin-bottom: 10px; display: flex; align-items: center; gap: 4px;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <span>${startStr} &ndash; ${endStr}</span>
+                            </div>
+                            
+                            <div style="max-height: 130px; overflow-y: auto; margin-bottom: 4px; padding-right: 4px;">
+                                <div style="margin-bottom: 8px;">
+                                    <span style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: #80868b; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">Description</span>
+                                    <span style="font-size: 11px; color: #3c4043; display: block; line-height: 1.4;">${w.description}</span>
+                                </div>
+                                ${w.instruction ? `
+                                <div style="margin-bottom: 8px;">
+                                    <span style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: #80868b; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">Safety Advice</span>
+                                    <span style="font-size: 11px; color: #202124; background: #fffde7; border-left: 3px solid #e0a300; padding: 5px 7px; border-radius: 4px; display: block; line-height: 1.4; font-weight: 500;">${w.instruction}</span>
+                                </div>` : ''}
+                                ${w.area_desc ? `
+                                <div>
+                                    <span style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: #80868b; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">Areas Affected</span>
+                                    <span style="font-size: 10px; color: #5f6368; display: block; line-height: 1.35; font-weight: 500;">${w.area_desc}</span>
+                                </div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    
+                    l.bindPopup(popupHtml);
+                }
+            });
+            
+            _activeWarningLayers[alertId] = layer;
+            layer.addTo(map);
+            layer.bringToFront();
+            if (regionLayer && map.hasLayer(regionLayer)) regionLayer.bringToFront();
+        }
+
+        function capitalize(str) {
+            if (!str) return '';
+            return str.charAt(0).toUpperCase() + str.slice(1);
         }
 
         // Satellite overlays — lazily created, keyed by radio value
@@ -1293,6 +1762,8 @@
                 document.getElementById('mslpToggle').checked = true;
                 toggleMslp(true);
             }
+            // Load weather warnings data
+            loadWarningsData();
         })();
 
     </script>
