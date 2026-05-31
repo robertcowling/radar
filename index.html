@@ -1221,8 +1221,8 @@
                     var severityColors = { extreme: '#d60000', severe: '#e35c00', moderate: '#e0a300', minor: '#1a73e8' };
                     var severityBg = { extreme: '#fce8e6', severe: '#fff3e0', moderate: '#fffde7', minor: '#e8f0fe' };
                     
-                    var startStr = formatUK(parseUTCStr(w.start_date));
-                    var endStr = formatUK(parseUTCStr(w.end_date));
+                    var startStr = formatUK(new Date(w.start_date));
+                    var endStr = formatUK(new Date(w.end_date));
                     var severity = _wSeverity(w);
                     
                     var popupHtml = `
