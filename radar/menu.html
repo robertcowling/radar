@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radar - Menu</title>
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f9fa;
+            color: #3c4043;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 24px;
+            color: #202124;
+            text-align: center;
+        }
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 480px) {
+            .menu-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 20px;
+            background-color: #f1f3f4;
+            color: #1a73e8;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .menu-item:hover {
+            background-color: #e8eaed;
+            transform: translateY(-1px);
+        }
+        .menu-item:active {
+            transform: translateY(0);
+        }
+        .footer {
+            margin-top: 32px;
+            text-align: center;
+            font-size: 12px;
+            color: #70757a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>UK Radar & Weather Menu</h1>
+        <div class="menu-grid">
+            <a href="../index.html" class="menu-item">Main Radar Map</a>
+            <a href="../accum.html" class="menu-item">Rain Accumulation</a>
+            <a href="../ukv.html" class="menu-item">UKV Model</a>
+            <a href="../gaugecheck.html" class="menu-item">Gauge QC Dashboard</a>
+            <a href="../warnings.html" class="menu-item">Weather Warnings Map</a>
+            <a href="../compare.html" class="menu-item">Comparison Page</a>
+            <a href="../radar5/index.html" class="menu-item">5-Min UK Feed</a>
+            <a href="../24hr/index.html" class="menu-item">24hr Accumulation</a>
+            <a href="../rain/index.html" class="menu-item">Rain Dashboard</a>
+            <a href="../claudia/index.html" class="menu-item">Claudia Dashboard</a>
+            <a href="../tools/r2_browser.html" class="menu-item">R2 Browser Tool</a>
+        </div>
+        <div class="footer">
+            &copy; 2024 UK Radar Project
+        </div>
+    </div>
+</body>
+</html>
