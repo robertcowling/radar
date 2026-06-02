@@ -1,0 +1,80 @@
+{
+  "frames": [
+    {
+      "time": "Mon 18 May 2026 00:00 UTC",
+      "url": "20260518.json",
+      "date_key": "20260518"
+    },
+    {
+      "time": "Tue 19 May 2026 00:00 UTC",
+      "url": "20260519.json",
+      "date_key": "20260519"
+    },
+    {
+      "time": "Wed 20 May 2026 00:00 UTC",
+      "url": "20260520.json",
+      "date_key": "20260520"
+    },
+    {
+      "time": "Thu 21 May 2026 00:00 UTC",
+      "url": "20260521.json",
+      "date_key": "20260521"
+    },
+    {
+      "time": "Fri 22 May 2026 00:00 UTC",
+      "url": "20260522.json",
+      "date_key": "20260522"
+    },
+    {
+      "time": "Sat 23 May 2026 00:00 UTC",
+      "url": "20260523.json",
+      "date_key": "20260523"
+    },
+    {
+      "time": "Sun 24 May 2026 00:00 UTC",
+      "url": "20260524.json",
+      "date_key": "20260524"
+    },
+    {
+      "time": "Mon 25 May 2026 00:00 UTC",
+      "url": "20260525.json",
+      "date_key": "20260525"
+    },
+    {
+      "time": "Tue 26 May 2026 00:00 UTC",
+      "url": "20260526.json",
+      "date_key": "20260526"
+    },
+    {
+      "time": "Wed 27 May 2026 00:00 UTC",
+      "url": "20260527.json",
+      "date_key": "20260527"
+    },
+    {
+      "time": "Thu 28 May 2026 00:00 UTC",
+      "url": "20260528.json",
+      "date_key": "20260528"
+    },
+    {
+      "time": "Fri 29 May 2026 00:00 UTC",
+      "url": "20260529.json",
+      "date_key": "20260529"
+    },
+    {
+      "time": "Sat 30 May 2026 00:00 UTC",
+      "url": "20260530.json",
+      "date_key": "20260530"
+    },
+    {
+      "time": "Sun 31 May 2026 00:00 UTC",
+      "url": "20260531.json",
+      "date_key": "20260531"
+    },
+    {
+      "time": "Mon 01 Jun 2026 00:00 UTC",
+      "url": "20260601.json",
+      "date_key": "20260601"
+    }
+  ],
+  "latest_time": "Mon 01 Jun 2026 00:00 UTC"
+}
