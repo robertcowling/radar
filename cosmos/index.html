@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UK Soil Moisture</title>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            background: #f8f9fa;
+            color: #3c4043;
+        }
+        #map { width: 100vw; height: 100vh; }
+
+        .surface {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+            transition: box-shadow 0.3s ease;
+        }
+        .surface:hover {
+            box-shadow: 0 12px 32px rgba(0,0,0,0.16), 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 20px;
+            z-index: 1000;
+            width: 270px;
+            max-height: calc(100vh - 130px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .player-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            z-index: 1000;
+            width: 95%;
+            max-width: 950px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 500;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 100px;
+            max-width: 140px;
+        }
+        .btn:hover { background: #1557b0; box-shadow: 0 4px 8px rgba(0,0,0,0.25); transform: translateY(-1px); }
+        .btn:active { box-shadow: 0 1px 2px rgba(0,0,0,0.2); transform: translateY(0); }
+
+        .timeline-container {
+            position: relative;
+            flex-grow: 1;
+            height: 48px;
+            display: flex;
+            align-items: center;
+        }
+        .timeline-track {
+            position: absolute;
+            top: 50%;
+            left: 9px; right: 9px;
+            height: 6px;
+            margin-top: -3px;
+            background: #e8eaed;
+            border-radius: 3px;
+            overflow: visible;
+            pointer-events: none;
+        }
+        .timeline-ticks {
+            position: absolute;
+            top: 50%;
+            left: 8px; right: 8px;
+            height: 20px;
+            transform: translateY(-50%);
+            pointer-events: none;
+            z-index: 2;
+        }
+        .tick {
+            position: absolute;
+            width: 2px;
+            height: 6px;
+            background: #dadce0;
+            top: 7px;
+            transform: translateX(-50%);
+            border-radius: 1px;
+        }
+        .tick.day { height: 10px; top: 5px; background: #bdc1c6; }
+        .tick-label {
+            position: absolute;
+            top: 24px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #80868b;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+            z-index: 3;
+            margin: 0;
+            position: relative;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: transparent;
+            border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #1a73e8;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s, box-shadow 0.1s;
+            border: 2px solid white;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        .cbar-container { margin-bottom: 12px; }
+        .cbar {
+            display: flex;
+            height: 10px;
+            width: 100%;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+        .cbar-block { flex-grow: 1; }
+        .cbar-labels {
+            position: relative;
+            height: 12px;
+            width: 100%;
+            font-size: 9.5px;
+            color: #5f6368;
+            font-weight: 500;
+        }
+        .cbar-label {
+            position: absolute;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        .custom-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #3c4043;
+        }
+        .custom-checkbox input {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            accent-color: #1a73e8;
+        }
+
+        .control-group { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+        .control-group.play-group { align-items: center; }
+        .control-label { font-size: 10px; font-weight: 600; color: #80868b; letter-spacing: 0.5px; padding-left: 8px; }
+
+        .region-boundary { filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.75)); }
+
+        .leaflet-tooltip.gauge-tip {
+            font-family: 'Roboto', sans-serif;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .rg-wrap {
+            display: flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px;
+        }
+        .rg-icon {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.8);
+            transform: translateZ(0); will-change: transform;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Roboto', sans-serif;
+            font-size: 11px; font-weight: 700;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+            box-sizing: border-box;
+            cursor: pointer;
+            line-height: 1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .rg-icon.rg-nodata {
+            width: 10px; height: 10px;
+            background: #90a4ae;
+            opacity: 0.5;
+            border: 1px solid white;
+        }
+
+        #menuBtn {
+            background: none; border: none; cursor: pointer;
+            padding: 4px 6px; border-radius: 6px;
+            color: #5f6368; display: flex; align-items: center;
+            flex-shrink: 0;
+        }
+        #menuBtn:hover { background: #f1f3f4; }
+        .panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 14px; flex-shrink: 0;
+        }
+        .panel-header h3 { margin: 0; font-size: 18px; color: #202124; font-weight: 500; }
+        #panelBody { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
+        #panelBody.collapsed { display: none; }
+
+        .time-box {
+            background: #f8f9fa;
+            border-left: 4px solid #1a73e8;
+            padding: 12px 16px;
+            margin: 0 0 16px 0;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        @media (max-width: 768px) {
+            .player-panel {
+                width: calc(100% - 20px);
+                padding: 10px 12px;
+                gap: 8px;
+                bottom: 8px;
+                box-sizing: border-box;
+                flex-wrap: wrap;
+            }
+            .info-panel {
+                top: 10px; right: 10px;
+                width: calc(100% - 30px);
+                left: 15px;
+                max-height: calc(100vh - 120px);
+            }
+            .timeline-container { width: 100%; order: 4; margin-top: 5px; }
+            .control-group { flex: 1; }
+            .control-group.play-group { flex: 0 1 auto; min-width: 80px; }
+            #playBtn { width: 100%; padding: 8px 16px; min-width: 0; max-width: none; }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <div class="info-panel surface" id="infoPanel">
+        <div class="panel-header">
+            <h3>UK Soil Moisture</h3>
+            <button id="menuBtn" onclick="toggleMenu()" title="Collapse panel">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+
+        <div id="panelBody">
+            <div class="time-box">
+                <p style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: 700; color: #1a73e8; letter-spacing: 0.5px;">Date</p>
+                <div id="timeDisplay" style="font-size: 18px; font-weight: 700; color: #202124; margin-top: 4px;">Loading...</div>
+            </div>
+
+            <div class="cbar-container">
+                <p style="font-weight:500;margin:0 0 6px;font-size:12px;color:#3c4043">Volumetric Water Content (%)</p>
+                <div class="cbar" id="soilCbar"></div>
+                <div class="cbar-labels" id="soilLabels"></div>
+            </div>
+
+            <!-- Boundaries & Labels -->
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e8eaed;flex-shrink:0">
+                <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Boundaries</p>
+                <div style="display: flex; gap: 12px; margin-bottom: 8px;">
+                    <label class="custom-checkbox">
+                        <input type="radio" name="boundaryLayer" value="none" onchange="onBoundaryChange('none')">
+                        None
+                    </label>
+                    <label class="custom-checkbox">
+                        <input type="radio" name="boundaryLayer" value="regions" onchange="onBoundaryChange('regions')">
+                        UK Regions
+                    </label>
+                    <label class="custom-checkbox">
+                        <input type="radio" name="boundaryLayer" value="counties" checked onchange="onBoundaryChange('counties')">
+                        Counties
+                    </label>
+                </div>
+                <label class="custom-checkbox" style="margin-top:6px">
+                    <input type="checkbox" id="valToggle" onchange="onValuesToggle(this.checked)" checked>
+                    Show values
+                </label>
+            </div>
+
+            <!-- Attribution -->
+            <p style="font-size:11px;margin:20px 0 0;line-height:1.6;flex-shrink:0">
+                <a href="../" style="color:#1a73e8">&larr; Live radar</a> &nbsp;&middot;&nbsp; <a href="../rain/" style="color:#1a73e8">Rain Gauges</a> &nbsp;&middot;&nbsp;
+                <strong>Data:</strong>
+                COSMOS-UK data owned by <a href="https://cosmos.ceh.ac.uk/" target="_blank" style="color:#1a73e8">UK Centre for Ecology and Hydrology</a>.<br>
+                COSMOS-UK is supported by the Natural Environment Research Council award number NE/R016429/1 as part of the UK-SCAPE programme delivering National Capability.<br>
+                Open Government Licence - OGL
+            </p>
+        </div>
+    </div>
+
+    <!-- Player bar -->
+    <div class="player-panel surface" id="controlsPanel">
+        <div class="control-group play-group">
+            <span class="control-label" style="opacity:0;pointer-events:none">Play</span>
+            <button class="btn" id="playBtn" onclick="togglePlay()">
+                <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <span id="playText">Play</span>
+            </button>
+        </div>
+
+        <div class="timeline-container">
+            <div class="timeline-track">
+                <div id="loadedProgress" class="loaded-progress"></div>
+            </div>
+            <div class="timeline-ticks" id="timelineTicks"></div>
+            <input type="range" id="timeSlider" min="0" max="0" value="0" oninput="onSliderChange(this.value)">
+        </div>
+    </div>
+
+    <script>
+        // ── Config ─────────────────────────────────────────────────────────────
+        // 10 distinct steps for soil moisture (0-100%)
+        // Dry to wet: brown/orange -> yellow -> green -> blue
+        var SOIL_COLORS = ['#8d6e63','#ffb74d','#fff176','#dce775','#81c784','#4dd0e1','#29b6f6','#1976d2','#0d47a1','#311b92'];
+        var SOIL_TEXT  = ['#ffffff','#000000','#000000','#000000','#000000','#000000','#ffffff','#ffffff','#ffffff','#ffffff'];
+        var SOIL_BREAKS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+
+        var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+        // ── State ──────────────────────────────────────────────────────────────
+        var meta         = null;
+        var stations     = {};
+        var dayCache     = {};   // dateKey → {date, readings} or null (load failed)
+        var markers      = {};
+        var playing      = false;
+        var showValues   = true;
+        var playInterval;
+        var currentFrameIdx = 0;
+        var playSpeed    = 1000; // 1 second per day
+
+        var regionLayer = null;
+        var countiesLayer = null;
+
+        // ── Map setup ──────────────────────────────────────────────────────────
+        var map = L.map('map', {zoomControl: false}).setView([54.5, -3.5], 6);
+        L.control.zoom({position: 'topleft'}).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        }).addTo(map);
+
+        function loadBoundary(val) {
+            if (val === 'regions' && !regionLayer) {
+                fetch('../uk_regions.geojson')
+                    .then(r => r.json())
+                    .then(data => {
+                        regionLayer = L.geoJSON(data, {
+                            style: {color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary'},
+                            interactive: false
+                        });
+                        if (document.querySelector('input[name="boundaryLayer"]:checked').value === 'regions') {
+                            regionLayer.addTo(map);
+                        }
+                    })
+                    .catch(() => {});
+            } else if (val === 'counties' && !countiesLayer) {
+                fetch('../uk-counties.geojson')
+                    .then(r => r.json())
+                    .then(data => {
+                        countiesLayer = L.geoJSON(data, {
+                            style: {color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary'},
+                            interactive: false
+                        });
+                        if (document.querySelector('input[name="boundaryLayer"]:checked').value === 'counties') {
+                            countiesLayer.addTo(map);
+                        }
+                    })
+                    .catch(() => {});
+            }
+        }
+
+        function onBoundaryChange(val) {
+            if (regionLayer && map.hasLayer(regionLayer)) map.removeLayer(regionLayer);
+            if (countiesLayer && map.hasLayer(countiesLayer)) map.removeLayer(countiesLayer);
+
+            if (val === 'regions') {
+                if (regionLayer) regionLayer.addTo(map);
+                else loadBoundary('regions');
+            } else if (val === 'counties') {
+                if (countiesLayer) countiesLayer.addTo(map);
+                else loadBoundary('counties');
+            }
+        }
+
+        loadBoundary('counties');
+        var markerLayer = L.layerGroup().addTo(map);
+
+        // ── Helpers ────────────────────────────────────────────────────────────
+        function getStyle(val) {
+            if (val == null || val < 0) return {nodata: true, fill: ''};
+            var colorIdx = 0;
+            for (var i = 0; i < SOIL_BREAKS.length; i++) {
+                if (val >= SOIL_BREAKS[i]) colorIdx = Math.min(SOIL_BREAKS.length - 1, i + 1); else break;
+            }
+            return {nodata: false, fill: SOIL_COLORS[colorIdx], text: SOIL_TEXT[colorIdx]};
+        }
+
+        function htmlEsc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+        // ── Markers ────────────────────────────────────────────────────────────
+        function createMarkers() {
+            markerLayer.clearLayers();
+            markers = {};
+            Object.keys(stations).forEach(id => {
+                var s = stations[id];
+                if (!s || s.lat == null || s.lon == null) return;
+                var icon = L.divIcon({
+                    className: '',
+                    html: '<div class="rg-wrap"><div class="rg-icon rg-nodata"></div></div>',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+                var m = L.marker([s.lat, s.lon], {icon: icon});
+                m.bindTooltip('', {direction: 'top', className: 'gauge-tip', offset: [0, -15]});
+
+                var name = s.name || id;
+                var popHtml = `<div style="font-family: 'Roboto', sans-serif; padding: 4px;">
+                    <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; color: #202124;">${name}</h4>
+                    <div style="font-size: 13px; color: #5f6368;" id="pop_content_${id}">Loading...</div>
+                </div>`;
+                m.bindPopup(popHtml, {className: 'gauge-popup'});
+
+                markers[id] = m;
+                markerLayer.addLayer(m);
+                m._rgDiv = m.getElement() ? m.getElement().querySelector('.rg-icon') : null;
+            });
+        }
+
+        // ── Player & Frames ───────────────────────────────────────────────────
+        function updateTimelineTicks() {
+            if (!meta || !meta.frames) return;
+            var container = document.getElementById('timelineTicks');
+            container.innerHTML = '';
+
+            var frames = meta.frames;
+            var max = frames.length - 1;
+            if (max <= 0) return;
+
+            frames.forEach((f, i) => {
+                var pct = (i / max) * 100;
+                var t = document.createElement('div');
+                t.className = 'tick day';
+                t.style.left = pct + '%';
+                container.appendChild(t);
+
+                // Add label for every other day if too many, or all if few
+                if (frames.length <= 14 || i % 2 === 0) {
+                    var lbl = document.createElement('div');
+                    lbl.className = 'tick-label';
+                    lbl.style.left = pct + '%';
+
+                    var dateParts = f.time.split(' '); // "Mon 18 May 2026..."
+                    lbl.innerText = dateParts[1] + ' ' + dateParts[2];
+                    container.appendChild(lbl);
+                }
+            });
+        }
+
+        function setFrame(idx) {
+            if (!meta || !meta.frames || idx < 0 || idx >= meta.frames.length) return;
+
+            currentFrameIdx = idx;
+            document.getElementById('timeSlider').value = idx;
+
+            var frame = meta.frames[idx];
+            var dateParts = frame.time.split(' ');
+            document.getElementById('timeDisplay').innerText = `${dateParts[0]}, ${dateParts[1]} ${dateParts[2]} ${dateParts[3]}`;
+
+            if (dayCache[frame.date_key]) {
+                renderFrame(dayCache[frame.date_key].readings);
+            } else {
+                fetch(frame.url)
+                    .then(r => r.json())
+                    .then(data => {
+                        dayCache[frame.date_key] = data;
+                        if (currentFrameIdx === idx) renderFrame(data.readings);
+                    })
+                    .catch(() => {});
+            }
+        }
+
+        function renderFrame(readings) {
+            Object.keys(markers).forEach(id => {
+                var val = readings && readings[id] ? readings[id].vwc : null;
+                var style = getStyle(val);
+                var m = markers[id];
+                var div = m._rgDiv;
+
+                if (div) {
+                    if (style.nodata) {
+                        div.className = 'rg-icon rg-nodata';
+                        div.style.background = '';
+                        div.style.color = '';
+                        div.textContent = '';
+                    } else {
+                        div.className = 'rg-icon';
+                        div.style.background = style.fill;
+                        div.style.color = style.text;
+                        div.textContent = showValues ? Math.round(val) : '';
+                    }
+                }
+
+                var name = stations[id].name || id;
+                var tipText = `<b>${name}</b><br/>${val != null ? val.toFixed(1) + ' % VWC' : 'No data'}`;
+                m.setTooltipContent(tipText);
+
+                if (m.isPopupOpen()) {
+                    var popContent = document.getElementById(`pop_content_${id}`);
+                    if (popContent) {
+                        if (val != null) {
+                            popContent.innerHTML = `<span style="font-size: 24px; font-weight: 700; color: #202124;">${val.toFixed(1)}</span> % VWC`;
+                        } else {
+                            popContent.innerHTML = `No data available for this date`;
+                        }
+                    }
+                }
+            });
+        }
+
+        function playStep() {
+            if (!playing || !meta || !meta.frames) return;
+
+            var nextIdx = currentFrameIdx + 1;
+            var delay = playSpeed;
+
+            if (nextIdx >= meta.frames.length) {
+                nextIdx = 0; // loop
+                delay = 2000; // pause at end
+            }
+
+            setFrame(nextIdx);
+            playInterval = setTimeout(playStep, delay);
+        }
+
+        function togglePlay() {
+            if (!meta || !meta.frames) return;
+
+            var btn = document.getElementById('playBtn');
+            var icon = document.getElementById('playIcon');
+            var text = document.getElementById('playText');
+
+            if (playing) {
+                clearTimeout(playInterval);
+                icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"></polygon>';
+                text.innerText = "Play";
+                playing = false;
+            } else {
+                if (currentFrameIdx >= meta.frames.length - 1) {
+                    setFrame(0);
+                }
+                icon.innerHTML = '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>';
+                text.innerText = "Pause";
+                playing = true;
+
+                var initialDelay = (currentFrameIdx === meta.frames.length - 1) ? 1000 : playSpeed;
+                playInterval = setTimeout(playStep, initialDelay);
+            }
+        }
+
+        function onSliderChange(val) {
+            if (playing) togglePlay();
+            setFrame(parseInt(val));
+        }
+
+        function onValuesToggle(checked) {
+            showValues = checked;
+            var frame = meta && meta.frames ? meta.frames[currentFrameIdx] : null;
+            if (frame && dayCache[frame.date_key]) {
+                renderFrame(dayCache[frame.date_key].readings);
+            }
+        }
+
+        function toggleMenu() {
+            document.getElementById('panelBody').classList.toggle('collapsed');
+        }
+
+        // ── Colour bar ─────────────────────────────────────────────────────────
+        function updateColorbar() {
+            var cbar = document.getElementById('soilCbar');
+            var labels = document.getElementById('soilLabels');
+
+            var html = '';
+            SOIL_COLORS.forEach(c => {
+                html += '<div class="cbar-block" style="background:' + c + '"></div>';
+            });
+            cbar.innerHTML = html;
+
+            var step = 100 / SOIL_BREAKS.length;
+            var lhtml = SOIL_BREAKS.map((v, i) => {
+                return '<span class="cbar-label" style="left:' + ((i + 1) * step).toFixed(1) + '%">' + v + '</span>';
+            }).join('');
+            labels.innerHTML = '<span class="cbar-label" style="left:0%">0</span>' + lhtml;
+        }
+
+        // ── Boot ───────────────────────────────────────────────────────────────
+        updateColorbar();
+
+        // Load stations
+        fetch('stations.json')
+            .then(r => r.json())
+            .then(data => {
+                stations = data;
+                createMarkers();
+
+                // Then load meta
+                return fetch('meta.json');
+            })
+            .then(r => r.json())
+            .then(data => {
+                meta = data;
+                if (!meta.frames || meta.frames.length === 0) {
+                    document.getElementById('timeDisplay').innerText = 'No data available';
+                    return;
+                }
+
+                var max = meta.frames.length - 1;
+                document.getElementById('timeSlider').max = max;
+                updateTimelineTicks();
+
+                // Preload all frames for smooth playback
+                var loads = meta.frames.map(f => fetch(f.url).then(r => r.json()).then(d => { dayCache[f.date_key] = d; }));
+
+                Promise.all(loads).then(() => {
+                    // Start at the latest frame
+                    setFrame(max);
+                });
+            })
+            .catch(err => {
+                console.error("Boot error:", err);
+            });
+    </script>
+</body>
+</html>

@@ -1,0 +1,257 @@
+{
+  "ALIC1": {
+    "lat": 51.153551,
+    "lon": -0.858232,
+    "name": "Alice Holt"
+  },
+  "BALRD": {
+    "lat": 56.482297,
+    "lon": -3.1114881,
+    "name": "Balruddery"
+  },
+  "BICKL": {
+    "lat": 53.02635,
+    "lon": -2.7005297,
+    "name": "Bickley Hall"
+  },
+  "BUNNY": {
+    "lat": 52.86073,
+    "lon": -1.12685,
+    "name": "Bunny Park"
+  },
+  "CARDT": {
+    "lat": 52.105601,
+    "lon": -0.424644,
+    "name": "Cardington"
+  },
+  "CGARW": {
+    "lat": 51.951295,
+    "lon": -4.746634,
+    "name": "Cwm Garw"
+  },
+  "CHIMN": {
+    "lat": 51.708021,
+    "lon": -1.4787658,
+    "name": "Chimney Meadows"
+  },
+  "CHOBH": {
+    "lat": 51.367821,
+    "lon": -0.597484,
+    "name": "Chobham Common"
+  },
+  "COCHN": {
+    "lat": 55.941421,
+    "lon": -4.4035431,
+    "name": "Cochno"
+  },
+  "COCLP": {
+    "lat": 55.216013,
+    "lon": -1.6943736,
+    "name": "Cockle Park"
+  },
+  "CRICH": {
+    "lat": 55.043057,
+    "lon": -3.583386,
+    "name": "Crichton"
+  },
+  "EASTB": {
+    "lat": 55.867392,
+    "lon": -3.207115,
+    "name": "Easter Bush"
+  },
+  "ELMST": {
+    "lat": 52.094647,
+    "lon": 0.9930645,
+    "name": "Elmsett"
+  },
+  "EUSTN": {
+    "lat": 52.383178,
+    "lon": 0.7847112,
+    "name": "Euston"
+  },
+  "FINCH": {
+    "lat": 52.617773,
+    "lon": 0.5107284,
+    "name": "Fincham"
+  },
+  "FIVET": {
+    "lat": 54.298468,
+    "lon": -7.291954,
+    "name": "Fivemiletown"
+  },
+  "GISBN": {
+    "lat": 54.023711,
+    "lon": -2.384689,
+    "name": "Gisburn Forest"
+  },
+  "GLENS": {
+    "lat": 56.914403,
+    "lon": -2.5621547,
+    "name": "Glensaugh"
+  },
+  "GLENW": {
+    "lat": 54.838087,
+    "lon": -6.0045994,
+    "name": "Glenwherry"
+  },
+  "HADLW": {
+    "lat": 51.228582,
+    "lon": 0.320276,
+    "name": "Hadlow"
+  },
+  "HARTW": {
+    "lat": 55.810254,
+    "lon": -3.828995,
+    "name": "Hartwood Home"
+  },
+  "HARWD": {
+    "lat": 55.216677,
+    "lon": -2.025488,
+    "name": "Harwood Forest"
+  },
+  "HENFS": {
+    "lat": 53.225198,
+    "lon": -4.01255,
+    "name": "Henfaes Farm"
+  },
+  "HILLB": {
+    "lat": 54.446959,
+    "lon": -6.068526,
+    "name": "Hillsborough"
+  },
+  "HLACY": {
+    "lat": 52.02088,
+    "lon": -2.6621054,
+    "name": "Holme Lacy"
+  },
+  "HOLLN": {
+    "lat": 54.110665,
+    "lon": -0.959477,
+    "name": "Hollin Hill"
+  },
+  "HYBRY": {
+    "lat": 51.20277,
+    "lon": -2.079616,
+    "name": "Heytesbury"
+  },
+  "LIZRD": {
+    "lat": 50.03266,
+    "lon": -5.19999,
+    "name": "The Lizard"
+  },
+  "LODTN": {
+    "lat": 52.610159,
+    "lon": -0.8264188,
+    "name": "Loddington"
+  },
+  "LULLN": {
+    "lat": 50.79372,
+    "lon": 0.18887,
+    "name": "Lullington Heath"
+  },
+  "MOORH": {
+    "lat": 54.659417,
+    "lon": -2.4678,
+    "name": "Moor House"
+  },
+  "MOREM": {
+    "lat": 52.199407,
+    "lon": -1.563081,
+    "name": "Moreton Morrell"
+  },
+  "MORLY": {
+    "lat": 52.548146,
+    "lon": 1.0342313,
+    "name": "Morley"
+  },
+  "NWYKE": {
+    "lat": 50.773479,
+    "lon": -3.905963,
+    "name": "North Wyke"
+  },
+  "PLYNL": {
+    "lat": 52.453337,
+    "lon": -3.762572,
+    "name": "Plynlimon"
+  },
+  "PORTN": {
+    "lat": 51.120071,
+    "lon": -1.681482,
+    "name": "Porton Down"
+  },
+  "RDMER": {
+    "lat": 52.44577,
+    "lon": 0.42104,
+    "name": "Redmere"
+  },
+  "REDHL": {
+    "lat": 51.26287,
+    "lon": 0.4291348,
+    "name": "Redhill"
+  },
+  "RISEH": {
+    "lat": 53.261647,
+    "lon": -0.5259074,
+    "name": "Riseholme"
+  },
+  "ROTHD": {
+    "lat": 51.813787,
+    "lon": -0.378304,
+    "name": "Rothamsted"
+  },
+  "SHEEP": {
+    "lat": 51.530244,
+    "lon": -1.481903,
+    "name": "Sheepdrove"
+  },
+  "SOURH": {
+    "lat": 55.479876,
+    "lon": -2.229989,
+    "name": "Sourhope"
+  },
+  "SPENF": {
+    "lat": 53.86886,
+    "lon": -1.31886,
+    "name": "Spen Farm"
+  },
+  "STGHT": {
+    "lat": 52.601667,
+    "lon": -1.047046,
+    "name": "Stoughton"
+  },
+  "STIPS": {
+    "lat": 52.581248,
+    "lon": -2.9446865,
+    "name": "Stiperstones"
+  },
+  "SYDLG": {
+    "lat": 50.828373,
+    "lon": -2.527891,
+    "name": "Sydling"
+  },
+  "TADHM": {
+    "lat": 51.207417,
+    "lon": -2.82881,
+    "name": "Tadham Moor"
+  },
+  "WADDN": {
+    "lat": 51.839436,
+    "lon": -0.948405,
+    "name": "Waddesdon"
+  },
+  "WIMPL": {
+    "lat": 52.132078,
+    "lon": -0.044411,
+    "name": "Wimpole"
+  },
+  "WRTTL": {
+    "lat": 51.733896,
+    "lon": 0.417923,
+    "name": "Writtle"
+  },
+  "WYTH1": {
+    "lat": 51.77728,
+    "lon": -1.33846,
+    "name": "Wytham Woods"
+  }
+}
