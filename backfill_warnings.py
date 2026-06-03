@@ -119,15 +119,15 @@ def parse_and_format_alert(feat, meta, geom_data):
     
     if "thunderstorm" in event_lower:
         tags.append("thunderstorm")
-    elif "rain" in event_lower or "shower" in event_lower:
+    if "rain" in event_lower or "shower" in event_lower:
         tags.append("rain")
-    elif "wind" in event_lower or "gale" in event_lower:
+    if "wind" in event_lower or "gale" in event_lower:
         tags.append("wind")
-    elif "flood" in event_lower:
+    if "flood" in event_lower:
         tags.append("flood")
-    elif "snow" in event_lower or "ice" in event_lower:
+    if "snow" in event_lower or "ice" in event_lower:
         tags.append("snow")
-    elif "fog" in event_lower:
+    if "fog" in event_lower:
         tags.append("fog")
         
     if not tags:
