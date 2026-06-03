@@ -178,8 +178,8 @@ def main():
     else:
         print("Operating in LOCAL ONLY / DRY RUN mode (no R2 credentials).")
 
-    # Define range: April 1, 2025 to today
-    start_date = datetime(2025, 4, 1, tzinfo=timezone.utc)
+    # Define range: June 3, 2025 to today (exactly 1 year ago)
+    start_date = datetime(2025, 6, 3, tzinfo=timezone.utc)
     end_date = datetime.now(timezone.utc)
     
     current_day = start_date
