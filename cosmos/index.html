@@ -78,6 +78,25 @@
         .btn:hover { background: #1557b0; box-shadow: 0 4px 8px rgba(0,0,0,0.25); transform: translateY(-1px); }
         .btn:active { box-shadow: 0 1px 2px rgba(0,0,0,0.2); transform: translateY(0); }
 
+        select {
+            appearance: none;
+            background: #f1f3f4;
+            border: none;
+            padding: 9px 32px 9px 14px;
+            border-radius: 20px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 13px;
+            color: #202124;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            outline: none;
+        }
+        select:hover { background-color: #e8eaed; }
+
         .timeline-container {
             position: relative;
             flex-grow: 1;
@@ -299,7 +318,7 @@
 
     <div class="info-panel surface" id="infoPanel">
         <div class="panel-header">
-            <h3>UK Soil Moisture</h3>
+            <h3 id="panelTitle">UK COSMOS</h3>
             <button id="menuBtn" onclick="toggleMenu()" title="Collapse panel">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                     <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -310,17 +329,26 @@
         </div>
 
         <div id="panelBody">
+            <!-- Variable selector -->
+            <div class="control-group" style="margin-bottom:12px">
+                <span class="control-label">Variable</span>
+                <select id="varSelect" onchange="onVarChange()">
+                    <option value="vwc">Soil Moisture (VWC %)</option>
+                    <option value="precip">Precipitation (mm)</option>
+                    <option value="ta">Air Temperature (°C)</option>
+                    <option value="tsoil">Soil Temp at 10cm (°C)</option>
+                </select>
+            </div>
+
             <div class="time-box">
                 <span style="font-size: 10px; font-weight: 700; color: #1a73e8; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">Date</span>
                 <div id="timeDisplay" style="font-size: 15px; font-weight: 600; color: #202124;">Loading...</div>
             </div>
 
             <div class="cbar-container">
-                <p style="font-weight:500;margin:0 0 6px;font-size:12px;color:#3c4043">Volumetric Water Content (%)</p>
-                <div class="cbar"></div>
-                <div class="cbar-labels">
-                    <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
-                </div>
+                <p id="cbarTitle" style="font-weight:500;margin:0 0 6px;font-size:12px;color:#3c4043">Volumetric Water Content (%)</p>
+                <div class="cbar" id="cbar"></div>
+                <div class="cbar-labels" id="cbarLabels"></div>
             </div>
 
             <!-- Boundaries & Labels -->
@@ -347,12 +375,10 @@
             </div>
 
             <!-- Attribution -->
-            <p style="font-size:11px;margin:20px 0 0;line-height:1.6;flex-shrink:0">
-                <a href="../" style="color:#1a73e8">&larr; Live radar</a> &nbsp;&middot;&nbsp; <a href="../rain/" style="color:#1a73e8">Rain Gauges</a> &nbsp;&middot;&nbsp;
+            <p style="font-size:11px;margin:12px 0 0;line-height:1.6;flex-shrink:0">
+                <a href="../" style="color:#1a73e8">&larr; Live radar</a> &nbsp;&middot;&nbsp; <a href="../rain/" style="color:#1a73e8">Rain Gauges</a><br>
                 <strong>Data:</strong>
-                COSMOS-UK data owned by <a href="https://cosmos.ceh.ac.uk/" target="_blank" style="color:#1a73e8">UK Centre for Ecology and Hydrology</a>.<br>
-                COSMOS-UK is supported by the Natural Environment Research Council award number NE/R016429/1 as part of the UK-SCAPE programme delivering National Capability.<br>
-                Open Government Licence - OGL
+                COSMOS-UK &mdash; <a href="https://cosmos.ceh.ac.uk/" target="_blank" style="color:#1a73e8">UK CEH</a>. OGL.
             </p>
         </div>
     </div>
@@ -379,12 +405,55 @@
     </div>
 
     <script>
-        // ── Config ─────────────────────────────────────────────────────────────
-        // 10 distinct steps for soil moisture (0-100%)
-        // Dry to wet: brown/orange -> yellow -> green -> blue
-        var SOIL_COLORS = ['#8d6e63','#ffb74d','#fff176','#dce775','#81c784','#4dd0e1','#29b6f6','#1976d2','#0d47a1','#311b92'];
-        var SOIL_TEXT  = ['#ffffff','#000000','#000000','#000000','#000000','#000000','#ffffff','#ffffff','#ffffff','#ffffff'];
-        var SOIL_BREAKS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+        // ── Variable config ────────────────────────────────────────────────────
+        var VAR_CONFIG = {
+            vwc: {
+                label: 'Soil Moisture (VWC %)',
+                unit: '% VWC',
+                gradient: 'linear-gradient(to right,#8d6e63,#ffb74d,#fff176,#81c784,#4dd0e1,#1976d2,#311b92)',
+                barLabels: ['0','25','50','75','100'],
+                breaks: [10,20,30,40,50,60,70,80,90,100],
+                colors: ['#8d6e63','#ffb74d','#fff176','#dce775','#81c784','#4dd0e1','#29b6f6','#1976d2','#0d47a1','#311b92'],
+                textColors: ['#fff','#000','#000','#000','#000','#000','#fff','#fff','#fff','#fff'],
+                nodata: function(v) { return v == null || v < 0; },
+                fmt: function(v) { return v.toFixed(1); }
+            },
+            precip: {
+                label: 'Precipitation (mm)',
+                unit: 'mm',
+                gradient: 'linear-gradient(to right,#e1f5fe,#81d4fa,#03a9f4,#01579b,#1b5e20,#f9a825,#bf360c)',
+                barLabels: ['0','5','15','30','50+'],
+                breaks: [0.5,2,5,10,20,35,50],
+                colors: ['#e1f5fe','#81d4fa','#03a9f4','#01579b','#1b5e20','#f9a825','#bf360c'],
+                textColors: ['#01579b','#01579b','#fff','#fff','#fff','#000','#fff'],
+                nodata: function(v) { return v == null || v < 0.1; },
+                fmt: function(v) { return v.toFixed(1); }
+            },
+            ta: {
+                label: 'Air Temperature (°C)',
+                unit: '°C',
+                gradient: 'linear-gradient(to right,#311b92,#1976d2,#4dd0e1,#fff176,#ff8f00,#b71c1c)',
+                barLabels: ['-10','0','10','20','30+'],
+                breaks: [-5,0,5,10,15,20,25,30],
+                colors: ['#311b92','#1976d2','#4dd0e1','#aed581','#fff176','#ff8f00','#e64a19','#b71c1c'],
+                textColors: ['#fff','#fff','#000','#000','#000','#000','#fff','#fff'],
+                nodata: function(v) { return v == null; },
+                fmt: function(v) { return v.toFixed(1); }
+            },
+            tsoil: {
+                label: 'Soil Temp 10cm (°C)',
+                unit: '°C (10cm)',
+                gradient: 'linear-gradient(to right,#311b92,#1976d2,#4dd0e1,#fff176,#ff8f00,#b71c1c)',
+                barLabels: ['-5','0','10','20','30+'],
+                breaks: [-2,0,5,10,15,20,25],
+                colors: ['#311b92','#1976d2','#4dd0e1','#aed581','#fff176','#ff8f00','#b71c1c'],
+                textColors: ['#fff','#fff','#000','#000','#000','#000','#fff'],
+                nodata: function(v) { return v == null; },
+                fmt: function(v) { return v.toFixed(1); }
+            }
+        };
+
+        var currentVar = 'vwc';
 
         var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         var DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -456,14 +525,35 @@
         loadBoundary('counties');
         var markerLayer = L.layerGroup().addTo(map);
 
-        // ── Helpers ────────────────────────────────────────────────────────────
+        // ── Helpers ─────────────────────────────────────────────────────────
         function getStyle(val) {
-            if (val == null || val < 0) return {nodata: true, fill: ''};
+            var cfg = VAR_CONFIG[currentVar];
+            if (cfg.nodata(val)) return {nodata: true, fill: ''};
             var colorIdx = 0;
-            for (var i = 0; i < SOIL_BREAKS.length; i++) {
-                if (val >= SOIL_BREAKS[i]) colorIdx = Math.min(SOIL_BREAKS.length - 1, i + 1); else break;
+            for (var i = 0; i < cfg.breaks.length; i++) {
+                if (val >= cfg.breaks[i]) colorIdx = Math.min(cfg.breaks.length - 1, i + 1); else break;
             }
-            return {nodata: false, fill: SOIL_COLORS[colorIdx], text: SOIL_TEXT[colorIdx]};
+            return {nodata: false, fill: cfg.colors[colorIdx], text: cfg.textColors[colorIdx]};
+        }
+
+        function updateColorbarUI() {
+            var cfg = VAR_CONFIG[currentVar];
+            document.getElementById('cbarTitle').textContent = cfg.label;
+            document.getElementById('cbar').style.background = cfg.gradient;
+            var lbl = document.getElementById('cbarLabels');
+            lbl.innerHTML = cfg.barLabels.map(function(l) { return '<span>' + l + '</span>'; }).join('');
+        }
+
+        function onVarChange() {
+            currentVar = document.getElementById('varSelect').value;
+            updateColorbarUI();
+            // Re-render current frame with new variable
+            if (meta && meta.frames) {
+                var frame = meta.frames[currentFrameIdx];
+                if (frame && dayCache[frame.date_key]) {
+                    renderFrame(dayCache[frame.date_key].readings);
+                }
+            }
         }
 
         function htmlEsc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -551,8 +641,11 @@
         }
 
         function renderFrame(readings) {
+            var cfg = VAR_CONFIG[currentVar];
             Object.keys(markers).forEach(id => {
-                var val = readings && readings[id] ? readings[id].vwc : null;
+                var siteData = readings && readings[id] ? readings[id] : null;
+                var val = siteData ? siteData[currentVar] : null;
+                if (val === undefined) val = null;
                 var style = getStyle(val);
                 var m = markers[id];
                 var div = m._rgDiv;
@@ -567,21 +660,21 @@
                         div.className = 'rg-icon';
                         div.style.background = style.fill;
                         div.style.color = style.text;
-                        div.textContent = showValues ? Math.round(val) : '';
+                        div.textContent = showValues ? cfg.fmt(val) : '';
                     }
                 }
 
                 var name = stations[id].name || id;
-                var tipText = `<b>${name}</b><br/>${val != null ? val.toFixed(1) + ' % VWC' : 'No data'}`;
+                var tipText = '<b>' + name + '</b><br/>' + (val != null ? cfg.fmt(val) + ' ' + cfg.unit : 'No data');
                 m.setTooltipContent(tipText);
 
                 if (m.isPopupOpen()) {
-                    var popContent = document.getElementById(`pop_content_${id}`);
+                    var popContent = document.getElementById('pop_content_' + id);
                     if (popContent) {
                         if (val != null) {
-                            popContent.innerHTML = `<span style="font-size: 24px; font-weight: 700; color: #202124;">${val.toFixed(1)}</span> % VWC`;
+                            popContent.innerHTML = '<span style="font-size: 24px; font-weight: 700; color: #202124;">' + cfg.fmt(val) + '</span> ' + cfg.unit;
                         } else {
-                            popContent.innerHTML = `No data available for this date`;
+                            popContent.innerHTML = 'No data available for this date';
                         }
                     }
                 }
@@ -646,6 +739,7 @@
         }
 
         // ── Boot ───────────────────────────────────────────────────────────────
+        updateColorbarUI();
 
         // Load stations
         fetch('stations.json')

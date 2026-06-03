@@ -6,6 +6,15 @@ import math
 from datetime import datetime, timedelta, timezone
 import argparse
 
+# Variables to fetch from the COSMOS-UK 1D API
+# key: API field name, stored_as: key in output JSON
+VARS = [
+    {'api': 'cosmos_vwc',   'key': 'vwc'},
+    {'api': 'precip',       'key': 'precip'},
+    {'api': 'ta',           'key': 'ta'},
+    {'api': 'stp_tsoil10',  'key': 'tsoil'},
+]
+
 def fetch_data(days=14):
     print("Fetching COSMOS-UK site locations...")
     req = urllib.request.Request("https://cosmos-api.ceh.ac.uk/collections/1D/locations")
@@ -23,14 +32,12 @@ def fetch_data(days=14):
             'name': name
         }
 
-    # We write to the soil directory
     os.makedirs('cosmos', exist_ok=True)
 
     with open('cosmos/stations.json', 'w') as f:
         json.dump(sites, f, indent=2)
 
     frames = []
-
     now = datetime.now(timezone.utc)
 
     for i in range(days, -1, -1):
@@ -52,7 +59,6 @@ def fetch_data(days=14):
 
                     site_id = None
                     for sid, s in sites.items():
-                        # API longitude and latitude are somewhat precise
                         if abs(s['lon'] - lon) < 0.01 and abs(s['lat'] - lat) < 0.01:
                             site_id = sid
                             break
@@ -60,18 +66,23 @@ def fetch_data(days=14):
                     if not site_id:
                         continue
 
-                    vwc = None
-                    if 'cosmos_vwc' in coverage['ranges']:
-                        vals = coverage['ranges']['cosmos_vwc']['values']
-                        if vals and vals[0] is not None:
-                            vwc = vals[0]
+                    entry = {}
+                    for v in VARS:
+                        api_key = v['api']
+                        out_key = v['key']
+                        if api_key in coverage['ranges']:
+                            vals = coverage['ranges'][api_key]['values']
+                            if vals and vals[0] is not None:
+                                entry[out_key] = round(vals[0], 2)
 
-                    if vwc is not None:
-                        readings[site_id] = {'vwc': vwc}
-                except Exception as e:
+                    # Only store if we got at least one variable
+                    if entry:
+                        readings[site_id] = entry
+
+                except Exception:
                     pass
 
-            if len(readings) > 0:
+            if readings:
                 print(f"Got readings for {len(readings)} sites for {date_str}")
                 date_key = check_date.strftime("%Y%m%d")
                 with open(f'cosmos/{date_key}.json', 'w') as f:
