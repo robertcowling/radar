@@ -832,6 +832,8 @@
         var R2_CDN  = 'https://radar.floodforecast.co.uk';
         function cdnJson(r) { return r.text().then(function(t) { return JSON.parse(t.replaceAll(R2_BASE, R2_CDN)); }); }
 
+        var TRANSPARENT_GIF = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
         var allFrames = [];
         var frames = []; // will be sliced by duration filter
         var currentFrameIdx = 0;
@@ -1385,20 +1387,36 @@
         // Return only frames that have both radar and (if enabled) satellite data.
         // If a satellite layer is active, the frame must have both the radar URL and the satellite URL.
         // If no satellite layer is active, the frame only needs to have the radar URL.
+        // NOTE: This strict check only applies to "new" frames (within 30 minutes of the latest manifest time).
+        // For older historical frames, we allow them to render with whatever layer is available (at least one).
         function getEffectiveFrames(sliced) {
             var satVal = document.querySelector('input[name="satLayer"]:checked').value;
             var satKey = satUrlKeys[satVal];
             
+            var latestFrame = allFrames[allFrames.length - 1];
+            var latestMs = latestFrame ? parseUTCStr(latestFrame.time).getTime() : 0;
+            
             return sliced.filter(function(f) {
-                // Radar image is always required
-                if (!f.url) return false;
+                var frameMs = parseUTCStr(f.time).getTime();
+                var isNew = latestMs && (latestMs - frameMs) <= 30 * 60 * 1000;
                 
-                // If a satellite layer is active, that specific satellite URL must also exist
-                if (satVal !== 'none' && satKey) {
-                    return !!f[satKey];
+                if (isNew) {
+                    // Radar image is always required
+                    if (!f.url) return false;
+                    
+                    // If a satellite layer is active, that specific satellite URL must also exist
+                    if (satVal !== 'none' && satKey) {
+                        return !!f[satKey];
+                    }
+                    return true;
+                } else {
+                    // Historical frame: keep if at least one active layer is present
+                    if (satVal !== 'none' && satKey) {
+                        return !!(f.url || f[satKey]);
+                    } else {
+                        return !!f.url;
+                    }
                 }
-                
-                return true;
             });
         }
 
@@ -1599,7 +1617,7 @@
             var satKey = satUrlKeys[satVal];
 
             frames.forEach(function(f) {
-                urlsToLoad.push(f.url); // radar
+                if (f.url) urlsToLoad.push(f.url); // radar
                 if (satKey && f[satKey]) urlsToLoad.push(f[satKey]);
             });
 
@@ -1755,13 +1773,17 @@
         function setFrame(idx) {
             currentFrameIdx = idx;
             var frameData = frames[currentFrameIdx];
-            radarOverlay.setUrl(frameData.url);
+            
+            var radarUrl = frameData.url || TRANSPARENT_GIF;
+            radarOverlay.setUrl(radarUrl);
+            
             updateFrameUI(idx);
 
             var satVal = document.querySelector('input[name="satLayer"]:checked').value;
             var satKey = satUrlKeys[satVal];
             if (satKey && satOverlays[satVal] && map.hasLayer(satOverlays[satVal])) {
-                if (frameData[satKey]) satOverlays[satVal].setUrl(frameData[satKey]);
+                var satUrl = frameData[satKey] || TRANSPARENT_GIF;
+                satOverlays[satVal].setUrl(satUrl);
             }
 
             updateMslpFrame();
