@@ -700,10 +700,11 @@ function formatUKTime(isoStr) {
   var d = days[date.getDay()];
   var day = date.getDate();
   var m = months[date.getMonth()];
+  var yr = date.getFullYear();
   var hrs = date.getHours().toString().padStart(2, '0');
   var mins = date.getMinutes().toString().padStart(2, '0');
   
-  return d + ' ' + day + ' ' + m + ' ' + hrs + ':' + mins;
+  return d + ' ' + day + ' ' + m + ' ' + yr + ' ' + hrs + ':' + mins;
 }
 
 // Helper to determine if a warning is expired relative to current system time
@@ -807,14 +808,11 @@ function loadWarnings() {
       
       allWarnings = Object.values(mergedMap);
       
-      // Sort warnings: live first, then upcoming, then expired (by end_date descending)
+      // Sort warnings: chronological with most recent start_date at the top
       allWarnings.sort(function(a, b) {
-        var aExp = isWarningExpired(a);
-        var bExp = isWarningExpired(b);
-        if (aExp !== bExp) {
-          return aExp ? 1 : -1; // Non-expired first
-        }
-        return new Date(b.end_date) - new Date(a.end_date);
+        var aTime = a.start_date ? new Date(a.start_date).getTime() : 0;
+        var bTime = b.start_date ? new Date(b.start_date).getTime() : 0;
+        return bTime - aTime;
       });
       
       // Update header meta counter
