@@ -168,7 +168,26 @@ def fetch_warnings_from_meteogate():
             if not info_list:
                 continue
             info = info_list[0]
-            
+
+            # ── Skip EA catchment-specific flood warnings ──────────────────────
+            # Met Office weather warnings have category "Met".
+            # EA flood warnings/alerts have category "Hydro" or event titles
+            # matching flood warning/alert/watch patterns from a non-Met Office sender.
+            categories = info.get("category", [])
+            if isinstance(categories, str):
+                categories = [categories]
+            if "Hydro" in categories:
+                print(f"    Skipping EA flood warning (Hydro category): {alert_id}")
+                continue
+
+            raw_event = info.get("event", "")
+            ea_flood_patterns = ["flood warning", "flood alert", "flood watch", "severe flood warning"]
+            if any(p in raw_event.lower() for p in ea_flood_patterns):
+                sender = info.get("senderName", "")
+                if "met office" not in sender.lower():
+                    print(f"    Skipping EA flood warning (title match): {alert_id} — '{raw_event}'")
+                    continue
+
             title = info.get("event", "Weather Warning")
             description = info.get("description", "")
             instruction = info.get("instruction", "")
