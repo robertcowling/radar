@@ -87,6 +87,44 @@ def read_local_json(path, default=None):
         return default
 
 
+def is_weather_warning(event, info):
+    """
+    Checks CAP info metadata to determine if it is a genuine Met Office weather warning.
+    Returns False if it is an EA/SEPA catchment-specific flood warning/alert.
+    """
+    # Filter 1: CAP category "Hydro" = EA flood warning
+    categories = info.get("category", [])
+    if isinstance(categories, str):
+        categories = [categories]
+    if "Hydro" in categories:
+        return False
+
+    # Filter 2: Check awareness_type parameter (standard weather codes: 1, 2, 3, 4, 5, 6, 10)
+    awareness_type = None
+    for param in info.get("parameter", []):
+        if param.get("valueName") == "awareness_type":
+            awareness_type = param.get("value", "")
+            break
+    if awareness_type:
+        code = awareness_type.split(";")[0].strip()
+        weather_codes = {"1", "2", "3", "4", "5", "6", "10"}
+        if code not in weather_codes:
+            return False
+
+    # Filter 3: Fallback title patterns (e.g. "Flood Warning: [location]")
+    event_lower = event.lower()
+    ea_title_patterns = [
+        "flood warning:",
+        "flood alert:",
+        "severe flood warning:",
+        "flood watch:",
+    ]
+    if any(event_lower.startswith(p) for p in ea_title_patterns):
+        return False
+
+    return True
+
+
 def fetch_warnings_from_meteogate():
     """Queries the EUMETNET MeteoGate OGC-API EDR service to fetch official UK severe weather warnings with exact MultiPolygon shapes."""
     print("Fetching weather warnings from EUMETNET MeteoGate EDR API...")
@@ -172,43 +210,9 @@ def fetch_warnings_from_meteogate():
             # ── Skip EA catchment-specific flood warnings ──────────────────────
             # EA flood warnings come through MeteoGate labelled as "Met Office"
             # but are catchment-specific (e.g. "Flood Warning: Saredon Brook at ...").
-            # Met Office weather warnings ALWAYS use colour-coded titles like
-            # "Yellow rain warning" or "Red wind warning" — never "Flood Warning: [location]".
-            #
-            # Filter 1: CAP category "Hydro" = EA flood warning
-            categories = info.get("category", [])
-            if isinstance(categories, str):
-                categories = [categories]
-            if "Hydro" in categories:
-                print(f"    Skipping EA flood warning (Hydro category): {alert_id}")
-                continue
-
-            # Filter 2: Check awareness_type parameter (standard Meteoalarm weather codes)
-            # Weather: 1=Wind, 2=Snow/Ice, 3=Thunderstorm, 4=Fog, 5=High-temp, 6=Low-temp, 10=Rain
-            # Hydrology/flooding uses 7=Coastalevent, 12=Flooding, 13=Rain-flood, etc.
-            awareness_type = None
-            for param in info.get("parameter", []):
-                if param.get("valueName") == "awareness_type":
-                    awareness_type = param.get("value", "")
-                    break
-            if awareness_type:
-                code = awareness_type.split(";")[0].strip()
-                weather_codes = {"1", "2", "3", "4", "5", "6", "10"}
-                if code not in weather_codes:
-                    print(f"    Skipping non-weather alert (awareness_type {awareness_type}): {alert_id}")
-                    continue
-
-            # Filter 3: Fallback title patterns (in case metadata is missing or weird)
             raw_event = info.get("event", "")
-            raw_event_lower = raw_event.lower()
-            ea_title_patterns = [
-                "flood warning:",
-                "flood alert:",
-                "severe flood warning:",
-                "flood watch:",
-            ]
-            if any(raw_event_lower.startswith(p) for p in ea_title_patterns):
-                print(f"    Skipping EA flood warning (title pattern): {alert_id} — '{raw_event}'")
+            if not is_weather_warning(raw_event, info):
+                print(f"    Skipping EA flood warning: {alert_id} — '{raw_event}'")
                 continue
 
             title = info.get("event", "Weather Warning")
@@ -343,34 +347,62 @@ def main():
         except Exception as e:
             print(f"Error uploading warnings_latest.json to R2: {e}")
             
-    # ── Step 3: Archive Daily Ingests ─────────────────────────────────────────
-    archive_key = f"{ARCHIVE_PFX}/warnings_{today_str}.json"
-    archive_local_path = f"warnings/archive/warnings_{today_str}.json"
-    
-    existing_archive = []
-    if r2:
-        existing_archive = r2_get_json(r2, archive_key, default=[])
-    else:
-        existing_archive = read_local_json(archive_local_path, default=[])
+    # ── Step 3: Archive Daily Ingests & retroactively clean last 5 days ────────
+    for i in range(5):
+        day_date = now - timedelta(days=i)
+        day_str = day_date.strftime("%Y%m%d")
         
-    # Merge existing and new alerts by alert_id
-    merged_alerts = {a["alert_id"]: a for a in existing_archive}
-    for alert in active_alerts:
-        merged_alerts[alert["alert_id"]] = alert
+        archive_key = f"{ARCHIVE_PFX}/warnings_{day_str}.json"
+        archive_local_path = f"warnings/archive/warnings_{day_str}.json"
         
-    archive_list = list(merged_alerts.values())
-    
-    # Local save
-    write_local_json(archive_local_path, archive_list)
-    print(f"Saved daily archive locally: {archive_local_path} ({len(archive_list)} warnings total)")
-    
-    # R2 save
-    if r2:
-        try:
-            r2_put_json(r2, archive_key, archive_list)
-            print(f"Uploaded daily archive to R2: {archive_key}")
-        except Exception as e:
-            print(f"Error uploading daily archive to R2: {e}")
+        existing_archive = None
+        if r2:
+            existing_archive = r2_get_json(r2, archive_key, default=None)
+        else:
+            existing_archive = read_local_json(archive_local_path, default=None)
+            
+        if existing_archive is None:
+            # If the archive file doesn't exist yet, only continue for today
+            if i == 0:
+                existing_archive = []
+            else:
+                continue
+                
+        # Filter existing archive entries to remove any EA warnings
+        cleaned_archive = []
+        removed_any = False
+        for alert in existing_archive:
+            info_list = alert.get("raw_meta", {}).get("info", [])
+            if info_list:
+                info = info_list[0]
+                if not is_weather_warning(alert.get("title", ""), info):
+                    print(f"  Removing EA warning {alert['alert_id']} from archive warnings_{day_str}.json")
+                    removed_any = True
+                    continue
+            cleaned_archive.append(alert)
+            
+        # Merge today's new active warnings
+        if i == 0:
+            merged_alerts = {a["alert_id"]: a for a in cleaned_archive}
+            for alert in active_alerts:
+                merged_alerts[alert["alert_id"]] = alert
+            final_archive = list(merged_alerts.values())
+        else:
+            final_archive = cleaned_archive
+            
+        # Save archive if it's today's or if we retroactively cleaned up warning entries
+        if i == 0 or removed_any:
+            # Local save
+            write_local_json(archive_local_path, final_archive)
+            print(f"Saved daily archive locally: {archive_local_path} ({len(final_archive)} warnings total)")
+            
+            # R2 save
+            if r2:
+                try:
+                    r2_put_json(r2, archive_key, final_archive)
+                    print(f"Uploaded daily archive to R2: {archive_key} (cleaned: {removed_any})")
+                except Exception as e:
+                    print(f"Error uploading daily archive to R2: {e}")
             
     # ── Step 4: Prune Old Archives (> 30 days) ──────────────────────────────
     cutoff_date = (now - timedelta(days=RETENTION_DAYS)).strftime("%Y%m%d")
