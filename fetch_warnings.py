@@ -24,7 +24,7 @@ R2_BUCKET        = os.environ.get("R2_BUCKET_NAME", "")
 R2_PUBLIC_URL    = os.environ.get("R2_PUBLIC_BASE_URL", "").rstrip("/")
 USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, R2_BUCKET])
 
-RETENTION_DAYS = 90
+RETENTION_DAYS = 366
 LATEST_KEY     = "warnings/warnings_latest.json"
 ARCHIVE_PFX    = "warnings/archive"
 
