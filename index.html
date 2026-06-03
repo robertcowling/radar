@@ -615,6 +615,33 @@
             image-rendering: crisp-edges;
             image-rendering: pixelated;
         }
+        .option-item {
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .option-item:hover {
+            background-color: #f1f3f4;
+        }
+        .only-link {
+            font-size: 10px;
+            font-weight: 700;
+            color: #1a73e8;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.15s, background 0.15s;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+        .option-item:hover .only-link {
+            opacity: 1;
+        }
+        .only-link:hover {
+            background: #e8f0fe;
+            color: #1557b0;
+        }
     </style>
 </head>
 
@@ -1104,8 +1131,23 @@
                 labelText.style.textOverflow = 'ellipsis';
                 labelText.textContent = label;
                 
+                var onlyLink = document.createElement('span');
+                onlyLink.className = 'only-link';
+                onlyLink.textContent = 'only';
+                onlyLink.onclick = function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    var checkboxes = container.querySelectorAll('input[type="checkbox"]');
+                    checkboxes.forEach(function(cb) {
+                        cb.checked = (cb.value === w.alert_id);
+                        toggleWarningLayer(cb.value, cb.checked);
+                    });
+                    updateWarningsDropdownTriggerText();
+                };
+                
                 leftSide.appendChild(input);
                 leftSide.appendChild(labelText);
+                leftSide.appendChild(onlyLink);
                 
                 var badge = document.createElement('span');
                 badge.style.fontSize = '9.5px';

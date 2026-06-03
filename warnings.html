@@ -164,6 +164,25 @@ select.premium-select:focus { background-color: #e8eaed; }
   accent-color: #1a73e8;
   flex-shrink: 0;
 }
+.only-link {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  color: #1a73e8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+.option-item:hover .only-link {
+  opacity: 1;
+}
+.only-link:hover {
+  background: #e8f0fe;
+  color: #1557b0;
+}
 
 /* ── Warnings Cards List (Slate cards) ───────────────────────────────── */
 .tbl-wrap { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: #f8f9fa; }
@@ -175,6 +194,7 @@ select.premium-select:focus { background-color: #e8eaed; }
   border-left: 5px solid #bdc1c6; cursor: pointer;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
   transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+  user-select: none; -webkit-user-select: none;
 }
 .warning-card:hover {
   background: #f8f9fa; transform: translateY(-1px);
@@ -390,11 +410,11 @@ select.premium-select:focus { background-color: #e8eaed; }
               <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <div class="multiselect-options">
-              <label class="option-item"><input type="checkbox" class="filter-day" value="0" checked onchange="onMultiselectChange('daySelect')"><span>Day 1 (Today)</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-day" value="1" checked onchange="onMultiselectChange('daySelect')"><span>Day 2</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-day" value="2" checked onchange="onMultiselectChange('daySelect')"><span>Day 3</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-day" value="3" checked onchange="onMultiselectChange('daySelect')"><span>Day 4</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-day" value="4" checked onchange="onMultiselectChange('daySelect')"><span>Day 5</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-day" value="0" checked onchange="onMultiselectChange('daySelect')"><span>Day 1 (Today)</span><span class="only-link" onclick="selectOnly(event, 'daySelect', '0')">only</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-day" value="1" checked onchange="onMultiselectChange('daySelect')"><span>Day 2</span><span class="only-link" onclick="selectOnly(event, 'daySelect', '1')">only</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-day" value="2" checked onchange="onMultiselectChange('daySelect')"><span>Day 3</span><span class="only-link" onclick="selectOnly(event, 'daySelect', '2')">only</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-day" value="3" checked onchange="onMultiselectChange('daySelect')"><span>Day 4</span><span class="only-link" onclick="selectOnly(event, 'daySelect', '3')">only</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-day" value="4" checked onchange="onMultiselectChange('daySelect')"><span>Day 5</span><span class="only-link" onclick="selectOnly(event, 'daySelect', '4')">only</span></label>
             </div>
           </div>
         </div>
@@ -407,12 +427,11 @@ select.premium-select:focus { background-color: #e8eaed; }
               <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <div class="multiselect-options">
-              <label class="option-item"><input type="checkbox" class="filter-tag" value="rain" checked onchange="onMultiselectChange('hazardSelect')"><span>Rain</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-tag" value="thunderstorm" checked onchange="onMultiselectChange('hazardSelect')"><span>Thunderstorm</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-tag" value="wind" checked onchange="onMultiselectChange('hazardSelect')"><span>Wind</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-tag" value="flood" checked onchange="onMultiselectChange('hazardSelect')"><span>Flood</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-tag" value="snow" checked onchange="onMultiselectChange('hazardSelect')"><span>Snow &amp; Ice</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-tag" value="fog" checked onchange="onMultiselectChange('hazardSelect')"><span>Fog</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-tag" value="rain" checked onchange="onMultiselectChange('hazardSelect')"><span>Rain</span><span class="only-link" onclick="selectOnly(event, 'hazardSelect', 'rain')">only</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-tag" value="thunderstorm" checked onchange="onMultiselectChange('hazardSelect')"><span>Thunderstorm</span><span class="only-link" onclick="selectOnly(event, 'hazardSelect', 'thunderstorm')">only</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-tag" value="wind" checked onchange="onMultiselectChange('hazardSelect')"><span>Wind</span><span class="only-link" onclick="selectOnly(event, 'hazardSelect', 'wind')">only</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-tag" value="snow" checked onchange="onMultiselectChange('hazardSelect')"><span>Snow &amp; Ice</span><span class="only-link" onclick="selectOnly(event, 'hazardSelect', 'snow')">only</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-tag" value="fog" checked onchange="onMultiselectChange('hazardSelect')"><span>Fog</span><span class="only-link" onclick="selectOnly(event, 'hazardSelect', 'fog')">only</span></label>
             </div>
           </div>
         </div>
@@ -425,10 +444,10 @@ select.premium-select:focus { background-color: #e8eaed; }
               <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <div class="multiselect-options">
-              <label class="option-item"><input type="checkbox" class="filter-sev" value="extreme" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #d60000;">Extreme</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-sev" value="severe" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #e35c00;">Severe</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-sev" value="moderate" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #e0a300;">Moderate</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-sev" value="minor" onchange="onMultiselectChange('severitySelect')"><span style="color: #1a73e8;">Minor</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-sev" value="extreme" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #d60000;">Extreme</span><span class="only-link" onclick="selectOnly(event, 'severitySelect', 'extreme')">only</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-sev" value="severe" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #e35c00;">Severe</span><span class="only-link" onclick="selectOnly(event, 'severitySelect', 'severe')">only</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-sev" value="moderate" checked onchange="onMultiselectChange('severitySelect')"><span style="color: #e0a300;">Moderate</span><span class="only-link" onclick="selectOnly(event, 'severitySelect', 'moderate')">only</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-sev" value="minor" onchange="onMultiselectChange('severitySelect')"><span style="color: #1a73e8;">Minor</span><span class="only-link" onclick="selectOnly(event, 'severitySelect', 'minor')">only</span></label>
             </div>
           </div>
         </div>
@@ -587,12 +606,27 @@ var latestData = null;
 var allWarnings = [];
 var filteredWarnings = [];
 var selectedId = null;
+var lastClickedId = null;
 var activeStatus = 'live';
 var visibleWarnings = {};
 var initializedExpired = false;
 
 var geojsonLayers = {};
 var mapFeatureGroup = L.featureGroup();
+
+function selectOnly(event, dropdownId, value) {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  var container = document.getElementById(dropdownId);
+  var checkboxes = container.querySelectorAll('input[type="checkbox"]');
+  checkboxes.forEach(function(cb) {
+    cb.checked = (cb.value === value);
+  });
+  
+  onMultiselectChange(dropdownId);
+}
+
 
 // ── Custom Multi-Select Dropdowns JavaScript ──────────────────────────────
 function toggleMultiselect(event, dropdownId) {
@@ -1091,8 +1125,25 @@ function renderSidebarCards() {
     card.innerHTML = topRow + timeRow + descRow + footerRow;
     
     // Click actions
-    card.addEventListener('click', function() {
-      toggleWarningVisibility(w.alert_id);
+    card.addEventListener('click', function(e) {
+      if (e.shiftKey && lastClickedId) {
+        e.preventDefault();
+        window.getSelection().removeAllRanges();
+        var lastIdx = filteredWarnings.findIndex(function(item) { return item.alert_id === lastClickedId; });
+        var currIdx = filteredWarnings.findIndex(function(item) { return item.alert_id === w.alert_id; });
+        if (lastIdx !== -1 && currIdx !== -1) {
+          var start = Math.min(lastIdx, currIdx);
+          var end = Math.max(lastIdx, currIdx);
+          for (var i = start; i <= end; i++) {
+            setWarningVisibility(filteredWarnings[i].alert_id, true);
+          }
+          openDrawer(w);
+          selectedId = w.alert_id;
+        }
+      } else {
+        toggleWarningVisibility(w.alert_id);
+      }
+      lastClickedId = w.alert_id;
     });
     
     // Hover synchronizations (Glow map polygon on card hover)
@@ -1145,13 +1196,6 @@ function selectWarning(alertId) {
     // Make it highlighted style
     layer.setStyle(getWarningStyle(severity, true, isExpired));
     
-    // Fly to boundary
-    map.flyToBounds(layer.getBounds(), {
-      padding: [30, 30],
-      maxZoom: 10,
-      duration: 1.2
-    });
-    
     // Open details drawer
     openDrawer(w);
     selectedId = alertId;
@@ -1164,60 +1208,52 @@ function selectWarning(alertId) {
   }
 }
 
+function setWarningVisibility(alertId, isVisible) {
+  var w = allWarnings.find(function(item) { return item.alert_id === alertId; });
+  if (!w) return;
+  
+  visibleWarnings[alertId] = isVisible;
+  var layer = geojsonLayers[alertId];
+  if (layer) {
+    var severity = w.severity || 'unknown';
+    var isExpired = isWarningExpired(w);
+    
+    if (isVisible) {
+      if (!mapFeatureGroup.hasLayer(layer)) {
+        mapFeatureGroup.addLayer(layer);
+      }
+      layer.setStyle(getWarningStyle(severity, true, isExpired));
+    } else {
+      if (mapFeatureGroup.hasLayer(layer)) {
+        mapFeatureGroup.removeLayer(layer);
+      }
+      layer.setStyle(getWarningStyle(severity, false, isExpired));
+    }
+  }
+  
+  var card = document.getElementById('card-' + alertId);
+  if (card) {
+    if (isVisible) {
+      card.classList.add('selected');
+    } else {
+      card.classList.remove('selected');
+    }
+  }
+}
+
 // ── Interactive Synchronizer ───────────────────────────────────────────────
 function toggleWarningVisibility(alertId) {
   var w = allWarnings.find(function(item) { return item.alert_id === alertId; });
   if (!w) return;
   
   var isNowVisible = !visibleWarnings[alertId];
-  visibleWarnings[alertId] = isNowVisible;
+  setWarningVisibility(alertId, isNowVisible);
   
-  var layer = geojsonLayers[alertId];
-  if (layer) {
-    var severity = w.severity || 'unknown';
-    var isExpired = isWarningExpired(w);
-    
-    if (isNowVisible) {
-      if (!mapFeatureGroup.hasLayer(layer)) {
-        mapFeatureGroup.addLayer(layer);
-      }
-      
-      // Make it highlighted style
-      layer.setStyle(getWarningStyle(severity, true, isExpired));
-      
-      // Fly to boundary
-      map.flyToBounds(layer.getBounds(), {
-        padding: [30, 30],
-        maxZoom: 10,
-        duration: 1.2
-      });
-      
-      // Open details drawer
-      openDrawer(w);
-      selectedId = alertId;
-    } else {
-      if (mapFeatureGroup.hasLayer(layer)) {
-        mapFeatureGroup.removeLayer(layer);
-      }
-      
-      // Reset style
-      layer.setStyle(getWarningStyle(severity, false, isExpired));
-      
-      // Close drawer if this was the open warning
-      if (selectedId === alertId) {
-        closeDrawer();
-      }
-    }
-  }
-  
-  // Sync card active class
-  var card = document.getElementById('card-' + alertId);
-  if (card) {
-    if (isNowVisible) {
-      card.classList.add('selected');
-    } else {
-      card.classList.remove('selected');
-    }
+  if (isNowVisible) {
+    openDrawer(w);
+    selectedId = alertId;
+  } else if (selectedId === alertId) {
+    closeDrawer();
   }
 }
 
