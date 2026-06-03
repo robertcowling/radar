@@ -425,6 +425,21 @@
     #playerTimeLine { font-size: 13px; }
     #playerOffsetLine { font-size: 9px; }
     #estimateNotice { bottom: auto !important; top: 8px !important; font-size: 10px !important; padding: 4px 10px !important; max-width: calc(100% - 32px) !important; white-space: normal !important; text-align: center; line-height: 1.3; }
+  .area-value-label {
+    background: transparent;
+    border: none;
+    color: #202124;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    white-space: nowrap;
+    text-shadow: 
+      -1px -1px 0 #fff,  
+       1px -1px 0 #fff,
+      -1px  1px 0 #fff,
+       1px  1px 0 #fff,
+       0px 0px 3px #fff;
+    pointer-events: none;
   }
 </style>
 </head>
@@ -624,6 +639,8 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 }).addTo(map);
 var ukvOverlay = L.imageOverlay('', imgBounds, { opacity: 0.85, interactive: false }).addTo(map);
 
+var areaLabelsGroup = L.layerGroup();
+
 // ── State ─────────────────────────────────────────────────────────────────────
 var meta          = null;
 var currentRun    = 0;
@@ -747,6 +764,12 @@ function renderPolyChoropleth() {
       return;
     }
     var vals = polySnap[currentBoundary][currentLayer];
+    
+    areaLabelsGroup.clearLayers();
+    if (!map.hasLayer(areaLabelsGroup)) {
+      areaLabelsGroup.addTo(map);
+    }
+
     gLayer.setStyle(function(feature) {
       var name = feature.properties[nameKey];
       var mm   = vals[name];
@@ -765,6 +788,20 @@ function renderPolyChoropleth() {
         ? name + ': ' + mm.toFixed(1) + ' mm'
         : name;
       l.bindTooltip(tip, { sticky: true, className: 'poly-tooltip' });
+      
+      if (mm !== null && mm !== undefined) {
+        var centroid = l.getBounds().getCenter();
+        var labelMarker = L.marker(centroid, {
+          icon: L.divIcon({
+            className: 'area-value-label',
+            html: mm.toFixed(1),
+            iconSize: [40, 20],
+            iconAnchor: [20, 10]
+          }),
+          interactive: false
+        });
+        areaLabelsGroup.addLayer(labelMarker);
+      }
     });
   });
 }
@@ -774,6 +811,8 @@ function clearPolyChoropleth() {
     var l = getLayerObj(n);
     if (l) { l.setStyle({ fillOpacity: 0 }); l.eachLayer(function(f) { f.unbindTooltip(); }); }
   });
+  areaLabelsGroup.clearLayers();
+  if (map.hasLayer(areaLabelsGroup)) map.removeLayer(areaLabelsGroup);
 }
 
 function setPolyVisible(checked) {

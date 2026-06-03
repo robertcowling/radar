@@ -272,6 +272,47 @@ select option:disabled { color: #bbb; }
   #playerTimeLine { font-size: 13px; }
 }
 
+.area-value-label {
+  background: transparent;
+  border: none;
+  color: #202124;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 
+    -1px -1px 0 #fff,  
+     1px -1px 0 #fff,
+    -1px  1px 0 #fff,
+     1px  1px 0 #fff,
+     0px 0px 3px #fff;
+  pointer-events: none;
+}
+.rg-wrap {
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+}
+.rg-icon {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.55);
+  transform: translateZ(0); will-change: transform;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Roboto', sans-serif;
+  font-size: 8.5px; font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+  box-sizing: border-box;
+  cursor: pointer;
+  line-height: 1;
+}
+.rg-icon.rg-nodata {
+  width: 7px; height: 7px;
+  background: #90a4ae;
+  opacity: 0.35;
+  border: none;
+}
+
 /* Stack the three comparison maps vertically on phones — side-by-side is unreadable */
 @media (max-width: 720px) {
   .maps-row { flex-direction: column; }
@@ -479,6 +520,21 @@ var gaugeStations    = null;   // {stationId: {lat, lon, name}}
 var gaugeMarkerGroup = null;   // L.layerGroup on radarMap (gauge values)
 var ukvMarkerGroup   = null;   // L.layerGroup on ukvMap   (UKV values at gauges)
 var biasMarkerGroup  = null;   // L.layerGroup on biasMap  (UKV − gauge bias)
+
+var labelGroups = {
+  radar: L.layerGroup(),
+  ukv: L.layerGroup(),
+  bias: L.layerGroup()
+};
+
+function fmtVal(val, isBias) {
+  var abs = Math.abs(val);
+  var str = abs < 1 ? abs.toFixed(1) : Math.round(abs).toString();
+  if (isBias) {
+    return (val > 0 ? '+' : val < 0 ? '-' : '') + str;
+  }
+  return str;
+}
 
 // Byte offset into gauge_bias station values array per period
 // (triplets [gauge, radar_pt, radar_5km] for 1hr,3hr,6hr,12hr,24hr,48hr,5d)
@@ -970,11 +1026,19 @@ function removeAllBoundaryLayers() {
     Object.keys(layers[mid]).forEach(function(type) {
       var l = layers[mid][type]; if (l && MAPS[mid].hasLayer(l)) MAPS[mid].removeLayer(l);
     });
+    labelGroups[mid].clearLayers();
+    if (MAPS[mid].hasLayer(labelGroups[mid])) MAPS[mid].removeLayer(labelGroups[mid]);
   });
 }
 
 function applyBoundary(type) {
   removeAllBoundaryLayers();
+  
+  Object.keys(labelGroups).forEach(function(mid) {
+    labelGroups[mid].clearLayers();
+    if (MAPS[mid].hasLayer(labelGroups[mid])) MAPS[mid].removeLayer(labelGroups[mid]);
+  });
+
   if (type === 'none') return;
   var data = geojsonData[type];
   Object.keys(MAPS).forEach(function(mid) {
@@ -1000,6 +1064,12 @@ function onBoundaryChange(val) {
 // ── Choropleth rendering ─────────────────────────────────────────
 function renderAll() {
   var type = currentBoundary;
+  
+  Object.keys(labelGroups).forEach(function(mid) {
+    labelGroups[mid].clearLayers();
+    if (MAPS[mid].hasLayer(labelGroups[mid])) MAPS[mid].removeLayer(labelGroups[mid]);
+  });
+
   if (type === 'none') return;
   var nameKey = LAYER_NAME_KEY[type];
 
@@ -1009,6 +1079,11 @@ function renderAll() {
 
     // In grid mode radar/ukv show raster images; bias always shows choropleth
     var gridMap = currentViewMode === 'grid' && (mid === 'radar' || mid === 'ukv');
+    var showLabelsForMap = !gridMap && (currentViewMode === 'area' || mid === 'bias');
+    
+    if (showLabelsForMap) {
+      labelGroups[mid].addTo(MAPS[mid]);
+    }
 
     layer.setStyle(function(f) {
       if (gridMap || (currentCompareSource === 'gauge' && mid === 'ukv')) {
@@ -1041,6 +1116,21 @@ function renderAll() {
         txt = name + (mm != null ? ': ' + mm.toFixed(1) + ' mm' : '');
       }
       l.bindTooltip(txt, { sticky: true, className: 'poly-tooltip' });
+      
+      if (showLabelsForMap && mm !== null && mm !== undefined) {
+        var centroid = l.getBounds().getCenter();
+        var displayVal = (mid === 'bias' && mm >= 0 ? '+' : '') + mm.toFixed(1);
+        var labelMarker = L.marker(centroid, {
+          icon: L.divIcon({
+            className: 'area-value-label',
+            html: displayVal,
+            iconSize: [40, 20],
+            iconAnchor: [20, 10]
+          }),
+          interactive: false
+        });
+        labelGroups[mid].addLayer(labelMarker);
+      }
     });
   });
 }
@@ -1332,37 +1422,48 @@ function renderGaugeMarkers(gaugeSnap, ukvGaugeData) {
       uVal = ukvGaugeData[sid][ukvKey];
 
     // Left map: gauge accumulation dot
-    var gColor = gVal != null ? mmToFillColor(gVal, currentScheme) : null;
     if (gVal != null) {
-      L.circleMarker(latlng, {
-        radius: 5, fillColor: gColor || '#e8eaed',
-        color: 'white', weight: 1, fillOpacity: 0.92, pane: 'overlayPane'
-      }).bindTooltip(st.name + ': ' + gVal.toFixed(1) + ' mm',
-        { sticky: true, className: 'poly-tooltip' })
+      var gColor = mmToFillColor(gVal, currentScheme) || '#e8eaed';
+      var iconHtml = '<div class="rg-wrap"><div class="rg-icon" style="background:' + gColor + '">' + fmtVal(gVal) + '</div></div>';
+      var gIcon = L.divIcon({
+        className: '',
+        html: iconHtml,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      L.marker(latlng, { icon: gIcon, pane: 'overlayPane' })
+        .bindTooltip(st.name + ': ' + gVal.toFixed(1) + ' mm', { sticky: true, className: 'poly-tooltip' })
         .addTo(gaugeMarkerGroup);
     }
 
     // Middle map: UKV forecast value at gauge location
-    var uColor = uVal != null ? mmToFillColor(uVal, currentScheme) : null;
     if (uVal != null) {
-      L.circleMarker(latlng, {
-        radius: 5, fillColor: uColor || '#e8eaed',
-        color: 'white', weight: 1, fillOpacity: 0.92, pane: 'overlayPane'
-      }).bindTooltip(st.name + ' UKV: ' + uVal.toFixed(1) + ' mm',
-        { sticky: true, className: 'poly-tooltip' })
+      var uColor = mmToFillColor(uVal, currentScheme) || '#e8eaed';
+      var iconHtml = '<div class="rg-wrap"><div class="rg-icon" style="background:' + uColor + '">' + fmtVal(uVal) + '</div></div>';
+      var uIcon = L.divIcon({
+        className: '',
+        html: iconHtml,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      L.marker(latlng, { icon: uIcon, pane: 'overlayPane' })
+        .bindTooltip(st.name + ' UKV: ' + uVal.toFixed(1) + ' mm', { sticky: true, className: 'poly-tooltip' })
         .addTo(ukvMarkerGroup);
     }
 
     // Right map: bias (UKV − gauge) dot
-    var bias   = (gVal != null && uVal != null) ? (uVal - gVal) : null;
-    var bColor = bias != null ? biasFillColor(bias) : null;
+    var bias = (gVal != null && uVal != null) ? (uVal - gVal) : null;
     if (bias != null) {
-      var sign = bias >= 0 ? '+' : '';
-      L.circleMarker(latlng, {
-        radius: 5, fillColor: bColor || '#d4d4d4',
-        color: 'white', weight: 1, fillOpacity: 0.92, pane: 'overlayPane'
-      }).bindTooltip(st.name + ' (' + currentPeriod + '): ' + sign + bias.toFixed(1) + ' mm',
-        { sticky: true, className: 'poly-tooltip' })
+      var bColor = biasFillColor(bias) || '#d4d4d4';
+      var iconHtml = '<div class="rg-wrap"><div class="rg-icon" style="background:' + bColor + '">' + fmtVal(bias, true) + '</div></div>';
+      var bIcon = L.divIcon({
+        className: '',
+        html: iconHtml,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      L.marker(latlng, { icon: bIcon, pane: 'overlayPane' })
+        .bindTooltip(st.name + ' (' + currentPeriod + '): ' + (bias >= 0 ? '+' : '') + bias.toFixed(1) + ' mm', { sticky: true, className: 'poly-tooltip' })
         .addTo(biasMarkerGroup);
     }
   });

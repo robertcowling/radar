@@ -454,6 +454,21 @@
     }
     #playerDateLine { font-size: 9px; }
     #playerTimeLine { font-size: 13px; }
+  .area-value-label {
+    background: transparent;
+    border: none;
+    color: #202124;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    white-space: nowrap;
+    text-shadow: 
+      -1px -1px 0 #fff,  
+       1px -1px 0 #fff,
+      -1px  1px 0 #fff,
+       1px  1px 0 #fff,
+       0px 0px 3px #fff;
+    pointer-events: none;
   }
 </style>
 </head>
@@ -632,6 +647,8 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
 }).addTo(map);
 var accumOverlay = L.imageOverlay('', imgBounds, { opacity: 0.85, interactive: false }).addTo(map);
+
+var areaLabelsGroup = L.layerGroup();
 
 var snapshots     = [];
 var currentIdx    = 0;
@@ -907,6 +924,12 @@ function renderPolyChoropleth() {
       return;
     }
     var vals = polySnap[currentBoundary][currentPeriod];
+    
+    areaLabelsGroup.clearLayers();
+    if (!map.hasLayer(areaLabelsGroup)) {
+      areaLabelsGroup.addTo(map);
+    }
+
     layer.setStyle(function(feature) {
       var name = feature.properties[nameKey];
       var mm   = vals[name];
@@ -925,6 +948,20 @@ function renderPolyChoropleth() {
         ? name + ': ' + mm.toFixed(1) + ' mm'
         : name;
       l.bindTooltip(label, { sticky: true, className: 'poly-tooltip' });
+      
+      if (mm !== null && mm !== undefined) {
+        var centroid = l.getBounds().getCenter();
+        var labelMarker = L.marker(centroid, {
+          icon: L.divIcon({
+            className: 'area-value-label',
+            html: mm.toFixed(1),
+            iconSize: [40, 20],
+            iconAnchor: [20, 10]
+          }),
+          interactive: false
+        });
+        areaLabelsGroup.addLayer(labelMarker);
+      }
     });
   });
 }
@@ -935,6 +972,8 @@ function clearPolyChoropleth() {
     if (l) l.setStyle({ fillOpacity: 0 });
     if (l) l.eachLayer(function(f) { f.unbindTooltip(); });
   });
+  areaLabelsGroup.clearLayers();
+  if (map.hasLayer(areaLabelsGroup)) map.removeLayer(areaLabelsGroup);
 }
 
 function setPolyVisible(checked) {
