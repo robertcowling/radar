@@ -170,9 +170,12 @@ def fetch_warnings_from_meteogate():
             info = info_list[0]
 
             # ── Skip EA catchment-specific flood warnings ──────────────────────
-            # Met Office weather warnings have category "Met".
-            # EA flood warnings/alerts have category "Hydro" or event titles
-            # matching flood warning/alert/watch patterns from a non-Met Office sender.
+            # EA flood warnings come through MeteoGate labelled as "Met Office"
+            # but are catchment-specific (e.g. "Flood Warning: Saredon Brook at ...").
+            # Met Office weather warnings ALWAYS use colour-coded titles like
+            # "Yellow rain warning" or "Red wind warning" — never "Flood Warning: [location]".
+            #
+            # Filter 1: CAP category "Hydro" = EA flood warning
             categories = info.get("category", [])
             if isinstance(categories, str):
                 categories = [categories]
@@ -180,13 +183,19 @@ def fetch_warnings_from_meteogate():
                 print(f"    Skipping EA flood warning (Hydro category): {alert_id}")
                 continue
 
+            # Filter 2: Title pattern "Flood Warning: ..." / "Flood Alert: ..." etc.
+            # Met Office titles never contain a colon followed by a location name.
             raw_event = info.get("event", "")
-            ea_flood_patterns = ["flood warning", "flood alert", "flood watch", "severe flood warning"]
-            if any(p in raw_event.lower() for p in ea_flood_patterns):
-                sender = info.get("senderName", "")
-                if "met office" not in sender.lower():
-                    print(f"    Skipping EA flood warning (title match): {alert_id} — '{raw_event}'")
-                    continue
+            raw_event_lower = raw_event.lower()
+            ea_title_patterns = [
+                "flood warning:",
+                "flood alert:",
+                "severe flood warning:",
+                "flood watch:",
+            ]
+            if any(raw_event_lower.startswith(p) for p in ea_title_patterns):
+                print(f"    Skipping EA flood warning (title pattern): {alert_id} — '{raw_event}'")
+                continue
 
             title = info.get("event", "Weather Warning")
             description = info.get("description", "")
