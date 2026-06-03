@@ -1499,6 +1499,7 @@
   },
   {
     "time": "Wed 03 Jun 2026 11:00 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202606031100_ODIM_ng_radar_rainrate_composite_1km_UK.png"
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202606031100_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_bw": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606031100_ODIM_ng_radar_rainrate_composite_1km_UK_sat_bw.jpg"
   }
 ]
