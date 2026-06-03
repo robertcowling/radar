@@ -183,8 +183,22 @@ def fetch_warnings_from_meteogate():
                 print(f"    Skipping EA flood warning (Hydro category): {alert_id}")
                 continue
 
-            # Filter 2: Title pattern "Flood Warning: ..." / "Flood Alert: ..." etc.
-            # Met Office titles never contain a colon followed by a location name.
+            # Filter 2: Check awareness_type parameter (standard Meteoalarm weather codes)
+            # Weather: 1=Wind, 2=Snow/Ice, 3=Thunderstorm, 4=Fog, 5=High-temp, 6=Low-temp, 10=Rain
+            # Hydrology/flooding uses 7=Coastalevent, 12=Flooding, 13=Rain-flood, etc.
+            awareness_type = None
+            for param in info.get("parameter", []):
+                if param.get("valueName") == "awareness_type":
+                    awareness_type = param.get("value", "")
+                    break
+            if awareness_type:
+                code = awareness_type.split(";")[0].strip()
+                weather_codes = {"1", "2", "3", "4", "5", "6", "10"}
+                if code not in weather_codes:
+                    print(f"    Skipping non-weather alert (awareness_type {awareness_type}): {alert_id}")
+                    continue
+
+            # Filter 3: Fallback title patterns (in case metadata is missing or weird)
             raw_event = info.get("event", "")
             raw_event_lower = raw_event.lower()
             ea_title_patterns = [
