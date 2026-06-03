@@ -1,13 +1,5 @@
 [
   {
-    "time": "Mon 01 Jun 2026 18:15 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202606011815_ODIM_ng_radar_rainrate_composite_1km_UK.png",
-    "sat_url_bw": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606011815_ODIM_ng_radar_rainrate_composite_1km_UK_sat_bw.jpg",
-    "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606011815_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg",
-    "sat_url_ir": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606011815_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg",
-    "sat_url_ir_grey": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606011815_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir_grey.jpg"
-  },
-  {
     "time": "Mon 01 Jun 2026 18:30 UTC",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202606011830_ODIM_ng_radar_rainrate_composite_1km_UK.png",
     "sat_url_bw": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606011830_ODIM_ng_radar_rainrate_composite_1km_UK_sat_bw.jpg",
@@ -1473,5 +1465,9 @@
   {
     "time": "Wed 03 Jun 2026 18:00 UTC",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202606031800_ODIM_ng_radar_rainrate_composite_1km_UK.png"
+  },
+  {
+    "time": "Wed 03 Jun 2026 18:15 UTC",
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202606031815_ODIM_ng_radar_rainrate_composite_1km_UK.png"
   }
 ]
