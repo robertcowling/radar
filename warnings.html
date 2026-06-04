@@ -491,6 +491,21 @@ select.premium-select:focus { background-color: #e8eaed; }
           </div>
         </div>
         
+        <div class="control-group">
+          <span class="control-label">Type</span>
+          <div class="custom-multiselect" id="typeSelect">
+            <div class="multiselect-trigger" onclick="toggleMultiselect(event, 'typeSelect')">
+              <span class="trigger-text" id="typeSelectText">All Types</span>
+              <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="multiselect-options">
+              <label class="option-item"><input type="checkbox" class="filter-type" value="Alert" checked onchange="onMultiselectChange('typeSelect')"><span>Alert</span><span class="only-link" onclick="selectOnly(event, 'typeSelect', 'Alert')">only</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-type" value="Update" checked onchange="onMultiselectChange('typeSelect')"><span>Update</span><span class="only-link" onclick="selectOnly(event, 'typeSelect', 'Update')">only</span></label>
+              <label class="option-item"><input type="checkbox" class="filter-type" value="Cancel" checked onchange="onMultiselectChange('typeSelect')"><span>Cancel</span><span class="only-link" onclick="selectOnly(event, 'typeSelect', 'Cancel')">only</span></label>
+            </div>
+          </div>
+        </div>
+        
         <div class="control-group" style="flex: 1.2; min-width: 135px;">
           <span class="control-label">Status</span>
           <div class="segmented-control">
@@ -707,6 +722,7 @@ function onMultiselectChange(dropdownId) {
     if (dropdownId === 'daySelect') triggerText.innerText = "All Days";
     else if (dropdownId === 'hazardSelect') triggerText.innerText = "All Hazards";
     else if (dropdownId === 'severitySelect') triggerText.innerText = "All Severities";
+    else if (dropdownId === 'typeSelect') triggerText.innerText = "All Types";
   } else if (checked.length === 0) {
     triggerText.innerText = "None Selected";
   } else if (checked.length <= 2) {
@@ -960,12 +976,17 @@ function filterAndRender() {
   var activeDays = Array.from(document.querySelectorAll('.filter-day:checked')).map(function(cb) { return parseInt(cb.value); });
   var activeTags = Array.from(document.querySelectorAll('.filter-tag:checked')).map(function(cb) { return cb.value; });
   var activeSevs = Array.from(document.querySelectorAll('.filter-sev:checked')).map(function(cb) { return cb.value; });
+  var activeTypes = Array.from(document.querySelectorAll('.filter-type:checked')).map(function(cb) { return cb.value; });
   
   var now = new Date();
   now.setHours(0, 0, 0, 0);
 
   // 2. Perform filtering
   filteredWarnings = allWarnings.filter(function(w) {
+    // Message Type Match (Alert, Update, Cancel)
+    var msgType = (w.raw_meta && w.raw_meta.msgType) || 'Alert';
+    if (!activeTypes.includes(msgType)) return false;
+
     // Severity Match
     var sev = w.severity || 'unknown';
     if (!activeSevs.includes(sev)) return false;
@@ -1539,6 +1560,7 @@ function onLayerSelectChange(val) {
 
 // ── Inception ──────────────────────────────────────────────────────────────
 onMultiselectChange('severitySelect');
+onMultiselectChange('typeSelect');
 loadWarnings();
 loadBoundary(currentBoundary);
 </script>
