@@ -322,9 +322,9 @@ select.premium-select:focus { background-color: #e8eaed; }
   font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 12px;
   letter-spacing: 0.3px; display: inline-flex; align-items: center; text-transform: capitalize;
 }
-.type-alert { background: #e8f0fe; color: #1a73e8; border: 1px solid #d2e3fc; }
-.type-update { background: #fff3e0; color: #e35c00; border: 1px solid #ffe0b2; }
-.type-cancel { background: #fce8e6; color: #d60000; border: 1px solid #fad2cf; }
+.type-alert { background: #e8eaed; color: #202124; border: 1px solid #cbd5e1; }
+.type-update { background: #e8eaed; color: #202124; border: 1px solid #cbd5e1; }
+.type-cancel { background: #202124; color: #ffffff; border: 1px solid #202124; }
 
 .status-badge {
   font-size: 9px;
@@ -558,15 +558,13 @@ select.premium-select:focus { background-color: #e8eaed; }
         <input type="text" id="sidebarSearch" placeholder="Search title, description, area..." style="width: 100%; padding: 7px 30px 7px 12px; border: 1px solid #dadce0; border-radius: 20px; font-size: 12px; font-family: inherit; outline: none; box-sizing: border-box;" oninput="filterAndRender()">
         <svg style="position: absolute; right: 10px; color: #80868b; pointer-events: none;" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
       </div>
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <span style="font-size: 10px; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap;">Sub-Period:</span>
-        <select id="sidebarDateFilter" onchange="filterAndRender()" style="flex: 1; padding: 4px 8px; font-size: 11.5px; border: 1px solid #dadce0; border-radius: 12px; background: white; font-family: inherit; outline: none; cursor: pointer;">
-          <option value="all" selected>All Loaded Dates</option>
-          <option value="today">Overlapping Today</option>
-          <option value="tomorrow">Overlapping Tomorrow</option>
-          <option value="next3">Next 3 Days</option>
-          <option value="active">Active Now</option>
-        </select>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-size: 10.5px; font-weight: 600; color: #5f6368; letter-spacing: 0.3px;">Date range:</span>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <input type="date" id="sidebarStartDate" onchange="filterAndRender()" style="flex: 1; padding: 4px 8px; font-size: 11.5px; border: 1px solid #dadce0; border-radius: 12px; background: white; font-family: inherit; outline: none; cursor: pointer; color: #3c4043;">
+          <span style="font-size: 11px; color: #5f6368;">to</span>
+          <input type="date" id="sidebarEndDate" onchange="filterAndRender()" style="flex: 1; padding: 4px 8px; font-size: 11.5px; border: 1px solid #dadce0; border-radius: 12px; background: white; font-family: inherit; outline: none; cursor: pointer; color: #3c4043;">
+        </div>
       </div>
     </div>
 
@@ -989,7 +987,8 @@ function filterAndRender() {
   var activeTags = Array.from(document.querySelectorAll('.filter-tag:checked')).map(function(cb) { return cb.value; });
   var activeSevs = Array.from(document.querySelectorAll('.filter-sev:checked')).map(function(cb) { return cb.value; });
   var searchVal = document.getElementById('sidebarSearch') ? document.getElementById('sidebarSearch').value.toLowerCase().trim() : '';
-  var subPeriod = document.getElementById('sidebarDateFilter') ? document.getElementById('sidebarDateFilter').value : 'all';
+  var startDateVal = document.getElementById('sidebarStartDate') ? document.getElementById('sidebarStartDate').value : '';
+  var endDateVal = document.getElementById('sidebarEndDate') ? document.getElementById('sidebarEndDate').value : '';
   
   var now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -1006,36 +1005,17 @@ function filterAndRender() {
       if (!matchesSearch) return false;
     }
 
-    // Sub-Period filter
-    if (subPeriod !== 'all') {
-      var nowTime = new Date();
-      var wStart = w.start_date ? new Date(w.start_date) : null;
-      var wEnd = w.end_date ? new Date(w.end_date) : null;
-      
-      if (subPeriod === 'active') {
-        if (!wStart || !wEnd || nowTime < wStart || nowTime > wEnd) return false;
-      } else {
-        var checkStart = new Date();
-        checkStart.setHours(0,0,0,0);
-        var checkEnd = new Date(checkStart);
-        
-        if (subPeriod === 'today') {
-          checkEnd.setHours(23,59,59,999);
-        } else if (subPeriod === 'tomorrow') {
-          checkStart.setDate(checkStart.getDate() + 1);
-          checkEnd.setDate(checkEnd.getDate() + 1);
-          checkEnd.setHours(23,59,59,999);
-        } else if (subPeriod === 'next3') {
-          checkEnd.setDate(checkEnd.getDate() + 2);
-          checkEnd.setHours(23,59,59,999);
-        }
-        
-        if (wStart && wEnd) {
-          if (wStart > checkEnd || wEnd < checkStart) return false;
-        } else {
-          return false;
-        }
-      }
+    // Date Range Picker filter
+    var wStart = w.start_date ? new Date(w.start_date) : null;
+    var wEnd = w.end_date ? new Date(w.end_date) : null;
+
+    if (startDateVal) {
+      var filterStart = new Date(startDateVal + 'T00:00:00');
+      if (wEnd && wEnd < filterStart) return false;
+    }
+    if (endDateVal) {
+      var filterEnd = new Date(endDateVal + 'T23:59:59.999');
+      if (wStart && wStart > filterEnd) return false;
     }
 
     // Severity Match
@@ -1406,11 +1386,11 @@ function openDrawer(w) {
   var statusBadgeContainer = document.getElementById('drawerStatusBadgeContainer');
   if (statusBadgeContainer) {
     if (isExpired) {
-      statusBadgeContainer.innerHTML = '<span class="status-badge expired-badge" style="margin-left: 6px;">Expired</span>';
+      statusBadgeContainer.innerHTML = '<span class="status-badge expired-badge">Expired</span>';
     } else if (isLive) {
-      statusBadgeContainer.innerHTML = '<span class="status-badge live-badge" style="margin-left: 6px;"><span class="live-dot"></span>Live</span>';
+      statusBadgeContainer.innerHTML = '<span class="status-badge live-badge"><span class="live-dot"></span>Live</span>';
     } else {
-      statusBadgeContainer.innerHTML = '<span class="status-badge upcoming-badge" style="margin-left: 6px;">Upcoming</span>';
+      statusBadgeContainer.innerHTML = '<span class="status-badge upcoming-badge">Upcoming</span>';
     }
   }
   
@@ -1419,7 +1399,7 @@ function openDrawer(w) {
   if (typeBadgeContainer) {
     var msgType = (w.raw_meta && w.raw_meta.msgType) || 'Alert';
     var typeClass = 'type-' + msgType.toLowerCase();
-    typeBadgeContainer.innerHTML = '<span class="type-badge ' + typeClass + '" style="margin-left: 6px;">' + capitalize(msgType) + '</span>';
+    typeBadgeContainer.innerHTML = '<span class="type-badge ' + typeClass + '">' + capitalize(msgType) + '</span>';
   }
   
   // Populate drawer standard fields
