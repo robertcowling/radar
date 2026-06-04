@@ -315,8 +315,16 @@ select.premium-select:focus { background-color: #e8eaed; }
 }
 
 .warning-card.expired {
-  opacity: 0.65;
+  opacity: 0.82;
 }
+
+.type-badge {
+  font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 12px;
+  letter-spacing: 0.3px; display: inline-flex; align-items: center; text-transform: capitalize;
+}
+.type-alert { background: #e8f0fe; color: #1a73e8; border: 1px solid #d2e3fc; }
+.type-update { background: #fff3e0; color: #e35c00; border: 1px solid #ffe0b2; }
+.type-cancel { background: #fce8e6; color: #d60000; border: 1px solid #fad2cf; }
 
 .status-badge {
   font-size: 9px;
@@ -491,21 +499,7 @@ select.premium-select:focus { background-color: #e8eaed; }
           </div>
         </div>
         
-        <div class="control-group">
-          <span class="control-label">Type</span>
-          <div class="custom-multiselect" id="typeSelect">
-            <div class="multiselect-trigger" onclick="toggleMultiselect(event, 'typeSelect')">
-              <span class="trigger-text" id="typeSelectText">All Types</span>
-              <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </div>
-            <div class="multiselect-options">
-              <label class="option-item"><input type="checkbox" class="filter-type" value="Alert" checked onchange="onMultiselectChange('typeSelect')"><span>Alert</span><span class="only-link" onclick="selectOnly(event, 'typeSelect', 'Alert')">only</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-type" value="Update" checked onchange="onMultiselectChange('typeSelect')"><span>Update</span><span class="only-link" onclick="selectOnly(event, 'typeSelect', 'Update')">only</span></label>
-              <label class="option-item"><input type="checkbox" class="filter-type" value="Cancel" checked onchange="onMultiselectChange('typeSelect')"><span>Cancel</span><span class="only-link" onclick="selectOnly(event, 'typeSelect', 'Cancel')">only</span></label>
-            </div>
-          </div>
-        </div>
-        
+
         <div class="control-group" style="flex: 1.2; min-width: 135px;">
           <span class="control-label">Status</span>
           <div class="segmented-control">
@@ -558,6 +552,24 @@ select.premium-select:focus { background-color: #e8eaed; }
       <span id="sidebarCounts" style="font-size: 10px; color: #94a3b8; font-weight: 700;">0 shown</span>
     </div>
 
+    <!-- Sidebar search and sub-period filters -->
+    <div class="sidebar-filter-controls" style="padding: 10px 14px; border-bottom: 1px solid #dde1e7; background: #f8f9fa; display: flex; flex-direction: column; gap: 8px;">
+      <div style="position: relative; display: flex; align-items: center;">
+        <input type="text" id="sidebarSearch" placeholder="Search title, description, area..." style="width: 100%; padding: 7px 30px 7px 12px; border: 1px solid #dadce0; border-radius: 20px; font-size: 12px; font-family: inherit; outline: none; box-sizing: border-box;" oninput="filterAndRender()">
+        <svg style="position: absolute; right: 10px; color: #80868b; pointer-events: none;" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="font-size: 10px; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap;">Sub-Period:</span>
+        <select id="sidebarDateFilter" onchange="filterAndRender()" style="flex: 1; padding: 4px 8px; font-size: 11.5px; border: 1px solid #dadce0; border-radius: 12px; background: white; font-family: inherit; outline: none; cursor: pointer;">
+          <option value="all" selected>All Loaded Dates</option>
+          <option value="today">Overlapping Today</option>
+          <option value="tomorrow">Overlapping Tomorrow</option>
+          <option value="next3">Next 3 Days</option>
+          <option value="active">Active Now</option>
+        </select>
+      </div>
+    </div>
+
     <!-- Cards Scroll Area -->
     <div class="tbl-wrap" id="cardsList">
       <div class="empty-state">Ingesting weather alerts...</div>
@@ -578,6 +590,7 @@ select.premium-select:focus { background-color: #e8eaed; }
     <div class="drawer-title" id="drawerTitle">
       <span class="sev-badge badge-moderate" id="drawerSeverityBadge">Moderate</span>
       <span id="drawerStatusBadgeContainer"></span>
+      <span id="drawerTypeBadgeContainer"></span>
       <span id="drawerTitleText">Yellow Rain Warning</span>
     </div>
     <button class="drawer-close" onclick="closeDrawer()">&times;</button>
@@ -722,7 +735,6 @@ function onMultiselectChange(dropdownId) {
     if (dropdownId === 'daySelect') triggerText.innerText = "All Days";
     else if (dropdownId === 'hazardSelect') triggerText.innerText = "All Hazards";
     else if (dropdownId === 'severitySelect') triggerText.innerText = "All Severities";
-    else if (dropdownId === 'typeSelect') triggerText.innerText = "All Types";
   } else if (checked.length === 0) {
     triggerText.innerText = "None Selected";
   } else if (checked.length <= 2) {
@@ -976,16 +988,55 @@ function filterAndRender() {
   var activeDays = Array.from(document.querySelectorAll('.filter-day:checked')).map(function(cb) { return parseInt(cb.value); });
   var activeTags = Array.from(document.querySelectorAll('.filter-tag:checked')).map(function(cb) { return cb.value; });
   var activeSevs = Array.from(document.querySelectorAll('.filter-sev:checked')).map(function(cb) { return cb.value; });
-  var activeTypes = Array.from(document.querySelectorAll('.filter-type:checked')).map(function(cb) { return cb.value; });
+  var searchVal = document.getElementById('sidebarSearch') ? document.getElementById('sidebarSearch').value.toLowerCase().trim() : '';
+  var subPeriod = document.getElementById('sidebarDateFilter') ? document.getElementById('sidebarDateFilter').value : 'all';
   
   var now = new Date();
   now.setHours(0, 0, 0, 0);
 
   // 2. Perform filtering
   filteredWarnings = allWarnings.filter(function(w) {
-    // Message Type Match (Alert, Update, Cancel)
-    var msgType = (w.raw_meta && w.raw_meta.msgType) || 'Alert';
-    if (!activeTypes.includes(msgType)) return false;
+    // Keyword Search filter
+    if (searchVal) {
+      var matchesSearch = 
+        (w.title && w.title.toLowerCase().includes(searchVal)) ||
+        (w.description && w.description.toLowerCase().includes(searchVal)) ||
+        (w.headline && w.headline.toLowerCase().includes(searchVal)) ||
+        (w.area_desc && w.area_desc.toLowerCase().includes(searchVal));
+      if (!matchesSearch) return false;
+    }
+
+    // Sub-Period filter
+    if (subPeriod !== 'all') {
+      var nowTime = new Date();
+      var wStart = w.start_date ? new Date(w.start_date) : null;
+      var wEnd = w.end_date ? new Date(w.end_date) : null;
+      
+      if (subPeriod === 'active') {
+        if (!wStart || !wEnd || nowTime < wStart || nowTime > wEnd) return false;
+      } else {
+        var checkStart = new Date();
+        checkStart.setHours(0,0,0,0);
+        var checkEnd = new Date(checkStart);
+        
+        if (subPeriod === 'today') {
+          checkEnd.setHours(23,59,59,999);
+        } else if (subPeriod === 'tomorrow') {
+          checkStart.setDate(checkStart.getDate() + 1);
+          checkEnd.setDate(checkEnd.getDate() + 1);
+          checkEnd.setHours(23,59,59,999);
+        } else if (subPeriod === 'next3') {
+          checkEnd.setDate(checkEnd.getDate() + 2);
+          checkEnd.setHours(23,59,59,999);
+        }
+        
+        if (wStart && wEnd) {
+          if (wStart > checkEnd || wEnd < checkStart) return false;
+        } else {
+          return false;
+        }
+      }
+    }
 
     // Severity Match
     var sev = w.severity || 'unknown';
@@ -1363,6 +1414,14 @@ function openDrawer(w) {
     }
   }
   
+  // Populate type badge in drawer
+  var typeBadgeContainer = document.getElementById('drawerTypeBadgeContainer');
+  if (typeBadgeContainer) {
+    var msgType = (w.raw_meta && w.raw_meta.msgType) || 'Alert';
+    var typeClass = 'type-' + msgType.toLowerCase();
+    typeBadgeContainer.innerHTML = '<span class="type-badge ' + typeClass + '" style="margin-left: 6px;">' + capitalize(msgType) + '</span>';
+  }
+  
   // Populate drawer standard fields
   document.getElementById('drawerTitleText').innerText = w.title;
   document.getElementById('drawerDescription').innerText = w.description;
@@ -1560,7 +1619,6 @@ function onLayerSelectChange(val) {
 
 // ── Inception ──────────────────────────────────────────────────────────────
 onMultiselectChange('severitySelect');
-onMultiselectChange('typeSelect');
 loadWarnings();
 loadBoundary(currentBoundary);
 </script>
