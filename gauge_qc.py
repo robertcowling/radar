@@ -1099,6 +1099,58 @@ def update_log(r2, flagged_gauges, now):
     print(f"Updated log ({len(log_data['events'])} events in last {LOG_RETENTION_HRS}h).")
 
 
+def cleanup_old_gaugecheck_runs(r2, active_runs):
+    """Delete run archive JSONs from gaugecheck/runs/ that are no longer in the active manifest runs list."""
+    print("Cleaning up old gauge QC runs from R2...")
+    try:
+        paginator = r2.get_paginator("list_objects_v2")
+        existing_keys = []
+        for page in paginator.paginate(Bucket=R2_BUCKET, Prefix="gaugecheck/runs/"):
+            for obj in page.get("Contents", []):
+                existing_keys.append(obj["Key"])
+        
+        active_keys = {f"gaugecheck/runs/{ts}.json" for ts in active_runs}
+        to_delete = [{"Key": key} for key in existing_keys if key not in active_keys]
+        
+        if not to_delete:
+            print("  No old gauge QC runs to delete.")
+            return
+
+        deleted = 0
+        for i in range(0, len(to_delete), 1000):
+            batch = to_delete[i:i+1000]
+            r2.delete_objects(Bucket=R2_BUCKET, Delete={"Objects": batch})
+            deleted += len(batch)
+            print(f"  Deleted {len(batch)} old gauge QC run files from R2")
+            
+        print(f"Gauge QC runs cleanup complete. Purged {deleted} old runs.")
+    except Exception as e:
+        print(f"Warning: gauge QC runs cleanup failed: {e}")
+
+
+def cleanup_old_radar_readings(r2, retention_days=14):
+    """Delete radar readings JSONs from rain/radar_readings/ older than retention_days."""
+    print("Cleaning up old radar readings from R2...")
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days)).strftime("%Y%m%d")
+    deleted = 0
+    try:
+        paginator = r2.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=R2_BUCKET, Prefix="rain/radar_readings/"):
+            for obj in page.get("Contents", []):
+                key = obj["Key"]
+                fname = key.rsplit("/", 1)[-1].replace(".json", "")
+                if len(fname) == 8 and fname.isdigit() and fname < cutoff:
+                    try:
+                        r2.delete_object(Bucket=R2_BUCKET, Key=key)
+                        print(f"  Deleted old radar readings: {key}")
+                        deleted += 1
+                    except Exception as e:
+                        print(f"  Warning: could not delete {key}: {e}")
+        print(f"Radar readings cleanup complete. Purged {deleted} old files.")
+    except Exception as e:
+        print(f"Warning: radar readings cleanup failed: {e}")
+
+
 # ── Main ────────────────────────────────────────────────────────────────────────
 def main():
     import argparse
@@ -1476,8 +1528,14 @@ def main():
             runs_list = manifest_data.get("runs", [])
             if target_run_ts not in runs_list:
                 runs_list.insert(0, target_run_ts)
-            r2_put_json(r2, MANIFEST_KEY, {"runs": runs_list[:MAX_RUNS]})
+            active_runs = runs_list[:MAX_RUNS]
+            r2_put_json(r2, MANIFEST_KEY, {"runs": active_runs})
             print(f"Archived run {target_run_ts} ({min(len(runs_list), MAX_RUNS)} in manifest).")
+            
+            # Clean up old run JSONs and radar readings from R2
+            cleanup_old_gaugecheck_runs(r2, active_runs)
+            cleanup_old_radar_readings(r2)
+            
             print("Done.")
 
         # Update prev_flags for the next target_dt in our loop
