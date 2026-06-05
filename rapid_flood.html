@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO -->
+    <title>Rapid Flood Guidance | Flood Forecast</title>
+    <meta name="description" content="Latest Rapid Flood Guidance for England and Wales, displaying urgent flood risk updates.">
+    <meta name="keywords" content="rapid flood guidance, flood forecasting centre, flash flood warnings, severe weather alerts, UK floods">
+    <meta name="author" content="Flood Forecast">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://robertcowling.github.io/radar/rapid_flood.html">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon.png">
+    
+    <!-- Google Fonts & Material Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        :root {
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1;
+            --slate-400: #94a3b8;
+            --slate-500: #64748b;
+            --slate-600: #475569;
+            --slate-700: #334155;
+            --slate-800: #1e293b;
+            --slate-900: #0f172a;
+            
+            --blue-50: #eff6ff;
+            --blue-100: #dbeafe;
+            --blue-500: #3b82f6;
+            --blue-600: #2563eb;
+            --blue-700: #1d4ed8;
+            
+            --amber-50: #fffbeb;
+            --amber-100: #fef3c7;
+            --amber-500: #f59e0b;
+            --amber-600: #d97706;
+            --amber-800: #92400e;
+            
+            --green-50: #f0fdf4;
+            --green-100: #dcfce7;
+            --green-600: #16a34a;
+            --green-700: #15803d;
+            --green-800: #166534;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--slate-50);
+            color: var(--slate-800);
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--slate-100);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--slate-400);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--slate-500);
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: var(--slate-800);
+            color: #ffffff;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            border-bottom: 2px solid var(--slate-700);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .nav-container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            text-decoration: none;
+            transition: opacity 0.15s;
+        }
+        .nav-brand:hover {
+            opacity: 0.9;
+        }
+        .nav-logo {
+            width: 28px;
+            height: 28px;
+        }
+        .nav-links {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .nav-link {
+            color: var(--slate-300);
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: color 0.15s, background-color 0.15s;
+        }
+        .nav-link:hover {
+            color: #ffffff;
+            background-color: var(--slate-700);
+        }
+        .nav-link.active {
+            color: #ffffff;
+            background-color: var(--blue-600);
+        }
+
+        /* Main layout */
+        .main-content {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 32px 24px 48px;
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: 2.2fr 1fr;
+            gap: 28px;
+            flex: 1;
+        }
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                padding: 20px 16px 32px;
+                gap: 20px;
+            }
+        }
+
+        /* Header area */
+        .header-section {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 1px solid var(--slate-200);
+            padding-bottom: 20px;
+            gap: 16px;
+        }
+        @media (max-width: 640px) {
+            .header-section {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+        .header-title-area h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--slate-900);
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .info-btn {
+            background: none;
+            border: none;
+            color: var(--slate-400);
+            cursor: pointer;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            transition: color 0.15s;
+        }
+        .info-btn:hover {
+            color: var(--blue-600);
+        }
+        .header-title-area p {
+            margin: 6px 0 0;
+            font-size: 14px;
+            color: var(--slate-500);
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* Badges */
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 12.5px;
+            font-weight: 700;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            border-width: 1px;
+            border-style: solid;
+        }
+        .status-badge.active {
+            background-color: var(--amber-50);
+            border-color: var(--amber-100);
+            color: var(--amber-800);
+        }
+        .status-badge.inactive {
+            background-color: var(--green-50);
+            border-color: var(--green-100);
+            color: var(--green-800);
+        }
+        .status-badge .material-icons {
+            font-size: 16px;
+        }
+
+        /* Buttons */
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #ffffff;
+            color: var(--slate-700);
+            border: 1px solid var(--slate-300);
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+        .btn-action:hover {
+            color: var(--blue-700);
+            border-color: var(--slate-400);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .btn-action .material-icons {
+            font-size: 16px;
+            color: var(--slate-500);
+        }
+        .btn-action:hover .material-icons {
+            color: var(--blue-600);
+        }
+
+        /* Alerts */
+        .alert-banner {
+            grid-column: 1 / -1;
+            background-color: var(--amber-50);
+            border-left: 4px solid var(--amber-500);
+            border-radius: 0 8px 8px 0;
+            padding: 16px;
+            display: flex;
+            gap: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .alert-banner .material-icons {
+            color: var(--amber-600);
+            font-size: 24px;
+        }
+        .alert-content h4 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--amber-800);
+        }
+        .alert-content p {
+            margin: 4px 0 0;
+            font-size: 12.5px;
+            color: var(--amber-800);
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        /* Card panels */
+        .card {
+            background-color: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+        }
+
+        /* PDF Card */
+        #pdf-card {
+            min-height: 600px;
+        }
+        .pdf-frame-wrapper {
+            height: 1090px;
+            overflow: hidden;
+            position: relative;
+            background-color: var(--slate-100);
+        }
+        @media (max-width: 768px) {
+            .pdf-frame-wrapper {
+                height: 750px;
+            }
+        }
+        #pdf-iframe {
+            width: 100%;
+            height: 1300px;
+            border: none;
+        }
+        .pdf-footer {
+            border-top: 1px solid var(--slate-200);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--slate-50);
+        }
+        .pdf-footer-text {
+            font-size: 12px;
+            color: var(--slate-400);
+        }
+        .pdf-footer-link {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--blue-600);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .pdf-footer-link:hover {
+            text-decoration: underline;
+            color: var(--blue-700);
+        }
+        .pdf-footer-link .material-icons {
+            font-size: 16px;
+        }
+
+        /* Sidebar meta cards */
+        .meta-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .meta-card {
+            background-color: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            display: flex;
+            flex-direction: column;
+        }
+        .meta-lbl {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--slate-400);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 6px;
+        }
+        .meta-val {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--slate-900);
+        }
+        .meta-sub {
+            font-size: 13px;
+            color: var(--slate-500);
+            margin-top: 2px;
+        }
+        .meta-mono {
+            font-family: monospace;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--slate-700);
+        }
+
+        /* History Table Card */
+        .history-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--slate-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .history-header h3 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--slate-900);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .history-table th {
+            padding: 10px 20px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--slate-400);
+            text-transform: uppercase;
+            text-align: left;
+            border-bottom: 1px solid var(--slate-100);
+            background-color: var(--slate-50);
+        }
+        .history-table td {
+            padding: 12px 20px;
+            font-size: 13.5px;
+            border-bottom: 1px solid var(--slate-100);
+            vertical-align: middle;
+        }
+        .history-table tr:last-child td {
+            border-bottom: none;
+        }
+        .history-table tbody tr:hover {
+            background-color: var(--slate-50);
+        }
+        .history-id {
+            font-weight: 700;
+            color: var(--slate-700);
+            font-family: monospace;
+        }
+        .history-date {
+            color: var(--slate-800);
+            font-weight: 500;
+        }
+        .history-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--slate-400);
+            text-decoration: none;
+            transition: color 0.15s;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .history-action-btn:hover {
+            color: var(--blue-600);
+            background-color: var(--slate-100);
+        }
+        .history-action-btn .material-icons {
+            font-size: 20px;
+        }
+        .history-empty {
+            padding: 24px !important;
+            text-align: center;
+            color: var(--slate-400);
+            font-size: 13px;
+        }
+
+        /* Loading / Error states */
+        .loading-state {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 24px;
+            text-align: center;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--slate-200);
+            border-top: 3px solid var(--blue-500);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text {
+            font-size: 14px;
+            color: var(--slate-500);
+            font-weight: 500;
+        }
+
+        .no-data-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 24px;
+            text-align: center;
+        }
+        .no-data-card .material-icons {
+            font-size: 48px;
+            color: var(--slate-300);
+            margin-bottom: 12px;
+        }
+        .no-data-card p {
+            margin: 0;
+            font-size: 14px;
+            color: var(--slate-500);
+        }
+
+        /* Sync status bar */
+        .sync-bar {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: flex-end;
+            font-size: 12px;
+            color: var(--slate-400);
+            margin-top: -12px;
+            font-weight: 500;
+        }
+
+        /* Modal popup styling */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-backdrop.open {
+            display: flex;
+        }
+        .modal {
+            background-color: #ffffff;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: modalIn 0.2s ease-out;
+        }
+        @keyframes modalIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--slate-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--slate-50);
+        }
+        .modal-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--slate-900);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-header h3 .material-icons {
+            color: var(--blue-500);
+        }
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: var(--slate-400);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            border-radius: 4px;
+            transition: color 0.15s, background-color 0.15s;
+        }
+        .modal-close-btn:hover {
+            color: var(--slate-700);
+            background-color: var(--slate-200);
+        }
+        .modal-body {
+            padding: 24px;
+            font-size: 13.5px;
+            color: var(--slate-600);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .modal-body p {
+            margin: 0;
+        }
+        .modal-body a {
+            color: var(--blue-600);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .modal-body a:hover {
+            text-decoration: underline;
+        }
+        .modal-alert {
+            background-color: var(--blue-50);
+            border: 1px solid var(--blue-100);
+            border-radius: 8px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .modal-alert-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--blue-700);
+        }
+        .modal-alert-desc {
+            font-size: 12px;
+            color: var(--blue-700);
+            opacity: 0.9;
+        }
+        .modal-footer {
+            padding: 12px 24px;
+            border-top: 1px solid var(--slate-200);
+            display: flex;
+            justify-content: flex-end;
+            background-color: var(--slate-50);
+        }
+        .modal-btn {
+            background-color: var(--slate-200);
+            color: var(--slate-700);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+        .modal-btn:hover {
+            background-color: var(--slate-300);
+            color: var(--slate-800);
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: auto;
+            border-top: 1px solid var(--slate-200);
+            padding: 20px 24px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--slate-400);
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">
+                <img src="favicon.png" alt="Logo" class="nav-logo">
+                <span>Flood Forecast</span>
+            </a>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">Radar Map</a>
+                <a href="warnings.html" class="nav-link">Warnings Map</a>
+                <a href="gaugecheck.html" class="nav-link">Gauge QC</a>
+                <a href="ukv.html" class="nav-link">UKV Model</a>
+                <a href="menu.html" class="nav-link">Menu</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Loading State -->
+    <div id="loading-state" class="loading-state">
+        <div id="loading-spinner" class="spinner"></div>
+        <div id="loading-text" class="loading-text">Loading Rapid Flood Guidance...</div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main id="main-dashboard" class="main-content" style="display: none; opacity: 0; transition: opacity 0.3s ease;">
+        
+        <!-- Header -->
+        <div class="header-section">
+            <div class="header-title-area">
+                <h1>
+                    Rapid Flood Guidance
+                    <button class="info-btn" onclick="openModal()" title="About this data">
+                        <span class="material-icons">info</span>
+                    </button>
+                </h1>
+                <p>Ad-hoc guidance issued for rapid-response or flash flooding scenarios.</p>
+            </div>
+            <div class="header-actions">
+                <!-- Status Badge -->
+                <div id="status-badge" class="status-badge inactive">
+                    <span class="material-icons">sync</span> Checking...
+                </div>
+                <!-- Top Download PDF -->
+                <a id="pdf-link-top" href="#" target="_blank" class="btn-action" style="display: none;">
+                    <span class="material-icons">open_in_new</span>
+                    Open full PDF
+                </a>
+            </div>
+        </div>
+
+        <!-- Alert Banner (shown only when guidance active) -->
+        <div id="status-banner" class="alert-banner" style="display: none;">
+            <span class="material-icons">warning</span>
+            <div class="alert-content">
+                <h4>Rapid Flooding Guidance is currently active</h4>
+                <p>The Flood Forecasting Centre has issued live Rapid Flood Guidance due to an increased risk of fast-responding flooding. View the document below or download the PDF for details.</p>
+            </div>
+        </div>
+
+        <!-- Main Column: PDF Viewer -->
+        <div class="card" id="pdf-card">
+            <div class="pdf-frame-wrapper">
+                <iframe id="pdf-iframe" title="Rapid Flood Guidance PDF" src="">
+                    <p class="p-6 text-slate-500">
+                        Your browser cannot display PDFs inline.
+                        <a id="pdf-fallback-link" href="#" target="_blank" class="underline text-blue-600">Open PDF</a>
+                    </p>
+                </iframe>
+            </div>
+            <div class="pdf-footer">
+                <span class="pdf-footer-text">Showing page 1 only</span>
+                <a id="pdf-link-bottom" href="#" target="_blank" class="pdf-footer-link">
+                    <span class="material-icons">picture_as_pdf</span>
+                    View full document
+                </a>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar-area">
+            
+            <!-- Metadata Cards -->
+            <div class="meta-grid">
+                <div class="meta-card">
+                    <span class="meta-lbl">Issued</span>
+                    <span id="meta-issued">
+                        <span class="meta-val">Loading...</span>
+                    </span>
+                </div>
+                
+                <div class="meta-card">
+                    <span class="meta-lbl">Last Updated</span>
+                    <span id="meta-updated">
+                        <span class="meta-val">Loading...</span>
+                    </span>
+                </div>
+
+                <div class="meta-card">
+                    <span class="meta-lbl">Guidance ID</span>
+                    <span id="meta-id" class="meta-mono">#—</span>
+                </div>
+            </div>
+
+            <!-- Historical Log Card -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="history-header">
+                    <h3>Recent Updates</h3>
+                </div>
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Issued At</th>
+                            <th style="width: 48px;">PDF</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-list">
+                        <tr>
+                            <td colspan="3" class="history-empty">Loading history...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+
+        <!-- Sync Time Indicator -->
+        <div id="sync-time" class="sync-bar">
+            Synced: —
+        </div>
+
+    </main>
+
+    <!-- Info Modal -->
+    <div id="info-modal" class="modal-backdrop">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><span class="material-icons">info</span> About this Data</h3>
+                <button class="modal-close-btn" onclick="closeModal()">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    This page shows the latest issued <strong>Rapid Flood Guidance (RFG)</strong>. RFGs are ad-hoc documents issued by the 
+                    <a href="https://www.gov.uk/government/organisations/flood-forecasting-centre" target="_blank">Flood Forecasting Centre</a> 
+                    outside the regular daily Flood Guidance Statement cycles. 
+                </p>
+                <p>
+                    They are typically triggered by fast-responding flood hazards, such as sudden heavy convective downpours leading to flash flooding risk, where local authorities and emergency responders need immediate tactical guidance.
+                </p>
+                <div class="modal-alert">
+                    <span class="modal-alert-title">Operational Support</span>
+                    <span class="modal-alert-desc">This website is <strong>not operationally supported</strong>. Refer directly to official FFC channels for emergency management decision-making.</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        &copy; 2026 UK Radar Project
+    </footer>
+
+    <!-- Client-side Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const jsonUrl = 'rfg/rfg_latest.json?_cb=' + Date.now();
+            
+            // Elements
+            const loadingState = document.getElementById('loading-state');
+            const mainDashboard = document.getElementById('main-dashboard');
+            const statusBadge = document.getElementById('status-badge');
+            const statusBanner = document.getElementById('status-banner');
+            
+            const metaIssued = document.getElementById('meta-issued');
+            const metaUpdated = document.getElementById('meta-updated');
+            const metaId = document.getElementById('meta-id');
+            const pdfIframe = document.getElementById('pdf-iframe');
+            const pdfLinkBottom = document.getElementById('pdf-link-bottom');
+            const pdfLinkTop = document.getElementById('pdf-link-top');
+            const pdfFallbackLink = document.getElementById('pdf-fallback-link');
+            const historyList = document.getElementById('history-list');
+            const syncTime = document.getElementById('sync-time');
+            
+            fetch(jsonUrl)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    loadingState.style.display = 'none';
+                    mainDashboard.style.display = 'grid';
+                    setTimeout(() => {
+                        mainDashboard.style.opacity = '1';
+                    }, 50);
+                    
+                    renderDashboard(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching RFG latest:', error);
+                    document.getElementById('loading-text').textContent = 'Failed to load Rapid Flood Guidance. Verify that files are correctly synced.';
+                    document.getElementById('loading-spinner').style.display = 'none';
+                });
+
+            function formatUKDateTime(isoString) {
+                if (!isoString) return { date: 'N/A', time: '', shortDate: 'N/A' };
+                const date = new Date(isoString);
+                
+                const dateOpts = { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Europe/London' };
+                let dateStr = date.toLocaleDateString('en-GB', dateOpts);
+                
+                const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short', timeZone: 'Europe/London' };
+                let timeStr = date.toLocaleTimeString('en-GB', timeOpts);
+                
+                const shortOpts = { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/London' };
+                let shortDateStr = date.toLocaleDateString('en-GB', shortOpts);
+                
+                return { date: dateStr, time: timeStr, shortDate: shortDateStr };
+            }
+
+            function renderDashboard(data) {
+                const isPresent = data.status === 'Rapid Flooding Guidance Present';
+                
+                // 1. Render Status Badges and Banner
+                if (isPresent) {
+                    statusBadge.className = 'status-badge active';
+                    statusBadge.innerHTML = '<span class="material-icons">warning</span> Active Guidance Issued';
+                    statusBanner.style.display = 'flex';
+                } else {
+                    statusBadge.className = 'status-badge inactive';
+                    statusBadge.innerHTML = '<span class="material-icons">check_circle</span> No Active Guidance';
+                    statusBanner.style.display = 'none';
+                }
+                
+                // Render sync time
+                if (data.generated_at) {
+                    const genTime = formatUKDateTime(data.generated_at);
+                    syncTime.textContent = `Synced: ${genTime.date} at ${genTime.time}`;
+                }
+                
+                const latest = data.latest_rfg;
+                if (latest) {
+                    // 2. Render Meta Info
+                    const issuedFmt = formatUKDateTime(latest.issued_at);
+                    metaIssued.innerHTML = `
+                        <div class="meta-val">${issuedFmt.date}</div>
+                        <div class="meta-sub">${issuedFmt.time}</div>
+                    `;
+                    
+                    const updatedFmt = formatUKDateTime(latest.last_updated);
+                    metaUpdated.innerHTML = `
+                        <div class="meta-val">${updatedFmt.date}</div>
+                        <div class="meta-sub">${updatedFmt.time}</div>
+                    `;
+                    
+                    metaId.textContent = `#${latest.id}`;
+                    
+                    // 3. Render PDF Iframe
+                    const pdfUrl = latest.pdf_url;
+                    pdfIframe.src = `${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
+                    pdfLinkBottom.href = pdfUrl;
+                    pdfLinkTop.href = pdfUrl;
+                    pdfFallbackLink.href = pdfUrl;
+                    pdfLinkTop.style.display = 'inline-flex';
+                } else {
+                    // No latest guidance
+                    document.getElementById('pdf-card').innerHTML = `
+                        <div class="no-data-card">
+                            <span class="material-icons">water_drop</span>
+                            <p>No Rapid Flood Guidance documents are currently available.</p>
+                        </div>
+                    `;
+                    pdfLinkTop.style.display = 'none';
+                }
+                
+                // 4. Render History Log
+                const updates = data.rfg_updates || [];
+                if (updates.length > 0) {
+                    historyList.innerHTML = '';
+                    updates.forEach(upd => {
+                        const row = document.createElement('tr');
+                        const timeFmt = formatUKDateTime(upd.issued_at);
+                        
+                        row.innerHTML = `
+                            <td><span class="history-id">#${upd.id}</span></td>
+                            <td>
+                                <div class="history-date">${timeFmt.shortDate}</div>
+                            </td>
+                            <td>
+                                <a href="${upd.pdf_url}" target="_blank" class="history-action-btn" title="Open PDF">
+                                    <span class="material-icons">picture_as_pdf</span>
+                                </a>
+                            </td>
+                        `;
+                        historyList.appendChild(row);
+                    });
+                } else {
+                    historyList.innerHTML = '<tr><td colspan="3" class="history-empty">No historical updates recorded.</td></tr>';
+                }
+            }
+        });
+
+        // Modal Functions
+        function openModal() {
+            document.getElementById('info-modal').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('info-modal').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        // Close modal when clicking on background backdrop
+        document.getElementById('info-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

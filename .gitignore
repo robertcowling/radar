@@ -12,6 +12,7 @@ data_aifs_mslp/
 static/mslp/
 static/aifs_mslp/
 warnings/archive/
+rfg/archive/
 static/radar5/
 static/radar5_gh/
 data_h5_opera/
