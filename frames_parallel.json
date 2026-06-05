@@ -1,13 +1,5 @@
 [
   {
-    "time": "Wed 03 Jun 2026 16:30 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202606031630_ODIM_ng_radar_rainrate_composite_1km_UK.png",
-    "sat_url_bw": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606031630_ODIM_ng_radar_rainrate_composite_1km_UK_sat_bw.jpg",
-    "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606031630_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg",
-    "sat_url_ir": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606031630_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg",
-    "sat_url_ir_grey": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606031630_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir_grey.jpg"
-  },
-  {
     "time": "Wed 03 Jun 2026 16:45 UTC",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202606031645_ODIM_ng_radar_rainrate_composite_1km_UK.png",
     "sat_url_bw": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606031645_ODIM_ng_radar_rainrate_composite_1km_UK_sat_bw.jpg",
@@ -1498,5 +1490,12 @@
     "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606051615_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg",
     "sat_url_ir": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606051615_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg",
     "sat_url_ir_grey": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606051615_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir_grey.jpg"
+  },
+  {
+    "time": "Fri 05 Jun 2026 16:30 UTC",
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202606051630_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_vis": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606051630_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg",
+    "sat_url_ir": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606051630_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg",
+    "sat_url_ir_grey": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202606051630_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir_grey.jpg"
   }
 ]
