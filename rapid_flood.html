@@ -710,7 +710,7 @@
                     <thead>
                         <tr>
                             <th>Id</th>
-                            <th>Issued At</th>
+                            <th>Last Updated</th>
                             <th style="width: 48px;">Pdf</th>
                         </tr>
                     </thead>
@@ -883,7 +883,7 @@
                     historyList.innerHTML = '';
                     updates.forEach(upd => {
                         const row = document.createElement('tr');
-                        const timeFmt = formatUKDateTime(upd.issued_at);
+                        const timeFmt = formatUKDateTime(upd.last_updated || upd.issued_at);
                         
                         row.innerHTML = `
                             <td><span class="history-id">#${upd.id}</span></td>
