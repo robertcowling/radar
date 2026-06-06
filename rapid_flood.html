@@ -815,12 +815,9 @@
                 
                 const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short', timeZone: 'Europe/London' };
                 let timeStr = date.toLocaleTimeString('en-GB', timeOpts);
-                // Title case timezone abbreviations (e.g. GMT -> Gmt, BST -> Bst)
-                timeStr = timeStr.replace(/([A-Z]{3,4})/g, match => match.charAt(0) + match.slice(1).toLowerCase());
                 
                 const shortOpts = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short', timeZone: 'Europe/London' };
                 let shortDateStr = date.toLocaleDateString('en-GB', shortOpts);
-                shortDateStr = shortDateStr.replace(/([A-Z]{3,4})/g, match => match.charAt(0) + match.slice(1).toLowerCase());
                 
                 return { date: dateStr, time: timeStr, shortDate: shortDateStr };
             }
