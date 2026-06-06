@@ -80,68 +80,7 @@
             background: var(--slate-500);
         }
 
-        /* Navbar */
-        .navbar {
-            background-color: var(--slate-800);
-            color: #ffffff;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            border-bottom: 2px solid var(--slate-700);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .nav-container {
-            width: 100%;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-sizing: border-box;
-        }
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 18px;
-            font-weight: 700;
-            color: #ffffff;
-            text-decoration: none;
-            transition: opacity 0.15s;
-        }
-        .nav-brand:hover {
-            opacity: 0.9;
-        }
-        .nav-logo {
-            width: 28px;
-            height: 28px;
-        }
-        .nav-links {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-        .nav-link {
-            color: var(--slate-300);
-            text-decoration: none;
-            font-size: 13.5px;
-            font-weight: 500;
-            padding: 6px 12px;
-            border-radius: 6px;
-            transition: color 0.15s, background-color 0.15s;
-        }
-        .nav-link:hover {
-            color: #ffffff;
-            background-color: var(--slate-700);
-        }
-        .nav-link.active {
-            color: #ffffff;
-            background-color: var(--blue-600);
-        }
+        /* Navbar removed */
 
         /* Main layout */
         .main-content {
@@ -384,9 +323,7 @@
         .meta-lbl {
             font-size: 11px;
             font-weight: 700;
-            color: var(--slate-400);
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
+            color: var(--slate-500);
             margin-bottom: 6px;
         }
         .meta-val {
@@ -419,8 +356,6 @@
             font-size: 14px;
             font-weight: 700;
             color: var(--slate-900);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
         .history-table {
             width: 100%;
@@ -430,8 +365,7 @@
             padding: 10px 20px;
             font-size: 11px;
             font-weight: 700;
-            color: var(--slate-400);
-            text-transform: uppercase;
+            color: var(--slate-500);
             text-align: left;
             border-bottom: 1px solid var(--slate-100);
             background-color: var(--slate-50);
@@ -681,27 +615,10 @@
 </head>
 <body>
 
-    <!-- Navbar -->
-    <header class="navbar">
-        <div class="nav-container">
-            <a href="index.html" class="nav-brand">
-                <img src="favicon.png" alt="Logo" class="nav-logo">
-                <span>Flood Forecast</span>
-            </a>
-            <nav class="nav-links">
-                <a href="index.html" class="nav-link">Radar Map</a>
-                <a href="warnings.html" class="nav-link">Warnings Map</a>
-                <a href="gaugecheck.html" class="nav-link">Gauge QC</a>
-                <a href="ukv.html" class="nav-link">UKV Model</a>
-                <a href="menu.html" class="nav-link">Menu</a>
-            </nav>
-        </div>
-    </header>
-
     <!-- Loading State -->
     <div id="loading-state" class="loading-state">
         <div id="loading-spinner" class="spinner"></div>
-        <div id="loading-text" class="loading-text">Loading Rapid Flood Guidance...</div>
+        <div id="loading-text" class="loading-text">Loading rapid flood guidance...</div>
     </div>
 
     <!-- Main Content Area -->
@@ -711,7 +628,7 @@
         <div class="header-section">
             <div class="header-title-area">
                 <h1>
-                    Rapid Flood Guidance
+                    Rapid flood guidance
                     <button class="info-btn" onclick="openModal()" title="About this data">
                         <span class="material-icons">info</span>
                     </button>
@@ -721,12 +638,12 @@
             <div class="header-actions">
                 <!-- Status Badge -->
                 <div id="status-badge" class="status-badge inactive">
-                    <span class="material-icons">sync</span> Checking...
+                    <span class="material-icons">sync</span> checking...
                 </div>
                 <!-- Top Download PDF -->
                 <a id="pdf-link-top" href="#" target="_blank" class="btn-action" style="display: none;">
                     <span class="material-icons">open_in_new</span>
-                    Open full PDF
+                    Open full pdf
                 </a>
             </div>
         </div>
@@ -735,8 +652,8 @@
         <div id="status-banner" class="alert-banner" style="display: none;">
             <span class="material-icons">warning</span>
             <div class="alert-content">
-                <h4>Rapid Flooding Guidance is currently active</h4>
-                <p>The Flood Forecasting Centre has issued live Rapid Flood Guidance due to an increased risk of fast-responding flooding. View the document below or download the PDF for details.</p>
+                <h4>Rapid flood guidance is currently active</h4>
+                <p>The Flood Forecasting Centre has issued live rapid flood guidance due to an increased risk of fast-responding flooding. View the document below or download the pdf for details.</p>
             </div>
         </div>
 
@@ -767,19 +684,19 @@
                 <div class="meta-card">
                     <span class="meta-lbl">Issued</span>
                     <span id="meta-issued">
-                        <span class="meta-val">Loading...</span>
+                        <span class="meta-val">loading...</span>
                     </span>
                 </div>
                 
                 <div class="meta-card">
-                    <span class="meta-lbl">Last Updated</span>
+                    <span class="meta-lbl">Last updated</span>
                     <span id="meta-updated">
-                        <span class="meta-val">Loading...</span>
+                        <span class="meta-val">loading...</span>
                     </span>
                 </div>
 
                 <div class="meta-card">
-                    <span class="meta-lbl">Guidance ID</span>
+                    <span class="meta-lbl">Guidance id</span>
                     <span id="meta-id" class="meta-mono">#—</span>
                 </div>
             </div>
@@ -787,14 +704,14 @@
             <!-- Historical Log Card -->
             <div class="card" style="margin-bottom: 24px;">
                 <div class="history-header">
-                    <h3>Recent Updates</h3>
+                    <h3>Recent updates</h3>
                 </div>
                 <table class="history-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Issued At</th>
-                            <th style="width: 48px;">PDF</th>
+                            <th>Id</th>
+                            <th>Issued at</th>
+                            <th style="width: 48px;">pdf</th>
                         </tr>
                     </thead>
                     <tbody id="history-list">
@@ -818,23 +735,23 @@
     <div id="info-modal" class="modal-backdrop">
         <div class="modal">
             <div class="modal-header">
-                <h3><span class="material-icons">info</span> About this Data</h3>
+                <h3><span class="material-icons">info</span> About this data</h3>
                 <button class="modal-close-btn" onclick="closeModal()">
                     <span class="material-icons">close</span>
                 </button>
             </div>
             <div class="modal-body">
                 <p>
-                    This page shows the latest issued <strong>Rapid Flood Guidance (RFG)</strong>. RFGs are ad-hoc documents issued by the 
+                    This page shows the latest issued <strong>rapid flood guidance (rfg)</strong>. rfgs are ad-hoc documents issued by the 
                     <a href="https://www.gov.uk/government/organisations/flood-forecasting-centre" target="_blank">Flood Forecasting Centre</a> 
-                    outside the regular daily Flood Guidance Statement cycles. 
+                    outside the regular daily flood guidance statement cycles. 
                 </p>
                 <p>
                     They are typically triggered by fast-responding flood hazards, such as sudden heavy convective downpours leading to flash flooding risk, where local authorities and emergency responders need immediate tactical guidance.
                 </p>
                 <div class="modal-alert">
-                    <span class="modal-alert-title">Operational Support</span>
-                    <span class="modal-alert-desc">This website is <strong>not operationally supported</strong>. Refer directly to official FFC channels for emergency management decision-making.</span>
+                    <span class="modal-alert-title">Operational support</span>
+                    <span class="modal-alert-desc">This website is <strong>not operationally supported</strong>. Refer directly to official Ffc channels for emergency management decision-making.</span>
                 </div>
             </div>
             <div class="modal-footer">
@@ -897,10 +814,10 @@
                 let dateStr = date.toLocaleDateString('en-GB', dateOpts);
                 
                 const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short', timeZone: 'Europe/London' };
-                let timeStr = date.toLocaleTimeString('en-GB', timeOpts);
+                let timeStr = date.toLocaleTimeString('en-GB', timeOpts).toLowerCase();
                 
                 const shortOpts = { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/London' };
-                let shortDateStr = date.toLocaleDateString('en-GB', shortOpts);
+                let shortDateStr = date.toLocaleDateString('en-GB', shortOpts).toLowerCase();
                 
                 return { date: dateStr, time: timeStr, shortDate: shortDateStr };
             }
@@ -911,11 +828,11 @@
                 // 1. Render Status Badges and Banner
                 if (isPresent) {
                     statusBadge.className = 'status-badge active';
-                    statusBadge.innerHTML = '<span class="material-icons">warning</span> Active Guidance Issued';
+                    statusBadge.innerHTML = '<span class="material-icons">warning</span> Active guidance issued';
                     statusBanner.style.display = 'flex';
                 } else {
                     statusBadge.className = 'status-badge inactive';
-                    statusBadge.innerHTML = '<span class="material-icons">check_circle</span> No Active Guidance';
+                    statusBadge.innerHTML = '<span class="material-icons">check_circle</span> No active rapid flood guidance';
                     statusBanner.style.display = 'none';
                 }
                 
@@ -947,14 +864,14 @@
                     pdfIframe.src = `${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
                     pdfLinkBottom.href = pdfUrl;
                     pdfLinkTop.href = pdfUrl;
-                    pdfFallbackLink.href = pdfUrl;
+                    if (pdfFallbackLink) pdfFallbackLink.href = pdfUrl;
                     pdfLinkTop.style.display = 'inline-flex';
                 } else {
                     // No latest guidance
                     document.getElementById('pdf-card').innerHTML = `
                         <div class="no-data-card">
                             <span class="material-icons">water_drop</span>
-                            <p>No Rapid Flood Guidance documents are currently available.</p>
+                            <p>No rapid flood guidance documents are currently available.</p>
                         </div>
                     `;
                     pdfLinkTop.style.display = 'none';
@@ -974,7 +891,7 @@
                                 <div class="history-date">${timeFmt.shortDate}</div>
                             </td>
                             <td>
-                                <a href="${upd.pdf_url}" target="_blank" class="history-action-btn" title="Open PDF">
+                                <a href="${upd.pdf_url}" target="_blank" class="history-action-btn" title="Open pdf">
                                     <span class="material-icons">picture_as_pdf</span>
                                 </a>
                             </td>

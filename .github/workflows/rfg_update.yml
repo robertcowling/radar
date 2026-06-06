@@ -1,9 +1,6 @@
 name: Fetch Rapid Flood Guidance
 
 on:
-  # Run every 15 minutes, mirroring the radar/warnings pipeline frequency
-  schedule:
-    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
