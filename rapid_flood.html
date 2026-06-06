@@ -618,7 +618,7 @@
     <!-- Loading State -->
     <div id="loading-state" class="loading-state">
         <div id="loading-spinner" class="spinner"></div>
-        <div id="loading-text" class="loading-text">Loading rapid flood guidance...</div>
+        <div id="loading-text" class="loading-text">Loading Rapid Flood Guidance...</div>
     </div>
 
     <!-- Main Content Area -->
@@ -628,7 +628,7 @@
         <div class="header-section">
             <div class="header-title-area">
                 <h1>
-                    Rapid flood guidance
+                    Rapid Flood Guidance
                     <button class="info-btn" onclick="openModal()" title="About this data">
                         <span class="material-icons">info</span>
                     </button>
@@ -638,12 +638,12 @@
             <div class="header-actions">
                 <!-- Status Badge -->
                 <div id="status-badge" class="status-badge inactive">
-                    <span class="material-icons">sync</span> checking...
+                    <span class="material-icons">sync</span> Checking...
                 </div>
                 <!-- Top Download PDF -->
                 <a id="pdf-link-top" href="#" target="_blank" class="btn-action" style="display: none;">
                     <span class="material-icons">open_in_new</span>
-                    Open full pdf
+                    Open Full Pdf
                 </a>
             </div>
         </div>
@@ -652,18 +652,18 @@
         <div id="status-banner" class="alert-banner" style="display: none;">
             <span class="material-icons">warning</span>
             <div class="alert-content">
-                <h4>Rapid flood guidance is currently active</h4>
-                <p>The Flood Forecasting Centre has issued live rapid flood guidance due to an increased risk of fast-responding flooding. View the document below or download the pdf for details.</p>
+                <h4>Rapid Flood Guidance is currently active</h4>
+                <p>The Flood Forecasting Centre has issued live Rapid Flood Guidance due to an increased risk of fast-responding flooding. View the document below or download the Pdf for details.</p>
             </div>
         </div>
 
         <!-- Main Column: PDF Viewer -->
         <div class="card" id="pdf-card">
             <div class="pdf-frame-wrapper">
-                <iframe id="pdf-iframe" title="Rapid Flood Guidance PDF" src="">
+                <iframe id="pdf-iframe" title="Rapid Flood Guidance Pdf" src="">
                     <p class="p-6 text-slate-500">
-                        Your browser cannot display PDFs inline.
-                        <a id="pdf-fallback-link" href="#" target="_blank" class="underline text-blue-600">Open PDF</a>
+                        Your browser cannot display Pdfs inline.
+                        <a id="pdf-fallback-link" href="#" target="_blank" class="underline text-blue-600">Open Pdf</a>
                     </p>
                 </iframe>
             </div>
@@ -671,7 +671,7 @@
                 <span class="pdf-footer-text">Showing page 1 only</span>
                 <a id="pdf-link-bottom" href="#" target="_blank" class="pdf-footer-link">
                     <span class="material-icons">picture_as_pdf</span>
-                    View full document
+                    View Full Document
                 </a>
             </div>
         </div>
@@ -684,19 +684,19 @@
                 <div class="meta-card">
                     <span class="meta-lbl">Issued</span>
                     <span id="meta-issued">
-                        <span class="meta-val">loading...</span>
+                        <span class="meta-val">Loading...</span>
                     </span>
                 </div>
                 
                 <div class="meta-card">
-                    <span class="meta-lbl">Last updated</span>
+                    <span class="meta-lbl">Last Updated</span>
                     <span id="meta-updated">
-                        <span class="meta-val">loading...</span>
+                        <span class="meta-val">Loading...</span>
                     </span>
                 </div>
 
                 <div class="meta-card">
-                    <span class="meta-lbl">Guidance id</span>
+                    <span class="meta-lbl">Guidance Id</span>
                     <span id="meta-id" class="meta-mono">#—</span>
                 </div>
             </div>
@@ -704,19 +704,19 @@
             <!-- Historical Log Card -->
             <div class="card" style="margin-bottom: 24px;">
                 <div class="history-header">
-                    <h3>Recent updates</h3>
+                    <h3>Recent Updates</h3>
                 </div>
                 <table class="history-table">
                     <thead>
                         <tr>
                             <th>Id</th>
-                            <th>Issued at</th>
-                            <th style="width: 48px;">pdf</th>
+                            <th>Issued At</th>
+                            <th style="width: 48px;">Pdf</th>
                         </tr>
                     </thead>
                     <tbody id="history-list">
                         <tr>
-                            <td colspan="3" class="history-empty">Loading history...</td>
+                            <td colspan="3" class="history-empty">Loading History...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -735,14 +735,14 @@
     <div id="info-modal" class="modal-backdrop">
         <div class="modal">
             <div class="modal-header">
-                <h3><span class="material-icons">info</span> About this data</h3>
+                <h3><span class="material-icons">info</span> About this Data</h3>
                 <button class="modal-close-btn" onclick="closeModal()">
                     <span class="material-icons">close</span>
                 </button>
             </div>
             <div class="modal-body">
                 <p>
-                    This page shows the latest issued <strong>rapid flood guidance (rfg)</strong>. rfgs are ad-hoc documents issued by the 
+                    This page shows the latest issued <strong>Rapid Flood Guidance (Rfg)</strong>. Rfgs are ad-hoc documents issued by the 
                     <a href="https://www.gov.uk/government/organisations/flood-forecasting-centre" target="_blank">Flood Forecasting Centre</a> 
                     outside the regular daily flood guidance statement cycles. 
                 </p>
@@ -750,7 +750,7 @@
                     They are typically triggered by fast-responding flood hazards, such as sudden heavy convective downpours leading to flash flooding risk, where local authorities and emergency responders need immediate tactical guidance.
                 </p>
                 <div class="modal-alert">
-                    <span class="modal-alert-title">Operational support</span>
+                    <span class="modal-alert-title">Operational Support</span>
                     <span class="modal-alert-desc">This website is <strong>not operationally supported</strong>. Refer directly to official Ffc channels for emergency management decision-making.</span>
                 </div>
             </div>
@@ -814,10 +814,13 @@
                 let dateStr = date.toLocaleDateString('en-GB', dateOpts);
                 
                 const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short', timeZone: 'Europe/London' };
-                let timeStr = date.toLocaleTimeString('en-GB', timeOpts).toLowerCase();
+                let timeStr = date.toLocaleTimeString('en-GB', timeOpts);
+                // Title case timezone abbreviations (e.g. GMT -> Gmt, BST -> Bst)
+                timeStr = timeStr.replace(/([A-Z]{3,4})/g, match => match.charAt(0) + match.slice(1).toLowerCase());
                 
-                const shortOpts = { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/London' };
-                let shortDateStr = date.toLocaleDateString('en-GB', shortOpts).toLowerCase();
+                const shortOpts = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short', timeZone: 'Europe/London' };
+                let shortDateStr = date.toLocaleDateString('en-GB', shortOpts);
+                shortDateStr = shortDateStr.replace(/([A-Z]{3,4})/g, match => match.charAt(0) + match.slice(1).toLowerCase());
                 
                 return { date: dateStr, time: timeStr, shortDate: shortDateStr };
             }
@@ -828,11 +831,11 @@
                 // 1. Render Status Badges and Banner
                 if (isPresent) {
                     statusBadge.className = 'status-badge active';
-                    statusBadge.innerHTML = '<span class="material-icons">warning</span> Active guidance issued';
+                    statusBadge.innerHTML = '<span class="material-icons">warning</span> Active Guidance Issued';
                     statusBanner.style.display = 'flex';
                 } else {
                     statusBadge.className = 'status-badge inactive';
-                    statusBadge.innerHTML = '<span class="material-icons">check_circle</span> No active rapid flood guidance';
+                    statusBadge.innerHTML = '<span class="material-icons">check_circle</span> No Active Rapid Flood Guidance';
                     statusBanner.style.display = 'none';
                 }
                 
@@ -871,7 +874,7 @@
                     document.getElementById('pdf-card').innerHTML = `
                         <div class="no-data-card">
                             <span class="material-icons">water_drop</span>
-                            <p>No rapid flood guidance documents are currently available.</p>
+                            <p>No Rapid Flood Guidance documents are currently available.</p>
                         </div>
                     `;
                     pdfLinkTop.style.display = 'none';
@@ -891,7 +894,7 @@
                                 <div class="history-date">${timeFmt.shortDate}</div>
                             </td>
                             <td>
-                                <a href="${upd.pdf_url}" target="_blank" class="history-action-btn" title="Open pdf">
+                                <a href="${upd.pdf_url}" target="_blank" class="history-action-btn" title="Open Pdf">
                                     <span class="material-icons">picture_as_pdf</span>
                                 </a>
                             </td>
