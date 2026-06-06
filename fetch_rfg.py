@@ -29,8 +29,8 @@ ARCHIVE_PFX    = "rfg/archive"
 # ── FFC API Config ────────────────────────────────────────────────────────────
 # Default fallback to your active key
 FFC_API_KEY = (
-    os.environ.get("FGS_API_KEY", "").strip()
-    or os.environ.get("METEOGATE_API_KEY", "").strip()
+    os.environ.get("FFC_API_KEY", "").strip()
+    or os.environ.get("FGS_API_KEY", "").strip()
     or "4195a2d9d0a07d54be9178176db1f31b4d8553cdde736c11ec373b661ec520a3"
 )
 BASE_URL = "https://api.ffc-environment-agency.fgs.metoffice.gov.uk/api/public/v3/rfg"

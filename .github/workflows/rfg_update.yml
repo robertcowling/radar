@@ -33,6 +33,6 @@ jobs:
         R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+        FFC_API_KEY: ${{ secrets.FFC_API_KEY }}
         FGS_API_KEY: ${{ secrets.FGS_API_KEY }}
-        METEOGATE_API_KEY: ${{ secrets.METEOGATE_API_KEY }}
       run: python fetch_rfg.py
