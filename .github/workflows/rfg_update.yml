@@ -36,18 +36,3 @@ jobs:
         FGS_API_KEY: ${{ secrets.FGS_API_KEY }}
         METEOGATE_API_KEY: ${{ secrets.METEOGATE_API_KEY }}
       run: python fetch_rfg.py
-
-    - name: Commit local JSON results
-      run: |
-        git config --global user.name "Radar Automator"
-        git config --global user.email "radar-bot@github.com"
-        git add rfg/rfg_latest.json
-        git diff --cached --quiet && echo "No changes to commit" || {
-          git commit -m "Update rapid flood guidance $(date -u +'%Y-%m-%d %H:%M UTC')" || exit 1
-          n=0
-          until git pull --rebase -X theirs origin main && git push origin main; do
-            n=$((n+1)); [ $n -ge 3 ] && exit 1
-            echo "Push attempt $n/3 failed, retrying in $((n*5))s..."
-            sleep $((n*5))
-          done
-        }
