@@ -1,0 +1,1955 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>UK Radar (Night Mode)</title>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google Fonts: Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        /* Premium Custom Multi-Select Dropdowns for Warnings */
+        .custom-multiselect {
+            position: relative;
+            width: 100%;
+        }
+        .multiselect-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 8px 16px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #f3f4f6;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            user-select: none;
+            box-sizing: border-box;
+        }
+        .multiselect-trigger:hover {
+            background-color: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+        .multiselect-trigger .chevron {
+            color: #9ca3af;
+            transition: transform 0.2s ease;
+        }
+        .custom-multiselect.open .chevron {
+            transform: rotate(180deg);
+        }
+        .multiselect-options {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px); /* Pop downwards */
+            left: 0;
+            right: 0;
+            background: rgba(10, 17, 32, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 1010;
+            padding: 8px;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .custom-multiselect.open .multiselect-options {
+            display: block;
+        }
+        .option-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: #e5e7eb;
+            transition: background 0.15s, color 0.15s;
+            user-select: none;
+        }
+        .option-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #00f0ff;
+        }
+        .option-item input {
+            cursor: pointer;
+            width: 14px;
+            height: 14px;
+            margin-right: 8px;
+            accent-color: #00f0ff;
+            flex-shrink: 0;
+        }
+
+        /* Custom Leaflet Popup Styling */
+        .leaflet-popup-content-wrapper {
+            background: rgba(10, 17, 32, 0.96) !important;
+            color: #f3f4f6 !important;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+            border-radius: 12px;
+            padding: 0;
+            overflow: hidden;
+        }
+        .leaflet-popup-content {
+            margin: 0;
+            width: auto !important;
+        }
+        .leaflet-popup-close-button {
+            top: 10px !important;
+            right: 10px !important;
+            color: #9ca3af !important;
+        }
+        .leaflet-popup-close-button:hover {
+            color: #ffffff !important;
+        }
+        .leaflet-popup-tip {
+            background: rgba(10, 17, 32, 0.96) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        body {
+            padding: 0;
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            background: #030712;
+            color: #f3f4f6;
+        }
+
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .surface {
+            background: rgba(10, 17, 32, 0.82);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            transition: box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+
+        .surface:hover {
+            box-shadow: 0 12px 40px rgba(0, 240, 255, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+            border-color: rgba(0, 240, 255, 0.2);
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 24px;
+            z-index: 1000;
+            width: 270px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .info-panel.collapsed {
+            width: 220px;
+            height: auto;
+            padding: 8px 14px 10px 14px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 4px;
+            overflow: visible;
+        }
+
+        .info-panel.collapsed .collapsed-top-row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            width: 100%;
+            justify-content: space-between;
+            gap: 4px;
+        }
+
+        #collapsedTime {
+            display: none;
+            font-size: 13px;
+            font-weight: 500;
+            color: #00f0ff;
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+            white-space: nowrap;
+        }
+
+        .info-panel.collapsed #collapsedTime {
+            display: block;
+        }
+
+        .info-panel.collapsed .cbar-container {
+            margin: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        .info-panel.collapsed .cbar-container p {
+            display: none;
+        }
+
+        .info-panel.collapsed .cbar-container .cbar-labels {
+            position: relative;
+            height: 11px;
+            font-size: 8.5px;
+            margin-top: 3px;
+            line-height: 1;
+            width: 100%;
+        }
+
+        .info-panel.collapsed .cbar {
+            height: 6px;
+            margin: 0;
+            border-radius: 3px;
+        }
+
+        #infoToggle {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00f0ff;
+            margin-bottom: 0;
+            transition: transform 0.2s, filter 0.2s;
+        }
+
+        #infoToggle:hover {
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 4px rgba(0, 240, 255, 0.6));
+        }
+
+        .info-panel.collapsed .hide-collapsed {
+            display: none !important;
+        }
+
+        .info-panel #infoToggle {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+        }
+
+        .info-panel.collapsed #infoToggle {
+            position: static;
+        }
+
+        .info-panel h3 {
+            margin-right: 30px;
+            margin-top: 0;
+            color: #00f0ff;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+
+        .player-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            z-index: 1000;
+            width: 95%;
+            max-width: 950px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00f0ff, #0072ff);
+            color: #030712;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 700;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-width: 100px;
+            max-width: 140px;
+            z-index: 4;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, #33f3ff, #1a82ff);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+            transform: translateY(0);
+        }
+
+        select {
+            appearance: none;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 10px 36px 10px 20px;
+            border-radius: 24px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            color: #f3f4f6;
+            font-weight: 500;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            outline: none;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        select:hover {
+            background-color: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Timeline container & styling */
+        .timeline-container {
+            position: relative;
+            flex-grow: 1;
+            height: 48px;
+            display: flex;
+            align-items: center;
+        }
+
+        .timeline-track {
+            position: absolute;
+            top: 50%;
+            left: 9px;
+            right: 9px;
+            height: 6px;
+            margin-top: -3px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            z-index: 1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .loaded-progress {
+            height: 100%;
+            width: 0%;
+            background: rgba(255, 255, 255, 0.25);
+            transition: width 0.3s ease;
+        }
+
+        .timeline-ticks {
+            position: absolute;
+            top: 50%;
+            left: 8px;
+            /* Offset for thumb width center */
+            right: 8px;
+            height: 20px;
+            transform: translateY(-50%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .tick {
+            position: absolute;
+            width: 2px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            top: 7px;
+            transform: translateX(-50%);
+            border-radius: 1px;
+        }
+
+        .tick.hour {
+            height: 10px;
+            top: 5px;
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .tick-label {
+            position: absolute;
+            top: 24px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #9ca3af;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        .tick.today-mark {
+            width: auto;
+            background: transparent;
+            color: #00f0ff;
+            top: -22px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+            z-index: 3;
+            margin: 0;
+            position: relative;
+        }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: transparent;
+            border-radius: 3px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #00f0ff;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+            transition: transform 0.1s, box-shadow 0.1s;
+            border: 2px solid white;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+            box-shadow: 0 0 18px rgba(0, 240, 255, 0.9);
+        }
+
+        h3 {
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            color: #f3f4f6;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+        }
+
+        p {
+            margin: 0 0 6px 0;
+            font-size: 13px;
+            color: #9ca3af;
+        }
+
+        .time-box {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 4px solid #00f0ff;
+            box-shadow: inset 0 0 12px rgba(0, 240, 255, 0.04);
+            padding: 12px 16px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        /* Colorbar styling */
+        .cbar-container {
+            margin-top: 20px;
+        }
+
+        .cbar {
+            display: flex;
+            height: 10px;
+            width: 100%;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .cbar-block {
+            flex-grow: 1;
+        }
+
+        .cbar-labels {
+            position: relative;
+            height: 12px;
+            width: 100%;
+            font-size: 10px;
+            color: #9ca3af;
+            font-weight: 500;
+            margin-top: 2px;
+        }
+
+        .cbar-label {
+            position: absolute;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        .opacity-control {
+            margin-top: 20px;
+        }
+
+        .opacity-control label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #e5e7eb;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 3px;
+        }
+
+        .control-group.play-group {
+            align-items: center;
+        }
+
+        .control-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #9ca3af;
+            letter-spacing: 0.5px;
+            padding-left: 8px;
+        }
+
+        /* Custom checkbox */
+        .custom-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #e5e7eb;
+        }
+
+        .custom-checkbox input {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            accent-color: #00f0ff;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .player-panel {
+                width: calc(100% - 20px);
+                padding: 10px 12px;
+                gap: 8px;
+                bottom: 8px;
+                box-sizing: border-box;
+                flex-wrap: wrap;
+            }
+
+            .info-panel {
+                top: 10px;
+                right: 10px;
+                left: auto;
+                width: auto;
+                padding: 20px;
+            }
+
+            .info-panel.collapsed {
+                width: 200px;
+                height: auto;
+                border-radius: 18px;
+                padding: 8px 12px 10px 12px;
+                top: 15px;
+                right: 15px;
+            }
+
+            .info-panel:not(.collapsed) {
+                width: calc(100% - 30px);
+                left: 15px;
+                right: 15px;
+                top: 15px;
+                box-sizing: border-box;
+                /* Prevent panel overlapping the player controls at bottom.
+                   Player bar is ~80px tall, 8px from bottom. */
+                max-height: calc(100vh - 120px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .timeline-container {
+                width: 100%;
+                order: 4;
+                /* Push slider to bottom row */
+                margin-top: 5px;
+            }
+
+            .control-group {
+                flex: 1;
+            }
+
+            .control-group.play-group {
+                flex: 0 1 auto;
+                min-width: 80px;
+            }
+
+            #durationSelect,
+            #speedSelect {
+                width: 100%;
+                font-size: 13px;
+                padding: 8px 12px 8px 12px;
+                box-sizing: border-box;
+            }
+
+            #playBtn {
+                width: 100%;
+                padding: 8px 16px;
+                min-width: 0;
+                max-width: none;
+            }
+        }
+
+        /* Soft glowing cyan shadow on region boundaries */
+        .region-boundary {
+            filter: drop-shadow(0 0 3px rgba(0, 240, 255, 0.5));
+        }
+
+        /* Prevent browser from blurring upscaled radar images */
+        .sharp-radar {
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+        }
+        .option-item {
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .option-item:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+        .only-link {
+            font-size: 10px;
+            font-weight: 700;
+            color: #00f0ff;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.15s, background 0.15s;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+        .option-item:hover .only-link {
+            opacity: 1;
+        }
+        .only-link:hover {
+            background: rgba(0, 240, 255, 0.12);
+            color: #33f3ff;
+        }
+
+        /* Make navigation links pop as glowing cyan in dark mode */
+        .info-panel a {
+            color: #00f0ff !important;
+            transition: opacity 0.2s;
+        }
+        .info-panel a:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <div class="info-panel surface" id="infoPanel">
+        <div class="collapsed-top-row">
+            <div id="collapsedTime">Loading...</div>
+            <button id="infoToggle" onclick="toggleInfo()" title="Toggle Info">
+                <svg id="infoIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+            </button>
+        </div>
+
+        <div id="infoContentTop" class="hide-collapsed">
+            <h3 style="margin-top:0;">Rainfall Radar</h3>
+            <div class="time-box">
+                <p id="tzLabel" style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: 700; color: #00f0ff; letter-spacing: 0.5px;">Time (GMT)</p>
+                <div id="timeDisplay" style="font-size: 22px; font-weight: 700; color: #00f0ff; text-shadow: 0 0 10px rgba(0, 240, 255, 0.4); margin-top: 4px;">Loading...</div>
+            </div>
+        </div>
+
+        <div class="cbar-container">
+            <p style="font-weight:500; margin-bottom:10px; font-size:12px; color: #9ca3af;">Rainfall Rate (mm/hr)</p>
+            <div class="cbar" id="radarCbar"></div>
+            <div class="cbar-labels" id="radarLabels"></div>
+        </div>
+
+        <div id="infoContentBottom" class="hide-collapsed">
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px;">Weather Warnings</p>
+            <div style="margin-bottom: 24px; position: relative;">
+                <div class="custom-multiselect" id="warningsSelect">
+                    <div class="multiselect-trigger" onclick="toggleWarningsMultiselect(event)">
+                        <span class="trigger-text" id="warningsSelectText">No Warnings Overlayed</span>
+                        <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="multiselect-options" id="warningsOptions" style="display: none;">
+                        <div style="padding: 6px 12px; font-size: 12px; color: #9ca3af; font-weight: 500;">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px;">Boundaries</p>
+            <div style="margin-bottom: 24px;">
+                <label class="custom-checkbox" style="margin-bottom: 4px;">
+                    <input type="radio" name="boundaryLayer" value="none" onchange="onBoundaryChange('none')">
+                    None
+                </label>
+                <label class="custom-checkbox" style="margin-bottom: 4px;">
+                    <input type="radio" name="boundaryLayer" value="regions" checked onchange="onBoundaryChange('regions')">
+                    UK Regions
+                </label>
+                <label class="custom-checkbox" style="margin-bottom: 0;">
+                    <input type="radio" name="boundaryLayer" value="counties" onchange="onBoundaryChange('counties')">
+                    Counties
+                </label>
+            </div>
+
+            <div class="opacity-control" style="margin-top: 8px;">
+                <label class="custom-checkbox">
+                    <input type="checkbox" id="radarToggle" checked onchange="toggleRadar(this.checked)">
+                    Radar
+                </label>
+            </div>
+
+            <div class="opacity-control" style="margin-top: 8px;">
+                <label class="custom-checkbox">
+                    <input type="checkbox" id="mslpToggle" onchange="toggleMslp(this.checked)">
+                    MSLP analysis (GFS)
+                </label>
+            </div>
+
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px;">Radar Feed</p>
+            <div style="margin-bottom: 24px;">
+                <label class="custom-checkbox" style="margin-bottom: 4px;">
+                    <input type="radio" name="radarFeed" value="standard" onchange="onFeedChange('standard')">
+                    UK (standard)
+                </label>
+                <label class="custom-checkbox" style="margin-bottom: 0;">
+                    <input type="radio" name="radarFeed" value="parallel" checked onchange="onFeedChange('parallel')">
+                    Full domain
+                </label>
+                <a href="radar5/" style="font-size: 11px; color: #00f0ff; text-decoration: none; margin-left: 26px; display: block; margin-top: 4px; font-weight: 500;">
+                    Switch to MeteoGate 5-Min UK feed &rarr;
+                </a>
+            </div>
+
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px;">Satellite</p>
+            <div style="margin-bottom: 24px;">
+                <label class="custom-checkbox" style="margin-bottom: 4px;">
+                    <input type="radio" name="satLayer" value="none" checked onchange="onSatLayerChange('none')">
+                    None
+                </label>
+                <label class="custom-checkbox" style="margin-bottom: 4px;">
+                    <input type="radio" name="satLayer" value="geo" onchange="onSatLayerChange('geo')">
+                    Visible GeoColour
+                </label>
+                <label class="custom-checkbox" style="margin-bottom: 4px;">
+                    <input type="radio" name="satLayer" value="vis" onchange="onSatLayerChange('vis')">
+                    Visible Greyscale (day)
+                </label>
+                <label class="custom-checkbox" style="margin-bottom: 4px;">
+                    <input type="radio" name="satLayer" value="ir_grey" onchange="onSatLayerChange('ir_grey')">
+                    IR Greyscale
+                </label>
+                <label class="custom-checkbox" style="margin-bottom: 0;">
+                    <input type="radio" name="satLayer" value="ir" onchange="onSatLayerChange('ir')">
+                    IR False Colour
+                </label>
+            </div>
+
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px;">Navigation</p>
+            <div style="margin-bottom: 24px; font-size: 13px; font-weight: 500; display: flex; flex-direction: column; gap: 8px;">
+                <a href="gaugecheck.html" style="color: #00f0ff; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    Gauge QC Dashboard
+                </a>
+                <a href="cosmos/" style="color: #00f0ff; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    UK Soil Moisture
+                </a>
+                <a href="warnings.html" style="color: #00f0ff; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Weather Warnings Map
+                </a>
+                <a href="rapid_flood.html" style="color: #00f0ff; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                    Rapid Flood Guidance
+                </a>
+            </div>
+
+            <p style="font-size: 11px; margin-bottom: 4px; line-height: 1.5;">
+                <strong>Radar:</strong> <a href="https://www.metoffice.gov.uk/services/data/share-your-data" target="_blank" style="color:#00f0ff;">Met Office</a> ODIM H5 composite (1km) — Open Government Licence v3.0<br>
+                <strong>MSLP:</strong> <a href="https://www.noaa.gov" target="_blank" style="color:#00f0ff;">NOAA</a> / <a href="https://www.ncep.noaa.gov" target="_blank" style="color:#00f0ff;">NCEP</a> GFS model analysis via <a href="https://nomads.ncep.noaa.gov" target="_blank" style="color:#00f0ff;">NOMADS</a> — U.S. Government Work, public domain<br>
+                <strong>Satellite:</strong> &copy; <a href="https://www.eumetsat.int" target="_blank" style="color:#00f0ff;">EUMETSAT</a> MTG FCI<br>
+                &nbsp;&nbsp;<a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:rgb_geocolour" target="_blank" style="color:#00f0ff;">GeoColour RGB</a> &middot;
+                <a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:vis06_hrfi" target="_blank" style="color:#00f0ff;">HRFI VIS0.6</a> &middot;
+                <a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:ir105_hrfi" target="_blank" style="color:#00f0ff;">HRFI IR10.5</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Controls Panel -->
+    <div class="player-panel surface" id="controlsPanel">
+        <div class="control-group play-group">
+            <span class="control-label" style="opacity: 0; pointer-events: none;">Play</span>
+            <button class="btn" id="playBtn" onclick="togglePlay()">
+                <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <span id="playText">Play</span>
+            </button>
+        </div>
+
+        <div class="timeline-container">
+            <div class="timeline-track">
+                <div id="loadedProgress" class="loaded-progress"></div>
+            </div>
+            <div class="timeline-ticks" id="timelineTicks"></div>
+            <input type="range" id="timeSlider" min="0" oninput="onSliderChange(this.value)">
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Show</span>
+            <select id="durationSelect" onchange="updateDuration(this.value)">
+                <option value="3" selected>Last 3 Hours</option>
+                <option value="6">Last 6 Hours</option>
+                <option value="12">Last 12 Hours</option>
+                <option value="24">Last 24 Hours</option>
+                <option value="48">Last 2 Days</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Speed</span>
+            <select id="speedSelect" onchange="updateSpeed(this.value)">
+                <option value="360">Slow</option>
+                <option value="135" selected>Normal</option>
+                <option value="70">Fast</option>
+                <option value="35">Turbo</option>
+            </select>
+        </div>
+    </div>
+
+    <script>
+        var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
+        var R2_CDN  = 'https://radar.floodforecast.co.uk';
+        function cdnJson(r) { return r.text().then(function(t) { return JSON.parse(t.replaceAll(R2_BASE, R2_CDN)); }); }
+
+        var TRANSPARENT_GIF = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+        var allFrames = [];
+        var frames = []; // will be sliced by duration filter
+        var currentFrameIdx = 0;
+        var playing = false;
+        var playInterval;
+        var playSpeed = 135; // default to new normal speed
+        var currentFeed = 'parallel';
+        var STANDARD_BOUNDS = [[49.0, -11.5], [61.5, 3.5]];
+        var PARALLEL_BOUNDS = [[43.7009, -17.9739], [62.9207, 16.1291]];
+
+        // ── Weather Warnings Overlay state ─────────────────────────
+        var _allWarnings = [];
+        var _activeWarningLayers = {};
+        var _warningsSEV_COLORS = {
+            extreme:   { stroke: '#ff0055', fill: '#ff0055' },
+            severe:    { stroke: '#ff9f00', fill: '#ff9f00' },
+            moderate:  { stroke: '#e5e500', fill: '#e5e500' },
+            minor:     { stroke: '#00ccff', fill: '#00ccff' },
+            unknown:   { stroke: '#8b5cf6', fill: '#8b5cf6' }
+        };
+
+        // Initialize Map
+        var map = L.map('map', { zoomControl: false }).setView([54.5, -3.5], 6);
+        L.control.zoom({ position: 'topleft' }).addTo(map);
+
+        // CartoDB Dark Matter (Highly attractive dark map)
+        var voyagerTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        }).addTo(map);
+
+        // Radar Overlay
+        var bounds = PARALLEL_BOUNDS;
+        // Satellite Overlay — 2× taller domain, same centre (-4.0°, 55.25°)
+        var satBounds = [[37.75, -40.4], [67.5, 32.4]];
+        var radarOverlay = L.imageOverlay('', bounds, {
+            opacity: 0.7,
+            interactive: false,
+            className: 'sharp-radar'
+        }).addTo(map);
+
+        // Radar coverage boundary
+        fetch('radar_boundary.geojson')
+            .then(res => res.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: { color: '#bd93f9', weight: 1.0, fill: false, opacity: 0.3 }
+                }).addTo(map);
+            });
+
+        // Boundaries overlay
+        var regionLayer = null;
+        var countiesLayer = null;
+
+        function loadBoundary(val) {
+            if (val === 'regions' && !regionLayer) {
+                fetch('uk_regions.geojson')
+                    .then(res => res.json())
+                    .then(data => {
+                        regionLayer = L.geoJSON(data, {
+                            style: { color: '#06b6d4', weight: 1.2, fillOpacity: 0, opacity: 0.45, className: 'region-boundary' },
+                            interactive: false
+                        });
+                        if (document.querySelector('input[name="boundaryLayer"]:checked').value === 'regions') {
+                            regionLayer.addTo(map);
+                        }
+                    })
+                    .catch(err => console.log("Could not load regions:", err));
+            } else if (val === 'counties' && !countiesLayer) {
+                fetch('uk-counties.geojson')
+                    .then(res => res.json())
+                    .then(data => {
+                        countiesLayer = L.geoJSON(data, {
+                            style: { color: '#0891b2', weight: 0.9, fillOpacity: 0, opacity: 0.4, className: 'region-boundary' },
+                            interactive: false
+                        });
+                        if (document.querySelector('input[name="boundaryLayer"]:checked').value === 'counties') {
+                            countiesLayer.addTo(map);
+                        }
+                    })
+                    .catch(err => console.log("Could not load counties:", err));
+            }
+        }
+
+        function onBoundaryChange(val) {
+            if (regionLayer && map.hasLayer(regionLayer)) map.removeLayer(regionLayer);
+            if (countiesLayer && map.hasLayer(countiesLayer)) map.removeLayer(countiesLayer);
+
+            if (val === 'regions') {
+                if (regionLayer) regionLayer.addTo(map);
+                else loadBoundary('regions');
+            } else if (val === 'counties') {
+                if (countiesLayer) countiesLayer.addTo(map);
+                else loadBoundary('counties');
+            }
+        }
+
+        // Initialize default boundary
+        loadBoundary('regions');
+
+        function toggleRadar(show) {
+            if (show) {
+                radarOverlay.addTo(map);
+                enforceZOrder();
+            } else {
+                map.removeLayer(radarOverlay);
+            }
+        }
+
+        // ── Weather Warnings Ingest & Rendering Engine ───────────────────────────
+        function getWarningArchiveUrls(days) {
+            var urls = [];
+            var now = new Date();
+            for (var i = 0; i <= days; i++) {
+                var d = new Date(now);
+                d.setDate(d.getDate() - i);
+                var yyyy = d.getFullYear();
+                var mm = (d.getMonth() + 1).toString().padStart(2, '0');
+                var dd = d.getDate().toString().padStart(2, '0');
+                var dateStr = "" + yyyy + mm + dd;
+                urls.push('warnings/archive/warnings_' + dateStr + '.json');
+            }
+            return urls;
+        }
+
+        function fetchWarningArchive(url) {
+            return fetch('https://radar.floodforecast.co.uk/' + url + '?_cb=' + Date.now())
+                .then(function(r) {
+                    if (!r.ok) throw new Error("CDN read failed");
+                    return r.json();
+                })
+                .catch(function() {
+                    // Fallback: try local file relative to server
+                    return fetch(url + '?_cb=' + Date.now()).then(function(r) {
+                        if (!r.ok) throw new Error("Local archive not found");
+                        return r.json();
+                    });
+                })
+                .catch(function() {
+                    return [];
+                });
+        }
+
+        function loadWarningsData() {
+            var latestUrl = 'https://radar.floodforecast.co.uk/warnings/warnings_latest.json?_cb=' + Date.now();
+            var pLatest = fetch(latestUrl)
+                .then(function(r) {
+                    if (!r.ok) throw new Error("CDN read failed");
+                    return r.json();
+                })
+                .catch(function() {
+                    return fetch('warnings/warnings_latest.json?_cb=' + Date.now()).then(function(r) { return r.json(); });
+                })
+                .catch(function() {
+                    return { warnings: [] };
+                });
+                
+            var promises = [pLatest];
+            var archiveUrls = getWarningArchiveUrls(7);
+            archiveUrls.forEach(function(url) {
+                promises.push(fetchWarningArchive(url));
+            });
+            
+            Promise.all(promises)
+                .then(function(results) {
+                    var latestRes = results[0];
+                    var mergedMap = {};
+                    
+                    // Ingest latest warnings
+                    var latestWarnings = latestRes.warnings || [];
+                    latestWarnings.forEach(function(w) {
+                        mergedMap[w.alert_id] = w;
+                    });
+                    
+                    // Ingest archived warnings
+                    for (var i = 1; i < results.length; i++) {
+                        var archiveWarnings = results[i] || [];
+                        archiveWarnings.forEach(function(w) {
+                            mergedMap[w.alert_id] = w;
+                        });
+                    }
+                    
+                    _allWarnings = Object.values(mergedMap);
+                    
+                    // Sort warnings by start_date descending (newest first)
+                    _allWarnings.sort(function(a, b) {
+                        return new Date(b.start_date) - new Date(a.start_date);
+                    });
+                    
+                    populateWarningsDropdown();
+                })
+                .catch(function(err) {
+                    console.error("Failed to load warnings:", err);
+                    var opts = document.getElementById('warningsOptions');
+                    if (opts) {
+                        opts.innerHTML = '<div style="padding: 6px 12px; font-size: 12px; color: #ea4335; font-weight: 500;">Failed to load warnings</div>';
+                    }
+                });
+        }
+
+        function getWarningDropdownLabel(w) {
+            var sevEmoji = { extreme: '🔴', severe: '🟠', moderate: '🟡', minor: '🔵' }[_wSeverity(w)] || '⚪';
+            
+            // Clean title
+            var eventType = w.title
+                .replace(/warning/i, '')
+                .replace(/yellow/i, '')
+                .replace(/amber/i, '')
+                .replace(/red/i, '')
+                .replace(/minor/i, '')
+                .replace(/severe/i, '')
+                .replace(/extreme/i, '')
+                .trim();
+            
+            if (eventType) {
+                eventType = eventType.charAt(0).toUpperCase() + eventType.slice(1);
+            } else {
+                eventType = 'Weather Warning';
+            }
+            
+            var start = new Date(w.start_date);
+            var end = new Date(w.end_date);
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            var startDay = start.getDate();
+            var startMonth = months[start.getMonth()];
+            var endDay = end.getDate();
+            var endMonth = months[end.getMonth()];
+            
+            var dateStr = '';
+            if (startMonth === endMonth) {
+                if (startDay === endDay) {
+                    dateStr = startDay + ' ' + startMonth;
+                } else {
+                    dateStr = startDay + '-' + endDay + ' ' + startMonth;
+                }
+            } else {
+                dateStr = startDay + ' ' + startMonth + ' - ' + endDay + ' ' + endMonth;
+            }
+            
+            return sevEmoji + ' ' + eventType + ' (' + dateStr + ')';
+        }
+
+        function _wSeverity(w) {
+            var s = w.severity;
+            if (!s && w.title) {
+                var t = w.title.toLowerCase();
+                if (t.includes('yellow') || t.includes('moderate')) return 'moderate';
+                if (t.includes('amber') || t.includes('severe')) return 'severe';
+                if (t.includes('red') || t.includes('extreme')) return 'extreme';
+                if (t.includes('minor') || t.includes('yellow')) return 'minor';
+            }
+            return (s || 'moderate').toLowerCase();
+        }
+
+        function populateWarningsDropdown() {
+            var container = document.getElementById('warningsOptions');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            if (_allWarnings.length === 0) {
+                container.innerHTML = '<div style="padding: 8px 12px; font-size: 12.5px; color: #5f6368; font-weight: 500;">No warnings from the last week</div>';
+                return;
+            }
+            
+            _allWarnings.forEach(function(w) {
+                var label = getWarningDropdownLabel(w);
+                var isExpired = new Date() > new Date(w.end_date);
+                
+                var option = document.createElement('label');
+                option.className = 'option-item';
+                option.style.display = 'flex';
+                option.style.alignItems = 'center';
+                option.style.justifyContent = 'space-between';
+                option.style.padding = '8px 12px';
+                
+                var leftSide = document.createElement('div');
+                leftSide.style.display = 'flex';
+                leftSide.style.alignItems = 'center';
+                leftSide.style.gap = '8px';
+                leftSide.style.minWidth = '0';
+                
+                var input = document.createElement('input');
+                input.type = 'checkbox';
+                input.value = w.alert_id;
+                input.style.margin = '0';
+                input.onchange = function() {
+                    toggleWarningLayer(w.alert_id, this.checked);
+                    updateWarningsDropdownTriggerText();
+                };
+                
+                var labelText = document.createElement('span');
+                labelText.style.fontSize = '12.5px';
+                labelText.style.fontWeight = '500';
+                labelText.style.color = isExpired ? '#4b5563' : '#202124';
+                labelText.style.whiteSpace = 'nowrap';
+                labelText.style.overflow = 'hidden';
+                labelText.style.textOverflow = 'ellipsis';
+                labelText.textContent = label;
+                
+                var onlyLink = document.createElement('span');
+                onlyLink.className = 'only-link';
+                onlyLink.textContent = 'only';
+                onlyLink.onclick = function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    var checkboxes = container.querySelectorAll('input[type="checkbox"]');
+                    checkboxes.forEach(function(cb) {
+                        cb.checked = (cb.value === w.alert_id);
+                        toggleWarningLayer(cb.value, cb.checked);
+                    });
+                    updateWarningsDropdownTriggerText();
+                };
+                
+                leftSide.appendChild(input);
+                leftSide.appendChild(labelText);
+                leftSide.appendChild(onlyLink);
+                
+                var badge = document.createElement('span');
+                badge.style.fontSize = '9.5px';
+                badge.style.fontWeight = '700';
+                badge.style.textTransform = 'uppercase';
+                badge.style.padding = '2px 6px';
+                badge.style.borderRadius = '8px';
+                badge.style.flexShrink = '0';
+                badge.style.letterSpacing = '0.3px';
+                
+                if (isExpired) {
+                    badge.style.background = '#f1f3f4';
+                    badge.style.color = '#4b5563';
+                    badge.style.border = '1px solid #dadce0';
+                    badge.textContent = 'Expired';
+                    option.style.opacity = '0.90';
+                } else {
+                    var severityColors = { extreme: '#d60000', severe: '#e35c00', moderate: '#e0a300', minor: '#1a73e8' };
+                    var severityBg = { extreme: '#fce8e6', severe: '#fff3e0', moderate: '#fffde7', minor: '#e8f0fe' };
+                    var severity = _wSeverity(w);
+                    
+                    badge.style.background = severityBg[severity] || '#e8f0fe';
+                    badge.style.color = severityColors[severity] || '#1a73e8';
+                    badge.style.border = '1px solid ' + (severityColors[severity] || '#8ab4f8');
+                    badge.textContent = 'Active';
+                }
+                
+                option.appendChild(leftSide);
+                option.appendChild(badge);
+                container.appendChild(option);
+            });
+            
+            updateWarningsDropdownTriggerText();
+        }
+
+        function updateWarningsDropdownTriggerText() {
+            var container = document.getElementById('warningsSelect');
+            var checked = container.querySelectorAll('input[type="checkbox"]:checked');
+            var textEl = document.getElementById('warningsSelectText');
+            
+            if (checked.length === 0) {
+                textEl.textContent = "No Warnings Overlayed";
+            } else if (checked.length === 1) {
+                var label = checked[0].nextElementSibling.textContent;
+                var parts = label.split(' (');
+                textEl.textContent = parts[0];
+            } else {
+                textEl.textContent = checked.length + " Overlayed";
+            }
+        }
+
+        function toggleWarningsMultiselect(event) {
+            event.stopPropagation();
+            var container = document.getElementById('warningsSelect');
+            var options = document.getElementById('warningsOptions');
+            var isOpen = container.classList.contains('open');
+            
+            // Close other dropdowns
+            document.querySelectorAll('.custom-multiselect').forEach(function(el) {
+                if (el.id !== 'warningsSelect') {
+                    el.classList.remove('open');
+                    var opts = el.querySelector('.multiselect-options');
+                    if (opts) opts.style.display = 'none';
+                }
+            });
+            
+            if (isOpen) {
+                container.classList.remove('open');
+                options.style.display = 'none';
+            } else {
+                container.classList.add('open');
+                options.style.display = 'block';
+            }
+        }
+
+        // Close warnings options when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#warningsSelect')) {
+                var container = document.getElementById('warningsSelect');
+                if (container) {
+                    container.classList.remove('open');
+                    var options = document.getElementById('warningsOptions');
+                    if (options) options.style.display = 'none';
+                }
+            }
+        });
+
+        function getWarningLayerStyle(severity, isHovered, isExpired) {
+            var colors = _warningsSEV_COLORS[severity] || _warningsSEV_COLORS.unknown;
+            var strokeOpacity = isExpired ? 0.45 : 0.85;
+            var fillOpacity = isExpired 
+                ? (isHovered ? 0.20 : 0.08) 
+                : (isHovered ? 0.40 : 0.22);
+            
+            return {
+                color: colors.stroke,
+                opacity: strokeOpacity,
+                fillColor: colors.fill,
+                fillOpacity: fillOpacity,
+                weight: isHovered ? (isExpired ? 3.5 : 4.5) : (isExpired ? 1.8 : 2.5),
+                dashArray: isExpired ? '5, 6' : null,
+                lineCap: 'round',
+                lineJoin: 'round'
+            };
+        }
+
+        function safeBringToFront(layer) {
+            if (!layer) return;
+            if (typeof layer.bringToFront === 'function') {
+                layer.bringToFront();
+            } else if (typeof layer.eachLayer === 'function') {
+                layer.eachLayer(function(l) {
+                    if (typeof l.bringToFront === 'function') {
+                        l.bringToFront();
+                    }
+                });
+            }
+        }
+
+        function toggleWarningLayer(alertId, show) {
+            var w = _allWarnings.find(function(item) { return item.alert_id === alertId; });
+            if (!w) return;
+            
+            var isExpired = new Date() > new Date(w.end_date);
+            
+            if (!show) {
+                if (_activeWarningLayers[alertId] && map.hasLayer(_activeWarningLayers[alertId])) {
+                    map.removeLayer(_activeWarningLayers[alertId]);
+                }
+                return;
+            }
+            
+            if (_activeWarningLayers[alertId]) {
+                _activeWarningLayers[alertId].addTo(map);
+                safeBringToFront(_activeWarningLayers[alertId]);
+                if (regionLayer && map.hasLayer(regionLayer)) safeBringToFront(regionLayer);
+                if (countiesLayer && map.hasLayer(countiesLayer)) safeBringToFront(countiesLayer);
+                return;
+            }
+            
+            if (!w.geometry || (!w.geometry.coordinates && !w.geometry.geometries)) return;
+            
+            var geojsonFeature = {
+                type: "Feature",
+                properties: w,
+                geometry: w.geometry
+            };
+            
+            var layer = L.geoJSON(geojsonFeature, {
+                style: getWarningLayerStyle(_wSeverity(w), false, isExpired),
+                onEachFeature: function(feature, l) {
+                    // Hover state change
+                    l.on('mouseover', function() {
+                        l.setStyle(getWarningLayerStyle(_wSeverity(w), true, isExpired));
+                    });
+                    l.on('mouseout', function() {
+                        l.setStyle(getWarningLayerStyle(_wSeverity(w), false, isExpired));
+                    });
+                    
+                    // Subtle tooltip on hover
+                    l.bindTooltip('<div style="font-family: \'Roboto\', sans-serif; font-weight:600; font-size:12px;">' + w.title + ' <span style="font-size:10px; font-weight:normal; color:#5f6368;">(Click for details)</span></div>', {
+                        sticky: true,
+                        className: 'map-tip'
+                    });
+                    
+                    // Build premium click popup
+                    var severityNames = { extreme: 'Red / Extreme', severe: 'Amber / Severe', moderate: 'Yellow / Moderate', minor: 'Blue / Minor' };
+                    var severityColors = { extreme: '#ff0055', severe: '#ff9f00', moderate: '#e5e500', minor: '#00ccff' };
+                    var severityBg = { extreme: 'rgba(255, 0, 85, 0.15)', severe: 'rgba(255, 159, 0, 0.15)', moderate: 'rgba(229, 229, 0, 0.15)', minor: 'rgba(0, 204, 255, 0.15)' };
+                    
+                    var startStr = formatUK(new Date(w.start_date));
+                    var endStr = formatUK(new Date(w.end_date));
+                    var severity = _wSeverity(w);
+                    
+                    var popupHtml = `
+                        <div style="font-family: 'Roboto', sans-serif; padding: 12px; max-width: 300px; line-height: 1.5; color: #f3f4f6;">
+                            ${isExpired ? `
+                            <div style="display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 5px 10px; margin-bottom: 10px;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                <span style="font-size: 11px; font-weight: 600; color: #9ca3af;">This warning has expired</span>
+                            </div>` : ''}
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <span style="font-size: 10px; font-weight: 600; background: ${isExpired ? 'rgba(255, 255, 255, 0.05)' : (severityBg[severity] || 'rgba(255, 255, 255, 0.05)')}; color: ${isExpired ? '#9ca3af' : (severityColors[severity] || '#9ca3af')}; padding: 2px 7px; border-radius: 12px; border: 1px solid ${isExpired ? 'rgba(255, 255, 255, 0.1)' : (severityColors[severity] || 'rgba(255, 255, 255, 0.1)')}; letter-spacing: 0.2px;">
+                                    ${severityNames[severity] || capitalize(severity)}
+                                </span>
+                                <span style="font-size: 11px; font-weight: 600; color: #9ca3af;">Weather Warning</span>
+                            </div>
+                            <h4 style="margin: 0 0 6px 0; font-size: 14.5px; font-weight: 700; color: ${isExpired ? '#9ca3af' : '#ffffff'};">${w.title}</h4>
+                            ${w.headline ? `<p style="margin: 0 0 8px 0; font-size: 11.5px; font-weight: 600; color: #e5e7eb; line-height: 1.4; border-left: 3px solid #00f0ff; padding-left: 8px;">${w.headline}</p>` : ''}
+                            
+                            <div style="font-size: 10.5px; color: #9ca3af; font-weight: 500; margin-bottom: 10px; display: flex; align-items: center; gap: 4px;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <span>${startStr} &ndash; ${endStr}</span>
+                            </div>
+                            
+                            <div style="max-height: 130px; overflow-y: auto; margin-bottom: 4px; padding-right: 4px;">
+                                <div style="margin-bottom: 8px;">
+                                    <span style="font-size: 9px; font-weight: 700; color: #9ca3af; display: block; margin-bottom: 2px; letter-spacing: 0.4px; text-transform: uppercase;">Description</span>
+                                    <span style="font-size: 11px; color: #e5e7eb; display: block; line-height: 1.4;">${w.description}</span>
+                                </div>
+                                ${w.instruction ? `
+                                <div style="margin-bottom: 8px;">
+                                    <span style="font-size: 9px; font-weight: 700; color: #9ca3af; display: block; margin-bottom: 2px; letter-spacing: 0.4px; text-transform: uppercase;">Safety Advice</span>
+                                    <span style="font-size: 11px; color: #ffffff; background: rgba(229, 229, 0, 0.1); border-left: 3px solid #e5e500; padding: 5px 7px; border-radius: 4px; display: block; line-height: 1.4; font-weight: 500;">${w.instruction}</span>
+                                </div>` : ''}
+                                ${w.area_desc ? `
+                                <div>
+                                    <span style="font-size: 9px; font-weight: 700; color: #9ca3af; display: block; margin-bottom: 2px; letter-spacing: 0.4px; text-transform: uppercase;">Areas Affected</span>
+                                    <span style="font-size: 10px; color: #9ca3af; display: block; line-height: 1.35; font-weight: 500;">${w.area_desc}</span>
+                                </div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    
+                    l.bindPopup(popupHtml);
+                }
+            });
+            
+            _activeWarningLayers[alertId] = layer;
+            layer.addTo(map);
+            safeBringToFront(layer);
+            if (regionLayer && map.hasLayer(regionLayer)) safeBringToFront(regionLayer);
+            if (countiesLayer && map.hasLayer(countiesLayer)) safeBringToFront(countiesLayer);
+        }
+
+        function capitalize(str) {
+            if (!str) return '';
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // Satellite overlays — lazily created, keyed by radio value
+        var satOverlays = {};
+        var satUrlKeys = { geo: 'sat_url_bw', vis: 'sat_url_vis', ir: 'sat_url_ir', ir_grey: 'sat_url_ir_grey' };
+
+        // Return only frames that have both radar and (if enabled) satellite data.
+        // If a satellite layer is active, the frame must have both the radar URL and the satellite URL.
+        // If no satellite layer is active, the frame only needs to have the radar URL.
+        // NOTE: This strict check only applies to "new" frames (within 30 minutes of the latest manifest time).
+        // For older historical frames, we allow them to render with whatever layer is available (at least one).
+        function getEffectiveFrames(sliced) {
+            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
+            var satKey = satUrlKeys[satVal];
+            
+            var latestFrame = allFrames[allFrames.length - 1];
+            var latestMs = latestFrame ? parseUTCStr(latestFrame.time).getTime() : 0;
+            
+            return sliced.filter(function(f) {
+                var frameMs = parseUTCStr(f.time).getTime();
+                var isNew = latestMs && (latestMs - frameMs) <= 30 * 60 * 1000;
+                
+                if (isNew) {
+                    // Radar image is always required
+                    if (!f.url) return false;
+                    
+                    // If a satellite layer is active, that specific satellite URL must also exist
+                    if (satVal !== 'none' && satKey) {
+                        return !!f[satKey];
+                    }
+                    return true;
+                } else {
+                    // Historical frame: keep if at least one active layer is present
+                    if (satVal !== 'none' && satKey) {
+                        return !!(f.url || f[satKey]);
+                    } else {
+                        return !!f.url;
+                    }
+                }
+            });
+        }
+
+        // Re-filter the current duration slice for the active sat layer while
+        // keeping the playhead as close to its current time as possible.
+        function refilterFrames() {
+            var hours = document.getElementById('durationSelect').value;
+            var numFrames = parseInt(hours) * 4;
+            var sliced = allFrames.slice(-Math.min(numFrames, allFrames.length));
+
+            var currentTime = frames.length > 0 ? frames[currentFrameIdx].time : null;
+            frames = getEffectiveFrames(sliced);
+            slider.max = Math.max(0, frames.length - 1);
+            updateTimelineTicks();
+
+            var targetIdx = frames.length - 1;
+            if (currentTime && frames.length > 0) {
+                var targetMs = parseUTCStr(currentTime).getTime();
+                var bestDiff = Infinity;
+                frames.forEach(function(f, i) {
+                    var diff = Math.abs(parseUTCStr(f.time).getTime() - targetMs);
+                    if (diff < bestDiff) { bestDiff = diff; targetIdx = i; }
+                });
+            }
+            if (frames.length > 0) setFrame(targetIdx);
+            preloadVisibleFrames();
+        }
+
+        function onSatLayerChange(val) {
+            // Remove all sat overlays
+            Object.keys(satOverlays).forEach(function(k) {
+                if (map.hasLayer(satOverlays[k])) map.removeLayer(satOverlays[k]);
+            });
+            if (val !== 'none') {
+                if (!satOverlays[val]) {
+                    satOverlays[val] = L.imageOverlay('', satBounds, { opacity: 1.0, interactive: false });
+                }
+                satOverlays[val].addTo(map);
+                enforceZOrder();
+            }
+            // Re-filter frames so radar and sat always share the same timesteps
+            refilterFrames();
+        }
+
+        function onFeedChange(val) {
+            currentFeed = val;
+            bounds = val === 'standard' ? STANDARD_BOUNDS : PARALLEL_BOUNDS;
+            radarOverlay.setBounds(bounds);
+            
+            // Re-fetch frames for the selected feed and reset the timeline
+            fetchFrames(true);
+        }
+
+        // ---- MSLP isobar overlay ----
+        var mslpOverlay = null;
+        var mslpEnabled = false;
+        var mslpFrames = [];   // [{ms: epochMs, url: '...', urlDetail: '...'}]
+        var MSLP_DETAIL_ZOOM = 8;  // switch to narrow-stroke variant at this zoom and above
+
+        function parseMslpMeta(data) {
+            if (!data || !Array.isArray(data.frames)) return;
+            mslpFrames = data.frames.map(function(f) {
+                return { ms: parseUTCStr(f.valid_time).getTime(), url: f.url, urlDetail: f.url_detail || f.url };
+            }).sort(function(a, b) { return a.ms - b.ms; });
+            console.log('MSLP: loaded ' + mslpFrames.length + ' frames');
+            // Refresh overlay if it is currently visible
+            if (mslpEnabled && frames.length > 0) updateMslpFrame();
+        }
+
+        function fetchMslpMeta() {
+            fetch('mslp_meta.json?_cb=' + Date.now())
+                .then(cdnJson)
+                .then(function(data) { parseMslpMeta(data); })
+                .catch(function(err) { console.log('MSLP meta not available:', err); });
+        }
+
+        function nearestMslpFrame(frameMs) {
+            if (!mslpFrames.length) return null;
+            var best = mslpFrames[0], bestDiff = Math.abs(mslpFrames[0].ms - frameMs);
+            for (var i = 1; i < mslpFrames.length; i++) {
+                var diff = Math.abs(mslpFrames[i].ms - frameMs);
+                if (diff < bestDiff) { bestDiff = diff; best = mslpFrames[i]; }
+            }
+            return best;  // always return nearest — stale isobars beat none
+        }
+
+        function updateMslpFrame() {
+            if (!mslpEnabled || !mslpOverlay || !frames.length) return;
+            var frameMs = parseUTCStr(frames[currentFrameIdx].time).getTime();
+            var frame = nearestMslpFrame(frameMs);
+            if (!frame) return;
+            var url = map.getZoom() >= MSLP_DETAIL_ZOOM ? frame.urlDetail : frame.url;
+            mslpOverlay.setUrl(url);
+        }
+
+        function toggleMslp(show) {
+            mslpEnabled = show;
+            if (show) {
+                if (!mslpOverlay) {
+                    mslpOverlay = L.imageOverlay('', satBounds, { opacity: 1.0, interactive: false });
+                }
+                mslpOverlay.addTo(map);
+                enforceZOrder();
+                if (frames.length > 0) updateMslpFrame();
+                // Fetch meta if not yet loaded
+                if (!mslpFrames.length) fetchMslpMeta();
+            } else {
+                if (mslpOverlay && map.hasLayer(mslpOverlay)) map.removeLayer(mslpOverlay);
+            }
+        }
+
+        map.on('zoomend', function() { if (mslpEnabled) updateMslpFrame(); });
+
+        // Z-order: sat (back) → radar → mslp → regions (front)
+        // MSLP sits above radar so isobars are always readable
+        function enforceZOrder() {
+            Object.keys(satOverlays).forEach(function(k) {
+                if (map.hasLayer(satOverlays[k])) satOverlays[k].bringToBack();
+            });
+            if (map.hasLayer(radarOverlay)) radarOverlay.bringToFront();
+            if (mslpOverlay && map.hasLayer(mslpOverlay)) mslpOverlay.bringToFront();
+            
+            // Bring active warning layers to front (above radar/mslp)
+            Object.keys(_activeWarningLayers).forEach(function(alertId) {
+                var wLayer = _activeWarningLayers[alertId];
+                if (wLayer && map.hasLayer(wLayer)) {
+                    safeBringToFront(wLayer);
+                }
+            });
+            
+            if (regionLayer && map.hasLayer(regionLayer)) safeBringToFront(regionLayer);
+            if (countiesLayer && map.hasLayer(countiesLayer)) safeBringToFront(countiesLayer);
+        }
+
+        // Load MSLP meta at startup (quietly — no overlay created until checkbox ticked)
+        fetchMslpMeta();
+        // Refresh MSLP meta every 30 minutes
+        setInterval(fetchMslpMeta, 30 * 60 * 1000);
+
+        // Setup slider
+        var slider = document.getElementById('timeSlider');
+
+        // --- FRAME LOADING LOGIC ---
+        // Cache-bust frames.json on every fetch so GitHub Pages CDN / browser
+        // cache never serves a stale manifest after a new push.
+        function fetchFrames(isInitial) {
+            const fileName = currentFeed === 'standard' ? 'frames.json' : 'frames_parallel.json';
+            fetch(fileName + '?_cb=' + Date.now())
+                .then(cdnJson)
+                .then(data => {
+                    if (!data || data.length === 0) {
+                        if (isInitial) document.getElementById('progressText').innerText = "No data available.";
+                        return;
+                    }
+
+                    const wasAtLatest = !isInitial && (currentFrameIdx === frames.length - 1);
+                    const prevLatestTime = allFrames.length ? allFrames[allFrames.length - 1].time : null;
+
+                    allFrames = data;
+
+                    if (isInitial) {
+                        if (window.innerWidth <= 768) {
+                            document.getElementById('infoPanel').classList.add('collapsed');
+                        }
+                        // Set the initial duration, which also triggers preloadVisibleFrames()
+                        updateDuration(document.getElementById('durationSelect').value);
+                    } else {
+                        // On poll: update frames slice and ticks
+                        const newLatestTime = allFrames[allFrames.length - 1].time;
+                        if (newLatestTime !== prevLatestTime) {
+                            console.log('New radar frames available:', newLatestTime);
+                            updateDuration(document.getElementById('durationSelect').value);
+                            // If user was on the latest frame (or paused at end), advance them
+                            if (wasAtLatest || currentFrameIdx >= frames.length - 1) {
+                                setFrame(frames.length - 1);
+                            }
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error("Manifest load error:", err);
+                });
+        }
+
+        // Preload only the frames currently visible in the selected duration.
+        // Updates the timeline loading progress bar as images cache.
+        var _preloadGeneration = 0;
+        function preloadVisibleFrames() {
+            _preloadGeneration++;
+            var gen = _preloadGeneration;
+            var pb = document.getElementById('loadedProgress');
+            if (pb) { pb.style.opacity = '1'; pb.style.width = '0%'; pb.style.transition = 'width 0.2s ease, opacity 0.5s'; }
+
+            if (frames.length === 0) return;
+
+            var urlsToLoad = [];
+            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
+            var satKey = satUrlKeys[satVal];
+
+            frames.forEach(function(f) {
+                if (f.url) urlsToLoad.push(f.url); // radar
+                if (satKey && f[satKey]) urlsToLoad.push(f[satKey]);
+            });
+
+            var total = urlsToLoad.length;
+            if (total === 0) return;
+            var loadedCount = 0;
+
+            urlsToLoad.forEach(function(url) {
+                var img = new Image();
+                var done = function() {
+                    if (gen !== _preloadGeneration) return; // stale generation
+                    loadedCount++;
+                    if (pb) pb.style.width = ((loadedCount / total) * 100) + '%';
+                    if (loadedCount === total) {
+                        // All visible frames cached, start playing if not already
+                        if (!playing) togglePlay();
+                        setTimeout(function() { if (pb && gen === _preloadGeneration) pb.style.opacity = '0'; }, 2000);
+                    }
+                };
+                img.onload = done;
+                img.onerror = done;
+                img.src = url;
+            });
+        }
+
+        // Initial load
+        fetchFrames(true);
+
+        // Auto-poll every 5 minutes for new frames
+        setInterval(function() { fetchFrames(false); }, 5 * 60 * 1000);
+
+        // UK time helpers — browser handles BST/GMT via Intl, zero processing cost
+        const _MONTHS = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+        function parseUTCStr(s) {
+            // "Wed 25 Mar 2026 21:30 UTC"  or  "25 Mar 2026 21:30 UTC"
+            const p = s.replace(' UTC','').split(' ');
+            const hasDay = p.length === 5;
+            const [day, mon, yr, hm] = hasDay ? p.slice(1) : p;
+            const [hr, mn] = hm.split(':');
+            return new Date(Date.UTC(+yr, _MONTHS[mon], +day, +hr, +mn));
+        }
+        const _ukFmt = new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'Europe/London',
+            weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: false
+        });
+        const _ukTzFmt = new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'Europe/London', timeZoneName: 'short'
+        });
+        function ukTzAbbr(date) {
+            // Returns "GMT" or "BST"
+            return _ukTzFmt.formatToParts(date).find(p => p.type === 'timeZoneName').value;
+        }
+        function formatUK(date) {
+            // "Wed, 25 Mar 2026, 22:30" — strip commas from Intl output
+            const parts = _ukFmt.formatToParts(date);
+            const get = t => parts.find(p => p.type === t).value;
+            return `${get('weekday')} ${get('day')} ${get('month')} ${get('year')} ${get('hour')}:${get('minute')}`;
+        }
+
+        // Timeline Ticks logic
+        function updateTimelineTicks() {
+            const ticksContainer = document.getElementById('timelineTicks');
+            ticksContainer.innerHTML = '';
+
+            const max = frames.length - 1;
+            if (max <= 0) return;
+
+            let lastDay = null;
+            let lastDayPercent = -100;
+
+            // Determine how often we show a time label (to avoid clutter)
+            // If total frames >= 48 (12 hours+), maybe every 3 hours. If less, 1 hour.
+            const labelInterval = frames.length > 50 ? 3 : (frames.length > 20 ? 2 : 1);
+
+            frames.forEach((frame, idx) => {
+                if (!frame.time || frame.time === "Unknown Date") return;
+
+                const ukDate = parseUTCStr(frame.time);
+                const ukParts = _ukFmt.formatToParts(ukDate);
+                const get = t => ukParts.find(p => p.type === t).value;
+                const dateStr = `${get('weekday')} ${get('day')} ${get('month')}`;
+                const timeStr = `${get('hour')}:${get('minute')}`;
+                const hourNum = parseInt(get('hour'));
+
+                const percent = (idx / max) * 100;
+
+                if (dateStr !== lastDay) {
+                    if (percent - lastDayPercent > 12) {
+                        const todayMark = document.createElement('div');
+                        todayMark.className = 'tick today-mark';
+                        const clampedPercent = Math.max(percent, 4);
+                        todayMark.style.left = `${clampedPercent}%`;
+
+                        const svgCheck = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                        todayMark.innerHTML = `${svgCheck} <span style="font-weight: 700;">${dateStr}</span>`;
+
+                        ticksContainer.appendChild(todayMark);
+                        lastDayPercent = percent;
+                    }
+                    lastDay = dateStr;
+                }
+
+                if (timeStr === '00:00') {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick';
+                    tick.style.left = `${percent}%`;
+                    tick.style.height = '14px';
+                    tick.style.top = '3px';
+                    tick.style.background = '#ea4335';
+                    tick.style.width = '2px';
+                    tick.style.zIndex = '3';
+                    ticksContainer.appendChild(tick);
+                } else if (timeStr === '12:00') {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick';
+                    tick.style.left = `${percent}%`;
+                    tick.style.height = '12px';
+                    tick.style.top = '4px';
+                    tick.style.background = '#fbbc04';
+                    tick.style.width = '2px';
+                    tick.style.zIndex = '2';
+                    ticksContainer.appendChild(tick);
+
+                    const label = document.createElement('div');
+                    label.className = 'tick-label';
+                    label.style.left = `${percent}%`;
+                    label.innerText = '12:00';
+                    ticksContainer.appendChild(label);
+                } else if (timeStr.endsWith(':00')) {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick hour';
+                    tick.style.left = `${percent}%`;
+                    ticksContainer.appendChild(tick);
+
+                    if (hourNum % labelInterval === 0 && dateStr === lastDay && percent > 2 && percent < 98) {
+                        const label = document.createElement('div');
+                        label.className = 'tick-label';
+                        label.style.left = `${percent}%`;
+                        label.innerText = timeStr;
+                        ticksContainer.appendChild(label);
+                    }
+                } else if (timeStr.endsWith(':30') && frames.length <= 48) {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick';
+                    tick.style.left = `${percent}%`;
+                    ticksContainer.appendChild(tick);
+                }
+            });
+        }
+
+        // Player functions
+        function setFrame(idx) {
+            currentFrameIdx = idx;
+            var frameData = frames[currentFrameIdx];
+            
+            var radarUrl = frameData.url || TRANSPARENT_GIF;
+            radarOverlay.setUrl(radarUrl);
+            
+            updateFrameUI(idx);
+
+            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
+            var satKey = satUrlKeys[satVal];
+            if (satKey && satOverlays[satVal] && map.hasLayer(satOverlays[satVal])) {
+                var satUrl = frameData[satKey] || TRANSPARENT_GIF;
+                satOverlays[satVal].setUrl(satUrl);
+            }
+
+            updateMslpFrame();
+        }
+
+        function updateDuration(hours) {
+            var numFrames = parseInt(hours) * 4; // 4 frames per hour (15-min intervals)
+            if (numFrames > allFrames.length) numFrames = allFrames.length;
+            var sliced = allFrames.slice(-numFrames);
+            frames = getEffectiveFrames(sliced);
+
+            slider.max = Math.max(0, frames.length - 1);
+            updateTimelineTicks();
+            preloadVisibleFrames();
+            setFrame(frames.length - 1);
+        }
+
+        function onSliderChange(val) {
+            // When user drags, pause playback if playing
+            if (playing) togglePlay();
+            setFrame(parseInt(val));
+        }
+
+        function updateFrameUI(idx) {
+            const ukDate = parseUTCStr(frames[idx].time);
+            const tz = ukTzAbbr(ukDate);
+            const formatted = formatUK(ukDate); // "Wed 25 Mar 2026 22:30"
+            document.getElementById('timeDisplay').innerText = formatted;
+            document.getElementById('tzLabel').innerText = `Time (${tz})`;
+
+            // Mini-display: "Wed 25 Mar 22:30"
+            const parts = formatted.split(' ');
+            document.getElementById('collapsedTime').innerText =
+                `${parts[0]} ${parts[1]} ${parts[2]} ${parts[4]}`;
+
+            slider.value = idx;
+        }
+
+        function toggleInfo() {
+            const panel = document.getElementById('infoPanel');
+            const icon = document.getElementById('infoIcon');
+            panel.classList.toggle('collapsed');
+
+            if (panel.classList.contains('collapsed')) {
+                icon.innerHTML = '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>';
+            } else {
+                icon.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>';
+            }
+        }
+
+        function playStep() {
+            if (!playing) return;
+            var nextIdx = currentFrameIdx + 1;
+            var delay = playSpeed;
+            if (nextIdx >= frames.length) {
+                nextIdx = 0; // loop
+            } else if (nextIdx === frames.length - 1) {
+                delay = 1000; // 1 second dwell at end
+            }
+            setFrame(nextIdx);
+            playInterval = setTimeout(playStep, delay);
+        }
+
+        function togglePlay() {
+            var btn = document.getElementById('playBtn');
+            var icon = document.getElementById('playIcon');
+            var text = document.getElementById('playText');
+
+            if (playing) {
+                clearTimeout(playInterval);
+                icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"></polygon>'; // Play shape
+                text.innerText = "Play";
+                playing = false;
+            } else {
+                // If at end, loop back to start
+                if (currentFrameIdx >= frames.length - 1) {
+                    setFrame(0);
+                }
+
+                icon.innerHTML = '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>'; // Pause shape
+                text.innerText = "Pause";
+                playing = true;
+                
+                var initialDelay = (currentFrameIdx === frames.length - 1) ? 1000 : playSpeed;
+                playInterval = setTimeout(playStep, initialDelay);
+            }
+        }
+
+        function updateSpeed(newSpeed) {
+            playSpeed = parseInt(newSpeed);
+            // If currently playing, restart the timeout with the new speed
+            if (playing) {
+                clearTimeout(playInterval);
+                var delay = (currentFrameIdx === frames.length - 1) ? 1000 : playSpeed;
+                playInterval = setTimeout(playStep, delay);
+            }
+        }
+
+
+
+        function updateOpacity(val) {
+            document.getElementById('opacityVal').innerText = val;
+            radarOverlay.setOpacity(val / 100);
+        }
+
+        // Draw colormap legend (using modern soft rounded rectangles)
+        var radar_colors = [
+            '#e1f5fe', '#81d4fa', '#03a9f4', '#01579b', '#2e7d32',
+            '#fbc02d', '#ef6c00', '#c62828', '#6a1b9a'
+        ];
+        var cbarHtml = '';
+        for (var i = 0; i < radar_colors.length; i++) {
+            cbarHtml += '<div class="cbar-block" style="background-color: ' + radar_colors[i] + ';"></div>';
+        }
+        document.getElementById('radarCbar').innerHTML = cbarHtml;
+        var radar_labels = [0.1, 0.5, 1, 2, 4, 8, 16, 32, 64];
+        var labelsDiv = document.getElementById('radarLabels');
+        labelsDiv.innerHTML = radar_labels.map((l, i) => `<span class="cbar-label" style="left: ${(i) * 11.11}%">${l}</span>`).join('');
+
+        // Auto-enable layers from URL params, e.g. ?mslp=1
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('mslp') === '1') {
+                document.getElementById('mslpToggle').checked = true;
+                toggleMslp(true);
+            }
+            // Load weather warnings data
+            loadWarningsData();
+        })();
+
+    </script>
+</body>
+
+</html>
