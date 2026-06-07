@@ -131,24 +131,53 @@ def main():
     print("Fetching latest active RFG status...")
     latest_active = fetch_api_data(f"{BASE_URL}/latest")
     if not latest_active:
-        print("  Could not fetch RFG latest active status, aborting.")
-        sys.exit(1)
-    
-    print(f"  Active Status: '{latest_active.get('status')}', Last Updated: {latest_active.get('last_updated')}")
+        print("  Warning: Could not fetch RFG latest active status. Defaulting to 'No Rapid Flood Guidance at this time'.")
+        latest_active = {
+            "status": "No Rapid Flood Guidance at this time",
+            "last_updated": now.isoformat()
+        }
+    else:
+        print(f"  Active Status: '{latest_active.get('status')}', Last Updated: {latest_active.get('last_updated')}")
 
     # 2. Fetch historical RFG updates to find the latest issued PDF and data
     print("Fetching historical RFGs...")
     history = fetch_api_data(BASE_URL)
+    
+    rfg_updates = []
+    latest_rfg = None
+    
     if not history:
-        print("  Could not fetch RFG history, aborting.")
-        sys.exit(1)
+        print("  Warning: Could not fetch RFG history. Attempting to load existing cache to preserve historical data...")
+        existing_data = None
+        # Try local cache
+        if os.path.exists("rfg/rfg_latest.json"):
+            try:
+                with open("rfg/rfg_latest.json", "r", encoding="utf-8") as f:
+                    existing_data = json.load(f)
+                print("    Loaded history from local cache.")
+            except Exception as e:
+                print(f"    Failed to read local cache: {e}")
         
-    rfg_updates = history.get("rfg_updates", [])
-    print(f"  Found {len(rfg_updates)} historical RFG updates.")
+        # Try R2 cache
+        if not existing_data and r2:
+            try:
+                res = r2.get_object(Bucket=R2_BUCKET, Key=LATEST_KEY)
+                existing_data = json.loads(res["Body"].read().decode("utf-8"))
+                print("    Loaded history from Cloudflare R2 cache.")
+            except Exception as e:
+                print(f"    Failed to read R2 cache: {e}")
+                
+        if existing_data:
+            rfg_updates = existing_data.get("rfg_updates", [])
+            latest_rfg = existing_data.get("latest_rfg")
+        else:
+            print("    No cached history available.")
+    else:
+        rfg_updates = history.get("rfg_updates", [])
+        print(f"  Found {len(rfg_updates)} historical RFG updates.")
 
     # Identify the latest issued RFG record (newest ID/date)
-    latest_rfg = None
-    if rfg_updates:
+    if history and rfg_updates:
         # Sort history newest-first by ID
         rfg_updates.sort(key=lambda x: x.get("id", 0), reverse=True)
         latest_rfg = rfg_updates[0]

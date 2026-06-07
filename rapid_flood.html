@@ -93,6 +93,11 @@
             grid-template-columns: 2.2fr 1fr;
             gap: 28px;
             flex: 1;
+            transition: max-width 0.3s ease;
+        }
+        .main-content.inactive-state {
+            grid-template-columns: 1fr;
+            max-width: 800px;
         }
         @media (max-width: 1024px) {
             .main-content {
@@ -657,6 +662,17 @@
             </div>
         </div>
 
+        <!-- Inactive state status card -->
+        <div class="card" id="no-active-card" style="display: none; padding: 40px; text-align: center; align-items: center; justify-content: center; gap: 16px; margin-bottom: 24px;">
+            <div style="background-color: var(--green-50); border: 1.5px solid var(--green-100); color: var(--green-600); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+                <span class="material-icons" style="font-size: 36px;">check_circle</span>
+            </div>
+            <h2 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 700; color: var(--slate-900);">No Active Rapid Flood Guidance</h2>
+            <p style="margin: 0; font-size: 14.5px; color: var(--slate-500); max-width: 500px; line-height: 1.6; margin: 0 auto;">
+                The Flood Forecasting Centre has not issued any active rapid-response or flash flood guidance at this time. Recent updates and historical documents are listed below.
+            </p>
+        </div>
+
         <!-- Main Column: PDF Viewer -->
         <div class="card" id="pdf-card">
             <div class="pdf-frame-wrapper">
@@ -825,15 +841,54 @@
             function renderDashboard(data) {
                 const isPresent = data.status === 'Rapid Flooding Guidance Present';
                 
+                const noActiveCard = document.getElementById('no-active-card');
+                const pdfCard = document.getElementById('pdf-card');
+                const metaGrid = document.querySelector('.meta-grid');
+                
                 // 1. Render Status Badges and Banner
                 if (isPresent) {
+                    mainDashboard.classList.remove('inactive-state');
                     statusBadge.className = 'status-badge active';
                     statusBadge.innerHTML = '<span class="material-icons">warning</span> Active Guidance Issued';
                     statusBanner.style.display = 'flex';
+                    if (noActiveCard) noActiveCard.style.display = 'none';
+                    pdfCard.style.display = 'flex';
+                    metaGrid.style.display = 'flex';
+                    
+                    const latest = data.latest_rfg;
+                    if (latest) {
+                        // Render Meta Info
+                        const issuedFmt = formatUKDateTime(latest.issued_at);
+                        metaIssued.innerHTML = `
+                            <div class="meta-val">${issuedFmt.date}</div>
+                            <div class="meta-sub">${issuedFmt.time}</div>
+                        `;
+                        
+                        const updatedFmt = formatUKDateTime(latest.last_updated);
+                        metaUpdated.innerHTML = `
+                            <div class="meta-val">${updatedFmt.date}</div>
+                            <div class="meta-sub">${updatedFmt.time}</div>
+                        `;
+                        
+                        metaId.textContent = `#${latest.id}`;
+                        
+                        // Render PDF Iframe
+                        const pdfUrl = latest.pdf_url;
+                        pdfIframe.src = `${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
+                        pdfLinkBottom.href = pdfUrl;
+                        pdfLinkTop.href = pdfUrl;
+                        if (pdfFallbackLink) pdfFallbackLink.href = pdfUrl;
+                        pdfLinkTop.style.display = 'inline-flex';
+                    }
                 } else {
+                    mainDashboard.classList.add('inactive-state');
                     statusBadge.className = 'status-badge inactive';
                     statusBadge.innerHTML = '<span class="material-icons">check_circle</span> No Active Rapid Flood Guidance';
                     statusBanner.style.display = 'none';
+                    if (noActiveCard) noActiveCard.style.display = 'block';
+                    pdfCard.style.display = 'none';
+                    metaGrid.style.display = 'none';
+                    pdfLinkTop.style.display = 'none';
                 }
                 
                 // Render sync time
@@ -842,42 +897,7 @@
                     syncTime.textContent = `Synced: ${genTime.date} at ${genTime.time}`;
                 }
                 
-                const latest = data.latest_rfg;
-                if (latest) {
-                    // 2. Render Meta Info
-                    const issuedFmt = formatUKDateTime(latest.issued_at);
-                    metaIssued.innerHTML = `
-                        <div class="meta-val">${issuedFmt.date}</div>
-                        <div class="meta-sub">${issuedFmt.time}</div>
-                    `;
-                    
-                    const updatedFmt = formatUKDateTime(latest.last_updated);
-                    metaUpdated.innerHTML = `
-                        <div class="meta-val">${updatedFmt.date}</div>
-                        <div class="meta-sub">${updatedFmt.time}</div>
-                    `;
-                    
-                    metaId.textContent = `#${latest.id}`;
-                    
-                    // 3. Render PDF Iframe
-                    const pdfUrl = latest.pdf_url;
-                    pdfIframe.src = `${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
-                    pdfLinkBottom.href = pdfUrl;
-                    pdfLinkTop.href = pdfUrl;
-                    if (pdfFallbackLink) pdfFallbackLink.href = pdfUrl;
-                    pdfLinkTop.style.display = 'inline-flex';
-                } else {
-                    // No latest guidance
-                    document.getElementById('pdf-card').innerHTML = `
-                        <div class="no-data-card">
-                            <span class="material-icons">water_drop</span>
-                            <p>No Rapid Flood Guidance documents are currently available.</p>
-                        </div>
-                    `;
-                    pdfLinkTop.style.display = 'none';
-                }
-                
-                // 4. Render History Log
+                // 2. Render History Log
                 const updates = data.rfg_updates || [];
                 if (updates.length > 0) {
                     historyList.innerHTML = '';
