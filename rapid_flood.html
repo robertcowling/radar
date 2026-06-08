@@ -826,7 +826,8 @@
             }
 
             function renderDashboard(data) {
-                const isPresent = data.status === 'Rapid Flooding Guidance Present';
+                const urlParams = new URLSearchParams(window.location.search);
+                const isPresent = urlParams.get('isPresent') === 'true' || data.status === 'Rapid Flooding Guidance Present';
                 
                 const noActiveCard = document.getElementById('no-active-card');
                 const pdfCard = document.getElementById('pdf-card');
