@@ -13,14 +13,14 @@ from botocore.client import Config
 from pyproj import Transformer
 from PIL import Image
 
-# Radar domain (native H5 extent)
-LON_MIN, LON_MAX = -17.9739, 16.1291
-LAT_MIN, LAT_MAX = 43.7009, 62.9207
-WIDTH, HEIGHT = 1725, 2175
+# Radar domain (native H5 extent) - Standard UK bounds (same as Claudia)
+LON_MIN, LON_MAX = -11.5, 3.5
+LAT_MIN, LAT_MAX = 49.0, 61.5
+WIDTH, HEIGHT = 2400, 2000
 
-# Satellite domain
-SAT_LON_MIN, SAT_LON_MAX = -40.4, 32.4
-SAT_LAT_MIN, SAT_LAT_MAX = 37.75, 67.5
+# Satellite domain - Matching Claudia's satBounds [[37.75, -32.0], [72.75, 24.0]]
+SAT_LON_MIN, SAT_LON_MAX = -32.0, 24.0
+SAT_LAT_MIN, SAT_LAT_MAX = 37.75, 72.75
 
 BUCKET = "met-office-radar-obs-data"
 

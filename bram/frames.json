@@ -154,6 +154,13 @@
     "sat_url_ir": "static/sat/202512081715_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg"
   },
   {
+    "time": "Mon 08 Dec 2025 17:30 UTC",
+    "url": "static/radar/202512081730_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_bw": "static/sat/202512081730_ODIM_ng_radar_rainrate_composite_1km_UK_sat_bw.jpg",
+    "sat_url_vis": "static/sat/202512081730_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg",
+    "sat_url_ir": "static/sat/202512081730_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg"
+  },
+  {
     "time": "Mon 08 Dec 2025 17:45 UTC",
     "url": "static/radar/202512081745_ODIM_ng_radar_rainrate_composite_1km_UK.png",
     "sat_url_bw": "static/sat/202512081745_ODIM_ng_radar_rainrate_composite_1km_UK_sat_bw.jpg",
@@ -1375,6 +1382,7 @@
   {
     "time": "Wed 10 Dec 2025 15:00 UTC",
     "url": "static/radar/202512101500_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_bw": "static/sat/202512101500_ODIM_ng_radar_rainrate_composite_1km_UK_sat_bw.jpg",
     "sat_url_vis": "static/sat/202512101500_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg",
     "sat_url_ir": "static/sat/202512101500_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg"
   },
@@ -1395,6 +1403,7 @@
   {
     "time": "Wed 10 Dec 2025 15:45 UTC",
     "url": "static/radar/202512101545_ODIM_ng_radar_rainrate_composite_1km_UK.png",
+    "sat_url_bw": "static/sat/202512101545_ODIM_ng_radar_rainrate_composite_1km_UK_sat_bw.jpg",
     "sat_url_vis": "static/sat/202512101545_ODIM_ng_radar_rainrate_composite_1km_UK_sat_vis.jpg",
     "sat_url_ir": "static/sat/202512101545_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg"
   },
