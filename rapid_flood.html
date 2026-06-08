@@ -173,9 +173,9 @@
             border-style: solid;
         }
         .status-badge.active {
-            background-color: var(--amber-50);
-            border-color: var(--amber-100);
-            color: var(--amber-800);
+            background-color: #f5f3ff;
+            border-color: #ddd6fe;
+            color: #6d28d9;
         }
         .status-badge.inactive {
             background-color: var(--green-50);
@@ -219,30 +219,24 @@
         /* Alerts */
         .alert-banner {
             grid-column: 1 / -1;
-            background-color: var(--amber-50);
-            border-left: 4px solid var(--amber-500);
+            background-color: #f5f3ff;
+            border-left: 4px solid #8b5cf6;
             border-radius: 0 8px 8px 0;
             padding: 16px;
             display: flex;
+            align-items: center;
             gap: 12px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         .alert-banner .material-icons {
-            color: var(--amber-600);
+            color: #7c3aed;
             font-size: 24px;
         }
         .alert-content h4 {
             margin: 0;
             font-size: 14px;
             font-weight: 700;
-            color: var(--amber-800);
-        }
-        .alert-content p {
-            margin: 4px 0 0;
-            font-size: 12.5px;
-            color: var(--amber-800);
-            line-height: 1.5;
-            opacity: 0.9;
+            color: #5b21b6;
         }
 
         /* Card panels */
@@ -655,22 +649,15 @@
 
         <!-- Alert Banner (shown only when guidance active) -->
         <div id="status-banner" class="alert-banner" style="display: none;">
-            <span class="material-icons">warning</span>
+            <span class="material-icons">info</span>
             <div class="alert-content">
                 <h4>Rapid Flood Guidance is currently active</h4>
-                <p>The Flood Forecasting Centre has issued live Rapid Flood Guidance due to an increased risk of fast-responding flooding. View the document below or download the Pdf for details.</p>
             </div>
         </div>
 
         <!-- Inactive state status card -->
-        <div class="card" id="no-active-card" style="display: none; padding: 40px; text-align: center; align-items: center; justify-content: center; gap: 16px; margin-bottom: 24px;">
-            <div style="background-color: var(--green-50); border: 1.5px solid var(--green-100); color: var(--green-600); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
-                <span class="material-icons" style="font-size: 36px;">check_circle</span>
-            </div>
-            <h2 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 700; color: var(--slate-900);">No Active Rapid Flood Guidance</h2>
-            <p style="margin: 0; font-size: 14.5px; color: var(--slate-500); max-width: 500px; line-height: 1.6; margin: 0 auto;">
-                The Flood Forecasting Centre has not issued any active rapid-response or flash flood guidance at this time. Recent updates and historical documents are listed below.
-            </p>
+        <div class="card" id="no-active-card" style="display: none; padding: 24px; text-align: center; margin-bottom: 24px;">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: var(--slate-800);">No Active Rapid Flood Guidance</h2>
         </div>
 
         <!-- Main Column: PDF Viewer -->
@@ -849,7 +836,7 @@
                 if (isPresent) {
                     mainDashboard.classList.remove('inactive-state');
                     statusBadge.className = 'status-badge active';
-                    statusBadge.innerHTML = '<span class="material-icons">warning</span> Active Guidance Issued';
+                    statusBadge.innerHTML = 'Active';
                     statusBanner.style.display = 'flex';
                     if (noActiveCard) noActiveCard.style.display = 'none';
                     pdfCard.style.display = 'flex';
@@ -883,7 +870,7 @@
                 } else {
                     mainDashboard.classList.add('inactive-state');
                     statusBadge.className = 'status-badge inactive';
-                    statusBadge.innerHTML = '<span class="material-icons">check_circle</span> No Active Rapid Flood Guidance';
+                    statusBadge.innerHTML = 'Latest';
                     statusBanner.style.display = 'none';
                     if (noActiveCard) noActiveCard.style.display = 'block';
                     pdfCard.style.display = 'none';
