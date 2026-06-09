@@ -1,11 +1,6 @@
 {
-  "generated_at": "2026-06-09T21:51:00.000Z",
+  "generated_at": "2026-06-09T22:06:00.000Z",
   "frames": [
-    {
-      "valid_time": "Sun 07 Jun 2026 21:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202606072100_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202606072100_mslp_detail.svg"
-    },
     {
       "valid_time": "Sun 07 Jun 2026 22:00 UTC",
       "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202606072200_mslp.svg",
@@ -275,6 +270,11 @@
       "valid_time": "Wed 10 Jun 2026 03:00 UTC",
       "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202606100300_mslp.svg",
       "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202606100300_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Wed 10 Jun 2026 04:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202606100400_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202606100400_mslp_detail.svg"
     }
   ]
 }
