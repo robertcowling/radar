@@ -761,19 +761,34 @@
       });
     }
 
-    // Load status log from file
+    // Fetch status log from R2 via rain/meta.json base URL
     async function fetchStatusLog() {
       const loading = document.getElementById("loading-view");
       const dashboard = document.getElementById("dashboard-view");
       const refreshLabel = document.getElementById("refresh-time-label");
 
       try {
-        const response = await fetch(HISTORY_JSON_URL + "?nocache=" + new Date().getTime());
+        // 1. Resolve R2 base URL from committed rain/meta.json
+        const metaResponse = await fetch("../rain/meta.json?_cb=" + new Date().getTime());
+        if (!metaResponse.ok) {
+          throw new Error(`Failed to load rain/meta.json: ${metaResponse.status}`);
+        }
+        const metaData = await metaResponse.json();
+        
+        let baseUrl = metaData.r2_base_url || "https://radar.floodforecast.co.uk";
+        // Normalize CDN rewrite matching other app pages
+        baseUrl = baseUrl.replace("https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev", "https://radar.floodforecast.co.uk");
+        
+        const historyUrl = `${baseUrl}/status/history.json`;
+
+        // 2. Fetch history.json from R2
+        const response = await fetch(historyUrl + "?nocache=" + new Date().getTime());
         if (!response.ok) {
-          throw new Error(`HTTP error ${response.status}`);
+          throw new Error(`HTTP error ${response.status} fetching history from R2`);
         }
         
         const data = await response.json();
+
         renderDashboard(data.jobs || {});
         
         loading.style.display = "none";
