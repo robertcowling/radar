@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Status | Flood Forecast</title>
+  <meta name="description" content="Real-time health and pipeline status dashboard for the Flood Forecast platform.">
+  
+  <!-- Roboto Font & Material Icons to match Flood Forecast base templates -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <style>
+    :root {
+      --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      
+      /* Light Mode Colors (default) */
+      --bg-base: #f8f9fa;
+      --bg-surface: #ffffff;
+      --bg-surface-hover: #f1f3f4;
+      --border-color: #dde1e7;
+      --text-main: #202124;
+      --text-muted: #5f6368;
+      --text-dark: #80868b;
+      
+      /* Status Colors - Light Mode */
+      --color-success-bg: #e6f4ea;
+      --color-success-text: #137333;
+      --color-success-border: #137333;
+      
+      --color-warning-bg: #fff3e0;
+      --color-warning-text: #b06000;
+      --color-warning-border: #e35c00;
+      
+      --color-error-bg: #fce8e6;
+      --color-error-text: #c5221f;
+      --color-error-border: #d60000;
+      
+      --color-stale-bg: #f1f3f4;
+      --color-stale-text: #5f6368;
+      --color-stale-border: #70757a;
+    }
+
+    /* Dark Mode Theme */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-base: #0f172a; /* Slate 900 */
+        --bg-surface: #1e293b; /* Slate 800 */
+        --bg-surface-hover: #334155; /* Slate 700 */
+        --border-color: #334155;
+        --text-main: #f1f5f9;
+        --text-muted: #94a3b8;
+        --text-dark: #64748b;
+        
+        /* Status Colors - Dark Mode */
+        --color-success-bg: rgba(16, 185, 129, 0.1);
+        --color-success-text: #34d399;
+        --color-success-border: #10b981;
+        
+        --color-warning-bg: rgba(245, 158, 11, 0.1);
+        --color-warning-text: #fbbf24;
+        --color-warning-border: #f59e0b;
+        
+        --color-error-bg: rgba(239, 68, 68, 0.1);
+        --color-error-text: #f87171;
+        --color-error-border: #ef4444;
+        
+        --color-stale-bg: rgba(100, 116, 139, 0.1);
+        --color-stale-text: #94a3b8;
+        --color-stale-border: #64748b;
+      }
+    }
+
+    /* Explicit Dark Mode Overrides (for .dark class mapping) */
+    .dark {
+      --bg-base: #0f172a;
+      --bg-surface: #1e293b;
+      --bg-surface-hover: #334155;
+      --border-color: #334155;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dark: #64748b;
+      
+      --color-success-bg: rgba(16, 185, 129, 0.1);
+      --color-success-text: #34d399;
+      --color-success-border: #10b981;
+      
+      --color-warning-bg: rgba(245, 158, 11, 0.1);
+      --color-warning-text: #fbbf24;
+      --color-warning-border: #f59e0b;
+      
+      --color-error-bg: rgba(239, 68, 68, 0.1);
+      --color-error-text: #f87171;
+      --color-error-border: #ef4444;
+      
+      --color-stale-bg: rgba(100, 116, 139, 0.1);
+      --color-stale-text: #94a3b8;
+      --color-stale-border: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* Top Nav matching Flood Forecast base.html */
+    nav {
+      background-color: #0f172a; /* bg-slate-900 */
+      color: #ffffff;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      position: sticky;
+      top: 0;
+      z-index: 1001;
+      height: 64px;
+      display: flex;
+      align-items: center;
+    }
+
+    .nav-container {
+      max-width: 96rem;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 1.25rem;
+      transition: opacity 0.2s ease;
+    }
+
+    .nav-brand:hover {
+      opacity: 0.8;
+    }
+
+    .brand-logo-fallback {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #3b82f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .nav-link {
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #cbd5e1;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .nav-link:hover {
+      background-color: #1e293b;
+      color: #ffffff;
+    }
+
+    .nav-link.active {
+      background-color: #1e293b;
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    /* Main Content */
+    .main-wrap {
+      flex: 1;
+      padding: 3rem 1.5rem;
+      width: 100%;
+      max-width: 96rem;
+      margin: 0 auto;
+    }
+
+    .page-title-section {
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .page-title-section h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .refresh-button {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.5rem 1rem;
+      border-radius: 24px;
+      font-size: 0.825rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      transition: all 0.2s ease;
+    }
+
+    .refresh-button:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--text-dark);
+    }
+
+    .refresh-time {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Overall Status Banner */
+    .status-banner {
+      border-radius: 12px;
+      padding: 1.25rem 1.75rem;
+      margin-bottom: 2.5rem;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      background-color: var(--bg-surface);
+    }
+
+    .status-banner.operational {
+      border-left: 6px solid var(--color-success-border);
+      background-color: var(--color-success-bg);
+      color: var(--color-success-text);
+    }
+
+    .status-banner.degraded {
+      border-left: 6px solid var(--color-warning-border);
+      background-color: var(--color-warning-bg);
+      color: var(--color-warning-text);
+    }
+
+    .status-banner.outage {
+      border-left: 6px solid var(--color-error-border);
+      background-color: var(--color-error-bg);
+      color: var(--color-error-text);
+    }
+
+    .banner-icon {
+      font-size: 28px;
+    }
+
+    .banner-text h2 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.15rem;
+    }
+
+    .banner-text p {
+      font-size: 0.875rem;
+      opacity: 0.9;
+    }
+
+    /* Grid Layout */
+    .services-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (min-width: 768px) {
+      .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* Service Cards (inspired by warning cards) */
+    .service-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1rem;
+      border-left: 5px solid var(--text-dark);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .service-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .service-card.state-operational { border-left-color: var(--color-success-border); }
+    .service-card.state-degraded { border-left-color: var(--color-warning-border); }
+    .service-card.state-outage { border-left-color: var(--color-error-border); }
+    .service-card.state-stale { border-left-color: var(--color-stale-border); }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .service-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .service-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .status-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      letter-spacing: 0.3px;
+      text-transform: capitalize;
+    }
+
+    .badge-operational {
+      background-color: var(--color-success-bg);
+      color: var(--color-success-text);
+      border: 1px solid var(--color-success-bg);
+    }
+
+    .badge-degraded {
+      background-color: var(--color-warning-bg);
+      color: var(--color-warning-text);
+      border: 1px solid var(--color-warning-bg);
+    }
+
+    .badge-outage {
+      background-color: var(--color-error-bg);
+      color: var(--color-error-text);
+      border: 1px solid var(--color-error-bg);
+    }
+
+    .badge-stale {
+      background-color: var(--color-stale-bg);
+      color: var(--color-stale-text);
+      border: 1px solid var(--color-stale-bg);
+    }
+
+    .live-dot-pulse {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    
+    .badge-operational .live-dot-pulse {
+      background-color: var(--color-success-text);
+      animation: pulse-dot-success 1.5s infinite;
+    }
+    
+    @keyframes pulse-dot-success {
+      0% { transform: scale(0.9); opacity: 0.6; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.6; }
+    }
+
+    /* Timeline Section */
+    .timeline-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .timeline-header {
+      font-size: 0.725rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .timeline-blocks {
+      display: flex;
+      gap: 3px;
+      height: 18px;
+      width: 100%;
+    }
+
+    .timeline-block {
+      flex: 1;
+      height: 100%;
+      border-radius: 2px;
+      background-color: rgba(0, 0, 0, 0.05);
+      cursor: pointer;
+      position: relative;
+      transition: all 0.1s ease;
+    }
+
+    .dark .timeline-block {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .timeline-block:hover {
+      transform: scaleY(1.2) scaleX(1.05);
+      filter: brightness(1.15);
+      z-index: 10;
+    }
+
+    .block-success { background-color: #10b981; }
+    .block-failure { background-color: #ef4444; }
+    .block-cancelled { background-color: #64748b; }
+
+    /* Tooltip matching Leaflet look & feel */
+    .tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) scale(0.98);
+      background-color: #ffffff;
+      color: #202124;
+      border: none;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.1s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      border: 1px solid #dadce0;
+    }
+
+    .dark .tooltip {
+      background-color: #1e293b;
+      color: #f1f5f9;
+      border-color: #334155;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 5px;
+      border-style: solid;
+      border-color: #ffffff transparent transparent transparent;
+    }
+
+    .dark .tooltip::after {
+      border-color: #1e293b transparent transparent transparent;
+    }
+
+    .timeline-block:hover .tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) scale(1);
+    }
+
+    .tooltip-date {
+      font-weight: 700;
+    }
+    
+    .tooltip-status {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-weight: 500;
+    }
+
+    .tooltip-link-hint {
+      color: var(--text-dark);
+      font-size: 0.65rem;
+      margin-top: 0.1rem;
+    }
+
+    /* Card Footer & Stats */
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-color);
+      padding-top: 0.75rem;
+    }
+
+    .logs-link {
+      color: #1a73e8;
+      text-decoration: none;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      transition: color 0.15s ease;
+    }
+
+    .dark .logs-link {
+      color: #60a5fa;
+    }
+
+    .logs-link:hover {
+      text-decoration: underline;
+    }
+
+    .logs-link span.material-icons {
+      font-size: 14px;
+    }
+
+    /* Loading view */
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 300px;
+      color: var(--text-muted);
+      gap: 0.75rem;
+    }
+
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid rgba(0, 0, 0, 0.05);
+      border-top-color: #1a73e8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .dark .spinner {
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #60a5fa;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Footer matching base.html */
+    footer {
+      background-color: var(--bg-base);
+      border-top: 1px solid var(--border-color);
+      padding: 2rem 0;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .footer-container {
+      max-width: 96rem;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .footer-link:hover {
+      color: var(--text-main);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <nav>
+    <div class="nav-container">
+      <a href="/" class="nav-brand">
+        <div class="brand-logo-fallback">
+          <span class="material-icons" style="font-size: 18px;">water</span>
+        </div>
+        <span style="word-spacing: -0.09em;">Flood Forecast</span>
+      </a>
+      
+      <div class="nav-links">
+        <a href="/" class="nav-link">FGS</a>
+        <a href="/radar" class="nav-link">Radar</a>
+        <a href="/rain" class="nav-link">Obs</a>
+        <a href="/ukv" class="nav-link">NWP</a>
+        <a href="/status/" class="nav-link active">Status</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content wrapper -->
+  <main class="main-wrap">
+    
+    <div class="page-title-section">
+      <h1 class="text-slate-900 dark:text-slate-100">System Status</h1>
+      
+      <div class="header-actions">
+        <span id="refresh-time-label" class="refresh-time">Loading timestamps...</span>
+        <button id="refresh-btn" class="refresh-button">
+          <span class="material-icons" style="font-size: 16px;">refresh</span>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Spinner State -->
+    <div class="loading-container" id="loading-view">
+      <div class="spinner"></div>
+      <p style="font-weight: 500; font-size: 0.9rem;">Querying pipeline checkpoints...</p>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div id="dashboard-view" style="display: none;">
+      
+      <!-- Banner Indicator -->
+      <div id="global-status-banner" class="status-banner operational">
+        <span class="material-icons banner-icon" id="banner-icon-slot">check_circle</span>
+        <div class="banner-text">
+          <h2 id="global-status-title">All Systems Operational</h2>
+          <p id="global-status-desc">All scraping workflows and processing runs are executing successfully within scheduled timelines.</p>
+        </div>
+      </div>
+
+      <!-- Services Grid -->
+      <div class="services-grid" id="services-list">
+        <!-- Injected by JS -->
+      </div>
+      
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-container">
+      <p>Data provided by Environment Agency & Met Office.</p>
+      <p>Automated API tracking &bull; <a href="/" class="footer-link">Back to home</a></p>
+    </div>
+  </footer>
+
+  <script>
+    // Pipeline intervals & metadata
+    const SERVICE_METADATA = {
+      "Rain Gauges": {
+        expectedIntervalMins: 25,
+        description: "Environment Agency (EA) and Natural Resources Wales (NRW) real-time 15-minute telemetry fetches."
+      },
+      "Met Office Radar (Parallel)": {
+        expectedIntervalMins: 25,
+        description: "Standard 15-minute UK 1km radar rainfall composite images projected and processed from Met Office."
+      },
+      "OPERA Radar (5m)": {
+        expectedIntervalMins: 15,
+        description: "High-resolution 5-minute EUMETNET OPERA composite radar scraper."
+      },
+      "Weather Warnings": {
+        expectedIntervalMins: 40,
+        description: "Severe Weather warnings from EUMETNET MeteoGate EDR with exact MultiPolygon shapes."
+      },
+      "GFS MSLP Forecast": {
+        expectedIntervalMins: 200,
+        description: "GFS model Mean Sea Level Pressure (MSLP) forecasts processed into contour maps."
+      },
+      "Met Office UKV Forecast": {
+        expectedIntervalMins: 400,
+        description: "Met Office UKV weather model outputs processed into maps."
+      },
+      "Rapid Flood Guidance": {
+        expectedIntervalMins: 40,
+        description: "Flood Forecasting Centre (FFC) Rapid Flood Guidance county/risk map updates."
+      },
+      "Gauge Quality Control": {
+        expectedIntervalMins: 1460,
+        description: "Advanced AI-driven quality control checks detecting spike/dry errors on gauge nodes."
+      }
+    };
+
+    const HISTORY_JSON_URL = "history.json";
+
+    // Format relative time representation
+    function getRelativeTime(isoString) {
+      if (!isoString) return "Never";
+      const now = new Date();
+      const past = new Date(isoString);
+      const diffMs = now - past;
+      const diffMins = Math.floor(diffMs / 60000);
+
+      if (diffMins < 1) return "Just now";
+      if (diffMins < 60) return `${diffMins}m ago`;
+      
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays}d ago`;
+    }
+
+    // Format dates for hover tooltips
+    function formatTooltipDate(isoString) {
+      if (!isoString) return "";
+      const d = new Date(isoString);
+      return d.toLocaleDateString(undefined, { 
+        weekday: 'short', 
+        day: '2-digit', 
+        month: 'short', 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZoneName: 'short'
+      });
+    }
+
+    // Load status log from file
+    async function fetchStatusLog() {
+      const loading = document.getElementById("loading-view");
+      const dashboard = document.getElementById("dashboard-view");
+      const refreshLabel = document.getElementById("refresh-time-label");
+
+      try {
+        const response = await fetch(HISTORY_JSON_URL + "?nocache=" + new Date().getTime());
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const data = await response.json();
+        renderDashboard(data.jobs || {});
+        
+        loading.style.display = "none";
+        dashboard.style.display = "block";
+        
+        const now = new Date();
+        refreshLabel.textContent = `Last check: ${now.toLocaleTimeString()}`;
+      } catch (err) {
+        console.error("Error fetching status history:", err);
+        loading.innerHTML = `
+          <div style="text-align: center; color: var(--color-error-text)">
+            <span class="material-icons" style="font-size: 48px; margin-bottom: 0.5rem;">error_outline</span>
+            <p style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">Failed to load system metrics</p>
+            <p style="font-size: 0.825rem; color: var(--text-muted)">The status history log could not be parsed: ${err.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    // Render dashboard components
+    function renderDashboard(jobs) {
+      const servicesList = document.getElementById("services-list");
+      servicesList.innerHTML = "";
+
+      let operationalCount = 0;
+      let degradedCount = 0;
+      let outageCount = 0;
+      let totalMonitored = 0;
+
+      // Ensure all pre-configured keys are processed
+      const allKeys = Array.from(new Set([
+        ...Object.keys(SERVICE_METADATA),
+        ...Object.keys(jobs)
+      ])).sort();
+
+      allKeys.forEach(name => {
+        const job = jobs[name] || { last_run: null, last_status: "unknown", history: [] };
+        const meta = SERVICE_METADATA[name] || { expectedIntervalMins: 60, description: "Automated cron execution." };
+        totalMonitored++;
+
+        const lastRunTime = job.last_run ? new Date(job.last_run) : null;
+        const now = new Date();
+        const staleThresholdMs = meta.expectedIntervalMins * 60 * 1000;
+        
+        let status = "operational";
+        const isStale = lastRunTime && (now - lastRunTime > staleThresholdMs);
+
+        if (!job.last_run) {
+          status = "stale";
+        } else if (isStale) {
+          status = "stale";
+        } else if (job.last_status === "failure") {
+          let consecutiveFailures = 0;
+          for (let i = 0; i < job.history.length; i++) {
+            if (job.history[i].status === "failure") {
+              consecutiveFailures++;
+            } else {
+              break;
+            }
+          }
+          status = consecutiveFailures >= 3 ? "outage" : "degraded";
+        }
+
+        // Tally status counts
+        if (status === "operational") operationalCount++;
+        if (status === "degraded" || status === "stale") degradedCount++;
+        if (status === "outage") outageCount++;
+
+        // Service card container
+        const card = document.createElement("div");
+        card.className = `service-card state-${status}`;
+        card.id = `card-${name.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
+
+        // Construct 30 history blocks (left-to-right from oldest-to-newest)
+        let blocksHtml = "";
+        const historyList = job.history || [];
+        const blockCount = 30;
+
+        for (let i = blockCount - 1; i >= 0; i--) {
+          const run = historyList[i];
+          if (run) {
+            const blockClass = run.status === "success" ? "block-success" : (run.status === "failure" ? "block-failure" : "block-cancelled");
+            const runLink = run.run_id ? `https://github.com/${run.repo}/actions/runs/${run.run_id}` : "#";
+            const linkHint = run.run_id ? `<span class="tooltip-link-hint">Click to view execution log</span>` : "";
+            
+            blocksHtml += `
+              <div class="timeline-block ${blockClass}" onclick="if('${run.run_id}') window.open('${runLink}', '_blank')">
+                <div class="tooltip">
+                  <span class="tooltip-date">${formatTooltipDate(run.timestamp)}</span>
+                  <span class="tooltip-status">
+                    <span class="live-dot-pulse" style="background-color: ${run.status === 'success' ? '#10b981' : '#ef4444'}"></span>
+                    ${run.status}
+                  </span>
+                  ${linkHint}
+                </div>
+              </div>
+            `;
+          } else {
+            blocksHtml += `<div class="timeline-block"></div>`;
+          }
+        }
+
+        // Action debug link
+        let debugLinkHtml = "";
+        const latestFail = historyList.find(r => r.status === "failure");
+        if (latestFail && latestFail.run_id) {
+          const runLink = `https://github.com/${latestFail.repo}/actions/runs/${latestFail.run_id}`;
+          debugLinkHtml = `
+            <a href="${runLink}" target="_blank" class="logs-link">
+              View Logs
+              <span class="material-icons">open_in_new</span>
+            </a>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="card-top">
+            <div>
+              <h3 class="service-title">${name}</h3>
+              <p style="font-size: 0.75rem; color: var(--text-dark); margin-top: 0.1rem;">Runs every ~${meta.expectedIntervalMins} mins</p>
+            </div>
+            <span class="status-badge badge-${status}">
+              <span class="live-dot-pulse"></span>
+              ${status === 'operational' ? 'operational' : status}
+            </span>
+          </div>
+
+          <p class="service-desc">${meta.description}</p>
+
+          <div class="timeline-container">
+            <div class="timeline-header">
+              <span>Timeline (past 30 runs)</span>
+              <span>Latest</span>
+            </div>
+            <div class="timeline-blocks">
+              ${blocksHtml}
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <span>Updated ${getRelativeTime(job.last_run)}</span>
+            ${debugLinkHtml}
+          </div>
+        `;
+
+        servicesList.appendChild(card);
+      });
+
+      // Global Status Banner
+      const banner = document.getElementById("global-status-banner");
+      const icon = document.getElementById("banner-icon-slot");
+      const title = document.getElementById("global-status-title");
+      const desc = document.getElementById("global-status-desc");
+
+      banner.className = "status-banner"; // reset
+      if (outageCount > 0) {
+        banner.classList.add("outage");
+        icon.textContent = "error";
+        title.textContent = "Service Outage Detected";
+        desc.textContent = `${outageCount} critical pipeline process is currently failing consecutive checks.`;
+      } else if (degradedCount > 0) {
+        banner.classList.add("degraded");
+        icon.textContent = "warning";
+        title.textContent = "Partial System Degradation";
+        desc.textContent = `${degradedCount} pipeline process ran with failures or has missed its heartbeat checkpoint.`;
+      } else {
+        banner.classList.add("operational");
+        icon.textContent = "check_circle";
+        title.textContent = "All Systems Operational";
+        desc.textContent = "All background scraping services and forecasting models are running successfully.";
+      }
+    }
+
+    // Listeners
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchStatusLog();
+      
+      // Auto refresh every 60s
+      setInterval(fetchStatusLog, 60000);
+
+      // Manual refresh click handler
+      document.getElementById("refresh-btn").addEventListener("click", () => {
+        fetchStatusLog();
+      });
+    });
+  </script>
+</body>
+</html>

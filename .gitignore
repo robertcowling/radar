@@ -16,3 +16,6 @@ rfg/archive/
 static/radar5/
 static/radar5_gh/
 data_h5_opera/
+data_h5/
+status/history.json
+
