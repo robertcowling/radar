@@ -20,18 +20,19 @@ from datetime import datetime, timedelta
 import boto3
 from PIL import Image
 
-# UK-centric crop — wide enough that the Web Mercator extent is naturally 16:9
-# (-33 to +5 lon, 49.5 to 61.5 lat → merc aspect ratio = 1.778 = 16:9 exactly)
-UK_LON_MIN, UK_LON_MAX = -33.0, 5.0
-UK_LAT_MIN, UK_LAT_MAX = 49.5, 61.5
+# Tight UK-centred crop on GB + Ireland (centre ≈ -4.25°E). Portrait, because
+# the British Isles are naturally tall; OUT dims match the Mercator aspect so
+# the map isn't stretched.
+UK_LON_MIN, UK_LON_MAX = -11.0, 2.5
+UK_LAT_MIN, UK_LAT_MAX = 49.7, 59.3
 
-OUT_W, OUT_H = 900, 506
-ZOOM = 6
+OUT_W, OUT_H = 812, 1000
+ZOOM = 8
 TILE_SIZE = 256
 EARTH_RADIUS = 6378137.0
 
 TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
-BASEMAP_CACHE = "static/dashboard_basemap_z6_wide.png"
+BASEMAP_CACHE = "static/dashboard_basemap_uk_z8.png"
 
 HISTORY_FRAMES = 24
 RETENTION_HOURS = 48
@@ -218,6 +219,18 @@ def ts_from_url(url):
     return m.group(1) if m else None
 
 
+def needs_build(path):
+    """True if the composite is missing or was built at different dimensions
+    (e.g. after a framing/resolution change), so it gets regenerated."""
+    if not os.path.exists(path):
+        return True
+    try:
+        with Image.open(path) as im:
+            return im.size != (OUT_W, OUT_H)
+    except Exception:
+        return True
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -243,7 +256,7 @@ def main():
 
         radar_local = os.path.join(COMPOSITE_DIR, f"dashboard_radar_{ts}.webp")
         keep_local.add(radar_local)
-        if not os.path.exists(radar_local):
+        if needs_build(radar_local):
             print(f"Generating radar composite {ts}…")
             try:
                 comp = make_composite(basemap, fr["url"],
@@ -260,7 +273,7 @@ def main():
         if sat_url:
             sat_local = os.path.join(COMPOSITE_DIR, f"dashboard_sat_{ts}.webp")
             keep_local.add(sat_local)
-            if not os.path.exists(sat_local):
+            if needs_build(sat_local):
                 print(f"Generating sat composite {ts}…")
                 try:
                     comp = make_composite(basemap, sat_url,
