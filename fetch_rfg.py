@@ -101,6 +101,60 @@ def fetch_api_data(url):
         return None
 
 
+def extract_table_image(pdf_bytes):
+    """
+    Render the outlook table from the first few pages of an RFG PDF as a PNG.
+
+    Uses pymupdf's table detector to crop just the largest table; falls back to
+    rendering the full first page if no table is found or pymupdf is too old.
+    Returns raw PNG bytes, or None on any failure.
+    """
+    try:
+        import fitz  # pymupdf
+    except ImportError:
+        print("  pymupdf not installed; skipping table image extraction.")
+        return None
+
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+
+        for page_num in range(min(3, doc.page_count)):
+            page = doc[page_num]
+
+            try:
+                tabs = page.find_tables()
+                if tabs.tables:
+                    best = max(
+                        tabs.tables,
+                        key=lambda t: (t.bbox[2] - t.bbox[0]) * (t.bbox[3] - t.bbox[1]),
+                    )
+                    pad = 12
+                    r = fitz.Rect(
+                        max(0, best.bbox[0] - pad),
+                        max(0, best.bbox[1] - pad),
+                        min(page.rect.width, best.bbox[2] + pad),
+                        min(page.rect.height, best.bbox[3] + pad),
+                    )
+                    pix = page.get_pixmap(matrix=fitz.Matrix(2.5, 2.5), clip=r, alpha=False)
+                    print(f"  Extracted table from page {page_num + 1}, bbox {best.bbox}")
+                    doc.close()
+                    return pix.tobytes("png")
+            except AttributeError:
+                pass  # find_tables not available in this pymupdf version
+
+            # Fallback: render the full first page at 1.5×
+            if page_num == 0:
+                pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5), alpha=False)
+                print("  No table detected; falling back to full first-page render.")
+                doc.close()
+                return pix.tobytes("png")
+
+        doc.close()
+    except Exception as e:
+        print(f"  Table image extraction failed: {e}")
+    return None
+
+
 def download_pdf(url):
     print(f"  Downloading PDF from {url}...")
     headers = {
@@ -193,7 +247,7 @@ def main():
             local_pdf_path = f"rfg/archive/rfg_{rfg_id}.pdf"
             write_local_bytes(local_pdf_path, pdf_bytes)
             print(f"  Saved PDF locally to {local_pdf_path}")
-            
+
             if r2:
                 r2_pdf_key = f"{ARCHIVE_PFX}/rfg_{rfg_id}.pdf"
                 try:
@@ -204,6 +258,24 @@ def main():
                     latest_rfg["pdf_url"] = f"{R2_PUBLIC_URL}/{r2_pdf_key}"
                 except Exception as e:
                     print(f"  Error uploading PDF to R2: {e}")
+
+            # Extract outlook table as a PNG image
+            print("  Extracting outlook table image...")
+            table_png = extract_table_image(pdf_bytes)
+            if table_png:
+                local_img_path = f"rfg/archive/rfg_{rfg_id}_table.png"
+                write_local_bytes(local_img_path, table_png)
+                print(f"  Saved table image to {local_img_path}")
+                if r2:
+                    r2_img_key = f"{ARCHIVE_PFX}/rfg_{rfg_id}_table.png"
+                    try:
+                        r2_put_bytes(r2, r2_img_key, table_png, content_type="image/png")
+                        print(f"  Uploaded table image to R2: {r2_img_key}")
+                        latest_rfg["table_image_url"] = f"{R2_PUBLIC_URL}/{r2_img_key}"
+                    except Exception as e:
+                        print(f"  Error uploading table image to R2: {e}")
+                else:
+                    latest_rfg["table_image_url"] = local_img_path
         else:
             print("  Warning: PDF download failed, using upstream PDF URL.")
 
