@@ -200,19 +200,8 @@ def upload_webp(r2, img, r2_key):
     return url
 
 
-def list_existing_composites(r2):
-    """Return set of R2 keys that already exist under radar/dashboard_*."""
-    keys = set()
-    paginator = r2.get_paginator('list_objects_v2')
-    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix='radar/dashboard_'):
-        for obj in page.get('Contents', []):
-            keys.add(obj['Key'])
-    print(f"Existing dashboard composites in R2: {len(keys)}")
-    return keys
-
-
 def cleanup_old_composites(r2, keep_keys):
-    """Delete per-frame composites not in keep_keys (preserve _latest)."""
+    """Delete timestamped composites outside the current window."""
     cutoff_str = (datetime.utcnow() - timedelta(hours=RETENTION_HOURS)).strftime('%Y%m%d%H%M')
     paginator = r2.get_paginator('list_objects_v2')
     deleted = 0
@@ -221,7 +210,6 @@ def cleanup_old_composites(r2, keep_keys):
             key = obj['Key']
             if key in keep_keys:
                 continue
-            # Only delete timestamped files (not _latest)
             m = re.search(r'_(\d{12})\.webp$', key)
             if m and m.group(1) < cutoff_str:
                 r2.delete_object(Bucket=R2_BUCKET, Key=key)
@@ -254,7 +242,6 @@ def main():
 
     basemap = get_basemap()
     r2 = get_r2_client() if USE_R2 else None
-    existing = list_existing_composites(r2) if USE_R2 else set()
     keep_keys = set()
 
     for fr in radar_frames:
@@ -262,37 +249,39 @@ def main():
         if not ts:
             continue
 
-        # Radar composite
+        # Radar composite — always regenerate so projection changes take effect immediately
         radar_key = f"radar/dashboard_radar_{ts}.webp"
         keep_keys.add(radar_key)
-        if USE_R2 and radar_key not in existing:
-            print(f"Generating radar composite {ts}…")
-            try:
-                comp = make_composite(basemap, fr["url"],
-                                      RADAR_LON_MIN, RADAR_LON_MAX,
-                                      RADAR_LAT_MIN, RADAR_LAT_MAX)
+        print(f"Generating radar composite {ts}…")
+        try:
+            comp = make_composite(basemap, fr["url"],
+                                  RADAR_LON_MIN, RADAR_LON_MAX,
+                                  RADAR_LAT_MIN, RADAR_LAT_MAX)
+            if USE_R2:
                 fr["dashboard_radar_url"] = upload_webp(r2, comp, radar_key)
-            except Exception as e:
-                print(f"  Radar failed for {ts}: {e}")
-        elif USE_R2:
-            fr["dashboard_radar_url"] = f"{R2_PUBLIC_URL}/{radar_key}"
+            else:
+                comp.save(f"dashboard_radar_{ts}.webp", "WEBP", quality=85)
+                fr["dashboard_radar_url"] = f"dashboard_radar_{ts}.webp"
+        except Exception as e:
+            print(f"  Radar failed for {ts}: {e}")
 
         # Satellite composite (only where sat URL is available)
         sat_url = fr.get("sat_url_bw")
         if sat_url:
             sat_key = f"radar/dashboard_sat_{ts}.webp"
             keep_keys.add(sat_key)
-            if USE_R2 and sat_key not in existing:
-                print(f"Generating sat composite {ts}…")
-                try:
-                    comp = make_composite(basemap, sat_url,
-                                          SAT_LON_MIN, SAT_LON_MAX,
-                                          SAT_LAT_MIN, SAT_LAT_MAX)
+            print(f"Generating sat composite {ts}…")
+            try:
+                comp = make_composite(basemap, sat_url,
+                                      SAT_LON_MIN, SAT_LON_MAX,
+                                      SAT_LAT_MIN, SAT_LAT_MAX)
+                if USE_R2:
                     fr["dashboard_sat_url"] = upload_webp(r2, comp, sat_key)
-                except Exception as e:
-                    print(f"  Sat failed for {ts}: {e}")
-            elif USE_R2:
-                fr["dashboard_sat_url"] = f"{R2_PUBLIC_URL}/{sat_key}"
+                else:
+                    comp.save(f"dashboard_sat_{ts}.webp", "WEBP", quality=85)
+                    fr["dashboard_sat_url"] = f"dashboard_sat_{ts}.webp"
+            except Exception as e:
+                print(f"  Sat failed for {ts}: {e}")
 
     # Upload static _latest aliases from the newest frame
     newest = radar_frames[-1]
