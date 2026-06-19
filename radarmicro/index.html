@@ -2,17 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>UK Radar — Live</title>
   <link rel="icon" type="image/png" href="../favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html, body { height: 100%; }
     body {
       font-family: 'Roboto', sans-serif;
       background: #eef2f7;
@@ -20,99 +17,77 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
+      height: 100dvh;          /* keeps controls on-screen on mobile */
       overflow: hidden;
     }
 
-    /* ── Distinctive new header (teal→blue gradient) ─────────────────── */
+    /* ── Header (blue gradient — visible deploy marker) ──────────────── */
     header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 16px;
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 14px;
       background: linear-gradient(90deg, #0ea5e9 0%, #2563eb 100%);
       color: #fff;
-      flex-shrink: 0;
       box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-      z-index: 1000;
     }
-    .title { font-size: 16px; font-weight: 700; letter-spacing: 0.2px; white-space: nowrap; }
-    .build-badge {
-      font-size: 10px; font-weight: 700;
-      background: rgba(255,255,255,0.22);
-      padding: 3px 8px; border-radius: 10px;
-      white-space: nowrap;
-    }
-    #timestamp {
-      font-size: 12px; color: rgba(255,255,255,0.92);
-      white-space: nowrap; flex: 1; overflow: hidden; text-overflow: ellipsis;
-    }
-
+    .title { font-size: 15px; font-weight: 700; white-space: nowrap; }
+    #timestamp { font-size: 12px; color: rgba(255,255,255,0.92); white-space: nowrap; flex: 1; overflow: hidden; text-overflow: ellipsis; }
     .toggle { display: flex; background: rgba(255,255,255,0.18); border-radius: 20px; padding: 3px; flex-shrink: 0; }
     .toggle button {
       background: none; border: none; color: rgba(255,255,255,0.85);
       font-family: inherit; font-size: 12px; font-weight: 500;
-      padding: 4px 12px; border-radius: 16px; cursor: pointer;
-      transition: background 0.18s, color 0.18s;
+      padding: 4px 11px; border-radius: 16px; cursor: pointer;
+      transition: background .18s, color .18s;
     }
     .toggle button.active { background: #fff; color: #2563eb; }
+    .toggle button:disabled { opacity: .4; cursor: default; }
 
-    #outlines-btn {
-      background: rgba(255,255,255,0.18); border: none; color: #fff;
-      font-family: inherit; font-size: 12px; padding: 5px 11px; border-radius: 16px;
-      cursor: pointer; flex-shrink: 0; transition: background 0.18s;
+    /* ── Image stage (one flat composite per frame, GIF-style) ───────── */
+    #stage {
+      flex: 1; min-height: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: #dbe4ee; overflow: hidden;
     }
-    #outlines-btn.active { background: #fff; color: #2563eb; }
-
-    /* ── Map ─────────────────────────────────────────────────────────── */
-    #map {
-      flex: 1;
-      min-height: 0;
-      background: #aadaff;
+    #stage img {
+      max-width: 100%; max-height: 100%;
+      object-fit: contain; display: block;
     }
-    .leaflet-container { background: #aadaff; }
-    .sharp-radar {
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
-    }
-
     #loading {
       position: absolute; inset: 0;
       display: flex; align-items: center; justify-content: center;
-      font-size: 14px; color: #2563eb; font-weight: 500;
-      background: #eef2f7; z-index: 1200;
+      font-size: 14px; color: #2563eb; font-weight: 500; background: #eef2f7;
     }
     #loading.done { display: none; }
 
-    /* ── Controls ────────────────────────────────────────────────────── */
+    /* ── Controls (always pinned, never off-screen) ─────────────────── */
     #controls {
-      display: flex; align-items: center; gap: 10px;
-      padding: 8px 16px; background: #ffffff;
-      border-top: 1px solid #e2e8f0; flex-shrink: 0;
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 14px; background: #fff; border-top: 1px solid #e2e8f0;
     }
     .ctrl-btn {
       background: #f1f5f9; border: none; color: #1f2937;
-      font-family: inherit; font-size: 18px; width: 34px; height: 34px;
-      border-radius: 8px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-      transition: background 0.15s;
+      font-family: inherit; font-size: 17px; width: 34px; height: 34px;
+      border-radius: 8px; cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
     }
     .ctrl-btn:hover { background: #e2e8f0; }
-
     #scrubber { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-    #progress-track { position: relative; height: 5px; background: #e2e8f0; border-radius: 3px; cursor: pointer; }
-    #progress-fill { height: 100%; background: #2563eb; border-radius: 3px; transition: width 0.1s; }
+    #progress-track { position: relative; height: 6px; background: #e2e8f0; border-radius: 3px; cursor: pointer; }
+    #progress-fill { height: 100%; background: #2563eb; border-radius: 3px; transition: width .1s; }
     #frame-label { font-size: 11px; color: #64748b; text-align: right; }
-
     #speed-select {
       background: #f1f5f9; border: none; color: #1f2937;
-      font-family: inherit; font-size: 12px; padding: 5px 9px; border-radius: 8px;
+      font-family: inherit; font-size: 12px; padding: 5px 8px; border-radius: 8px;
       cursor: pointer; flex-shrink: 0;
     }
 
     footer {
+      flex-shrink: 0;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 6px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0;
-      flex-shrink: 0; font-size: 11px; color: #64748b; gap: 10px;
+      padding: 6px 14px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+      font-size: 11px; color: #64748b; gap: 10px;
     }
     footer a { color: #2563eb; text-decoration: none; font-weight: 500; }
     footer a:hover { text-decoration: underline; }
@@ -123,17 +98,17 @@
 
 <header>
   <span class="title">UK Radar</span>
-  <span class="build-badge" id="build-badge">Live</span>
   <span id="timestamp">Loading…</span>
   <div class="toggle">
     <button id="btn-radar" class="active" onclick="setLayer('radar')">Radar</button>
     <button id="btn-sat"              onclick="setLayer('sat')">Satellite</button>
   </div>
-  <button id="outlines-btn" class="active" onclick="toggleOutlines()">Outlines</button>
 </header>
 
-<div id="map"></div>
-<div id="loading">Loading radar…</div>
+<div id="stage">
+  <img id="frame-img" alt="Radar frame" />
+  <div id="loading">Loading radar…</div>
+</div>
 
 <div id="controls">
   <button class="ctrl-btn" id="play-btn" onclick="togglePlay()" title="Play/Pause">⏸</button>
@@ -164,58 +139,48 @@ const REFRESH_MS   = 5 * 60 * 1000;
 const HISTORY      = 24;
 const DWELL_FRAMES = 12;
 
-// Geographic extents — identical to the main /radar map (proven values)
-const RADAR_BOUNDS = [[43.7009, -17.9739], [62.9207, 16.1291]];
-const SAT_BOUNDS   = [[37.75, -40.4], [67.5, 32.4]];
-const TRANSPARENT_GIF = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-
-// ── Map (same voyager basemap + imageOverlay flow as /radar) ──────────────────
-const map = L.map('map', {
-  zoomControl: false, attributionControl: false,
-  dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
-  boxZoom: false, keyboard: false, touchZoom: false, tap: false,
-});
-
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-  maxZoom: 20,
-}).addTo(map);
-
-const radarOverlay = L.imageOverlay('', RADAR_BOUNDS, { opacity: 0.75, interactive: false, className: 'sharp-radar' }).addTo(map);
-const satOverlay   = L.imageOverlay('', SAT_BOUNDS,   { opacity: 0.0,  interactive: false }).addTo(map);
-
-// Frame the British Isles; refit on resize so it always stays centred
-const VIEW_BOUNDS = [[49.6, -11.0], [59.6, 2.6]];
-function fitView() { map.invalidateSize(); map.fitBounds(VIEW_BOUNDS, { animate: false }); }
-fitView();
-window.addEventListener('resize', fitView);
-
-let outlineLayer = null;
-
 // ── State ─────────────────────────────────────────────────────────────────────
-let radarFrames   = [];
+let frames        = [];          // [{ time, radar, sat }]
 let currentIdx    = 0;
 let currentLayer  = 'radar';
 let playing       = true;
 let fps           = 5;
 let tickTimer     = null;
 let dwellCount    = 0;
-let outlinesOn    = true;
 let refreshTimer  = null;
 let nextRefreshAt = null;
+const cache       = {};          // src -> preloaded Image
 
-// ── Load manifest ─────────────────────────────────────────────────────────────
+const img = document.getElementById('frame-img');
+
+function tsFromUrl(u) {
+  const m = u && u.match(/\/(\d{12})_/);
+  return m ? m[1] : null;
+}
+
+// ── Load manifest → build flat composite frame list ───────────────────────────
 async function loadManifest() {
   try {
     const res = await fetch(MANIFEST + '?t=' + Date.now());
     const all = await res.json();
-    radarFrames = all.filter(f => f.url).slice(-HISTORY);
-    if (!radarFrames.length) {
+    const built = [];
+    for (const f of all) {
+      const ts = tsFromUrl(f.url);
+      if (!ts) continue;
+      built.push({
+        time:  f.time || '',
+        radar: 'composites/dashboard_radar_' + ts + '.webp',
+        sat:   'composites/dashboard_sat_'   + ts + '.webp',
+      });
+    }
+    frames = built.slice(-HISTORY);
+    if (!frames.length) {
       document.getElementById('loading').textContent = 'No radar frames available.';
       return;
     }
     document.getElementById('loading').classList.add('done');
-    currentIdx = radarFrames.length - 1;
-    preloadImages();
+    currentIdx = frames.length - 1;
+    preload();
     renderFrame(currentIdx);
     scheduleRefresh();
   } catch (e) {
@@ -223,30 +188,33 @@ async function loadManifest() {
   }
 }
 
-function preloadImages() {
-  for (const fr of radarFrames) {
-    if (fr.url) new Image().src = fr.url;
-    if (fr.sat_url_bw) new Image().src = fr.sat_url_bw;
+function preload() {
+  let satOk = false;
+  for (const fr of frames) {
+    if (!cache[fr.radar]) { const i = new Image(); i.src = fr.radar; cache[fr.radar] = i; }
+    const s = new Image();
+    s.onload = () => { satOk = true; document.getElementById('btn-sat').disabled = false; };
+    s.src = fr.sat; cache[fr.sat] = s;
   }
+  // Assume sat unavailable until one loads
+  document.getElementById('btn-sat').disabled = true;
 }
 
-// ── Render ────────────────────────────────────────────────────────────────────
+// ── Render one flat image (GIF-style swap) ────────────────────────────────────
 function renderFrame(idx) {
-  if (!radarFrames.length) return;
-  const fr = radarFrames[idx];
-  radarOverlay.setUrl(fr.url || TRANSPARENT_GIF);
-  satOverlay.setUrl(fr.sat_url_bw || TRANSPARENT_GIF);
-  document.getElementById('btn-sat').disabled = !fr.sat_url_bw;
-  document.getElementById('timestamp').textContent = fr.time || '';
-  const pct = radarFrames.length > 1 ? idx / (radarFrames.length - 1) * 100 : 100;
+  if (!frames.length) return;
+  const fr = frames[idx];
+  img.src = currentLayer === 'sat' ? fr.sat : fr.radar;
+  document.getElementById('timestamp').textContent = fr.time;
+  const pct = frames.length > 1 ? idx / (frames.length - 1) * 100 : 100;
   document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('frame-label').textContent = `Frame ${idx + 1} / ${radarFrames.length}`;
+  document.getElementById('frame-label').textContent = `Frame ${idx + 1} / ${frames.length}`;
 }
 
 // ── Animation ─────────────────────────────────────────────────────────────────
 function tick() {
-  if (!radarFrames.length) return;
-  if (currentIdx >= radarFrames.length - 1) {
+  if (!frames.length) return;
+  if (currentIdx >= frames.length - 1) {
     if (++dwellCount < DWELL_FRAMES) return;
     dwellCount = 0; currentIdx = 0;
   } else {
@@ -254,58 +222,31 @@ function tick() {
   }
   renderFrame(currentIdx);
 }
-
 function startLoop() { clearInterval(tickTimer); tickTimer = setInterval(tick, 1000 / fps); }
 function stopLoop()  { clearInterval(tickTimer); tickTimer = null; }
-
 function togglePlay() {
   playing = !playing;
   document.getElementById('play-btn').textContent = playing ? '⏸' : '▶';
   playing ? startLoop() : stopLoop();
 }
-
-function stepFrame(delta) {
-  currentIdx = Math.max(0, Math.min(radarFrames.length - 1, currentIdx + delta));
-  dwellCount = 0;
-  renderFrame(currentIdx);
+function stepFrame(d) {
+  currentIdx = Math.max(0, Math.min(frames.length - 1, currentIdx + d));
+  dwellCount = 0; renderFrame(currentIdx);
 }
-
 function setSpeed(v) { fps = parseFloat(v); if (playing) startLoop(); }
-
 function scrubClick(e) {
-  const rect = e.currentTarget.getBoundingClientRect();
-  const frac = (e.clientX - rect.left) / rect.width;
-  currentIdx = Math.max(0, Math.min(radarFrames.length - 1, Math.round(frac * (radarFrames.length - 1))));
-  dwellCount = 0;
-  renderFrame(currentIdx);
+  const r = e.currentTarget.getBoundingClientRect();
+  const frac = (e.clientX - r.left) / r.width;
+  currentIdx = Math.max(0, Math.min(frames.length - 1, Math.round(frac * (frames.length - 1))));
+  dwellCount = 0; renderFrame(currentIdx);
 }
 
 // ── Layer toggle ──────────────────────────────────────────────────────────────
 function setLayer(layer) {
   currentLayer = layer;
-  radarOverlay.setOpacity(layer === 'radar' ? 0.75 : 0);
-  satOverlay.setOpacity(layer === 'sat' ? 1.0 : 0);
   document.getElementById('btn-radar').classList.toggle('active', layer === 'radar');
   document.getElementById('btn-sat').classList.toggle('active',   layer === 'sat');
-}
-
-// ── Outlines ──────────────────────────────────────────────────────────────────
-function toggleOutlines() {
-  outlinesOn = !outlinesOn;
-  document.getElementById('outlines-btn').classList.toggle('active', outlinesOn);
-  if (outlineLayer) outlinesOn ? outlineLayer.addTo(map) : map.removeLayer(outlineLayer);
-}
-
-async function loadOutlines() {
-  try {
-    const res = await fetch('../uk-counties.geojson');
-    const gj  = await res.json();
-    outlineLayer = L.geoJSON(gj, {
-      interactive: false,
-      style: { color: '#334155', weight: 0.6, fill: false, opacity: 0.5 }
-    });
-    if (outlinesOn) outlineLayer.addTo(map);
-  } catch(e) {}
+  renderFrame(currentIdx);
 }
 
 // ── Auto-refresh ──────────────────────────────────────────────────────────────
@@ -316,7 +257,6 @@ function scheduleRefresh() {
   updateCountdown();
   setInterval(updateCountdown, 15000);
 }
-
 function updateCountdown() {
   if (!nextRefreshAt) return;
   const s = Math.max(0, Math.round((nextRefreshAt - Date.now()) / 1000));
@@ -326,7 +266,6 @@ function updateCountdown() {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadManifest();
-loadOutlines();
 startLoop();
 </script>
 </body>

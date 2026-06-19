@@ -1,0 +1,52 @@
+name: Deploy GitHub Pages
+
+# Dedicated Pages deploy. The repo gets frequent automated data commits, and
+# the default "deploy from a branch" mode cancels in-progress builds on every
+# push — so deploys kept cancelling and the live site froze. This workflow
+# deploys on a fixed cadence (radar updates every 15 min) plus on code changes,
+# with non-cancelling concurrency so a running deploy always finishes.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - '**.html'
+      - '**.geojson'
+      - '**.css'
+      - '**.js'
+      - '.github/workflows/pages.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow the in-progress deploy to finish; queue (do not cancel) new ones.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

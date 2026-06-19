@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'process_parallel.py'
+      - 'make_dashboard_composites.py'
       - '.github/workflows/radar_parallel.yml'
   workflow_dispatch:
 
@@ -26,6 +27,7 @@ jobs:
       with:
         path: |
           static/radar_parallel_gh
+          static/dashboard_basemap_z6_wide.png
         key: radar-parallel-images-v1-${{ github.run_id }}
         restore-keys: radar-parallel-images-v1-
 
@@ -48,6 +50,9 @@ jobs:
         R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
       run: python process_parallel.py
 
+    - name: Generate dashboard composite images
+      run: python make_dashboard_composites.py
+
     - name: Delete files older than 14 days
       run: |
         cutoff=$(date -u -d '14 days ago' +'%Y%m%d%H%M')
@@ -64,13 +69,14 @@ jobs:
       with:
         path: |
           static/radar_parallel_gh
+          static/dashboard_basemap_z6_wide.png
         key: radar-parallel-images-v1-${{ github.run_id }}
 
     - name: Commit and push changes
       run: |
         git config --global user.name "Radar Automator"
         git config --global user.email "radar-bot@github.com"
-        git add frames_parallel.json
+        git add frames_parallel.json radarmicro/composites/
         git diff --cached --quiet && echo "No changes to commit" || {
           git commit -m "Update radar parallel frames $(date -u +'%Y-%m-%d %H:%M UTC')" || exit 1
           n=0
