@@ -27,7 +27,7 @@ jobs:
       with:
         path: |
           static/radar_parallel_gh
-          static/dashboard_basemap_z6.png
+          static/dashboard_basemap_z6_wide.png
         key: radar-parallel-images-v1-${{ github.run_id }}
         restore-keys: radar-parallel-images-v1-
 
@@ -75,7 +75,7 @@ jobs:
       with:
         path: |
           static/radar_parallel_gh
-          static/dashboard_basemap_z6.png
+          static/dashboard_basemap_z6_wide.png
         key: radar-parallel-images-v1-${{ github.run_id }}
 
     - name: Commit and push changes

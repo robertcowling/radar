@@ -24,8 +24,10 @@ from datetime import datetime, timedelta
 import boto3
 from PIL import Image
 
-# UK-centric crop
-UK_LON_MIN, UK_LON_MAX = -11.5, 2.5
+# UK-centric crop — wide enough that the Web Mercator extent is naturally 16:9
+# (-33 to +5 lon, 49.5 to 61.5 lat → merc aspect ratio = 1.778 = 16:9 exactly)
+# The UK sits in the right ~40% of the frame; Atlantic fills the left.
+UK_LON_MIN, UK_LON_MAX = -33.0, 5.0
 UK_LAT_MIN, UK_LAT_MAX = 49.5, 61.5
 
 OUT_W, OUT_H = 900, 506
@@ -34,7 +36,8 @@ TILE_SIZE = 256
 EARTH_RADIUS = 6378137.0
 
 TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
-BASEMAP_CACHE = "static/dashboard_basemap_z6.png"
+# Filename encodes crop bounds so a changed crop invalidates the cache
+BASEMAP_CACHE = "static/dashboard_basemap_z6_wide.png"
 
 # How many recent frames to keep composites for (6h = 24 × 15-min frames)
 HISTORY_FRAMES = 24

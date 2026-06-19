@@ -257,6 +257,8 @@ const REFRESH_MS   = 5 * 60 * 1000;
 const DWELL_FRAMES = 12;   // extra ticks paused at last frame before looping
 
 // ── Projection (Web Mercator → 900×506 pixel space) ───────────────────────────
+// Bounds match make_dashboard_composites.py: lon -33 to +5, lat 49.5 to 61.5
+// This gives a natural 16:9 merc aspect ratio so the UK isn't distorted.
 const R = 6378137;
 function llToMerc(lon, lat) {
   return [
@@ -264,8 +266,8 @@ function llToMerc(lon, lat) {
     R * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))
   ];
 }
-const [mxMin] = llToMerc(-11.5, 0);
-const [mxMax] = llToMerc(2.5,   0);
+const [mxMin] = llToMerc(-33.0, 0);
+const [mxMax] = llToMerc(5.0,   0);
 const [, myMin] = llToMerc(0, 49.5);
 const [, myMax] = llToMerc(0, 61.5);
 
