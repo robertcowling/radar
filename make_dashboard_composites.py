@@ -205,7 +205,7 @@ def cleanup_old_composites(r2, keep_keys):
     cutoff_str = (datetime.utcnow() - timedelta(hours=RETENTION_HOURS)).strftime('%Y%m%d%H%M')
     paginator = r2.get_paginator('list_objects_v2')
     deleted = 0
-    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix='radar/dashboard_'):
+    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix='radar_gh/dashboard_'):
         for obj in page.get('Contents', []):
             key = obj['Key']
             if key in keep_keys:
@@ -250,7 +250,7 @@ def main():
             continue
 
         # Radar composite — always regenerate so projection changes take effect immediately
-        radar_key = f"radar/dashboard_radar_{ts}.webp"
+        radar_key = f"radar_gh/dashboard_radar_{ts}.webp"
         keep_keys.add(radar_key)
         print(f"Generating radar composite {ts}…")
         try:
@@ -268,7 +268,7 @@ def main():
         # Satellite composite (only where sat URL is available)
         sat_url = fr.get("sat_url_bw")
         if sat_url:
-            sat_key = f"radar/dashboard_sat_{ts}.webp"
+            sat_key = f"radar_gh/dashboard_sat_{ts}.webp"
             keep_keys.add(sat_key)
             print(f"Generating sat composite {ts}…")
             try:
@@ -290,8 +290,8 @@ def main():
             latest_comp = make_composite(basemap, newest["url"],
                                          RADAR_LON_MIN, RADAR_LON_MAX,
                                          RADAR_LAT_MIN, RADAR_LAT_MAX)
-            upload_webp(r2, latest_comp, "radar/dashboard_radar_latest.webp")
-            keep_keys.add("radar/dashboard_radar_latest.webp")
+            upload_webp(r2, latest_comp, "radar_gh/dashboard_radar_latest.webp")
+            keep_keys.add("radar_gh/dashboard_radar_latest.webp")
         except Exception as e:
             print(f"  _latest radar failed: {e}")
 
@@ -300,8 +300,8 @@ def main():
             sat_comp = make_composite(basemap, newest["sat_url_bw"],
                                       SAT_LON_MIN, SAT_LON_MAX,
                                       SAT_LAT_MIN, SAT_LAT_MAX)
-            upload_webp(r2, sat_comp, "radar/dashboard_sat_latest.webp")
-            keep_keys.add("radar/dashboard_sat_latest.webp")
+            upload_webp(r2, sat_comp, "radar_gh/dashboard_sat_latest.webp")
+            keep_keys.add("radar_gh/dashboard_sat_latest.webp")
         except Exception as e:
             print(f"  _latest sat failed: {e}")
 
