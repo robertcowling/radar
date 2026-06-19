@@ -88,52 +88,9 @@
             <a href="rapid_flood.html" class="menu-item">Rapid Flood Guidance</a>
             <a href="tools/r2_browser.html" class="menu-item">R2 Browser Tool</a>
         </div>
-        <!-- Flood Guidance Widget -->
-        <div id="rfg-widget" style="margin-top: 24px; background: #f8f9fa; border: 1px solid #dadce0; border-radius: 10px; overflow: hidden; font-size: 13px;">
-            <div style="display: flex; align-items: center; gap: 10px; padding: 12px 16px;">
-                <div id="rfg-dot" style="width: 9px; height: 9px; border-radius: 50%; background: #dadce0; flex-shrink: 0; transition: background 0.3s, box-shadow 0.3s;"></div>
-                <div style="flex: 1; min-width: 0;">
-                    <span style="font-size: 11px; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.4px;">Rapid Flood Guidance</span>
-                    <div id="rfg-status" style="font-weight: 600; color: #5f6368; margin-top: 1px;">Loading...</div>
-                </div>
-                <a href="rapid_flood.html" style="color: #1a73e8; text-decoration: none; font-weight: 600; font-size: 12px; white-space: nowrap; flex-shrink: 0;">View →</a>
-            </div>
-            <div id="rfg-img-wrap" style="display: none; border-top: 1px solid #dadce0;">
-                <a href="rapid_flood.html">
-                    <img id="rfg-table-img" src="" alt="Flood outlook table" style="width: 100%; display: block;">
-                </a>
-            </div>
-        </div>
-
         <div class="footer">
             &copy; 2024 UK Radar Project
         </div>
     </div>
-    <script>
-        fetch('https://radar.floodforecast.co.uk/rfg/rfg_latest.json?_cb=' + Date.now())
-            .then(function(r) { return r.json(); })
-            .then(function(d) {
-                var dot     = document.getElementById('rfg-dot');
-                var status  = document.getElementById('rfg-status');
-                var imgWrap = document.getElementById('rfg-img-wrap');
-                var img     = document.getElementById('rfg-table-img');
-                var isActive = d.status === 'Rapid Flooding Guidance Present';
-                if (isActive) {
-                    dot.style.background = '#ea4335';
-                    dot.style.boxShadow  = '0 0 0 3px rgba(234,67,53,0.18)';
-                    status.textContent   = 'Active';
-                    status.style.color   = '#c5221f';
-                    var rfg = d.latest_rfg;
-                    if (rfg && rfg.table_image_url) {
-                        img.src              = rfg.table_image_url;
-                        imgWrap.style.display = 'block';
-                    }
-                } else {
-                    dot.style.background = '#34a853';
-                    status.textContent   = 'No active guidance';
-                }
-            })
-            .catch(function() {});
-    </script>
 </body>
 </html>
