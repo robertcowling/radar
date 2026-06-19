@@ -3,12 +3,8 @@
 Generate 900×506 dashboard composite WebP images (CartoDB basemap + radar/sat overlay).
 
 Per-frame composites are uploaded as:
-  radar/dashboard_radar_YYYYMMDDHHMM.webp   (last HISTORY_FRAMES frames)
-  radar/dashboard_sat_YYYYMMDDHHMM.webp     (last HISTORY_FRAMES frames, where sat exists)
-
-Static aliases for external consumers:
-  radar/dashboard_radar_latest.webp
-  radar/dashboard_sat_latest.webp
+  radar_parallel/dashboard_radar_YYYYMMDDHHMM.webp  (last HISTORY_FRAMES frames)
+  sat_gh/dashboard_sat_YYYYMMDDHHMM.webp            (last HISTORY_FRAMES frames)
 
 frames_parallel.json is updated with dashboard_radar_url / dashboard_sat_url per frame.
 """
@@ -26,7 +22,6 @@ from PIL import Image
 
 # UK-centric crop — wide enough that the Web Mercator extent is naturally 16:9
 # (-33 to +5 lon, 49.5 to 61.5 lat → merc aspect ratio = 1.778 = 16:9 exactly)
-# The UK sits in the right ~40% of the frame; Atlantic fills the left.
 UK_LON_MIN, UK_LON_MAX = -33.0, 5.0
 UK_LAT_MIN, UK_LAT_MAX = 49.5, 61.5
 
@@ -36,17 +31,10 @@ TILE_SIZE = 256
 EARTH_RADIUS = 6378137.0
 
 TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
-# Filename encodes crop bounds so a changed crop invalidates the cache
 BASEMAP_CACHE = "static/dashboard_basemap_z6_wide.png"
 
-# How many recent frames to keep composites for (6h = 24 × 15-min frames)
 HISTORY_FRAMES = 24
-
-# Retention: delete per-frame composites older than this many hours
 RETENTION_HOURS = 48
-
-# Local directory for GitHub Pages serving (committed to repo)
-COMPOSITE_DIR = "radarmicro/composites"
 
 # Radar overlay extent (Web Mercator-projected PNG from process_parallel.py)
 RADAR_LON_MIN, RADAR_LON_MAX = -17.9739, 16.1291
@@ -204,7 +192,6 @@ def upload_webp(r2, img, r2_key):
 
 
 def cleanup_old_composites(r2, keep_keys):
-    """Delete timestamped composites outside the current window."""
     cutoff_str = (datetime.utcnow() - timedelta(hours=RETENTION_HOURS)).strftime('%Y%m%d%H%M')
     paginator = r2.get_paginator('list_objects_v2')
     deleted = 0
@@ -224,7 +211,6 @@ def cleanup_old_composites(r2, keep_keys):
 
 
 def ts_from_url(url):
-    """Extract 12-digit timestamp from a radar_parallel PNG URL."""
     m = re.search(r'/(\d{12})_', url)
     return m.group(1) if m else None
 
@@ -238,7 +224,6 @@ def main():
         print("frames_parallel.json is empty.")
         return
 
-    # Work on last HISTORY_FRAMES frames that have a radar URL
     radar_frames = [fr for fr in frames if fr.get("url")][-HISTORY_FRAMES:]
     if not radar_frames:
         print("No radar frames found.")
@@ -247,81 +232,44 @@ def main():
     basemap = get_basemap()
     r2 = get_r2_client() if USE_R2 else None
     keep_keys = set()
-    keep_local = set()
-
-    os.makedirs(COMPOSITE_DIR, exist_ok=True)
 
     for fr in radar_frames:
         ts = ts_from_url(fr["url"])
         if not ts:
             continue
 
-        # Radar composite — always regenerate so projection changes take effect immediately
-        radar_local = f"{COMPOSITE_DIR}/dashboard_radar_{ts}.webp"
         radar_key = f"radar_parallel/dashboard_radar_{ts}.webp"
         keep_keys.add(radar_key)
-        keep_local.add(radar_local)
         print(f"Generating radar composite {ts}…")
         try:
             comp = make_composite(basemap, fr["url"],
                                   RADAR_LON_MIN, RADAR_LON_MAX,
                                   RADAR_LAT_MIN, RADAR_LAT_MAX)
-            comp.save(radar_local, "WEBP", quality=85)
-            fr["dashboard_radar_url"] = f"composites/dashboard_radar_{ts}.webp"
             if USE_R2:
-                upload_webp(r2, comp, radar_key)
+                fr["dashboard_radar_url"] = upload_webp(r2, comp, radar_key)
+            else:
+                comp.save(f"dashboard_radar_{ts}.webp", "WEBP", quality=85)
+                fr["dashboard_radar_url"] = f"dashboard_radar_{ts}.webp"
         except Exception as e:
             print(f"  Radar failed for {ts}: {e}")
 
-        # Satellite composite (only where sat URL is available)
         sat_url = fr.get("sat_url_bw")
         if sat_url:
-            sat_local = f"{COMPOSITE_DIR}/dashboard_sat_{ts}.webp"
             sat_key = f"sat_gh/dashboard_sat_{ts}.webp"
             keep_keys.add(sat_key)
-            keep_local.add(sat_local)
             print(f"Generating sat composite {ts}…")
             try:
                 comp = make_composite(basemap, sat_url,
                                       SAT_LON_MIN, SAT_LON_MAX,
                                       SAT_LAT_MIN, SAT_LAT_MAX)
-                comp.save(sat_local, "WEBP", quality=85)
-                fr["dashboard_sat_url"] = f"composites/dashboard_sat_{ts}.webp"
                 if USE_R2:
-                    upload_webp(r2, comp, sat_key)
+                    fr["dashboard_sat_url"] = upload_webp(r2, comp, sat_key)
+                else:
+                    comp.save(f"dashboard_sat_{ts}.webp", "WEBP", quality=85)
+                    fr["dashboard_sat_url"] = f"dashboard_sat_{ts}.webp"
             except Exception as e:
                 print(f"  Sat failed for {ts}: {e}")
 
-    # Cleanup old local composites not in the current window
-    for fname in os.listdir(COMPOSITE_DIR):
-        fpath = f"{COMPOSITE_DIR}/{fname}"
-        if fname.startswith("dashboard_") and fname.endswith(".webp") and fpath not in keep_local:
-            os.remove(fpath)
-            print(f"  Deleted old local composite: {fname}")
-
-    # Upload static _latest aliases from the newest frame
-    newest = radar_frames[-1]
-    if USE_R2 and newest.get("dashboard_radar_url"):
-        try:
-            latest_comp = make_composite(basemap, newest["url"],
-                                         RADAR_LON_MIN, RADAR_LON_MAX,
-                                         RADAR_LAT_MIN, RADAR_LAT_MAX)
-            upload_webp(r2, latest_comp, "radar_parallel/dashboard_radar_latest.webp")
-            keep_keys.add("radar_parallel/dashboard_radar_latest.webp")
-        except Exception as e:
-            print(f"  _latest radar failed: {e}")
-
-    if USE_R2 and newest.get("dashboard_sat_url"):
-        try:
-            sat_comp = make_composite(basemap, newest["sat_url_bw"],
-                                      SAT_LON_MIN, SAT_LON_MAX,
-                                      SAT_LAT_MIN, SAT_LAT_MAX)
-            upload_webp(r2, sat_comp, "sat_gh/dashboard_sat_latest.webp")
-            keep_keys.add("sat_gh/dashboard_sat_latest.webp")
-        except Exception as e:
-            print(f"  _latest sat failed: {e}")
-
-    # Write updated manifest
     with open("frames_parallel.json", "w") as f:
         json.dump(frames, f, indent=2)
     print("frames_parallel.json updated.")
