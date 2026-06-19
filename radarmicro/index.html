@@ -11,7 +11,7 @@
 
     body {
       font-family: 'Roboto', sans-serif;
-      background: #ffffff;
+      background: #111827;
       color: #e8eaed;
       display: flex;
       flex-direction: column;
@@ -72,7 +72,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #0b0f1a;
+      background: #111827;
       min-height: 0;
       overflow: hidden;
     }
@@ -92,12 +92,6 @@
       height: 100%;
     }
 
-    /* Radar/sat overlays are positioned by JS to match their geographic extent */
-    #img-radar, #img-sat {
-      inset: unset;
-      object-fit: fill;
-      transition: opacity 0.2s;
-    }
     #img-sat { opacity: 0; }
     #img-sat.visible { opacity: 1; }
     #img-radar.hidden { opacity: 0; }
@@ -235,7 +229,7 @@ const HISTORY      = 24;
 const DWELL_FRAMES = 12;
 
 // ── Projection (Web Mercator → 900×506 pixel space) ───────────────────────────
-// Display window: lon -33..+5, lat 49.5..61.5 (natural 16:9 merc ratio)
+// Display window: lon -33..+5, lat 49.5..61.5
 const R = 6378137;
 function llToMerc(lon, lat) {
   return [
@@ -256,27 +250,6 @@ function project(lon, lat) {
   ];
 }
 
-// ── Position overlays to match their geographic extent ────────────────────────
-// Radar PNG extent (from process_parallel.py)
-const [RL, RB] = project(-17.9739, 43.7009);  // SW corner
-const [RR, RT] = project( 16.1291, 62.9207);  // NE corner
-// Sat PNG extent (EUMETSAT WMS)
-const [SL, SB] = project(-40.4, 37.75);
-const [SR, ST] = project( 32.4, 67.5);
-
-function applyPosition(el, l, t, r, b) {
-  el.style.position = 'absolute';
-  el.style.left   = (l / 900 * 100) + '%';
-  el.style.top    = (t / 506 * 100) + '%';
-  el.style.width  = ((r - l) / 900 * 100) + '%';
-  el.style.height = ((b - t) / 506 * 100) + '%';
-}
-
-const radarImg = document.getElementById('img-radar');
-const satImg   = document.getElementById('img-sat');
-applyPosition(radarImg, RL, RT, RR, RB);
-applyPosition(satImg,   SL, ST, SR, SB);
-
 // ── State ─────────────────────────────────────────────────────────────────────
 let radarFrames   = [];
 let currentIdx    = 0;
@@ -289,11 +262,14 @@ let outlinesOn    = true;
 let refreshTimer  = null;
 let nextRefreshAt = null;
 
+const radarImg = document.getElementById('img-radar');
+const satImg   = document.getElementById('img-sat');
+
 // ── Load manifest ─────────────────────────────────────────────────────────────
 async function loadManifest() {
   const res  = await fetch(MANIFEST + '?t=' + Date.now());
   const all  = await res.json();
-  radarFrames = all.filter(f => f.url).slice(-HISTORY);
+  radarFrames = all.filter(f => f.dashboard_radar_url).slice(-HISTORY);
   if (!radarFrames.length) {
     document.getElementById('loading').textContent = 'No radar frames available.';
     return;
@@ -307,8 +283,8 @@ async function loadManifest() {
 
 function preloadImages() {
   for (const fr of radarFrames) {
-    new Image().src = fr.url;
-    if (fr.sat_url_bw) new Image().src = fr.sat_url_bw;
+    new Image().src = fr.dashboard_radar_url;
+    if (fr.dashboard_sat_url) new Image().src = fr.dashboard_sat_url;
   }
 }
 
@@ -316,9 +292,9 @@ function preloadImages() {
 function renderFrame(idx) {
   if (!radarFrames.length) return;
   const fr = radarFrames[idx];
-  radarImg.src = fr.url;
-  if (fr.sat_url_bw) satImg.src = fr.sat_url_bw;
-  document.getElementById('btn-sat').disabled = !fr.sat_url_bw;
+  radarImg.src = fr.dashboard_radar_url;
+  if (fr.dashboard_sat_url) satImg.src = fr.dashboard_sat_url;
+  document.getElementById('btn-sat').disabled = !fr.dashboard_sat_url;
   document.getElementById('timestamp').textContent = fr.time || '';
   const pct = radarFrames.length > 1 ? idx / (radarFrames.length - 1) * 100 : 100;
   document.getElementById('progress-fill').style.width = pct + '%';
