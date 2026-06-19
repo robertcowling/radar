@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UK Radar — Quick View</title>
+  <link rel="icon" type="image/png" href="../favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #1a1a2e;
+      color: #e8eaed;
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* ── Top bar ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(0,0,0,0.45);
+      flex-shrink: 0;
+      gap: 10px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .title {
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    #timestamp {
+      font-size: 12px;
+      color: #9aa0a6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Toggle pill ── */
+    .toggle {
+      display: flex;
+      background: rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 3px;
+      flex-shrink: 0;
+    }
+
+    .toggle button {
+      background: none;
+      border: none;
+      color: #9aa0a6;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 5px 14px;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s;
+      white-space: nowrap;
+    }
+
+    .toggle button.active {
+      background: #1a73e8;
+      color: #fff;
+    }
+
+    /* ── Image area ── */
+    #image-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .layer {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.3s ease;
+    }
+
+    .layer.hidden { opacity: 0; pointer-events: none; }
+
+    .layer img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* ── Loading/error states ── */
+    #status-msg {
+      font-size: 14px;
+      color: #9aa0a6;
+      text-align: center;
+      padding: 40px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 14px;
+      background: rgba(0,0,0,0.35);
+      flex-shrink: 0;
+      font-size: 12px;
+      color: #9aa0a6;
+      gap: 10px;
+    }
+
+    footer a {
+      color: #8ab4f8;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    footer a:hover { text-decoration: underline; }
+
+    #refresh-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #9aa0a6;
+      font-family: inherit;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    #refresh-btn:hover { background: rgba(255,255,255,0.08); }
+    #refresh-btn.spinning { opacity: 0.5; cursor: default; }
+
+    #next-refresh {
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <span class="title">UK Radar</span>
+    <span id="timestamp">Loading…</span>
+  </div>
+  <div class="toggle">
+    <button id="btn-radar" class="active" onclick="show('radar')">Radar</button>
+    <button id="btn-sat"              onclick="show('sat')">Satellite</button>
+  </div>
+</header>
+
+<div id="image-wrap">
+  <div id="layer-radar" class="layer">
+    <img id="img-radar" alt="Radar composite" />
+  </div>
+  <div id="layer-sat" class="layer hidden">
+    <img id="img-sat" alt="Satellite composite" />
+  </div>
+  <div id="status-msg">Loading…</div>
+</div>
+
+<footer>
+  <a href="../index.html">Full radar map</a>
+  <span id="next-refresh"></span>
+  <button id="refresh-btn" onclick="refresh()">Refresh</button>
+</footer>
+
+<script>
+  const MANIFEST = '../frames_parallel.json';
+  const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 min
+
+  let currentLayer = 'radar';
+  let refreshTimer = null;
+  let countdownTimer = null;
+  let nextRefreshAt = null;
+
+  function show(layer) {
+    currentLayer = layer;
+    document.getElementById('layer-radar').classList.toggle('hidden', layer !== 'radar');
+    document.getElementById('layer-sat').classList.toggle('hidden', layer !== 'sat');
+    document.getElementById('btn-radar').classList.toggle('active', layer === 'radar');
+    document.getElementById('btn-sat').classList.toggle('active', layer === 'sat');
+  }
+
+  async function load() {
+    const statusEl = document.getElementById('status-msg');
+    try {
+      const res = await fetch(MANIFEST + '?t=' + Date.now());
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const frames = await res.json();
+      const latest = frames.at(-1);
+      if (!latest) throw new Error('No frames');
+
+      const radarUrl = latest.dashboard_radar_url;
+      const satUrl   = latest.dashboard_sat_url;
+
+      if (!radarUrl && !satUrl) {
+        statusEl.textContent = 'Dashboard composites not yet generated — workflow may still be running.';
+        return;
+      }
+
+      statusEl.style.display = 'none';
+
+      if (radarUrl) {
+        const img = document.getElementById('img-radar');
+        img.src = radarUrl + '?t=' + Date.now();
+      }
+      if (satUrl) {
+        const img = document.getElementById('img-sat');
+        img.src = satUrl + '?t=' + Date.now();
+        document.getElementById('btn-sat').disabled = false;
+      } else {
+        document.getElementById('btn-sat').disabled = true;
+        document.getElementById('btn-sat').title = 'Satellite composite not available';
+      }
+
+      document.getElementById('timestamp').textContent = latest.time || '';
+
+    } catch (err) {
+      statusEl.textContent = `Failed to load: ${err.message}`;
+      statusEl.style.display = '';
+      console.error(err);
+    }
+  }
+
+  function refresh() {
+    const btn = document.getElementById('refresh-btn');
+    if (btn.classList.contains('spinning')) return;
+    btn.classList.add('spinning');
+    btn.textContent = 'Refreshing…';
+    scheduleNextRefresh();
+    load().finally(() => {
+      btn.classList.remove('spinning');
+      btn.textContent = 'Refresh';
+    });
+  }
+
+  function scheduleNextRefresh() {
+    clearTimeout(refreshTimer);
+    clearInterval(countdownTimer);
+    nextRefreshAt = Date.now() + REFRESH_INTERVAL;
+
+    refreshTimer = setTimeout(() => {
+      load();
+      scheduleNextRefresh();
+    }, REFRESH_INTERVAL);
+
+    countdownTimer = setInterval(updateCountdown, 10000);
+    updateCountdown();
+  }
+
+  function updateCountdown() {
+    const secsLeft = Math.max(0, Math.round((nextRefreshAt - Date.now()) / 1000));
+    const mins = Math.floor(secsLeft / 60);
+    const secs = secsLeft % 60;
+    document.getElementById('next-refresh').textContent =
+      `Auto-refresh in ${mins}:${String(secs).padStart(2, '0')}`;
+  }
+
+  load();
+  scheduleNextRefresh();
+</script>
+</body>
+</html>
