@@ -82,7 +82,7 @@ jobs:
       run: |
         git config --global user.name "Radar Automator"
         git config --global user.email "radar-bot@github.com"
-        git add frames_parallel.json
+        git add frames_parallel.json radarmicro/composites/
         git diff --cached --quiet && echo "No changes to commit" || {
           git commit -m "Update radar parallel frames $(date -u +'%Y-%m-%d %H:%M UTC')" || exit 1
           n=0
