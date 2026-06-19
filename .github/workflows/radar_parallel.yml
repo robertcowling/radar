@@ -80,7 +80,7 @@ jobs:
         git diff --cached --quiet && echo "No changes to commit" || {
           git commit -m "Update radar parallel frames $(date -u +'%Y-%m-%d %H:%M UTC')" || exit 1
           n=0
-          until git pull --rebase -X theirs origin main && git push origin main; do
+          until git pull --rebase -X theirs origin main && git push origin HEAD:main; do
             n=$((n+1)); [ $n -ge 3 ] && exit 1
             echo "Push attempt $n/3 failed, retrying in $((n*5))s..."
             sleep $((n*5))
