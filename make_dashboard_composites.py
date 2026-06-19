@@ -34,8 +34,8 @@ EARTH_RADIUS = 6378137.0
 TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
 BASEMAP_CACHE = "static/dashboard_basemap_uk_z8.png"
 COUNTIES_GEOJSON = "uk-counties.geojson"
-COUNTY_COLOR = (70, 70, 95)   # dark blue-grey line on light basemap
-COUNTY_WIDTH = 1
+COUNTY_COLOR = (50, 50, 80)   # dark navy on light basemap / satellite
+COUNTY_WIDTH = 2
 
 HISTORY_FRAMES = 24
 RETENTION_HOURS = 48
@@ -100,8 +100,8 @@ def _ll_to_composite_px(lon, lat, crop_left, crop_top, crop_w, crop_h):
     mx, my = ll_to_merc(lon, lat)
     wpx, wpy = merc_to_world_px(mx, my, ZOOM)
     return (
-        (wpx - crop_left) / crop_w * OUT_W,
-        (wpy - crop_top)  / crop_h * OUT_H,
+        int((wpx - crop_left) / crop_w * OUT_W),
+        int((wpy - crop_top)  / crop_h * OUT_H),
     )
 
 
@@ -231,6 +231,24 @@ def make_composite(basemap_rgba, overlay_url, ov_lon_min, ov_lon_max, ov_lat_min
     return img_rgb
 
 
+def make_combined_composite(basemap_rgba, radar_url, sat_url):
+    """Satellite background + radar colour overlay, like the main map view."""
+    sat = download_image(sat_url).convert("RGBA")
+    sat_crop = crop_overlay_to_uk(sat, SAT_LON_MIN, SAT_LON_MAX, SAT_LAT_MIN, SAT_LAT_MAX)
+    sat_resize = sat_crop.resize((OUT_W, OUT_H), Image.LANCZOS)
+
+    radar = download_image(radar_url).convert("RGBA")
+    radar_crop = crop_overlay_to_uk(radar, RADAR_LON_MIN, RADAR_LON_MAX, RADAR_LAT_MIN, RADAR_LAT_MAX)
+    radar_resize = radar_crop.resize((OUT_W, OUT_H), Image.LANCZOS)
+
+    result = basemap_rgba.copy()
+    result.paste(sat_resize, (0, 0), sat_resize)
+    result.paste(radar_resize, (0, 0), radar_resize)
+    img_rgb = result.convert("RGB")
+    draw_county_outlines(img_rgb)
+    return img_rgb
+
+
 # ── R2 ────────────────────────────────────────────────────────────────────────
 
 def get_r2_client():
@@ -347,6 +365,19 @@ def main():
                     print(f"  Sat failed for {ts}: {e}")
                     continue
             fr["dashboard_sat_url"] = f"composites/dashboard_sat_{ts}.webp"
+
+            combined_local = os.path.join(COMPOSITE_DIR, f"dashboard_combined_{ts}.webp")
+            keep_local.add(combined_local)
+            if needs_build(combined_local):
+                print(f"Generating combined composite {ts}…")
+                try:
+                    comp = make_combined_composite(basemap, fr["url"], sat_url)
+                    comp.save(combined_local, "WEBP", quality=85)
+                    print(f"  Saved {combined_local}")
+                except Exception as e:
+                    print(f"  Combined failed for {ts}: {e}")
+                    continue
+            fr["dashboard_combined_url"] = f"composites/dashboard_combined_{ts}.webp"
 
     # Remove old composites not in the current keep set
     for fname in os.listdir(COMPOSITE_DIR):

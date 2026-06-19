@@ -100,8 +100,9 @@
   <span class="title">UK Radar</span>
   <span id="timestamp">Loading…</span>
   <div class="toggle">
-    <button id="btn-radar" class="active" onclick="setLayer('radar')">Radar</button>
-    <button id="btn-sat"              onclick="setLayer('sat')">Satellite</button>
+    <button id="btn-combined" class="active" onclick="setLayer('combined')">Combined</button>
+    <button id="btn-radar"                   onclick="setLayer('radar')">Radar</button>
+    <button id="btn-sat"                     onclick="setLayer('sat')">Satellite</button>
   </div>
 </header>
 
@@ -140,9 +141,9 @@ const HISTORY      = 24;
 const DWELL_FRAMES = 12;
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let frames        = [];          // [{ time, radar, sat }]
+let frames        = [];          // [{ time, radar, sat, combined }]
 let currentIdx    = 0;
-let currentLayer  = 'radar';
+let currentLayer  = 'combined';
 let playing       = true;
 let fps           = 5;
 let tickTimer     = null;
@@ -168,20 +169,21 @@ async function loadManifest() {
       const ts = tsFromUrl(f.url);
       if (!ts) continue;
       built.push({
-        time:  f.time || '',
-        radar: 'composites/dashboard_radar_' + ts + '.webp',
-        sat:   'composites/dashboard_sat_'   + ts + '.webp',
+        time:     f.time || '',
+        radar:    'composites/dashboard_radar_'    + ts + '.webp',
+        sat:      'composites/dashboard_sat_'      + ts + '.webp',
+        combined: 'composites/dashboard_combined_' + ts + '.webp',
       });
     }
     const candidates = built.slice(-HISTORY);
 
-    // Keep only frames whose radar composite actually loads — never show a
+    // Keep only frames whose combined composite actually loads — never show a
     // broken image if the manifest is briefly ahead of the committed frames.
     const checked = await Promise.all(candidates.map(fr => new Promise(resolve => {
       const im = new Image();
-      im.onload  = () => { cache[fr.radar] = im; resolve(fr); };
+      im.onload  = () => { cache[fr.combined] = im; resolve(fr); };
       im.onerror = () => resolve(null);
-      im.src = fr.radar;
+      im.src = fr.combined;
     })));
     frames = checked.filter(Boolean);
 
@@ -191,7 +193,7 @@ async function loadManifest() {
     }
     document.getElementById('loading').classList.add('done');
     currentIdx = frames.length - 1;
-    preloadSat();
+    preloadLayers();
     renderFrame(currentIdx);
     scheduleRefresh();
   } catch (e) {
@@ -199,12 +201,16 @@ async function loadManifest() {
   }
 }
 
-function preloadSat() {
-  document.getElementById('btn-sat').disabled = true;
+function preloadLayers() {
   for (const fr of frames) {
-    const s = new Image();
-    s.onload = () => { document.getElementById('btn-sat').disabled = false; };
-    s.src = fr.sat; cache[fr.sat] = s;
+    for (const key of ['radar', 'sat']) {
+      if (!cache[fr[key]]) {
+        const s = new Image();
+        s.onload = () => { cache[fr[key]] = s; };
+        s.src = fr[key];
+        cache[fr[key]] = s;
+      }
+    }
   }
 }
 
@@ -212,7 +218,7 @@ function preloadSat() {
 function renderFrame(idx) {
   if (!frames.length) return;
   const fr = frames[idx];
-  img.src = currentLayer === 'sat' ? fr.sat : fr.radar;
+  img.src = fr[currentLayer];
   document.getElementById('timestamp').textContent = fr.time;
   const pct = frames.length > 1 ? idx / (frames.length - 1) * 100 : 100;
   document.getElementById('progress-fill').style.width = pct + '%';
@@ -252,8 +258,9 @@ function scrubClick(e) {
 // ── Layer toggle ──────────────────────────────────────────────────────────────
 function setLayer(layer) {
   currentLayer = layer;
-  document.getElementById('btn-radar').classList.toggle('active', layer === 'radar');
-  document.getElementById('btn-sat').classList.toggle('active',   layer === 'sat');
+  document.getElementById('btn-combined').classList.toggle('active', layer === 'combined');
+  document.getElementById('btn-radar').classList.toggle('active',    layer === 'radar');
+  document.getElementById('btn-sat').classList.toggle('active',      layer === 'sat');
   renderFrame(currentIdx);
 }
 
