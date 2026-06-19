@@ -18,7 +18,7 @@ import urllib.request
 from datetime import datetime, timedelta
 
 import boto3
-from PIL import Image
+from PIL import Image, ImageDraw
 
 # Tight UK-centred crop on GB + Ireland (centre ≈ -4.25°E). Portrait, because
 # the British Isles are naturally tall; OUT dims match the Mercator aspect so
@@ -33,6 +33,9 @@ EARTH_RADIUS = 6378137.0
 
 TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
 BASEMAP_CACHE = "static/dashboard_basemap_uk_z8.png"
+COUNTIES_GEOJSON = "uk-counties.geojson"
+COUNTY_COLOR = (70, 70, 95)   # dark blue-grey line on light basemap
+COUNTY_WIDTH = 1
 
 HISTORY_FRAMES = 24
 RETENTION_HOURS = 48
@@ -79,6 +82,63 @@ def merc_to_world_px(mx, my, z):
     px = (mx + math.pi * EARTH_RADIUS) / (2 * math.pi * EARTH_RADIUS) * world
     py = (math.pi * EARTH_RADIUS - my) / (2 * math.pi * EARTH_RADIUS) * world
     return px, py
+
+
+# ── County outlines ───────────────────────────────────────────────────────────
+
+_counties_geojson = None
+
+def _load_counties():
+    global _counties_geojson
+    if _counties_geojson is None:
+        with open(COUNTIES_GEOJSON) as f:
+            _counties_geojson = json.load(f)
+    return _counties_geojson
+
+
+def _ll_to_composite_px(lon, lat, crop_left, crop_top, crop_w, crop_h):
+    mx, my = ll_to_merc(lon, lat)
+    wpx, wpy = merc_to_world_px(mx, my, ZOOM)
+    return (
+        (wpx - crop_left) / crop_w * OUT_W,
+        (wpy - crop_top)  / crop_h * OUT_H,
+    )
+
+
+def draw_county_outlines(img_rgb):
+    gj = _load_counties()
+
+    uk_mx_min, uk_my_min = ll_to_merc(UK_LON_MIN, UK_LAT_MIN)
+    uk_mx_max, uk_my_max = ll_to_merc(UK_LON_MAX, UK_LAT_MAX)
+    crop_left, crop_top     = merc_to_world_px(uk_mx_min, uk_my_max, ZOOM)
+    crop_right, crop_bottom = merc_to_world_px(uk_mx_max, uk_my_min, ZOOM)
+    crop_w = crop_right - crop_left
+    crop_h = crop_bottom - crop_top
+
+    draw = ImageDraw.Draw(img_rgb)
+
+    for feature in gj.get('features', []):
+        geom = feature.get('geometry', {})
+        geom_type = geom.get('type')
+        raw_coords = geom.get('coordinates', [])
+
+        if geom_type == 'Polygon':
+            polygons = [raw_coords]
+        elif geom_type == 'MultiPolygon':
+            polygons = raw_coords
+        else:
+            continue
+
+        for polygon in polygons:
+            for ring in polygon:
+                pts = [
+                    _ll_to_composite_px(lon, lat, crop_left, crop_top, crop_w, crop_h)
+                    for lon, lat in ring
+                ]
+                if len(pts) >= 2:
+                    draw.line(pts + [pts[0]], fill=COUNTY_COLOR, width=COUNTY_WIDTH)
+
+    return img_rgb
 
 
 # ── Basemap ───────────────────────────────────────────────────────────────────
@@ -166,7 +226,9 @@ def make_composite(basemap_rgba, overlay_url, ov_lon_min, ov_lon_max, ov_lat_min
     resized = cropped.resize((OUT_W, OUT_H), Image.LANCZOS)
     result = basemap_rgba.copy()
     result.paste(resized, (0, 0), resized)
-    return result.convert("RGB")
+    img_rgb = result.convert("RGB")
+    draw_county_outlines(img_rgb)
+    return img_rgb
 
 
 # ── R2 ────────────────────────────────────────────────────────────────────────
