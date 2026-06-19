@@ -6,7 +6,6 @@
   <title>UK Radar — Quick View</title>
   <link rel="icon" type="image/png" href="../favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -16,7 +15,7 @@
       color: #e8eaed;
       display: flex;
       flex-direction: column;
-      height: 100dvh;
+      height: 100vh;
       overflow: hidden;
     }
 
@@ -86,18 +85,29 @@
       background: #0b0f1a;
     }
 
-    #map {
+    #ratio-box img, #outline-svg {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
     }
 
-    /* Sit above all Leaflet panes */
+    /* Radar/sat overlays are positioned by JS to match their geographic extent */
+    #img-radar, #img-sat {
+      inset: unset;
+      object-fit: fill;
+      transition: opacity 0.2s;
+    }
+    #img-sat { opacity: 0; }
+    #img-sat.visible { opacity: 1; }
+    #img-radar.hidden { opacity: 0; }
+
+    #outline-svg { pointer-events: none; transition: opacity 0.3s; }
+    #outline-svg.hidden { opacity: 0; }
+
     #loading {
       position: absolute;
       inset: 0;
-      z-index: 800;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -128,13 +138,7 @@
     }
     .ctrl-btn:hover { background: rgba(255,255,255,0.14); }
 
-    #scrubber {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 0;
-    }
+    #scrubber { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 
     #progress-track {
       position: relative;
@@ -151,11 +155,7 @@
     }
     #progress-track:hover #progress-fill { background: #4e9cf8; }
 
-    #frame-label {
-      font-size: 11px;
-      color: #70757a;
-      text-align: right;
-    }
+    #frame-label { font-size: 11px; color: #70757a; text-align: right; }
 
     #speed-select {
       background: rgba(255,255,255,0.08);
@@ -196,7 +196,11 @@
 
 <div id="image-wrap">
   <div id="ratio-box">
-    <div id="map"></div>
+    <img id="img-radar" alt="Radar" />
+    <img id="img-sat"   alt="Satellite" />
+    <svg id="outline-svg" viewBox="0 0 900 506" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- paths injected by JS -->
+    </svg>
     <div id="loading">Loading radar…</div>
   </div>
 </div>
@@ -223,7 +227,6 @@
   <span id="next-refresh"></span>
 </footer>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
 const MANIFEST     = '../frames_parallel.json';
@@ -231,39 +234,48 @@ const REFRESH_MS   = 5 * 60 * 1000;
 const HISTORY      = 24;
 const DWELL_FRAMES = 12;
 
-// Geographic bounds [SW lat/lon, NE lat/lon]
-const UK_BOUNDS    = [[49.5, -33.0], [61.5,  5.0]];
-const RADAR_BOUNDS = [[43.7009, -17.9739], [62.9207, 16.1291]];
-const SAT_BOUNDS   = [[37.75,   -40.4],   [67.5,    32.4]];
+// ── Projection (Web Mercator → 900×506 pixel space) ───────────────────────────
+// Display window: lon -33..+5, lat 49.5..61.5 (natural 16:9 merc ratio)
+const R = 6378137;
+function llToMerc(lon, lat) {
+  return [
+    R * lon * Math.PI / 180,
+    R * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))
+  ];
+}
+const [mxMin] = llToMerc(-33.0, 0);
+const [mxMax] = llToMerc(5.0,   0);
+const [, myMin] = llToMerc(0, 49.5);
+const [, myMax] = llToMerc(0, 61.5);
 
-// ── Leaflet map (locked, non-interactive) ─────────────────────────────────────
-const map = L.map('map', {
-  zoomControl: false, attributionControl: false,
-  dragging: false, scrollWheelZoom: false,
-  touchZoom: false, doubleClickZoom: false,
-  boxZoom: false, keyboard: false
-});
+function project(lon, lat) {
+  const [mx, my] = llToMerc(lon, lat);
+  return [
+    (mx - mxMin) / (mxMax - mxMin) * 900,
+    (myMax - my) / (myMax - myMin) * 506
+  ];
+}
 
-L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', {
-  subdomains: 'abcd', maxZoom: 10
-}).addTo(map);
+// ── Position overlays to match their geographic extent ────────────────────────
+// Radar PNG extent (from process_parallel.py)
+const [RL, RB] = project(-17.9739, 43.7009);  // SW corner
+const [RR, RT] = project( 16.1291, 62.9207);  // NE corner
+// Sat PNG extent (EUMETSAT WMS)
+const [SL, SB] = project(-40.4, 37.75);
+const [SR, ST] = project( 32.4, 67.5);
 
-map.fitBounds(UK_BOUNDS);
+function applyPosition(el, l, t, r, b) {
+  el.style.position = 'absolute';
+  el.style.left   = (l / 900 * 100) + '%';
+  el.style.top    = (t / 506 * 100) + '%';
+  el.style.width  = ((r - l) / 900 * 100) + '%';
+  el.style.height = ((b - t) / 506 * 100) + '%';
+}
 
-const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-const radarLayer = L.imageOverlay(BLANK, RADAR_BOUNDS, { opacity: 0.85, interactive: false }).addTo(map);
-const satLayer   = L.imageOverlay(BLANK, SAT_BOUNDS,   { opacity: 0.85, interactive: false });
-
-// County outlines as GeoJSON — same file the main page uses
-let outlineLayer = null;
-fetch('../uk-counties.geojson')
-  .then(r => r.json())
-  .then(gj => {
-    outlineLayer = L.geoJSON(gj, {
-      style: { color: 'rgba(255,255,255,0.55)', weight: 0.6, fill: false }
-    }).addTo(map);
-  })
-  .catch(() => {});
+const radarImg = document.getElementById('img-radar');
+const satImg   = document.getElementById('img-sat');
+applyPosition(radarImg, RL, RT, RR, RB);
+applyPosition(satImg,   SL, ST, SR, SB);
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let radarFrames   = [];
@@ -304,8 +316,8 @@ function preloadImages() {
 function renderFrame(idx) {
   if (!radarFrames.length) return;
   const fr = radarFrames[idx];
-  radarLayer.setUrl(fr.url);
-  if (fr.sat_url_bw) satLayer.setUrl(fr.sat_url_bw);
+  radarImg.src = fr.url;
+  if (fr.sat_url_bw) satImg.src = fr.sat_url_bw;
   document.getElementById('btn-sat').disabled = !fr.sat_url_bw;
   document.getElementById('timestamp').textContent = fr.time || '';
   const pct = radarFrames.length > 1 ? idx / (radarFrames.length - 1) * 100 : 100;
@@ -353,25 +365,49 @@ function scrubClick(e) {
 // ── Layer toggle ──────────────────────────────────────────────────────────────
 function setLayer(layer) {
   currentLayer = layer;
-  if (layer === 'radar') {
-    if (!map.hasLayer(radarLayer)) map.addLayer(radarLayer);
-    if (map.hasLayer(satLayer))   map.removeLayer(satLayer);
-  } else {
-    if (!map.hasLayer(satLayer))  map.addLayer(satLayer);
-    if (map.hasLayer(radarLayer)) map.removeLayer(radarLayer);
-  }
+  radarImg.classList.toggle('hidden', layer !== 'radar');
+  satImg.classList.toggle('visible', layer === 'sat');
   document.getElementById('btn-radar').classList.toggle('active', layer === 'radar');
   document.getElementById('btn-sat').classList.toggle('active',   layer === 'sat');
 }
 
-// ── Outlines toggle ───────────────────────────────────────────────────────────
+// ── Outlines ──────────────────────────────────────────────────────────────────
 function toggleOutlines() {
   outlinesOn = !outlinesOn;
-  if (outlineLayer) {
-    if (outlinesOn) map.addLayer(outlineLayer);
-    else            map.removeLayer(outlineLayer);
-  }
+  document.getElementById('outline-svg').classList.toggle('hidden', !outlinesOn);
   document.getElementById('outlines-btn').classList.toggle('active', outlinesOn);
+}
+
+async function loadOutlines() {
+  try {
+    const res = await fetch('../uk-counties.geojson');
+    const gj  = await res.json();
+    const svg  = document.getElementById('outline-svg');
+    for (const feat of gj.features) {
+      const geom = feat.geometry;
+      if (!geom) continue;
+      const polys = geom.type === 'Polygon'      ? [geom.coordinates] :
+                    geom.type === 'MultiPolygon' ? geom.coordinates   : [];
+      for (const poly of polys) {
+        for (const ring of poly) {
+          let d = '';
+          for (let i = 0; i < ring.length; i++) {
+            const [px, py] = project(ring[i][0], ring[i][1]);
+            if (px < -20 || px > 920 || py < -20 || py > 526) { continue; }
+            d += (d ? 'L' : 'M') + px.toFixed(1) + ',' + py.toFixed(1);
+          }
+          if (d.length > 4) {
+            const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            p.setAttribute('d', d + ' Z');
+            p.setAttribute('fill', 'none');
+            p.setAttribute('stroke', 'rgba(255,255,255,0.55)');
+            p.setAttribute('stroke-width', '0.6');
+            svg.appendChild(p);
+          }
+        }
+      }
+    }
+  } catch(e) {}
 }
 
 // ── Auto-refresh ──────────────────────────────────────────────────────────────
@@ -386,13 +422,13 @@ function scheduleRefresh() {
 function updateCountdown() {
   if (!nextRefreshAt) return;
   const s  = Math.max(0, Math.round((nextRefreshAt - Date.now()) / 1000));
-  const m  = Math.floor(s / 60);
-  const ss = String(s % 60).padStart(2, '0');
-  document.getElementById('next-refresh').textContent = `Refreshes in ${m}:${ss}`;
+  document.getElementById('next-refresh').textContent =
+    `Refreshes in ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadManifest();
+loadOutlines();
 startLoop();
 </script>
 </body>
