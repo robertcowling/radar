@@ -11,7 +11,7 @@
 
     body {
       font-family: 'Roboto', sans-serif;
-      background: #1a1a2e;
+      background: #111827;
       color: #e8eaed;
       display: flex;
       flex-direction: column;
@@ -23,35 +23,25 @@
     header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 10px 14px;
-      background: rgba(0,0,0,0.45);
+      gap: 10px;
+      padding: 8px 14px;
+      background: rgba(0,0,0,0.5);
       flex-shrink: 0;
-      gap: 10px;
+      min-height: 44px;
     }
 
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 0;
-    }
-
-    .title {
-      font-size: 15px;
-      font-weight: 500;
-      white-space: nowrap;
-    }
+    .title { font-size: 14px; font-weight: 500; white-space: nowrap; }
 
     #timestamp {
       font-size: 12px;
       color: #9aa0a6;
       white-space: nowrap;
+      flex: 1;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    /* ── Toggle pill ── */
+    /* Layer toggle pill */
     .toggle {
       display: flex;
       background: rgba(255,255,255,0.08);
@@ -59,225 +49,428 @@
       padding: 3px;
       flex-shrink: 0;
     }
-
     .toggle button {
-      background: none;
-      border: none;
+      background: none; border: none;
       color: #9aa0a6;
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 500;
-      padding: 5px 14px;
-      border-radius: 16px;
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      padding: 4px 12px; border-radius: 16px;
       cursor: pointer;
       transition: background 0.18s, color 0.18s;
-      white-space: nowrap;
     }
+    .toggle button.active { background: #1a73e8; color: #fff; }
 
-    .toggle button.active {
-      background: #1a73e8;
-      color: #fff;
+    /* Outlines toggle */
+    #outlines-btn {
+      background: rgba(255,255,255,0.08);
+      border: none; color: #9aa0a6;
+      font-family: inherit; font-size: 12px;
+      padding: 5px 11px; border-radius: 16px;
+      cursor: pointer; flex-shrink: 0;
+      transition: background 0.18s, color 0.18s;
     }
+    #outlines-btn.active { background: rgba(255,255,255,0.2); color: #e8eaed; }
 
     /* ── Image area ── */
     #image-wrap {
       flex: 1;
-      position: relative;
-      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
+      background: #0b0f1a;
+      min-height: 0;
+      overflow: hidden;
     }
 
-    .layer {
+    /* Fixed-ratio box that holds images + svg overlay */
+    #ratio-box {
+      position: relative;
+      aspect-ratio: 900 / 506;
+      max-width: 100%;
+      max-height: 100%;
+      background: #0b0f1a;
+    }
+
+    #ratio-box img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      display: block;
+      transition: opacity 0.2s;
+    }
+
+    #ratio-box img.hidden { opacity: 0; }
+
+    /* SVG county/catchment overlay */
+    #outline-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    #outline-svg.hidden { opacity: 0; }
+
+    /* Loading overlay */
+    #loading {
       position: absolute;
       inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: opacity 0.3s ease;
-    }
-
-    .layer.hidden { opacity: 0; pointer-events: none; }
-
-    .layer img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      display: block;
-    }
-
-    /* ── Loading/error states ── */
-    #status-msg {
-      font-size: 14px;
+      font-size: 13px;
       color: #9aa0a6;
-      text-align: center;
-      padding: 40px;
+      background: #0b0f1a;
+    }
+    #loading.done { display: none; }
+
+    /* ── Controls bar ── */
+    #controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 14px;
+      background: rgba(0,0,0,0.4);
+      flex-shrink: 0;
     }
 
-    /* ── Footer ── */
+    .ctrl-btn {
+      background: rgba(255,255,255,0.08);
+      border: none; color: #e8eaed;
+      font-family: inherit; font-size: 18px;
+      width: 32px; height: 32px;
+      border-radius: 6px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .ctrl-btn:hover { background: rgba(255,255,255,0.14); }
+
+    /* Timeline scrubber */
+    #scrubber {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    #progress-track {
+      position: relative;
+      height: 4px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    #progress-fill {
+      height: 100%;
+      background: #1a73e8;
+      border-radius: 2px;
+      transition: width 0.1s;
+    }
+    #progress-track:hover #progress-fill { background: #4e9cf8; }
+
+    #frame-label {
+      font-size: 11px;
+      color: #70757a;
+      text-align: right;
+    }
+
+    /* Speed select */
+    #speed-select {
+      background: rgba(255,255,255,0.08);
+      border: none; color: #9aa0a6;
+      font-family: inherit; font-size: 12px;
+      padding: 4px 8px; border-radius: 6px;
+      cursor: pointer; flex-shrink: 0;
+    }
+    #speed-select option { background: #1f2937; }
+
+    /* Footer */
     footer {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 7px 14px;
+      padding: 5px 14px;
       background: rgba(0,0,0,0.35);
       flex-shrink: 0;
-      font-size: 12px;
-      color: #9aa0a6;
+      font-size: 11px;
+      color: #70757a;
       gap: 10px;
     }
-
-    footer a {
-      color: #8ab4f8;
-      text-decoration: none;
-      white-space: nowrap;
-    }
+    footer a { color: #8ab4f8; text-decoration: none; }
     footer a:hover { text-decoration: underline; }
-
-    #refresh-btn {
-      background: none;
-      border: 1px solid rgba(255,255,255,0.18);
-      color: #9aa0a6;
-      font-family: inherit;
-      font-size: 12px;
-      padding: 4px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: background 0.15s;
-    }
-    #refresh-btn:hover { background: rgba(255,255,255,0.08); }
-    #refresh-btn.spinning { opacity: 0.5; cursor: default; }
-
-    #next-refresh {
-      white-space: nowrap;
-    }
+    #next-refresh { white-space: nowrap; }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="header-left">
-    <span class="title">UK Radar</span>
-    <span id="timestamp">Loading…</span>
-  </div>
+  <span class="title">UK Radar</span>
+  <span id="timestamp">Loading…</span>
   <div class="toggle">
-    <button id="btn-radar" class="active" onclick="show('radar')">Radar</button>
-    <button id="btn-sat"              onclick="show('sat')">Satellite</button>
+    <button id="btn-radar" class="active" onclick="setLayer('radar')">Radar</button>
+    <button id="btn-sat"              onclick="setLayer('sat')">Satellite</button>
   </div>
+  <button id="outlines-btn" class="active" onclick="toggleOutlines()">Outlines</button>
 </header>
 
 <div id="image-wrap">
-  <div id="layer-radar" class="layer">
-    <img id="img-radar" alt="Radar composite" />
+  <div id="ratio-box">
+    <img id="img-radar" alt="Radar" />
+    <img id="img-sat"   alt="Satellite" class="hidden" />
+    <svg id="outline-svg" viewBox="0 0 900 506" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- paths injected by JS -->
+    </svg>
+    <div id="loading">Loading composites…</div>
   </div>
-  <div id="layer-sat" class="layer hidden">
-    <img id="img-sat" alt="Satellite composite" />
+</div>
+
+<div id="controls">
+  <button class="ctrl-btn" id="play-btn" onclick="togglePlay()" title="Play/Pause">⏸</button>
+  <button class="ctrl-btn" onclick="stepFrame(-1)" title="Previous">⏮</button>
+  <button class="ctrl-btn" onclick="stepFrame(1)"  title="Next">⏭</button>
+  <div id="scrubber">
+    <div id="progress-track" onclick="scrubClick(event)">
+      <div id="progress-fill" style="width:0%"></div>
+    </div>
+    <div id="frame-label">—</div>
   </div>
-  <div id="status-msg">Loading…</div>
+  <select id="speed-select" onchange="setSpeed(this.value)" title="Speed">
+    <option value="2">Slow</option>
+    <option value="5" selected>Normal</option>
+    <option value="10">Fast</option>
+  </select>
 </div>
 
 <footer>
   <a href="../index.html">Full radar map</a>
   <span id="next-refresh"></span>
-  <button id="refresh-btn" onclick="refresh()">Refresh</button>
 </footer>
 
 <script>
-  const MANIFEST = '../frames_parallel.json';
-  const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 min
+// ── Config ────────────────────────────────────────────────────────────────────
+const MANIFEST     = '../frames_parallel.json';
+const REFRESH_MS   = 5 * 60 * 1000;
+const DWELL_FRAMES = 12;   // extra ticks paused at last frame before looping
 
-  let currentLayer = 'radar';
-  let refreshTimer = null;
-  let countdownTimer = null;
-  let nextRefreshAt = null;
+// ── Projection (Web Mercator → 900×506 pixel space) ───────────────────────────
+const R = 6378137;
+function llToMerc(lon, lat) {
+  return [
+    R * lon * Math.PI / 180,
+    R * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))
+  ];
+}
+const [mxMin] = llToMerc(-11.5, 0);
+const [mxMax] = llToMerc(2.5,   0);
+const [, myMin] = llToMerc(0, 49.5);
+const [, myMax] = llToMerc(0, 61.5);
 
-  function show(layer) {
-    currentLayer = layer;
-    document.getElementById('layer-radar').classList.toggle('hidden', layer !== 'radar');
-    document.getElementById('layer-sat').classList.toggle('hidden', layer !== 'sat');
-    document.getElementById('btn-radar').classList.toggle('active', layer === 'radar');
-    document.getElementById('btn-sat').classList.toggle('active', layer === 'sat');
+function project(lon, lat) {
+  const [mx, my] = llToMerc(lon, lat);
+  return [
+    (mx - mxMin) / (mxMax - mxMin) * 900,
+    (myMax - my) / (myMax - myMin) * 506
+  ];
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let radarFrames = [];   // [{time, dashboard_radar_url, dashboard_sat_url?}]
+let currentIdx  = 0;
+let currentLayer = 'radar';
+let playing     = true;
+let fps         = 5;
+let tickTimer   = null;
+let dwellCount  = 0;
+let outlinesOn  = true;
+let refreshTimer = null;
+let nextRefreshAt = null;
+
+// ── Load manifest ─────────────────────────────────────────────────────────────
+async function loadManifest() {
+  const res   = await fetch(MANIFEST + '?t=' + Date.now());
+  const all   = await res.json();
+  const withComposites = all.filter(f => f.dashboard_radar_url);
+  radarFrames = withComposites.slice(-DWELL_FRAMES * 6);   // up to 6 h
+  if (!radarFrames.length) {
+    document.getElementById('loading').textContent =
+      'Dashboard composites not yet available — workflow may still be running.';
+    return;
   }
+  document.getElementById('loading').classList.add('done');
+  // Start at latest
+  currentIdx = radarFrames.length - 1;
+  preloadImages();
+  renderFrame(currentIdx);
+  scheduleRefresh();
+}
 
-  async function load() {
-    const statusEl = document.getElementById('status-msg');
-    try {
-      const res = await fetch(MANIFEST + '?t=' + Date.now());
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const frames = await res.json();
-      const latest = frames.at(-1);
-      if (!latest) throw new Error('No frames');
+function preloadImages() {
+  for (const fr of radarFrames) {
+    if (fr.dashboard_radar_url) { const i = new Image(); i.src = fr.dashboard_radar_url; }
+    if (fr.dashboard_sat_url)   { const i = new Image(); i.src = fr.dashboard_sat_url; }
+  }
+}
 
-      const radarUrl = latest.dashboard_radar_url;
-      const satUrl   = latest.dashboard_sat_url;
+// ── Render a frame ────────────────────────────────────────────────────────────
+function renderFrame(idx) {
+  if (!radarFrames.length) return;
+  const fr = radarFrames[idx];
+  const radarImg = document.getElementById('img-radar');
+  const satImg   = document.getElementById('img-sat');
 
-      if (!radarUrl && !satUrl) {
-        statusEl.textContent = 'Dashboard composites not yet generated — workflow may still be running.';
-        return;
+  if (fr.dashboard_radar_url) radarImg.src = fr.dashboard_radar_url;
+  if (fr.dashboard_sat_url)   satImg.src   = fr.dashboard_sat_url;
+  document.getElementById('btn-sat').disabled = !fr.dashboard_sat_url;
+
+  // Timestamp in header
+  document.getElementById('timestamp').textContent = fr.time || '';
+
+  // Progress bar + label
+  const pct = radarFrames.length > 1 ? idx / (radarFrames.length - 1) * 100 : 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('frame-label').textContent =
+    `Frame ${idx + 1} / ${radarFrames.length}`;
+}
+
+// ── Animation loop ────────────────────────────────────────────────────────────
+function tick() {
+  if (!radarFrames.length) return;
+  if (currentIdx >= radarFrames.length - 1) {
+    dwellCount++;
+    if (dwellCount < DWELL_FRAMES) return;   // dwell at end
+    dwellCount  = 0;
+    currentIdx  = 0;
+  } else {
+    currentIdx++;
+  }
+  renderFrame(currentIdx);
+}
+
+function startLoop() {
+  clearInterval(tickTimer);
+  tickTimer = setInterval(tick, 1000 / fps);
+}
+
+function stopLoop() {
+  clearInterval(tickTimer);
+  tickTimer = null;
+}
+
+function togglePlay() {
+  playing = !playing;
+  document.getElementById('play-btn').textContent = playing ? '⏸' : '▶';
+  playing ? startLoop() : stopLoop();
+}
+
+function stepFrame(delta) {
+  currentIdx = Math.max(0, Math.min(radarFrames.length - 1, currentIdx + delta));
+  dwellCount = 0;
+  renderFrame(currentIdx);
+}
+
+function setSpeed(v) {
+  fps = parseFloat(v);
+  if (playing) startLoop();
+}
+
+function scrubClick(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const frac = (e.clientX - rect.left) / rect.width;
+  currentIdx = Math.round(frac * (radarFrames.length - 1));
+  currentIdx = Math.max(0, Math.min(radarFrames.length - 1, currentIdx));
+  dwellCount = 0;
+  renderFrame(currentIdx);
+}
+
+// ── Layer toggle ──────────────────────────────────────────────────────────────
+function setLayer(layer) {
+  currentLayer = layer;
+  document.getElementById('img-radar').classList.toggle('hidden', layer !== 'radar');
+  document.getElementById('img-sat').classList.toggle('hidden',   layer !== 'sat');
+  document.getElementById('btn-radar').classList.toggle('active', layer === 'radar');
+  document.getElementById('btn-sat').classList.toggle('active',   layer === 'sat');
+}
+
+// ── Outlines toggle ───────────────────────────────────────────────────────────
+function toggleOutlines() {
+  outlinesOn = !outlinesOn;
+  document.getElementById('outline-svg').classList.toggle('hidden', !outlinesOn);
+  document.getElementById('outlines-btn').classList.toggle('active', outlinesOn);
+}
+
+// ── Load & render outlines ────────────────────────────────────────────────────
+async function loadOutlines() {
+  try {
+    const res = await fetch('../uk-counties.geojson');
+    const gj  = await res.json();
+    const svg  = document.getElementById('outline-svg');
+    const paths = geojsonToPaths(gj);
+    for (const d of paths) {
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', d);
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', 'rgba(255,255,255,0.55)');
+      p.setAttribute('stroke-width', '0.6');
+      p.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(p);
+    }
+  } catch (e) {
+    console.warn('Could not load outlines:', e);
+  }
+}
+
+function geojsonToPaths(gj) {
+  const paths = [];
+  for (const feat of gj.features) {
+    const geom = feat.geometry;
+    if (!geom) continue;
+    const polys = geom.type === 'Polygon'      ? [geom.coordinates] :
+                  geom.type === 'MultiPolygon' ? geom.coordinates   : [];
+    for (const poly of polys) {
+      for (const ring of poly) {
+        let d = '';
+        for (let i = 0; i < ring.length; i++) {
+          const [px, py] = project(ring[i][0], ring[i][1]);
+          if (px < -20 || px > 920 || py < -20 || py > 526) {
+            d += i === 0 ? '' : ' ';   // skip off-canvas points
+            continue;
+          }
+          d += (i === 0 ? 'M' : 'L') + px.toFixed(1) + ',' + py.toFixed(1);
+        }
+        if (d.length > 4) paths.push(d + ' Z');
       }
-
-      statusEl.style.display = 'none';
-
-      if (radarUrl) {
-        const img = document.getElementById('img-radar');
-        img.src = radarUrl + '?t=' + Date.now();
-      }
-      if (satUrl) {
-        const img = document.getElementById('img-sat');
-        img.src = satUrl + '?t=' + Date.now();
-        document.getElementById('btn-sat').disabled = false;
-      } else {
-        document.getElementById('btn-sat').disabled = true;
-        document.getElementById('btn-sat').title = 'Satellite composite not available';
-      }
-
-      document.getElementById('timestamp').textContent = latest.time || '';
-
-    } catch (err) {
-      statusEl.textContent = `Failed to load: ${err.message}`;
-      statusEl.style.display = '';
-      console.error(err);
     }
   }
+  return paths;
+}
 
-  function refresh() {
-    const btn = document.getElementById('refresh-btn');
-    if (btn.classList.contains('spinning')) return;
-    btn.classList.add('spinning');
-    btn.textContent = 'Refreshing…';
-    scheduleNextRefresh();
-    load().finally(() => {
-      btn.classList.remove('spinning');
-      btn.textContent = 'Refresh';
-    });
-  }
+// ── Auto-refresh ──────────────────────────────────────────────────────────────
+function scheduleRefresh() {
+  clearTimeout(refreshTimer);
+  nextRefreshAt = Date.now() + REFRESH_MS;
+  refreshTimer = setTimeout(async () => {
+    await loadManifest();
+  }, REFRESH_MS);
+  updateCountdown();
+  setInterval(updateCountdown, 15000);
+}
 
-  function scheduleNextRefresh() {
-    clearTimeout(refreshTimer);
-    clearInterval(countdownTimer);
-    nextRefreshAt = Date.now() + REFRESH_INTERVAL;
+function updateCountdown() {
+  if (!nextRefreshAt) return;
+  const s   = Math.max(0, Math.round((nextRefreshAt - Date.now()) / 1000));
+  const m   = Math.floor(s / 60);
+  const ss  = String(s % 60).padStart(2, '0');
+  document.getElementById('next-refresh').textContent = `Refreshes in ${m}:${ss}`;
+}
 
-    refreshTimer = setTimeout(() => {
-      load();
-      scheduleNextRefresh();
-    }, REFRESH_INTERVAL);
-
-    countdownTimer = setInterval(updateCountdown, 10000);
-    updateCountdown();
-  }
-
-  function updateCountdown() {
-    const secsLeft = Math.max(0, Math.round((nextRefreshAt - Date.now()) / 1000));
-    const mins = Math.floor(secsLeft / 60);
-    const secs = secsLeft % 60;
-    document.getElementById('next-refresh').textContent =
-      `Auto-refresh in ${mins}:${String(secs).padStart(2, '0')}`;
-  }
-
-  load();
-  scheduleNextRefresh();
+// ── Boot ──────────────────────────────────────────────────────────────────────
+loadManifest();
+loadOutlines();
+startLoop();
 </script>
 </body>
 </html>

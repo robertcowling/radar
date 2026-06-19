@@ -1,11 +1,25 @@
 #!/usr/bin/env python3
-"""Generate 900×506 dashboard composite WebP images (CartoDB basemap + radar/sat overlay)."""
+"""
+Generate 900×506 dashboard composite WebP images (CartoDB basemap + radar/sat overlay).
+
+Per-frame composites are uploaded as:
+  radar/dashboard_radar_YYYYMMDDHHMM.webp   (last HISTORY_FRAMES frames)
+  radar/dashboard_sat_YYYYMMDDHHMM.webp     (last HISTORY_FRAMES frames, where sat exists)
+
+Static aliases for external consumers:
+  radar/dashboard_radar_latest.webp
+  radar/dashboard_sat_latest.webp
+
+frames_parallel.json is updated with dashboard_radar_url / dashboard_sat_url per frame.
+"""
 
 import io
 import json
 import math
 import os
+import re
 import urllib.request
+from datetime import datetime, timedelta
 
 import boto3
 from PIL import Image
@@ -22,11 +36,17 @@ EARTH_RADIUS = 6378137.0
 TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
 BASEMAP_CACHE = "static/dashboard_basemap_z6.png"
 
+# How many recent frames to keep composites for (6h = 24 × 15-min frames)
+HISTORY_FRAMES = 24
+
+# Retention: delete per-frame composites older than this many hours
+RETENTION_HOURS = 48
+
 # Radar overlay extent (Web Mercator-projected PNG from process_parallel.py)
 RADAR_LON_MIN, RADAR_LON_MAX = -17.9739, 16.1291
 RADAR_LAT_MIN, RADAR_LAT_MAX = 43.7009, 62.9207
 
-# Satellite overlay extent (from process_latest.py WMS request)
+# Satellite overlay extent (EUMETSAT WMS extent from process_latest.py)
 SAT_LON_MIN, SAT_LON_MAX = -40.4, 32.4
 SAT_LAT_MIN, SAT_LAT_MAX = 37.75, 67.5
 
@@ -38,7 +58,7 @@ R2_PUBLIC_URL    = os.environ.get('R2_PUBLIC_BASE_URL', '').rstrip('/')
 USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, R2_BUCKET, R2_PUBLIC_URL])
 
 
-# ── Geometry helpers ──────────────────────────────────────────────────────────
+# ── Geometry ──────────────────────────────────────────────────────────────────
 
 def ll_to_merc(lon, lat):
     lat_r = math.radians(lat)
@@ -57,14 +77,13 @@ def lat_to_ty(lat, z):
 
 
 def merc_to_world_px(mx, my, z):
-    """Web Mercator meters → world pixel coords at zoom z (y increases downward)."""
     world = (2 ** z) * TILE_SIZE
     px = (mx + math.pi * EARTH_RADIUS) / (2 * math.pi * EARTH_RADIUS) * world
     py = (math.pi * EARTH_RADIUS - my) / (2 * math.pi * EARTH_RADIUS) * world
     return px, py
 
 
-# ── Tile fetching & basemap ───────────────────────────────────────────────────
+# ── Basemap ───────────────────────────────────────────────────────────────────
 
 def fetch_tile(z, x, y):
     url = TILE_URL.format(z=z, x=x, y=y)
@@ -74,34 +93,28 @@ def fetch_tile(z, x, y):
 
 
 def build_basemap():
-    """Fetch CartoDB tiles for UK crop, stitch, crop to exact box, resize to OUT_W×OUT_H."""
     tx_min = lon_to_tx(UK_LON_MIN, ZOOM)
     tx_max = lon_to_tx(UK_LON_MAX, ZOOM)
-    ty_min = lat_to_ty(UK_LAT_MAX, ZOOM)   # northernmost lat → smallest tile y
-    ty_max = lat_to_ty(UK_LAT_MIN, ZOOM)   # southernmost lat → largest tile y
+    ty_min = lat_to_ty(UK_LAT_MAX, ZOOM)
+    ty_max = lat_to_ty(UK_LAT_MIN, ZOOM)
 
     nx = tx_max - tx_min + 1
     ny = ty_max - ty_min + 1
-    print(f"Fetching {nx}×{ny} tiles at zoom {ZOOM}...")
+    print(f"Fetching {nx}×{ny} basemap tiles at zoom {ZOOM}…")
 
     stitched = Image.new("RGBA", (nx * TILE_SIZE, ny * TILE_SIZE))
     for iy, ty in enumerate(range(ty_min, ty_max + 1)):
         for ix, tx in enumerate(range(tx_min, tx_max + 1)):
             stitched.paste(fetch_tile(ZOOM, tx, ty), (ix * TILE_SIZE, iy * TILE_SIZE))
 
-    # Convert UK corners to world pixel space then subtract stitch origin
     uk_mx_min, uk_my_min = ll_to_merc(UK_LON_MIN, UK_LAT_MIN)
     uk_mx_max, uk_my_max = ll_to_merc(UK_LON_MAX, UK_LAT_MAX)
-
     ox = tx_min * TILE_SIZE
     oy = ty_min * TILE_SIZE
-
-    left,  top    = merc_to_world_px(uk_mx_min, uk_my_max, ZOOM)  # NW corner
-    right, bottom = merc_to_world_px(uk_mx_max, uk_my_min, ZOOM)  # SE corner
-
+    left,  top    = merc_to_world_px(uk_mx_min, uk_my_max, ZOOM)
+    right, bottom = merc_to_world_px(uk_mx_max, uk_my_min, ZOOM)
     box = (
-        int(max(0, left  - ox)),
-        int(max(0, top   - oy)),
+        int(max(0, left  - ox)), int(max(0, top   - oy)),
         int(min(stitched.width,  right  - ox)),
         int(min(stitched.height, bottom - oy)),
     )
@@ -122,7 +135,6 @@ def get_basemap():
 # ── Overlay compositing ───────────────────────────────────────────────────────
 
 def crop_overlay_to_uk(img_rgba, ov_lon_min, ov_lon_max, ov_lat_min, ov_lat_max):
-    """Extract the UK sub-region from a Web-Mercator-projected overlay image."""
     ov_mx_min, ov_my_min = ll_to_merc(ov_lon_min, ov_lat_min)
     ov_mx_max, ov_my_max = ll_to_merc(ov_lon_max, ov_lat_max)
     uk_mx_min, uk_my_min = ll_to_merc(UK_LON_MIN, UK_LAT_MIN)
@@ -130,19 +142,16 @@ def crop_overlay_to_uk(img_rgba, ov_lon_min, ov_lon_max, ov_lat_min, ov_lat_max)
 
     ov_w, ov_h = img_rgba.size
     span_x = ov_mx_max - ov_mx_min
-    span_y = ov_my_max - ov_my_min  # positive (max > min)
+    span_y = ov_my_max - ov_my_min
 
-    # top-left = NW corner (max lat = max merc y)
     left   = (uk_mx_min - ov_mx_min) / span_x * ov_w
     right  = (uk_mx_max - ov_mx_min) / span_x * ov_w
     top    = (ov_my_max - uk_my_max) / span_y * ov_h
     bottom = (ov_my_max - uk_my_min) / span_y * ov_h
 
     box = (
-        int(max(0, left)),
-        int(max(0, top)),
-        int(min(ov_w, right)),
-        int(min(ov_h, bottom)),
+        int(max(0, left)), int(max(0, top)),
+        int(min(ov_w, right)), int(min(ov_h, bottom)),
     )
     return img_rgba.crop(box)
 
@@ -162,7 +171,7 @@ def make_composite(basemap_rgba, overlay_url, ov_lon_min, ov_lon_max, ov_lat_min
     return result.convert("RGB")
 
 
-# ── R2 upload ─────────────────────────────────────────────────────────────────
+# ── R2 ────────────────────────────────────────────────────────────────────────
 
 def get_r2_client():
     return boto3.client(
@@ -178,15 +187,51 @@ def upload_webp(r2, img, r2_key):
     buf = io.BytesIO()
     img.save(buf, format="WEBP", quality=85)
     r2.put_object(
-        Bucket=R2_BUCKET,
-        Key=r2_key,
+        Bucket=R2_BUCKET, Key=r2_key,
         Body=buf.getvalue(),
         ContentType="image/webp",
         CacheControl="no-cache, max-age=0",
     )
     url = f"{R2_PUBLIC_URL}/{r2_key}"
-    print(f"Uploaded {r2_key} ({buf.tell()} bytes)")
+    print(f"  Uploaded {r2_key} ({buf.tell()} bytes)")
     return url
+
+
+def list_existing_composites(r2):
+    """Return set of R2 keys that already exist under radar/dashboard_*."""
+    keys = set()
+    paginator = r2.get_paginator('list_objects_v2')
+    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix='radar/dashboard_'):
+        for obj in page.get('Contents', []):
+            keys.add(obj['Key'])
+    print(f"Existing dashboard composites in R2: {len(keys)}")
+    return keys
+
+
+def cleanup_old_composites(r2, keep_keys):
+    """Delete per-frame composites not in keep_keys (preserve _latest)."""
+    cutoff_str = (datetime.utcnow() - timedelta(hours=RETENTION_HOURS)).strftime('%Y%m%d%H%M')
+    paginator = r2.get_paginator('list_objects_v2')
+    deleted = 0
+    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix='radar/dashboard_'):
+        for obj in page.get('Contents', []):
+            key = obj['Key']
+            if key in keep_keys:
+                continue
+            # Only delete timestamped files (not _latest)
+            m = re.search(r'_(\d{12})\.webp$', key)
+            if m and m.group(1) < cutoff_str:
+                r2.delete_object(Bucket=R2_BUCKET, Key=key)
+                print(f"  Deleted old composite: {key}")
+                deleted += 1
+    if deleted:
+        print(f"Cleanup: removed {deleted} old composites.")
+
+
+def ts_from_url(url):
+    """Extract 12-digit timestamp from a radar_parallel PNG URL."""
+    m = re.search(r'/(\d{12})_', url)
+    return m.group(1) if m else None
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -195,71 +240,94 @@ def main():
     with open("frames_parallel.json") as f:
         frames = json.load(f)
     if not frames:
-        print("frames_parallel.json is empty, nothing to do.")
+        print("frames_parallel.json is empty.")
         return
 
-    latest = frames[-1]
-    radar_url = latest.get("url")
-    sat_url   = latest.get("sat_url_bw")
-
-    if not radar_url:
-        print("No radar URL in latest frame, exiting.")
+    # Work on last HISTORY_FRAMES frames that have a radar URL
+    radar_frames = [fr for fr in frames if fr.get("url")][-HISTORY_FRAMES:]
+    if not radar_frames:
+        print("No radar frames found.")
         return
 
     basemap = get_basemap()
     r2 = get_r2_client() if USE_R2 else None
+    existing = list_existing_composites(r2) if USE_R2 else set()
+    keep_keys = set()
 
-    dashboard_radar_url = None
-    dashboard_sat_url   = None
+    for fr in radar_frames:
+        ts = ts_from_url(fr["url"])
+        if not ts:
+            continue
 
-    print(f"Compositing radar: {radar_url}")
-    try:
-        comp = make_composite(basemap, radar_url, RADAR_LON_MIN, RADAR_LON_MAX, RADAR_LAT_MIN, RADAR_LAT_MAX)
-        if USE_R2:
-            dashboard_radar_url = upload_webp(r2, comp, "radar/dashboard_radar_latest.webp")
-        else:
-            comp.save("dashboard_radar_latest.webp", "WEBP", quality=85)
-            dashboard_radar_url = "dashboard_radar_latest.webp"
-        print("Radar composite done.")
-    except Exception as e:
-        print(f"Radar composite failed: {e}")
+        # Radar composite
+        radar_key = f"radar/dashboard_radar_{ts}.webp"
+        keep_keys.add(radar_key)
+        if USE_R2 and radar_key not in existing:
+            print(f"Generating radar composite {ts}…")
+            try:
+                comp = make_composite(basemap, fr["url"],
+                                      RADAR_LON_MIN, RADAR_LON_MAX,
+                                      RADAR_LAT_MIN, RADAR_LAT_MAX)
+                fr["dashboard_radar_url"] = upload_webp(r2, comp, radar_key)
+            except Exception as e:
+                print(f"  Radar failed for {ts}: {e}")
+        elif USE_R2:
+            fr["dashboard_radar_url"] = f"{R2_PUBLIC_URL}/{radar_key}"
 
-    if sat_url:
-        print(f"Compositing satellite: {sat_url}")
+        # Satellite composite (only where sat URL is available)
+        sat_url = fr.get("sat_url_bw")
+        if sat_url:
+            sat_key = f"radar/dashboard_sat_{ts}.webp"
+            keep_keys.add(sat_key)
+            if USE_R2 and sat_key not in existing:
+                print(f"Generating sat composite {ts}…")
+                try:
+                    comp = make_composite(basemap, sat_url,
+                                          SAT_LON_MIN, SAT_LON_MAX,
+                                          SAT_LAT_MIN, SAT_LAT_MAX)
+                    fr["dashboard_sat_url"] = upload_webp(r2, comp, sat_key)
+                except Exception as e:
+                    print(f"  Sat failed for {ts}: {e}")
+            elif USE_R2:
+                fr["dashboard_sat_url"] = f"{R2_PUBLIC_URL}/{sat_key}"
+
+    # Upload static _latest aliases from the newest frame
+    newest = radar_frames[-1]
+    if USE_R2 and newest.get("dashboard_radar_url"):
         try:
-            comp = make_composite(basemap, sat_url, SAT_LON_MIN, SAT_LON_MAX, SAT_LAT_MIN, SAT_LAT_MAX)
-            if USE_R2:
-                dashboard_sat_url = upload_webp(r2, comp, "radar/dashboard_sat_latest.webp")
-            else:
-                comp.save("dashboard_sat_latest.webp", "WEBP", quality=85)
-                dashboard_sat_url = "dashboard_sat_latest.webp"
-            print("Satellite composite done.")
+            latest_comp = make_composite(basemap, newest["url"],
+                                         RADAR_LON_MIN, RADAR_LON_MAX,
+                                         RADAR_LAT_MIN, RADAR_LAT_MAX)
+            upload_webp(r2, latest_comp, "radar/dashboard_radar_latest.webp")
+            keep_keys.add("radar/dashboard_radar_latest.webp")
         except Exception as e:
-            print(f"Satellite composite failed: {e}")
-    else:
-        print("No sat URL in latest frame, skipping satellite composite.")
+            print(f"  _latest radar failed: {e}")
 
-    # Stamp dashboard URLs onto the latest frame
-    if dashboard_radar_url:
-        frames[-1]["dashboard_radar_url"] = dashboard_radar_url
-    if dashboard_sat_url:
-        frames[-1]["dashboard_sat_url"] = dashboard_sat_url
+    if USE_R2 and newest.get("dashboard_sat_url"):
+        try:
+            sat_comp = make_composite(basemap, newest["sat_url_bw"],
+                                      SAT_LON_MIN, SAT_LON_MAX,
+                                      SAT_LAT_MIN, SAT_LAT_MAX)
+            upload_webp(r2, sat_comp, "radar/dashboard_sat_latest.webp")
+            keep_keys.add("radar/dashboard_sat_latest.webp")
+        except Exception as e:
+            print(f"  _latest sat failed: {e}")
 
+    # Write updated manifest
     with open("frames_parallel.json", "w") as f:
         json.dump(frames, f, indent=2)
-    print("frames_parallel.json updated with dashboard URLs.")
+    print("frames_parallel.json updated.")
 
-    # Re-upload updated frames_parallel.json to R2 so CDN is consistent
     if USE_R2:
         with open("frames_parallel.json", "rb") as fh:
             r2.put_object(
-                Bucket=R2_BUCKET,
-                Key="frames_parallel.json",
+                Bucket=R2_BUCKET, Key="frames_parallel.json",
                 Body=fh.read(),
                 ContentType="application/json",
                 CacheControl="no-cache, max-age=0",
             )
         print("frames_parallel.json re-uploaded to R2.")
+        cleanup_old_composites(r2, keep_keys)
 
 
 if __name__ == "__main__":
