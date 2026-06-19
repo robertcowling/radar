@@ -173,14 +173,25 @@ async function loadManifest() {
         sat:   'composites/dashboard_sat_'   + ts + '.webp',
       });
     }
-    frames = built.slice(-HISTORY);
+    const candidates = built.slice(-HISTORY);
+
+    // Keep only frames whose radar composite actually loads — never show a
+    // broken image if the manifest is briefly ahead of the committed frames.
+    const checked = await Promise.all(candidates.map(fr => new Promise(resolve => {
+      const im = new Image();
+      im.onload  = () => { cache[fr.radar] = im; resolve(fr); };
+      im.onerror = () => resolve(null);
+      im.src = fr.radar;
+    })));
+    frames = checked.filter(Boolean);
+
     if (!frames.length) {
       document.getElementById('loading').textContent = 'No radar frames available.';
       return;
     }
     document.getElementById('loading').classList.add('done');
     currentIdx = frames.length - 1;
-    preload();
+    preloadSat();
     renderFrame(currentIdx);
     scheduleRefresh();
   } catch (e) {
@@ -188,16 +199,13 @@ async function loadManifest() {
   }
 }
 
-function preload() {
-  let satOk = false;
+function preloadSat() {
+  document.getElementById('btn-sat').disabled = true;
   for (const fr of frames) {
-    if (!cache[fr.radar]) { const i = new Image(); i.src = fr.radar; cache[fr.radar] = i; }
     const s = new Image();
-    s.onload = () => { satOk = true; document.getElementById('btn-sat').disabled = false; };
+    s.onload = () => { document.getElementById('btn-sat').disabled = false; };
     s.src = fr.sat; cache[fr.sat] = s;
   }
-  // Assume sat unavailable until one loads
-  document.getElementById('btn-sat').disabled = true;
 }
 
 // ── Render one flat image (GIF-style swap) ────────────────────────────────────
