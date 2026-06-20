@@ -18,7 +18,7 @@ import urllib.request
 from datetime import datetime, timedelta
 
 import boto3
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 # Tight UK-centred crop on GB + Ireland (centre ≈ -4.25°E). Portrait, because
 # the British Isles are naturally tall; OUT dims match the Mercator aspect so
@@ -33,9 +33,15 @@ EARTH_RADIUS = 6378137.0
 
 TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
 BASEMAP_CACHE = "static/dashboard_basemap_uk_z8.png"
-COUNTIES_GEOJSON = "uk-counties.geojson"
-COUNTY_COLOR = (50, 50, 80)   # dark navy on light basemap / satellite
-COUNTY_WIDTH = 2
+
+# Boundary layers drawn bottom-to-top. Each entry: (file, rgb_color, line_width_px)
+# Halo (soft white glow) is applied automatically so lines read on dark night-sat backgrounds.
+BOUNDARY_LAYERS = [
+    ("uk_catchments.geojson",    (20,  90, 160),  1),  # blue — catchment boundaries
+    ("uk-counties.geojson",      (45,  45,  75),  2),  # dark navy — county boundaries
+    ("uk_regions.geojson",       (20,  20,  50),  2),  # darker navy — region boundaries
+    ("radar_boundary.geojson",   (180,180, 210),  1),  # pale blue-grey — radar coverage edge
+]
 
 HISTORY_FRAMES = 24
 RETENTION_HOURS = 48
@@ -84,16 +90,31 @@ def merc_to_world_px(mx, my, z):
     return px, py
 
 
-# ── County outlines ───────────────────────────────────────────────────────────
+# ── Boundary overlays ─────────────────────────────────────────────────────────
 
-_counties_geojson = None
+_geojson_cache = {}
 
-def _load_counties():
-    global _counties_geojson
-    if _counties_geojson is None:
-        with open(COUNTIES_GEOJSON) as f:
-            _counties_geojson = json.load(f)
-    return _counties_geojson
+def _load_geojson(filepath):
+    """Load a GeoJSON file, normalising FeatureCollection or single Feature to a list."""
+    if filepath not in _geojson_cache:
+        with open(filepath) as f:
+            data = json.load(f)
+        if data.get("type") == "FeatureCollection":
+            _geojson_cache[filepath] = data.get("features", [])
+        elif data.get("type") == "Feature":
+            _geojson_cache[filepath] = [data]
+        else:
+            _geojson_cache[filepath] = []
+    return _geojson_cache[filepath]
+
+
+def _crop_extents():
+    """Return (crop_left, crop_top, crop_w, crop_h) in world-pixel space at ZOOM."""
+    uk_mx_min, uk_my_min = ll_to_merc(UK_LON_MIN, UK_LAT_MIN)
+    uk_mx_max, uk_my_max = ll_to_merc(UK_LON_MAX, UK_LAT_MAX)
+    left,  top    = merc_to_world_px(uk_mx_min, uk_my_max, ZOOM)
+    right, bottom = merc_to_world_px(uk_mx_max, uk_my_min, ZOOM)
+    return left, top, right - left, bottom - top
 
 
 def _ll_to_composite_px(lon, lat, crop_left, crop_top, crop_w, crop_h):
@@ -105,38 +126,63 @@ def _ll_to_composite_px(lon, lat, crop_left, crop_top, crop_w, crop_h):
     )
 
 
-def draw_county_outlines(img_rgb):
-    gj = _load_counties()
-
-    uk_mx_min, uk_my_min = ll_to_merc(UK_LON_MIN, UK_LAT_MIN)
-    uk_mx_max, uk_my_max = ll_to_merc(UK_LON_MAX, UK_LAT_MAX)
-    crop_left, crop_top     = merc_to_world_px(uk_mx_min, uk_my_max, ZOOM)
-    crop_right, crop_bottom = merc_to_world_px(uk_mx_max, uk_my_min, ZOOM)
-    crop_w = crop_right - crop_left
-    crop_h = crop_bottom - crop_top
-
-    draw = ImageDraw.Draw(img_rgb)
-
-    for feature in gj.get('features', []):
-        geom = feature.get('geometry', {})
-        geom_type = geom.get('type')
-        raw_coords = geom.get('coordinates', [])
-
-        if geom_type == 'Polygon':
-            polygons = [raw_coords]
-        elif geom_type == 'MultiPolygon':
-            polygons = raw_coords
+def _iter_rings(features, crop_left, crop_top, crop_w, crop_h):
+    """Yield closed pixel-coordinate point lists for every ring in a feature list."""
+    for feature in features:
+        geom = feature.get("geometry", {})
+        gtype = geom.get("type")
+        coords = geom.get("coordinates", [])
+        if gtype == "Polygon":
+            polys = [coords]
+        elif gtype == "MultiPolygon":
+            polys = coords
         else:
             continue
-
-        for polygon in polygons:
-            for ring in polygon:
-                pts = [
-                    _ll_to_composite_px(lon, lat, crop_left, crop_top, crop_w, crop_h)
-                    for lon, lat in ring
-                ]
+        for poly in polys:
+            for ring in poly:
+                pts = [_ll_to_composite_px(c[0], c[1], crop_left, crop_top, crop_w, crop_h)
+                       for c in ring]
                 if len(pts) >= 2:
-                    draw.line(pts + [pts[0]], fill=COUNTY_COLOR, width=COUNTY_WIDTH)
+                    yield pts + [pts[0]]
+
+
+def draw_boundary_layers(img_rgb):
+    """Draw all BOUNDARY_LAYERS onto img_rgb with a soft white halo for dark-bg contrast.
+
+    Replicates the CSS  filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.75))
+    used on the main Leaflet map via a blurred white glow pass + sharp line pass.
+    """
+    crop_left, crop_top, crop_w, crop_h = _crop_extents()
+
+    for filepath, line_color, line_width in BOUNDARY_LAYERS:
+        if not os.path.exists(filepath):
+            continue
+        features = _load_geojson(filepath)
+        if not features:
+            continue
+        rings = list(_iter_rings(features, crop_left, crop_top, crop_w, crop_h))
+        if not rings:
+            continue
+
+        # ── Blurred white halo (replicates CSS drop-shadow) ──────────────────
+        halo_w = line_width + 6
+        glow = Image.new("L", img_rgb.size, 0)
+        gd = ImageDraw.Draw(glow)
+        for pts in rings:
+            gd.line(pts, fill=255, width=halo_w)
+        glow = glow.filter(ImageFilter.GaussianBlur(radius=2.5))
+
+        # Blend white where glow is bright (max 75% opacity — matches CSS 0.75)
+        white_layer = Image.new("RGBA", img_rgb.size, (255, 255, 255, 0))
+        white_layer.putalpha(glow.point(lambda x: int(x * 0.75)))
+        img_rgba = img_rgb.convert("RGBA")
+        img_rgba = Image.alpha_composite(img_rgba, white_layer)
+        img_rgb.paste(img_rgba.convert("RGB"))
+
+        # ── Sharp coloured line on top ────────────────────────────────────────
+        draw = ImageDraw.Draw(img_rgb)
+        for pts in rings:
+            draw.line(pts, fill=line_color, width=line_width)
 
     return img_rgb
 
@@ -220,32 +266,37 @@ def download_image(url):
         return Image.open(io.BytesIO(resp.read()))
 
 
+def _overlay(url, lon_min, lon_max, lat_min, lat_max):
+    """Download, crop, and resize an overlay; return the RGBA image."""
+    raw = download_image(url).convert("RGBA")
+    cropped = crop_overlay_to_uk(raw, lon_min, lon_max, lat_min, lat_max)
+    return cropped.resize((OUT_W, OUT_H), Image.LANCZOS)
+
+
 def make_composite(basemap_rgba, overlay_url, ov_lon_min, ov_lon_max, ov_lat_min, ov_lat_max):
-    overlay = download_image(overlay_url).convert("RGBA")
-    cropped = crop_overlay_to_uk(overlay, ov_lon_min, ov_lon_max, ov_lat_min, ov_lat_max)
-    resized = cropped.resize((OUT_W, OUT_H), Image.LANCZOS)
+    ov = _overlay(overlay_url, ov_lon_min, ov_lon_max, ov_lat_min, ov_lat_max)
     result = basemap_rgba.copy()
-    result.paste(resized, (0, 0), resized)
+    result.paste(ov, (0, 0), ov)
     img_rgb = result.convert("RGB")
-    draw_county_outlines(img_rgb)
+    draw_boundary_layers(img_rgb)
     return img_rgb
 
 
 def make_combined_composite(basemap_rgba, radar_url, sat_url):
-    """Satellite background + radar colour overlay, like the main map view."""
-    sat = download_image(sat_url).convert("RGBA")
-    sat_crop = crop_overlay_to_uk(sat, SAT_LON_MIN, SAT_LON_MAX, SAT_LAT_MIN, SAT_LAT_MAX)
-    sat_resize = sat_crop.resize((OUT_W, OUT_H), Image.LANCZOS)
-
-    radar = download_image(radar_url).convert("RGBA")
-    radar_crop = crop_overlay_to_uk(radar, RADAR_LON_MIN, RADAR_LON_MAX, RADAR_LAT_MIN, RADAR_LAT_MAX)
-    radar_resize = radar_crop.resize((OUT_W, OUT_H), Image.LANCZOS)
+    """Satellite background + radar colour overlay, matching the main /radar map."""
+    sat   = _overlay(sat_url,
+                     SAT_LON_MIN, SAT_LON_MAX, SAT_LAT_MIN, SAT_LAT_MAX)
+    radar = _overlay(radar_url,
+                     RADAR_LON_MIN, RADAR_LON_MAX, RADAR_LAT_MIN, RADAR_LAT_MAX)
 
     result = basemap_rgba.copy()
-    result.paste(sat_resize, (0, 0), sat_resize)
-    result.paste(radar_resize, (0, 0), radar_resize)
+    result.paste(sat, (0, 0), sat)
+    result.paste(radar, (0, 0), radar)
+
+    # Mild unsharp mask on the blended image before boundaries (sharpens sat pixelation)
     img_rgb = result.convert("RGB")
-    draw_county_outlines(img_rgb)
+    img_rgb = img_rgb.filter(ImageFilter.UnsharpMask(radius=0.8, percent=40, threshold=3))
+    draw_boundary_layers(img_rgb)
     return img_rgb
 
 
@@ -263,7 +314,7 @@ def get_r2_client():
 
 def upload_webp(r2, img, r2_key):
     buf = io.BytesIO()
-    img.save(buf, format="WEBP", quality=85)
+    img.save(buf, format="WEBP", quality=90)
     r2.put_object(
         Bucket=R2_BUCKET, Key=r2_key,
         Body=buf.getvalue(),
@@ -342,7 +393,7 @@ def main():
                 comp = make_composite(basemap, fr["url"],
                                       RADAR_LON_MIN, RADAR_LON_MAX,
                                       RADAR_LAT_MIN, RADAR_LAT_MAX)
-                comp.save(radar_local, "WEBP", quality=85)
+                comp.save(radar_local, "WEBP", quality=90)
                 print(f"  Saved {radar_local}")
             except Exception as e:
                 print(f"  Radar failed for {ts}: {e}")
@@ -359,7 +410,7 @@ def main():
                     comp = make_composite(basemap, sat_url,
                                           SAT_LON_MIN, SAT_LON_MAX,
                                           SAT_LAT_MIN, SAT_LAT_MAX)
-                    comp.save(sat_local, "WEBP", quality=85)
+                    comp.save(sat_local, "WEBP", quality=90)
                     print(f"  Saved {sat_local}")
                 except Exception as e:
                     print(f"  Sat failed for {ts}: {e}")
@@ -372,7 +423,7 @@ def main():
                 print(f"Generating combined composite {ts}…")
                 try:
                     comp = make_combined_composite(basemap, fr["url"], sat_url)
-                    comp.save(combined_local, "WEBP", quality=85)
+                    comp.save(combined_local, "WEBP", quality=90)
                     print(f"  Saved {combined_local}")
                 except Exception as e:
                     print(f"  Combined failed for {ts}: {e}")
