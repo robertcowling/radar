@@ -17,11 +17,10 @@ from datetime import datetime, timedelta
 import boto3
 from PIL import Image, ImageDraw, ImageFilter
 
-# UK + Shetland + partial continental shelf crop. Extended north to 61.5° to
-# include Shetland, south to 49° for more English Channel / Brittany coast,
-# and widened east-west to maintain the Mercator portrait aspect ratio.
-UK_LON_MIN, UK_LON_MAX = -13.0, 5.0
-UK_LAT_MIN, UK_LAT_MAX = 49.0, 61.5
+# Frame extended south to 46°N to capture full radar domain (boundary min 46.89°N),
+# lon range -15..6.5 (21.5°) maintains exact 812×1000 Mercator portrait aspect.
+UK_LON_MIN, UK_LON_MAX = -15.0, 6.5
+UK_LAT_MIN, UK_LAT_MAX = 46.0, 61.5
 
 OUT_W, OUT_H = 812, 1000
 ZOOM = 8
@@ -40,7 +39,7 @@ EUROPE_GEO_CACHE = "europe_geo.json"
 # A subtle white halo is applied automatically for contrast on dark night-sat backgrounds.
 BOUNDARY_LAYERS = [
     (EUROPE_GEO_CACHE,           (80, 100, 130),  1),  # muted slate — European country outlines
-    ("uk_catchments.geojson",    (20,  90, 160),  1),  # blue — UK river catchment boundaries
+    ("uk_catchments.geojson",    (0,   0,   0),   1),  # black with light halo — UK river catchments
     ("radar_boundary.geojson",   (180,180, 210),  1),  # pale blue-grey — radar coverage edge
 ]
 

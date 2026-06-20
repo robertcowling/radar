@@ -130,7 +130,6 @@
 
 <footer>
   <a href="../index.html">Full radar map →</a>
-  <span id="next-refresh"></span>
 </footer>
 
 <script>
@@ -141,16 +140,14 @@ const HISTORY      = 24;
 const DWELL_FRAMES = 12;
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let frames        = [];          // [{ time, radar, sat, combined }]
-let currentIdx    = 0;
-let currentLayer  = 'combined';
-let playing       = true;
-let fps           = 5;
-let tickTimer     = null;
-let dwellCount    = 0;
-let refreshTimer  = null;
-let nextRefreshAt = null;
-const cache       = {};          // src -> preloaded Image
+let frames       = [];   // [{ time, radar, sat, combined }]
+let currentIdx   = 0;
+let currentLayer = 'combined';
+let playing      = true;
+let fps          = 5;
+let tickTimer    = null;
+let dwellCount   = 0;
+const cache      = {};   // src -> preloaded Image
 
 const img = document.getElementById('frame-img');
 
@@ -159,26 +156,25 @@ function tsFromUrl(u) {
   return m ? m[1] : null;
 }
 
-// ── Load manifest → build flat composite frame list ───────────────────────────
+function buildFrame(f) {
+  const ts = tsFromUrl(f.url);
+  if (!ts) return null;
+  return {
+    time:     f.time || '',
+    radar:    'composites/dashboard_radar_'    + ts + '.webp',
+    sat:      'composites/dashboard_sat_'      + ts + '.webp',
+    combined: 'composites/dashboard_combined_' + ts + '.webp',
+  };
+}
+
+// ── Initial load ──────────────────────────────────────────────────────────────
 async function loadManifest() {
   try {
     const res = await fetch(MANIFEST + '?t=' + Date.now());
     const all = await res.json();
-    const built = [];
-    for (const f of all) {
-      const ts = tsFromUrl(f.url);
-      if (!ts) continue;
-      built.push({
-        time:     f.time || '',
-        radar:    'composites/dashboard_radar_'    + ts + '.webp',
-        sat:      'composites/dashboard_sat_'      + ts + '.webp',
-        combined: 'composites/dashboard_combined_' + ts + '.webp',
-      });
-    }
-    const candidates = built.slice(-HISTORY);
+    const candidates = all.map(buildFrame).filter(Boolean).slice(-HISTORY);
 
-    // Keep only frames whose combined composite actually loads — never show a
-    // broken image if the manifest is briefly ahead of the committed frames.
+    // Validate: only keep frames whose combined composite has loaded
     const checked = await Promise.all(candidates.map(fr => new Promise(resolve => {
       const im = new Image();
       im.onload  = () => { cache[fr.combined] = im; resolve(fr); };
@@ -193,16 +189,46 @@ async function loadManifest() {
     }
     document.getElementById('loading').classList.add('done');
     currentIdx = frames.length - 1;
-    preloadLayers();
+    preloadLayers(frames);
     renderFrame(currentIdx);
-    scheduleRefresh();
+    scheduleBackgroundRefresh();
   } catch (e) {
     document.getElementById('loading').textContent = 'Failed to load: ' + e.message;
   }
 }
 
-function preloadLayers() {
-  for (const fr of frames) {
+// ── Silent background refresh — appends new frames without disrupting playback ─
+async function refreshInBackground() {
+  try {
+    const res = await fetch(MANIFEST + '?t=' + Date.now());
+    const all = await res.json();
+    const candidates = all.map(buildFrame).filter(Boolean).slice(-HISTORY);
+
+    const known = new Set(frames.map(f => f.combined));
+    const novel = candidates.filter(f => !known.has(f.combined));
+    if (!novel.length) return;
+
+    // Validate only the new ones
+    const checked = await Promise.all(novel.map(fr => new Promise(resolve => {
+      const im = new Image();
+      im.onload  = () => { cache[fr.combined] = im; resolve(fr); };
+      im.onerror = () => resolve(null);
+      im.src = fr.combined;
+    })));
+    const valid = checked.filter(Boolean);
+    if (!valid.length) return;
+
+    // Merge: keep currentIdx pointing at the same logical frame
+    const merged = [...frames, ...valid].slice(-HISTORY);
+    const shift  = merged.length - frames.length;
+    frames     = merged;
+    currentIdx = Math.min(currentIdx + shift, frames.length - 1);
+    preloadLayers(valid);
+  } catch (_) { /* silent */ }
+}
+
+function preloadLayers(list) {
+  for (const fr of list) {
     for (const key of ['radar', 'sat']) {
       if (!cache[fr[key]]) {
         const s = new Image();
@@ -264,19 +290,9 @@ function setLayer(layer) {
   renderFrame(currentIdx);
 }
 
-// ── Auto-refresh ──────────────────────────────────────────────────────────────
-function scheduleRefresh() {
-  clearTimeout(refreshTimer);
-  nextRefreshAt = Date.now() + REFRESH_MS;
-  refreshTimer = setTimeout(loadManifest, REFRESH_MS);
-  updateCountdown();
-  setInterval(updateCountdown, 15000);
-}
-function updateCountdown() {
-  if (!nextRefreshAt) return;
-  const s = Math.max(0, Math.round((nextRefreshAt - Date.now()) / 1000));
-  document.getElementById('next-refresh').textContent =
-    `Refreshes in ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+// ── Background polling — no countdown, no disruption ─────────────────────────
+function scheduleBackgroundRefresh() {
+  setInterval(refreshInBackground, REFRESH_MS);
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
