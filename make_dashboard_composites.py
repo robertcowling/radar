@@ -23,10 +23,10 @@ try:
 except ImportError:
     HAS_CAIROSVG = False
 
-# Frame extended south to 46°N to capture full radar domain (boundary min 46.89°N),
-# lon range -15..6.5 (21.5°) maintains exact 812×1000 Mercator portrait aspect.
-UK_LON_MIN, UK_LON_MAX = -15.0, 6.5
-UK_LAT_MIN, UK_LAT_MAX = 46.0, 61.5
+# ~18% Mercator zoom vs original extents; center preserved at lon -4.25, Mercator cy ~7296 km.
+# Shetland (60.15°N) included; southern limit 48°N (N Brittany / S Ireland).
+UK_LON_MIN, UK_LON_MAX = -13.0, 4.5
+UK_LAT_MIN, UK_LAT_MAX = 48.0, 60.5
 
 OUT_W, OUT_H = 812, 1000
 ZOOM = 8
@@ -49,7 +49,6 @@ UK_REGIONS_CACHE  = "uk_regions_r2.geojson"
 BOUNDARY_LAYERS = [
     (EUROPE_GEO_CACHE,   (80, 100, 130),  1, 0.55),  # European country outlines
     (UK_REGIONS_CACHE,   (0,   0,   0),   2, 0.60),  # UK regions, black + highlight
-    ("radar_boundary.geojson", (155, 165, 185), 1, 0.12),  # radar domain edge, very subtle
 ]
 
 HISTORY_FRAMES = 24
