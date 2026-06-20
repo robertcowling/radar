@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 """
-Generate 900×506 dashboard composite WebP images (CartoDB basemap + radar/sat overlay).
-
-Per-frame composites are uploaded as:
-  radar_parallel/dashboard_radar_YYYYMMDDHHMM.webp  (last HISTORY_FRAMES frames)
-  sat_gh/dashboard_sat_YYYYMMDDHHMM.webp            (last HISTORY_FRAMES frames)
-
-frames_parallel.json is updated with dashboard_radar_url / dashboard_sat_url per frame.
+Generate 812×1000 dashboard composite WebP images (CartoDB basemap + radar/sat overlay).
+Composite style version is auto-detected from this script's content hash; any change
+to this file triggers a full re-build of all composites on the next workflow run.
 """
 
+import hashlib
 import io
 import json
 import math
@@ -20,11 +17,11 @@ from datetime import datetime, timedelta
 import boto3
 from PIL import Image, ImageDraw, ImageFilter
 
-# Tight UK-centred crop on GB + Ireland (centre ≈ -4.25°E). Portrait, because
-# the British Isles are naturally tall; OUT dims match the Mercator aspect so
-# the map isn't stretched.
-UK_LON_MIN, UK_LON_MAX = -11.0, 2.5
-UK_LAT_MIN, UK_LAT_MAX = 49.7, 59.3
+# UK + Shetland + partial continental shelf crop. Extended north to 61.5° to
+# include Shetland, south to 49° for more English Channel / Brittany coast,
+# and widened east-west to maintain the Mercator portrait aspect ratio.
+UK_LON_MIN, UK_LON_MAX = -13.0, 5.0
+UK_LAT_MIN, UK_LAT_MAX = 49.0, 61.5
 
 OUT_W, OUT_H = 812, 1000
 ZOOM = 8
@@ -35,8 +32,9 @@ TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{
 BASEMAP_CACHE = "static/dashboard_basemap_uk_z8.png"
 
 # Boundary layers drawn bottom-to-top. Each entry: (file, rgb_color, line_width_px)
-# Halo (soft white glow) is applied automatically so lines read on dark night-sat backgrounds.
+# A subtle white halo is applied automatically for contrast on dark night-sat backgrounds.
 BOUNDARY_LAYERS = [
+    ("euro_coastline.geojson",   (80, 100, 130),  1),  # muted slate — continental Europe coast
     ("uk_catchments.geojson",    (20,  90, 160),  1),  # blue — catchment boundaries
     ("uk-counties.geojson",      (45,  45,  75),  2),  # dark navy — county boundaries
     ("uk_regions.geojson",       (20,  20,  50),  2),  # darker navy — region boundaries
@@ -147,11 +145,7 @@ def _iter_rings(features, crop_left, crop_top, crop_w, crop_h):
 
 
 def draw_boundary_layers(img_rgb):
-    """Draw all BOUNDARY_LAYERS onto img_rgb with a soft white halo for dark-bg contrast.
-
-    Replicates the CSS  filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.75))
-    used on the main Leaflet map via a blurred white glow pass + sharp line pass.
-    """
+    """Draw all BOUNDARY_LAYERS with a very subtle white halo for night-sat contrast."""
     crop_left, crop_top, crop_w, crop_h = _crop_extents()
 
     for filepath, line_color, line_width in BOUNDARY_LAYERS:
@@ -164,22 +158,20 @@ def draw_boundary_layers(img_rgb):
         if not rings:
             continue
 
-        # ── Blurred white halo (replicates CSS drop-shadow) ──────────────────
-        halo_w = line_width + 6
+        # Subtle glow: just 2px wider than the line, very light blur, 20% max opacity
+        halo_w = line_width + 2
         glow = Image.new("L", img_rgb.size, 0)
         gd = ImageDraw.Draw(glow)
         for pts in rings:
             gd.line(pts, fill=255, width=halo_w)
-        glow = glow.filter(ImageFilter.GaussianBlur(radius=2.5))
+        glow = glow.filter(ImageFilter.GaussianBlur(radius=1.0))
 
-        # Blend white where glow is bright (max 75% opacity — matches CSS 0.75)
         white_layer = Image.new("RGBA", img_rgb.size, (255, 255, 255, 0))
-        white_layer.putalpha(glow.point(lambda x: int(x * 0.75)))
+        white_layer.putalpha(glow.point(lambda x: int(x * 0.20)))
         img_rgba = img_rgb.convert("RGBA")
         img_rgba = Image.alpha_composite(img_rgba, white_layer)
         img_rgb.paste(img_rgba.convert("RGB"))
 
-        # ── Sharp coloured line on top ────────────────────────────────────────
         draw = ImageDraw.Draw(img_rgb)
         for pts in rings:
             draw.line(pts, fill=line_color, width=line_width)
@@ -351,8 +343,7 @@ def ts_from_url(url):
 
 
 def needs_build(path):
-    """True if the composite is missing or was built at different dimensions
-    (e.g. after a framing/resolution change), so it gets regenerated."""
+    """True if the composite is missing or was built at different dimensions."""
     if not os.path.exists(path):
         return True
     try:
@@ -362,9 +353,40 @@ def needs_build(path):
         return True
 
 
+def _script_hash():
+    with open(__file__, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()[:16]
+
+
+def purge_on_style_change():
+    """Purge all composites when this script has changed since the last build.
+
+    Stores the script's content hash in COMPOSITE_DIR/.version so the check
+    survives across git checkouts and GitHub Actions cache restores.
+    """
+    os.makedirs(COMPOSITE_DIR, exist_ok=True)
+    version_file = os.path.join(COMPOSITE_DIR, ".version")
+    current_hash = _script_hash()
+    if os.path.exists(version_file):
+        with open(version_file) as f:
+            if f.read().strip() == current_hash:
+                return  # no change
+    print(f"Script changed (hash {current_hash}), purging all composites for full rebuild…")
+    for fname in os.listdir(COMPOSITE_DIR):
+        if fname.endswith(".webp"):
+            try:
+                os.remove(os.path.join(COMPOSITE_DIR, fname))
+            except OSError:
+                pass
+    with open(version_file, "w") as f:
+        f.write(current_hash)
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    purge_on_style_change()
+
     with open("frames_parallel.json") as f:
         frames = json.load(f)
     if not frames:
