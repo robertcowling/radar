@@ -538,14 +538,19 @@ def main():
     if HAS_CAIROSVG and os.path.exists(MSLP_META_FILE):
         with open(MSLP_META_FILE) as f:
             mslp_meta = json.load(f)
-        mslp_recent = mslp_meta.get("frames", [])[-MSLP_HISTORY:]
-
         # Build ts → sat_url_bw lookup from all radar frames
         sat_map = {}
         for fr in frames:
             ts = ts_from_url(fr.get("url", ""))
             if ts and fr.get("sat_url_bw"):
                 sat_map[ts] = fr["sat_url_bw"]
+
+        # Only include MSLP frames that have a corresponding sat image (= analysis, not forecast)
+        mslp_all = mslp_meta.get("frames", [])
+        mslp_with_sat = [mf for mf in mslp_all
+                         if ts_from_url(mf.get("url", "")) and
+                         _find_closest_sat(sat_map, ts_from_url(mf["url"])) is not None]
+        mslp_recent = mslp_with_sat[-MSLP_HISTORY:]
 
         mslp_out = []
         for mf in mslp_recent:
