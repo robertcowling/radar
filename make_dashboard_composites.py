@@ -42,7 +42,7 @@ UK_REGIONS_CACHE  = "uk_regions_r2.geojson"
 # Each entry: (filepath, rgb_color, line_width_px, halo_opacity 0-1)
 BOUNDARY_LAYERS = [
     (EUROPE_GEO_CACHE,   (80, 100, 130),  1, 0.55),  # European country outlines
-    (UK_REGIONS_CACHE,   (0,   0,   0),   1, 0.55),  # UK regions, black + highlight
+    (UK_REGIONS_CACHE,   (0,   0,   0),   2, 0.60),  # UK regions, black + highlight
     ("radar_boundary.geojson", (155, 165, 185), 1, 0.12),  # radar domain edge, very subtle
 ]
 

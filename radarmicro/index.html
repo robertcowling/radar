@@ -17,11 +17,11 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
-      height: 100dvh;          /* keeps controls on-screen on mobile */
+      height: 100dvh;
       overflow: hidden;
     }
 
-    /* ── Header (blue gradient — visible deploy marker) ──────────────── */
+    /* ── Header ─────────────────────────────────────────────────────────────── */
     header {
       flex-shrink: 0;
       display: flex; align-items: center; gap: 8px;
@@ -30,8 +30,7 @@
       color: #fff;
       box-shadow: 0 2px 8px rgba(0,0,0,0.18);
     }
-    .title { font-size: 15px; font-weight: 700; white-space: nowrap; }
-    #timestamp { font-size: 12px; color: rgba(255,255,255,0.92); white-space: nowrap; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .title { font-size: 15px; font-weight: 700; white-space: nowrap; flex: 1; }
     .toggle { display: flex; background: rgba(255,255,255,0.18); border-radius: 20px; padding: 3px; flex-shrink: 0; }
     .toggle button {
       background: none; border: none; color: rgba(255,255,255,0.85);
@@ -40,11 +39,11 @@
       transition: background .18s, color .18s;
     }
     .toggle button.active { background: #fff; color: #2563eb; }
-    .toggle button:disabled { opacity: .4; cursor: default; }
 
-    /* ── Image stage (one flat composite per frame, GIF-style) ───────── */
+    /* ── Image stage ─────────────────────────────────────────────────────────── */
     #stage {
       flex: 1; min-height: 0;
+      position: relative;
       display: flex; align-items: center; justify-content: center;
       background: #dbe4ee; overflow: hidden;
     }
@@ -59,46 +58,103 @@
     }
     #loading.done { display: none; }
 
-    /* ── Controls (always pinned, never off-screen) ─────────────────── */
+    /* ── Dark controls panel ─────────────────────────────────────────────────── */
     #controls {
       flex-shrink: 0;
-      display: flex; align-items: center; gap: 9px;
-      padding: 8px 14px; background: #fff; border-top: 1px solid #e2e8f0;
+      background: #1a1f2e;
+      padding: 12px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
-    .ctrl-btn {
-      background: #f1f5f9; border: none; color: #1f2937;
-      font-family: inherit; font-size: 17px; width: 34px; height: 34px;
-      border-radius: 8px; cursor: pointer; flex-shrink: 0;
+
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #play-btn {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: #2563eb;
+      border: none; color: #fff;
+      font-size: 18px;
+      cursor: pointer; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       transition: background .15s;
     }
-    .ctrl-btn:hover { background: #e2e8f0; }
-    #scrubber { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-    #progress-track { position: relative; height: 6px; background: #e2e8f0; border-radius: 3px; cursor: pointer; }
-    #progress-fill { height: 100%; background: #2563eb; border-radius: 3px; transition: width .1s; }
-    #frame-label { font-size: 11px; color: #64748b; text-align: right; }
-    #speed-select {
-      background: #f1f5f9; border: none; color: #1f2937;
-      font-family: inherit; font-size: 12px; padding: 5px 8px; border-radius: 8px;
+    #play-btn:hover { background: #1d4ed8; }
+
+    .step-btn {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.1);
+      border: none; color: rgba(255,255,255,0.85);
+      font-size: 15px;
       cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .step-btn:hover { background: rgba(255,255,255,0.2); }
+
+    #speed-select {
+      background: rgba(255,255,255,0.1);
+      border: none; color: rgba(255,255,255,0.85);
+      font-family: inherit; font-size: 12px;
+      padding: 6px 10px; border-radius: 8px;
+      cursor: pointer; margin-left: auto;
+    }
+    #speed-select option { background: #1a1f2e; color: #fff; }
+
+    /* ── Scrubber ─────────────────────────────────────────────────────────────── */
+    #scrubber { display: flex; flex-direction: column; gap: 6px; }
+
+    #progress-track {
+      position: relative; height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px; cursor: pointer;
+    }
+    #progress-fill {
+      height: 100%; background: #2563eb;
+      border-radius: 2px; position: relative;
+      transition: width .1s;
+    }
+    #scrubber-handle {
+      position: absolute; right: -6px; top: -4px;
+      width: 12px; height: 12px;
+      border-radius: 50%; background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+      pointer-events: none;
+    }
+
+    .time-labels {
+      display: flex; justify-content: space-between;
+      font-size: 10px; color: rgba(255,255,255,0.45);
+      font-weight: 500;
+    }
+
+    /* ── Big timestamp ───────────────────────────────────────────────────────── */
+    #big-timestamp {
+      font-size: 17px; font-weight: 700;
+      color: #fff; text-align: center;
+      letter-spacing: 0.01em;
     }
 
     footer {
       flex-shrink: 0;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 6px 14px; background: #f8fafc; border-top: 1px solid #e2e8f0;
-      font-size: 11px; color: #64748b; gap: 10px;
+      padding: 6px 14px; background: #1a1f2e;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 11px; text-align: center;
     }
-    footer a { color: #2563eb; text-decoration: none; font-weight: 500; }
-    footer a:hover { text-decoration: underline; }
-    #next-refresh { white-space: nowrap; }
+    footer a { color: rgba(255,255,255,0.45); text-decoration: none; }
+    footer a:hover { color: rgba(255,255,255,0.85); }
   </style>
 </head>
 <body>
 
 <header>
   <span class="title">UK Radar</span>
-  <span id="timestamp">Loading…</span>
   <div class="toggle">
     <button id="btn-combined" class="active" onclick="setLayer('combined')">Combined</button>
     <button id="btn-radar"                   onclick="setLayer('radar')">Radar</button>
@@ -112,20 +168,28 @@
 </div>
 
 <div id="controls">
-  <button class="ctrl-btn" id="play-btn" onclick="togglePlay()" title="Play/Pause">⏸</button>
-  <button class="ctrl-btn" onclick="stepFrame(-1)" title="Previous">⏮</button>
-  <button class="ctrl-btn" onclick="stepFrame(1)"  title="Next">⏭</button>
+  <div class="ctrl-row">
+    <button id="play-btn" onclick="togglePlay()" title="Play/Pause">⏸</button>
+    <button class="step-btn" onclick="stepFrame(-1)" title="Previous">⏮</button>
+    <button class="step-btn" onclick="stepFrame(1)"  title="Next">⏭</button>
+    <select id="speed-select" onchange="setSpeed(this.value)" title="Speed">
+      <option value="2">Slow</option>
+      <option value="5" selected>Normal</option>
+      <option value="10">Fast</option>
+    </select>
+  </div>
   <div id="scrubber">
     <div id="progress-track" onclick="scrubClick(event)">
-      <div id="progress-fill" style="width:0%"></div>
+      <div id="progress-fill" style="width:0%">
+        <div id="scrubber-handle"></div>
+      </div>
     </div>
-    <div id="frame-label">—</div>
+    <div class="time-labels">
+      <span id="time-start">—</span>
+      <span id="time-end">—</span>
+    </div>
   </div>
-  <select id="speed-select" onchange="setSpeed(this.value)" title="Speed">
-    <option value="2">Slow</option>
-    <option value="5" selected>Normal</option>
-    <option value="10">Fast</option>
-  </select>
+  <div id="big-timestamp">—</div>
 </div>
 
 <footer>
@@ -140,14 +204,14 @@ const HISTORY      = 24;
 const DWELL_FRAMES = 12;
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let frames       = [];   // [{ time, radar, sat, combined }]
+let frames       = [];
 let currentIdx   = 0;
 let currentLayer = 'combined';
 let playing      = true;
 let fps          = 5;
 let tickTimer    = null;
 let dwellCount   = 0;
-const cache      = {};   // src -> preloaded Image
+const cache      = {};
 
 const img = document.getElementById('frame-img');
 
@@ -167,6 +231,12 @@ function buildFrame(f) {
   };
 }
 
+function updateTimeLabels() {
+  if (!frames.length) return;
+  document.getElementById('time-start').textContent = frames[0].time;
+  document.getElementById('time-end').textContent   = frames[frames.length - 1].time;
+}
+
 // ── Initial load ──────────────────────────────────────────────────────────────
 async function loadManifest() {
   try {
@@ -174,7 +244,6 @@ async function loadManifest() {
     const all = await res.json();
     const candidates = all.map(buildFrame).filter(Boolean).slice(-HISTORY);
 
-    // Validate: only keep frames whose combined composite has loaded
     const checked = await Promise.all(candidates.map(fr => new Promise(resolve => {
       const im = new Image();
       im.onload  = () => { cache[fr.combined] = im; resolve(fr); };
@@ -190,6 +259,7 @@ async function loadManifest() {
     document.getElementById('loading').classList.add('done');
     currentIdx = frames.length - 1;
     preloadLayers(frames);
+    updateTimeLabels();
     renderFrame(currentIdx);
     scheduleBackgroundRefresh();
   } catch (e) {
@@ -197,7 +267,7 @@ async function loadManifest() {
   }
 }
 
-// ── Silent background refresh — appends new frames without disrupting playback ─
+// ── Silent background refresh ─────────────────────────────────────────────────
 async function refreshInBackground() {
   try {
     const res = await fetch(MANIFEST + '?t=' + Date.now());
@@ -208,7 +278,6 @@ async function refreshInBackground() {
     const novel = candidates.filter(f => !known.has(f.combined));
     if (!novel.length) return;
 
-    // Validate only the new ones
     const checked = await Promise.all(novel.map(fr => new Promise(resolve => {
       const im = new Image();
       im.onload  = () => { cache[fr.combined] = im; resolve(fr); };
@@ -218,12 +287,12 @@ async function refreshInBackground() {
     const valid = checked.filter(Boolean);
     if (!valid.length) return;
 
-    // Merge: keep currentIdx pointing at the same logical frame
     const merged = [...frames, ...valid].slice(-HISTORY);
     const shift  = merged.length - frames.length;
     frames     = merged;
     currentIdx = Math.min(currentIdx + shift, frames.length - 1);
     preloadLayers(valid);
+    updateTimeLabels();
   } catch (_) { /* silent */ }
 }
 
@@ -240,15 +309,14 @@ function preloadLayers(list) {
   }
 }
 
-// ── Render one flat image (GIF-style swap) ────────────────────────────────────
+// ── Render one flat image ─────────────────────────────────────────────────────
 function renderFrame(idx) {
   if (!frames.length) return;
   const fr = frames[idx];
   img.src = fr[currentLayer];
-  document.getElementById('timestamp').textContent = fr.time;
+  document.getElementById('big-timestamp').textContent = fr.time;
   const pct = frames.length > 1 ? idx / (frames.length - 1) * 100 : 100;
   document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('frame-label').textContent = `Frame ${idx + 1} / ${frames.length}`;
 }
 
 // ── Animation ─────────────────────────────────────────────────────────────────
@@ -290,7 +358,7 @@ function setLayer(layer) {
   renderFrame(currentIdx);
 }
 
-// ── Background polling — no countdown, no disruption ─────────────────────────
+// ── Background polling ────────────────────────────────────────────────────────
 function scheduleBackgroundRefresh() {
   setInterval(refreshInBackground, REFRESH_MS);
 }
