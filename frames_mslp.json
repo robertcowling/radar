@@ -1,1 +1,98 @@
-[]
+[
+  {
+    "time": "Fri 19 Jun 2026 23:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606192300.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 00:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606200000.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 01:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606200100.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 02:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606200200.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 03:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606200300.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 04:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606200400.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 05:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606200500.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 06:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606200600.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 07:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606200700.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 08:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606200800.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 09:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606200900.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 10:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606201000.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 11:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606201100.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 12:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606201200.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 13:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606201300.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 14:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606201400.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 15:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606201500.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 16:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606201600.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 17:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606201700.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 18:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606201800.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 19:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606201900.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 20:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606202000.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 21:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606202100.webp"
+  },
+  {
+    "time": "Sat 20 Jun 2026 22:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606202200.webp"
+  }
+]
