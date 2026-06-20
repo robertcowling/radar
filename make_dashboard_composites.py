@@ -29,18 +29,21 @@ EARTH_RADIUS = 6378137.0
 
 TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
 BASEMAP_CACHE = "static/dashboard_basemap_uk_z8.png"
+BASEMAP_META  = "static/dashboard_basemap_uk_z8.meta"  # stores bounds so stale cache is detected
 
-# Europe country boundaries downloaded from R2 on first run and cached locally.
-# Not committed to git (large file); persisted via GitHub Actions cache.
-EUROPE_GEO_URL   = "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/geo/Europe%20geo.json"
-EUROPE_GEO_CACHE = "europe_geo.json"
+# R2-hosted GeoJSON files downloaded on first run and cached locally.
+# Not committed to git; persisted via GitHub Actions cache.
+EUROPE_GEO_URL    = "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/geo/Europe%20geo.json"
+EUROPE_GEO_CACHE  = "europe_geo.json"
+UK_REGIONS_URL    = "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/geo/uk_regions.geojson"
+UK_REGIONS_CACHE  = "uk_regions_r2.geojson"
 
-# Boundary layers drawn bottom-to-top. Each entry: (file, rgb_color, line_width_px)
-# A subtle white halo is applied automatically for contrast on dark night-sat backgrounds.
+# Boundary layers drawn bottom-to-top.
+# Each entry: (filepath, rgb_color, line_width_px, halo_opacity 0-1)
 BOUNDARY_LAYERS = [
-    (EUROPE_GEO_CACHE,           (80, 100, 130),  1),  # muted slate — European country outlines
-    ("uk_catchments.geojson",    (0,   0,   0),   1),  # black with light halo — UK river catchments
-    ("radar_boundary.geojson",   (180,180, 210),  1),  # pale blue-grey — radar coverage edge
+    (EUROPE_GEO_CACHE,   (80, 100, 130),  1, 0.55),  # European country outlines
+    (UK_REGIONS_CACHE,   (0,   0,   0),   1, 0.55),  # UK regions, black + highlight
+    ("radar_boundary.geojson", (155, 165, 185), 1, 0.12),  # radar domain edge, very subtle
 ]
 
 HISTORY_FRAMES = 24
@@ -147,10 +150,10 @@ def _iter_rings(features, crop_left, crop_top, crop_w, crop_h):
 
 
 def draw_boundary_layers(img_rgb):
-    """Draw all BOUNDARY_LAYERS with a very subtle white halo for night-sat contrast."""
+    """Draw all BOUNDARY_LAYERS with a per-layer white halo for night-sat contrast."""
     crop_left, crop_top, crop_w, crop_h = _crop_extents()
 
-    for filepath, line_color, line_width in BOUNDARY_LAYERS:
+    for filepath, line_color, line_width, halo_opacity in BOUNDARY_LAYERS:
         if not os.path.exists(filepath):
             continue
         features = _load_geojson(filepath)
@@ -160,19 +163,18 @@ def draw_boundary_layers(img_rgb):
         if not rings:
             continue
 
-        # Soft glow: 3px wider than the line, gentle blur, 40% max opacity
-        halo_w = line_width + 3
-        glow = Image.new("L", img_rgb.size, 0)
-        gd = ImageDraw.Draw(glow)
-        for pts in rings:
-            gd.line(pts, fill=255, width=halo_w)
-        glow = glow.filter(ImageFilter.GaussianBlur(radius=1.5))
-
-        white_layer = Image.new("RGBA", img_rgb.size, (255, 255, 255, 0))
-        white_layer.putalpha(glow.point(lambda x: int(x * 0.40)))
-        img_rgba = img_rgb.convert("RGBA")
-        img_rgba = Image.alpha_composite(img_rgba, white_layer)
-        img_rgb.paste(img_rgba.convert("RGB"))
+        if halo_opacity > 0:
+            halo_w = line_width + 3
+            glow = Image.new("L", img_rgb.size, 0)
+            gd = ImageDraw.Draw(glow)
+            for pts in rings:
+                gd.line(pts, fill=255, width=halo_w)
+            glow = glow.filter(ImageFilter.GaussianBlur(radius=1.5))
+            white_layer = Image.new("RGBA", img_rgb.size, (255, 255, 255, 0))
+            white_layer.putalpha(glow.point(lambda x: int(x * halo_opacity)))
+            img_rgba = img_rgb.convert("RGBA")
+            img_rgba = Image.alpha_composite(img_rgba, white_layer)
+            img_rgb.paste(img_rgba.convert("RGB"))
 
         draw = ImageDraw.Draw(img_rgb)
         for pts in rings:
@@ -220,12 +222,22 @@ def build_basemap():
 
 
 def get_basemap():
-    if os.path.exists(BASEMAP_CACHE):
+    # Validate cached basemap against current bounds so a stale cache (built
+    # with different extents) is never silently used — that causes visible
+    # misalignment between the basemap tiles and GeoJSON boundary overlays.
+    expected_meta = f"{UK_LON_MIN},{UK_LON_MAX},{UK_LAT_MIN},{UK_LAT_MAX},{ZOOM}"
+    cache_valid = False
+    if os.path.exists(BASEMAP_CACHE) and os.path.exists(BASEMAP_META):
+        with open(BASEMAP_META) as f:
+            cache_valid = f.read().strip() == expected_meta
+    if cache_valid:
         print("Using cached basemap.")
         return Image.open(BASEMAP_CACHE).convert("RGBA")
     os.makedirs(os.path.dirname(BASEMAP_CACHE), exist_ok=True)
     bm = build_basemap()
     bm.save(BASEMAP_CACHE, "PNG")
+    with open(BASEMAP_META, "w") as f:
+        f.write(expected_meta)
     print(f"Basemap cached: {BASEMAP_CACHE}")
     return bm
 
@@ -360,18 +372,21 @@ def _script_hash():
         return hashlib.sha256(f.read()).hexdigest()[:16]
 
 
-def ensure_europe_geo():
-    """Download the Europe boundary GeoJSON from R2 if not cached locally."""
-    if os.path.exists(EUROPE_GEO_CACHE):
+def _fetch_if_missing(url, local_path, label):
+    if os.path.exists(local_path):
         return
-    print(f"Downloading Europe boundary from R2…")
-    req = urllib.request.Request(EUROPE_GEO_URL,
-                                  headers={'User-Agent': 'Mozilla/5.0 (radar-dashboard-bot)'})
+    print(f"Downloading {label} from R2…")
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (radar-dashboard-bot)'})
     with urllib.request.urlopen(req, timeout=60) as resp:
         data = resp.read()
-    with open(EUROPE_GEO_CACHE, 'wb') as f:
+    with open(local_path, 'wb') as f:
         f.write(data)
-    print(f"  Saved {EUROPE_GEO_CACHE} ({len(data):,} bytes)")
+    print(f"  Saved {local_path} ({len(data):,} bytes)")
+
+
+def ensure_geo_files():
+    _fetch_if_missing(EUROPE_GEO_URL,   EUROPE_GEO_CACHE,  "Europe boundary")
+    _fetch_if_missing(UK_REGIONS_URL,   UK_REGIONS_CACHE,  "UK regions")
 
 
 def purge_on_style_change():
@@ -401,7 +416,7 @@ def purge_on_style_change():
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    ensure_europe_geo()
+    ensure_geo_files()
     purge_on_style_change()
 
     with open("frames_parallel.json") as f:

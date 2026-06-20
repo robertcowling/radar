@@ -28,9 +28,11 @@ jobs:
         path: |
           static/radar_parallel_gh
           static/dashboard_basemap_uk_z8.png
+          static/dashboard_basemap_uk_z8.meta
           europe_geo.json
-        key: radar-parallel-images-v2-${{ github.run_id }}
-        restore-keys: radar-parallel-images-v2-
+          uk_regions_r2.geojson
+        key: radar-parallel-images-v3-${{ github.run_id }}
+        restore-keys: radar-parallel-images-v3-
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -71,8 +73,10 @@ jobs:
         path: |
           static/radar_parallel_gh
           static/dashboard_basemap_uk_z8.png
+          static/dashboard_basemap_uk_z8.meta
           europe_geo.json
-        key: radar-parallel-images-v2-${{ github.run_id }}
+          uk_regions_r2.geojson
+        key: radar-parallel-images-v3-${{ github.run_id }}
 
     - name: Commit and push changes
       run: |
