@@ -31,13 +31,16 @@ EARTH_RADIUS = 6378137.0
 TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
 BASEMAP_CACHE = "static/dashboard_basemap_uk_z8.png"
 
+# Europe country boundaries downloaded from R2 on first run and cached locally.
+# Not committed to git (large file); persisted via GitHub Actions cache.
+EUROPE_GEO_URL   = "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/geo/Europe%20geo.json"
+EUROPE_GEO_CACHE = "europe_geo.json"
+
 # Boundary layers drawn bottom-to-top. Each entry: (file, rgb_color, line_width_px)
 # A subtle white halo is applied automatically for contrast on dark night-sat backgrounds.
 BOUNDARY_LAYERS = [
-    ("euro_coastline.geojson",   (80, 100, 130),  1),  # muted slate — continental Europe coast
-    ("uk_catchments.geojson",    (20,  90, 160),  1),  # blue — catchment boundaries
-    ("uk-counties.geojson",      (45,  45,  75),  2),  # dark navy — county boundaries
-    ("uk_regions.geojson",       (20,  20,  50),  2),  # darker navy — region boundaries
+    (EUROPE_GEO_CACHE,           (80, 100, 130),  1),  # muted slate — European country outlines
+    ("uk_catchments.geojson",    (20,  90, 160),  1),  # blue — UK river catchment boundaries
     ("radar_boundary.geojson",   (180,180, 210),  1),  # pale blue-grey — radar coverage edge
 ]
 
@@ -158,16 +161,16 @@ def draw_boundary_layers(img_rgb):
         if not rings:
             continue
 
-        # Subtle glow: just 2px wider than the line, very light blur, 20% max opacity
-        halo_w = line_width + 2
+        # Soft glow: 3px wider than the line, gentle blur, 40% max opacity
+        halo_w = line_width + 3
         glow = Image.new("L", img_rgb.size, 0)
         gd = ImageDraw.Draw(glow)
         for pts in rings:
             gd.line(pts, fill=255, width=halo_w)
-        glow = glow.filter(ImageFilter.GaussianBlur(radius=1.0))
+        glow = glow.filter(ImageFilter.GaussianBlur(radius=1.5))
 
         white_layer = Image.new("RGBA", img_rgb.size, (255, 255, 255, 0))
-        white_layer.putalpha(glow.point(lambda x: int(x * 0.20)))
+        white_layer.putalpha(glow.point(lambda x: int(x * 0.40)))
         img_rgba = img_rgb.convert("RGBA")
         img_rgba = Image.alpha_composite(img_rgba, white_layer)
         img_rgb.paste(img_rgba.convert("RGB"))
@@ -358,6 +361,20 @@ def _script_hash():
         return hashlib.sha256(f.read()).hexdigest()[:16]
 
 
+def ensure_europe_geo():
+    """Download the Europe boundary GeoJSON from R2 if not cached locally."""
+    if os.path.exists(EUROPE_GEO_CACHE):
+        return
+    print(f"Downloading Europe boundary from R2…")
+    req = urllib.request.Request(EUROPE_GEO_URL,
+                                  headers={'User-Agent': 'Mozilla/5.0 (radar-dashboard-bot)'})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        data = resp.read()
+    with open(EUROPE_GEO_CACHE, 'wb') as f:
+        f.write(data)
+    print(f"  Saved {EUROPE_GEO_CACHE} ({len(data):,} bytes)")
+
+
 def purge_on_style_change():
     """Purge all composites when this script has changed since the last build.
 
@@ -385,6 +402,7 @@ def purge_on_style_change():
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    ensure_europe_geo()
     purge_on_style_change()
 
     with open("frames_parallel.json") as f:
