@@ -31,14 +31,15 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.18);
     }
     .title { font-size: 15px; font-weight: 700; white-space: nowrap; flex: 1; }
-    .toggle { display: flex; background: rgba(255,255,255,0.18); border-radius: 20px; padding: 3px; flex-shrink: 0; }
+    .toggle { display: flex; background: rgba(255,255,255,0.18); border-radius: 20px; padding: 3px; flex-shrink: 0; gap: 1px; }
     .toggle button {
       background: none; border: none; color: rgba(255,255,255,0.85);
-      font-family: inherit; font-size: 12px; font-weight: 500;
-      padding: 4px 11px; border-radius: 16px; cursor: pointer;
-      transition: background .18s, color .18s;
+      font-family: inherit; font-size: 11px; font-weight: 500;
+      padding: 4px 9px; border-radius: 16px; cursor: pointer;
+      transition: background .18s, color .18s; white-space: nowrap;
     }
     .toggle button.active { background: #fff; color: #2563eb; }
+    .toggle button:disabled { opacity: .4; cursor: default; }
 
     /* ── Image stage ─────────────────────────────────────────────────────────── */
     #stage {
@@ -159,6 +160,7 @@
     <button id="btn-combined" class="active" onclick="setLayer('combined')">Combined</button>
     <button id="btn-radar"                   onclick="setLayer('radar')">Radar</button>
     <button id="btn-sat"                     onclick="setLayer('sat')">Satellite</button>
+    <button id="btn-mslp"                    onclick="setLayer('mslp')">MSLP</button>
   </div>
 </header>
 
@@ -198,14 +200,17 @@
 
 <script>
 // ── Config ──────────────────────────────────────────────────────────────────
-const MANIFEST     = '../frames_parallel.json';
-const REFRESH_MS   = 5 * 60 * 1000;
-const HISTORY      = 24;
-const DWELL_FRAMES = 12;
+const RADAR_MANIFEST = '../frames_parallel.json';
+const MSLP_MANIFEST  = '../frames_mslp.json';
+const REFRESH_MS     = 5 * 60 * 1000;
+const HISTORY        = 24;
+const DWELL_FRAMES   = 12;
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let frames       = [];
-let currentIdx   = 0;
+let radarFrames  = [];   // [{time, radar, sat, combined}]
+let mslpFrames   = [];   // [{time, mslp}]
+let radarIdx     = 0;
+let mslpIdx      = 0;
 let currentLayer = 'combined';
 let playing      = true;
 let fps          = 5;
@@ -215,12 +220,16 @@ const cache      = {};
 
 const img = document.getElementById('frame-img');
 
+function activeFrames() { return currentLayer === 'mslp' ? mslpFrames : radarFrames; }
+function getIdx()       { return currentLayer === 'mslp' ? mslpIdx    : radarIdx;    }
+function setIdx(i)      { if (currentLayer === 'mslp') mslpIdx = i; else radarIdx = i; }
+
 function tsFromUrl(u) {
   const m = u && u.match(/\/(\d{12})_/);
   return m ? m[1] : null;
 }
 
-function buildFrame(f) {
+function buildRadarFrame(f) {
   const ts = tsFromUrl(f.url);
   if (!ts) return null;
   return {
@@ -232,17 +241,22 @@ function buildFrame(f) {
 }
 
 function updateTimeLabels() {
-  if (!frames.length) return;
+  const frames = activeFrames();
+  if (!frames.length) {
+    document.getElementById('time-start').textContent = '—';
+    document.getElementById('time-end').textContent   = '—';
+    return;
+  }
   document.getElementById('time-start').textContent = frames[0].time;
   document.getElementById('time-end').textContent   = frames[frames.length - 1].time;
 }
 
-// ── Initial load ──────────────────────────────────────────────────────────────
-async function loadManifest() {
+// ── Initial radar load ────────────────────────────────────────────────────────
+async function loadRadarManifest() {
   try {
-    const res = await fetch(MANIFEST + '?t=' + Date.now());
+    const res = await fetch(RADAR_MANIFEST + '?t=' + Date.now());
     const all = await res.json();
-    const candidates = all.map(buildFrame).filter(Boolean).slice(-HISTORY);
+    const candidates = all.map(buildRadarFrame).filter(Boolean).slice(-HISTORY);
 
     const checked = await Promise.all(candidates.map(fr => new Promise(resolve => {
       const im = new Image();
@@ -250,32 +264,51 @@ async function loadManifest() {
       im.onerror = () => resolve(null);
       im.src = fr.combined;
     })));
-    frames = checked.filter(Boolean);
+    radarFrames = checked.filter(Boolean);
 
-    if (!frames.length) {
+    if (!radarFrames.length) {
       document.getElementById('loading').textContent = 'No radar frames available.';
       return;
     }
     document.getElementById('loading').classList.add('done');
-    currentIdx = frames.length - 1;
-    preloadLayers(frames);
+    radarIdx = radarFrames.length - 1;
+    preloadRadarLayers(radarFrames);
     updateTimeLabels();
-    renderFrame(currentIdx);
+    renderFrame(getIdx());
     scheduleBackgroundRefresh();
   } catch (e) {
     document.getElementById('loading').textContent = 'Failed to load: ' + e.message;
   }
 }
 
-// ── Silent background refresh ─────────────────────────────────────────────────
-async function refreshInBackground() {
+// ── MSLP load ─────────────────────────────────────────────────────────────────
+async function loadMslpManifest() {
   try {
-    const res = await fetch(MANIFEST + '?t=' + Date.now());
+    const res = await fetch(MSLP_MANIFEST + '?t=' + Date.now());
     const all = await res.json();
-    const candidates = all.map(buildFrame).filter(Boolean).slice(-HISTORY);
+    if (!all.length) return;
 
-    const known = new Set(frames.map(f => f.combined));
-    const novel = candidates.filter(f => !known.has(f.combined));
+    const checked = await Promise.all(all.map(fr => new Promise(resolve => {
+      const im = new Image();
+      im.onload  = () => { cache[fr.mslp] = im; resolve(fr); };
+      im.onerror = () => resolve(null);
+      im.src = fr.mslp;
+    })));
+    mslpFrames = checked.filter(Boolean);
+    mslpIdx = Math.max(0, mslpFrames.length - 1);
+    if (currentLayer === 'mslp') { updateTimeLabels(); renderFrame(getIdx()); }
+  } catch (_) { /* silent — MSLP not yet generated */ }
+}
+
+// ── Silent background refresh ─────────────────────────────────────────────────
+async function refreshRadarInBackground() {
+  try {
+    const res = await fetch(RADAR_MANIFEST + '?t=' + Date.now());
+    const all = await res.json();
+    const candidates = all.map(buildRadarFrame).filter(Boolean).slice(-HISTORY);
+
+    const known  = new Set(radarFrames.map(f => f.combined));
+    const novel  = candidates.filter(f => !known.has(f.combined));
     if (!novel.length) return;
 
     const checked = await Promise.all(novel.map(fr => new Promise(resolve => {
@@ -287,16 +320,43 @@ async function refreshInBackground() {
     const valid = checked.filter(Boolean);
     if (!valid.length) return;
 
-    const merged = [...frames, ...valid].slice(-HISTORY);
-    const shift  = merged.length - frames.length;
-    frames     = merged;
-    currentIdx = Math.min(currentIdx + shift, frames.length - 1);
-    preloadLayers(valid);
-    updateTimeLabels();
-  } catch (_) { /* silent */ }
+    const merged = [...radarFrames, ...valid].slice(-HISTORY);
+    const shift  = merged.length - radarFrames.length;
+    radarFrames = merged;
+    radarIdx    = Math.min(radarIdx + shift, radarFrames.length - 1);
+    preloadRadarLayers(valid);
+    if (currentLayer !== 'mslp') updateTimeLabels();
+  } catch (_) {}
 }
 
-function preloadLayers(list) {
+async function refreshMslpInBackground() {
+  try {
+    const res = await fetch(MSLP_MANIFEST + '?t=' + Date.now());
+    const all = await res.json();
+    if (!all.length) return;
+
+    const known = new Set(mslpFrames.map(f => f.mslp));
+    const novel = all.filter(f => !known.has(f.mslp));
+    if (!novel.length) return;
+
+    const checked = await Promise.all(novel.map(fr => new Promise(resolve => {
+      const im = new Image();
+      im.onload  = () => { cache[fr.mslp] = im; resolve(fr); };
+      im.onerror = () => resolve(null);
+      im.src = fr.mslp;
+    })));
+    const valid = checked.filter(Boolean);
+    if (!valid.length) return;
+
+    const merged = [...mslpFrames, ...valid].slice(-HISTORY);
+    const shift  = merged.length - mslpFrames.length;
+    mslpFrames = merged;
+    mslpIdx    = Math.min(mslpIdx + shift, mslpFrames.length - 1);
+    if (currentLayer === 'mslp') { updateTimeLabels(); }
+  } catch (_) {}
+}
+
+function preloadRadarLayers(list) {
   for (const fr of list) {
     for (const key of ['radar', 'sat']) {
       if (!cache[fr[key]]) {
@@ -311,9 +371,10 @@ function preloadLayers(list) {
 
 // ── Render one flat image ─────────────────────────────────────────────────────
 function renderFrame(idx) {
+  const frames = activeFrames();
   if (!frames.length) return;
   const fr = frames[idx];
-  img.src = fr[currentLayer];
+  img.src = currentLayer === 'mslp' ? fr.mslp : fr[currentLayer];
   document.getElementById('big-timestamp').textContent = fr.time;
   const pct = frames.length > 1 ? idx / (frames.length - 1) * 100 : 100;
   document.getElementById('progress-fill').style.width = pct + '%';
@@ -321,14 +382,17 @@ function renderFrame(idx) {
 
 // ── Animation ─────────────────────────────────────────────────────────────────
 function tick() {
+  const frames = activeFrames();
   if (!frames.length) return;
-  if (currentIdx >= frames.length - 1) {
+  let idx = getIdx();
+  if (idx >= frames.length - 1) {
     if (++dwellCount < DWELL_FRAMES) return;
-    dwellCount = 0; currentIdx = 0;
+    dwellCount = 0; idx = 0;
   } else {
-    currentIdx++;
+    idx++;
   }
-  renderFrame(currentIdx);
+  setIdx(idx);
+  renderFrame(idx);
 }
 function startLoop() { clearInterval(tickTimer); tickTimer = setInterval(tick, 1000 / fps); }
 function stopLoop()  { clearInterval(tickTimer); tickTimer = null; }
@@ -338,33 +402,59 @@ function togglePlay() {
   playing ? startLoop() : stopLoop();
 }
 function stepFrame(d) {
-  currentIdx = Math.max(0, Math.min(frames.length - 1, currentIdx + d));
-  dwellCount = 0; renderFrame(currentIdx);
+  const frames = activeFrames();
+  const idx = Math.max(0, Math.min(frames.length - 1, getIdx() + d));
+  setIdx(idx); dwellCount = 0; renderFrame(idx);
 }
 function setSpeed(v) { fps = parseFloat(v); if (playing) startLoop(); }
 function scrubClick(e) {
+  const frames = activeFrames();
   const r = e.currentTarget.getBoundingClientRect();
   const frac = (e.clientX - r.left) / r.width;
-  currentIdx = Math.max(0, Math.min(frames.length - 1, Math.round(frac * (frames.length - 1))));
-  dwellCount = 0; renderFrame(currentIdx);
+  const idx = Math.max(0, Math.min(frames.length - 1, Math.round(frac * (frames.length - 1))));
+  setIdx(idx); dwellCount = 0; renderFrame(idx);
 }
 
 // ── Layer toggle ──────────────────────────────────────────────────────────────
 function setLayer(layer) {
+  const wasMslp = currentLayer === 'mslp';
   currentLayer = layer;
+  const isMslp = layer === 'mslp';
+
+  // When switching between radar/mslp timeline, reset to latest frame
+  if (wasMslp !== isMslp) {
+    if (isMslp) {
+      mslpIdx = Math.max(0, mslpFrames.length - 1);
+    } else {
+      radarIdx = Math.max(0, radarFrames.length - 1);
+    }
+    dwellCount = 0;
+  }
+
   document.getElementById('btn-combined').classList.toggle('active', layer === 'combined');
   document.getElementById('btn-radar').classList.toggle('active',    layer === 'radar');
   document.getElementById('btn-sat').classList.toggle('active',      layer === 'sat');
-  renderFrame(currentIdx);
+  document.getElementById('btn-mslp').classList.toggle('active',     layer === 'mslp');
+
+  updateTimeLabels();
+  const frames = activeFrames();
+  if (!frames.length && isMslp) {
+    document.getElementById('big-timestamp').textContent = 'MSLP loading…';
+    document.getElementById('progress-fill').style.width = '0%';
+    return;
+  }
+  renderFrame(getIdx());
 }
 
 // ── Background polling ────────────────────────────────────────────────────────
 function scheduleBackgroundRefresh() {
-  setInterval(refreshInBackground, REFRESH_MS);
+  setInterval(refreshRadarInBackground, REFRESH_MS);
+  setInterval(refreshMslpInBackground,  REFRESH_MS);
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
-loadManifest();
+loadRadarManifest();
+loadMslpManifest();
 startLoop();
 </script>
 </body>

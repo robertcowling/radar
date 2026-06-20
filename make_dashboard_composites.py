@@ -17,6 +17,12 @@ from datetime import datetime, timedelta
 import boto3
 from PIL import Image, ImageDraw, ImageFilter
 
+try:
+    import cairosvg
+    HAS_CAIROSVG = True
+except ImportError:
+    HAS_CAIROSVG = False
+
 # Frame extended south to 46°N to capture full radar domain (boundary min 46.89°N),
 # lon range -15..6.5 (21.5°) maintains exact 812×1000 Mercator portrait aspect.
 UK_LON_MIN, UK_LON_MAX = -15.0, 6.5
@@ -48,6 +54,9 @@ BOUNDARY_LAYERS = [
 
 HISTORY_FRAMES = 24
 RETENTION_HOURS = 48
+
+MSLP_META_FILE = "mslp_meta.json"
+MSLP_HISTORY   = 24   # last 24 hourly frames (= 24 h)
 
 # Composites are saved here and committed to the repo for GitHub Pages serving
 COMPOSITE_DIR = "radarmicro/composites"
@@ -356,6 +365,48 @@ def ts_from_url(url):
     return m.group(1) if m else None
 
 
+def _ts_minutes(ts_str):
+    """Convert YYYYMMDDHHMM to minutes since epoch for proximity matching."""
+    y, mo, d = int(ts_str[:4]), int(ts_str[4:6]), int(ts_str[6:8])
+    h, mi = int(ts_str[8:10]), int(ts_str[10:12])
+    return int(datetime(y, mo, d, h, mi).timestamp()) // 60
+
+
+def _find_closest_sat(sat_map, mslp_ts):
+    """Return the sat_url_bw closest in time to mslp_ts (max 90 min gap)."""
+    if not sat_map:
+        return None
+    mslp_min = _ts_minutes(mslp_ts)
+    best_ts = min(sat_map, key=lambda ts: abs(_ts_minutes(ts) - mslp_min))
+    if abs(_ts_minutes(best_ts) - mslp_min) > 90:
+        return None
+    return sat_map[best_ts]
+
+
+def make_mslp_composite(basemap_rgba, mslp_svg_url, sat_url=None):
+    """Basemap + sat background + MSLP isobar SVG overlay + boundary layers."""
+    result = basemap_rgba.copy()
+
+    if sat_url:
+        sat = _overlay(sat_url, SAT_LON_MIN, SAT_LON_MAX, SAT_LAT_MIN, SAT_LAT_MAX)
+        result.paste(sat, (0, 0), sat)
+
+    req = urllib.request.Request(mslp_svg_url, headers={'User-Agent': 'Mozilla/5.0 (radar-dashboard-bot)'})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        svg_bytes = resp.read()
+    png_bytes = cairosvg.svg2png(bytestring=svg_bytes, output_width=1800)
+    mslp_raw = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
+    mslp_uk  = crop_overlay_to_uk(mslp_raw, SAT_LON_MIN, SAT_LON_MAX, SAT_LAT_MIN, SAT_LAT_MAX)
+    mslp_uk  = mslp_uk.resize((OUT_W, OUT_H), Image.LANCZOS)
+    result.paste(mslp_uk, (0, 0), mslp_uk)
+
+    img_rgb = result.convert("RGB")
+    if sat_url:
+        img_rgb = img_rgb.filter(ImageFilter.UnsharpMask(radius=0.8, percent=40, threshold=3))
+    draw_boundary_layers(img_rgb)
+    return img_rgb
+
+
 def needs_build(path):
     """True if the composite is missing or was built at different dimensions."""
     if not os.path.exists(path):
@@ -483,6 +534,47 @@ def main():
                     print(f"  Combined failed for {ts}: {e}")
                     continue
             fr["dashboard_combined_url"] = f"composites/dashboard_combined_{ts}.webp"
+
+    # ── MSLP composites (sat + isobar overlay, hourly, last 24 h) ────────────
+    if HAS_CAIROSVG and os.path.exists(MSLP_META_FILE):
+        with open(MSLP_META_FILE) as f:
+            mslp_meta = json.load(f)
+        mslp_recent = mslp_meta.get("frames", [])[-MSLP_HISTORY:]
+
+        # Build ts → sat_url_bw lookup from all radar frames
+        sat_map = {}
+        for fr in frames:
+            ts = ts_from_url(fr.get("url", ""))
+            if ts and fr.get("sat_url_bw"):
+                sat_map[ts] = fr["sat_url_bw"]
+
+        mslp_out = []
+        for mf in mslp_recent:
+            mslp_ts = ts_from_url(mf["url"])
+            if not mslp_ts:
+                continue
+            comp_path = os.path.join(COMPOSITE_DIR, f"dashboard_mslp_{mslp_ts}.webp")
+            keep_local.add(comp_path)
+            if needs_build(comp_path):
+                print(f"Generating MSLP composite {mslp_ts}…")
+                try:
+                    sat_url = _find_closest_sat(sat_map, mslp_ts)
+                    comp = make_mslp_composite(basemap, mf["url"], sat_url)
+                    comp.save(comp_path, "WEBP", quality=90)
+                    print(f"  Saved {comp_path}")
+                except Exception as e:
+                    print(f"  MSLP failed for {mslp_ts}: {e}")
+                    continue
+            mslp_out.append({
+                "time": mf["valid_time"],
+                "mslp": f"composites/dashboard_mslp_{mslp_ts}.webp",
+            })
+
+        with open("frames_mslp.json", "w") as f:
+            json.dump(mslp_out, f, indent=2)
+        print(f"frames_mslp.json updated with {len(mslp_out)} frames.")
+    elif not HAS_CAIROSVG:
+        print("cairosvg not available — MSLP composites skipped.")
 
     # Remove old composites not in the current keep set
     for fname in os.listdir(COMPOSITE_DIR):
