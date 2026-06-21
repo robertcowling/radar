@@ -337,12 +337,13 @@ def fetch_warnings_from_meteogate():
         except Exception as e:
             print(f"    Error processing alert {alert_id}: {e}")
 
-    # Drop any alerts that have been superseded by a newer Update/Cancel message
+    # Drop any alerts that have been superseded by a newer Update/Cancel message.
+    # NB: references use CAP identifiers, not EDR UUIDs — match via raw_meta.identifier.
     if superseded_ids:
         before = len(parsed_alerts)
         parsed_alerts = [
             a for a in parsed_alerts
-            if a["alert_id"].removeprefix("meteo_") not in superseded_ids
+            if a.get("raw_meta", {}).get("identifier") not in superseded_ids
         ]
         dropped = before - len(parsed_alerts)
         if dropped:
