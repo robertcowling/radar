@@ -287,14 +287,8 @@ async function loadMslpManifest() {
     const res = await fetch(MSLP_MANIFEST + '?t=' + Date.now());
     const all = await res.json();
     if (!all.length) return;
-
-    const checked = await Promise.all(all.map(fr => new Promise(resolve => {
-      const im = new Image();
-      im.onload  = () => { cache[fr.mslp] = im; resolve(fr); };
-      im.onerror = () => resolve(null);
-      im.src = fr.mslp;
-    })));
-    mslpFrames = checked.filter(Boolean);
+    // Don't preload — lazy-load on render. Archive may be 1000+ frames.
+    mslpFrames = all;
     mslpIdx = Math.max(0, mslpFrames.length - 1);
     if (currentLayer === 'mslp') { updateTimeLabels(); renderFrame(getIdx()); }
   } catch (_) { /* silent — MSLP not yet generated */ }
@@ -339,17 +333,9 @@ async function refreshMslpInBackground() {
     const novel = all.filter(f => !known.has(f.mslp));
     if (!novel.length) return;
 
-    const checked = await Promise.all(novel.map(fr => new Promise(resolve => {
-      const im = new Image();
-      im.onload  = () => { cache[fr.mslp] = im; resolve(fr); };
-      im.onerror = () => resolve(null);
-      im.src = fr.mslp;
-    })));
-    const valid = checked.filter(Boolean);
-    if (!valid.length) return;
-
-    const merged = [...mslpFrames, ...valid].slice(-HISTORY);
-    const shift  = merged.length - mslpFrames.length;
+    // Don't preload novel MSLP frames — lazy-load on render
+    const merged = [...mslpFrames, ...novel];  // novel are newer, append to end
+    const shift  = novel.length;
     mslpFrames = merged;
     mslpIdx    = Math.min(mslpIdx + shift, mslpFrames.length - 1);
     if (currentLayer === 'mslp') { updateTimeLabels(); }
@@ -370,11 +356,25 @@ function preloadRadarLayers(list) {
 }
 
 // ── Render one flat image ─────────────────────────────────────────────────────
+function prefetch(src) {
+  if (!src || cache[src]) return;
+  const s = new Image(); s.onload = () => { cache[src] = s; }; s.src = src;
+  cache[src] = s;
+}
 function renderFrame(idx) {
   const frames = activeFrames();
   if (!frames.length) return;
   const fr = frames[idx];
-  img.src = currentLayer === 'mslp' ? fr.mslp : fr[currentLayer];
+  const src = currentLayer === 'mslp' ? fr.mslp : fr[currentLayer];
+  if (cache[src] && cache[src].complete) {
+    img.src = cache[src].src;
+  } else {
+    img.src = src;
+    prefetch(src);
+  }
+  // Prefetch neighbours so scrubbing and animation feel instant
+  if (idx > 0)                  prefetch(currentLayer === 'mslp' ? frames[idx-1].mslp : frames[idx-1][currentLayer]);
+  if (idx < frames.length - 1) prefetch(currentLayer === 'mslp' ? frames[idx+1].mslp : frames[idx+1][currentLayer]);
   document.getElementById('big-timestamp').textContent = fr.time;
   const pct = frames.length > 1 ? idx / (frames.length - 1) * 100 : 100;
   document.getElementById('progress-fill').style.width = pct + '%';
