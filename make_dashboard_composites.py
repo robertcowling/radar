@@ -364,22 +364,6 @@ def ts_from_url(url):
     return m.group(1) if m else None
 
 
-def _ts_minutes(ts_str):
-    """Convert YYYYMMDDHHMM to minutes since epoch for proximity matching."""
-    y, mo, d = int(ts_str[:4]), int(ts_str[4:6]), int(ts_str[6:8])
-    h, mi = int(ts_str[8:10]), int(ts_str[10:12])
-    return int(datetime(y, mo, d, h, mi).timestamp()) // 60
-
-
-def _find_closest_sat(sat_map, mslp_ts):
-    """Return the sat_url_bw closest in time to mslp_ts (max 90 min gap)."""
-    if not sat_map:
-        return None
-    mslp_min = _ts_minutes(mslp_ts)
-    best_ts = min(sat_map, key=lambda ts: abs(_ts_minutes(ts) - mslp_min))
-    if abs(_ts_minutes(best_ts) - mslp_min) > 90:
-        return None
-    return sat_map[best_ts]
 
 
 def make_mslp_composite(basemap_rgba, mslp_svg_url, sat_url=None):
@@ -534,23 +518,34 @@ def main():
                     continue
             fr["dashboard_combined_url"] = f"composites/dashboard_combined_{ts}.webp"
 
-    # ── MSLP composites (sat + isobar overlay, hourly, last 24 h) ────────────
+        sat_url_ir = fr.get("sat_url_ir")
+        if sat_url_ir:
+            ir_local = os.path.join(COMPOSITE_DIR, f"dashboard_ir_{ts}.webp")
+            keep_local.add(ir_local)
+            if needs_build(ir_local):
+                print(f"Generating IR sat composite {ts}…")
+                try:
+                    comp = make_composite(basemap, sat_url_ir,
+                                          SAT_LON_MIN, SAT_LON_MAX,
+                                          SAT_LAT_MIN, SAT_LAT_MAX)
+                    comp.save(ir_local, "WEBP", quality=90)
+                    print(f"  Saved {ir_local}")
+                except Exception as e:
+                    print(f"  IR sat failed for {ts}: {e}")
+                    continue
+            fr["dashboard_ir_url"] = f"composites/dashboard_ir_{ts}.webp"
+
+    # ── MSLP composites (isobars on basemap only, no sat underlay, hourly, last 24 h) ──
     if HAS_CAIROSVG and os.path.exists(MSLP_META_FILE):
         with open(MSLP_META_FILE) as f:
             mslp_meta = json.load(f)
-        # Build ts → sat_url_bw lookup from all radar frames
-        sat_map = {}
-        for fr in frames:
-            ts = ts_from_url(fr.get("url", ""))
-            if ts and fr.get("sat_url_bw"):
-                sat_map[ts] = fr["sat_url_bw"]
 
-        # Only include MSLP frames that have a corresponding sat image (= analysis, not forecast)
+        # Exclude GFS forecast frames (valid_time in the future) by comparing timestamps
+        now_ts = datetime.utcnow().strftime('%Y%m%d%H%M')
         mslp_all = mslp_meta.get("frames", [])
-        mslp_with_sat = [mf for mf in mslp_all
-                         if ts_from_url(mf.get("url", "")) and
-                         _find_closest_sat(sat_map, ts_from_url(mf["url"])) is not None]
-        mslp_recent = mslp_with_sat[-MSLP_HISTORY:]
+        mslp_analysis = [mf for mf in mslp_all
+                         if ts_from_url(mf.get("url", "")) and ts_from_url(mf["url"]) <= now_ts]
+        mslp_recent = mslp_analysis[-MSLP_HISTORY:]
 
         mslp_out = []
         for mf in mslp_recent:
@@ -562,8 +557,7 @@ def main():
             if needs_build(comp_path):
                 print(f"Generating MSLP composite {mslp_ts}…")
                 try:
-                    sat_url = _find_closest_sat(sat_map, mslp_ts)
-                    comp = make_mslp_composite(basemap, mf["url"], sat_url)
+                    comp = make_mslp_composite(basemap, mf["url"])
                     comp.save(comp_path, "WEBP", quality=90)
                     print(f"  Saved {comp_path}")
                 except Exception as e:

@@ -159,7 +159,8 @@
   <div class="toggle">
     <button id="btn-combined" class="active" onclick="setLayer('combined')">Combined</button>
     <button id="btn-radar"                   onclick="setLayer('radar')">Radar</button>
-    <button id="btn-sat"                     onclick="setLayer('sat')">Satellite</button>
+    <button id="btn-sat"                     onclick="setLayer('sat')">Sat</button>
+    <button id="btn-ir"                      onclick="setLayer('ir')">IR</button>
     <button id="btn-mslp"                    onclick="setLayer('mslp')">MSLP</button>
   </div>
 </header>
@@ -237,6 +238,7 @@ function buildRadarFrame(f) {
     radar:    'composites/dashboard_radar_'    + ts + '.webp',
     sat:      'composites/dashboard_sat_'      + ts + '.webp',
     combined: 'composites/dashboard_combined_' + ts + '.webp',
+    ir:       'composites/dashboard_ir_'       + ts + '.webp',
   };
 }
 
@@ -358,8 +360,8 @@ async function refreshMslpInBackground() {
 
 function preloadRadarLayers(list) {
   for (const fr of list) {
-    for (const key of ['radar', 'sat']) {
-      if (!cache[fr[key]]) {
+    for (const key of ['radar', 'sat', 'ir']) {
+      if (fr[key] && !cache[fr[key]]) {
         const s = new Image();
         s.onload = () => { cache[fr[key]] = s; };
         s.src = fr[key];
@@ -434,6 +436,7 @@ function setLayer(layer) {
   document.getElementById('btn-combined').classList.toggle('active', layer === 'combined');
   document.getElementById('btn-radar').classList.toggle('active',    layer === 'radar');
   document.getElementById('btn-sat').classList.toggle('active',      layer === 'sat');
+  document.getElementById('btn-ir').classList.toggle('active',       layer === 'ir');
   document.getElementById('btn-mslp').classList.toggle('active',     layer === 'mslp');
 
   updateTimeLabels();
