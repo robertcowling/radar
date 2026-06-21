@@ -1,9 +1,5 @@
 [
   {
-    "time": "Sat 20 Jun 2026 14:00 UTC",
-    "mslp": "composites/dashboard_mslp_202606201400.webp"
-  },
-  {
     "time": "Sat 20 Jun 2026 15:00 UTC",
     "mslp": "composites/dashboard_mslp_202606201500.webp"
   },
@@ -94,5 +90,9 @@
   {
     "time": "Sun 21 Jun 2026 13:00 UTC",
     "mslp": "composites/dashboard_mslp_202606211300.webp"
+  },
+  {
+    "time": "Sun 21 Jun 2026 14:00 UTC",
+    "mslp": "composites/dashboard_mslp_202606211400.webp"
   }
 ]
