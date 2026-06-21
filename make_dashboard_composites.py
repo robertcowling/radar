@@ -326,37 +326,34 @@ def get_r2_client():
     )
 
 
-def upload_webp(r2, img, r2_key):
-    buf = io.BytesIO()
-    img.save(buf, format="WEBP", quality=90)
+def r2_upload_file(r2, local_path, r2_key):
+    with open(local_path, 'rb') as f:
+        data = f.read()
     r2.put_object(
         Bucket=R2_BUCKET, Key=r2_key,
-        Body=buf.getvalue(),
-        ContentType="image/webp",
-        CacheControl="no-cache, max-age=0",
+        Body=data,
+        ContentType='image/webp',
+        CacheControl='public, max-age=86400',
     )
-    url = f"{R2_PUBLIC_URL}/{r2_key}"
-    print(f"  Uploaded {r2_key} ({buf.tell()} bytes)")
-    return url
+    print(f"  Uploaded to R2: {r2_key} ({len(data):,} bytes)")
 
 
 def cleanup_old_composites(r2, keep_keys):
     cutoff_str = (datetime.utcnow() - timedelta(hours=RETENTION_HOURS)).strftime('%Y%m%d%H%M')
     paginator = r2.get_paginator('list_objects_v2')
     deleted = 0
-    for prefix in ('radar_parallel/dashboard_', 'sat_gh/dashboard_'):
-        for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=prefix):
-            for obj in page.get('Contents', []):
-                key = obj['Key']
-                if key in keep_keys:
-                    continue
-                m = re.search(r'_(\d{12})\.webp$', key)
-                if m and m.group(1) < cutoff_str:
-                    r2.delete_object(Bucket=R2_BUCKET, Key=key)
-                    print(f"  Deleted old composite: {key}")
-                    deleted += 1
+    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix='composites/'):
+        for obj in page.get('Contents', []):
+            key = obj['Key']
+            if key in keep_keys:
+                continue
+            m = re.search(r'_(\d{12})\.webp$', key)
+            if m and m.group(1) < cutoff_str:
+                r2.delete_object(Bucket=R2_BUCKET, Key=key)
+                print(f"  Deleted old composite from R2: {key}")
+                deleted += 1
     if deleted:
-        print(f"Cleanup: removed {deleted} old composites.")
+        print(f"Cleanup: removed {deleted} old composites from R2.")
 
 
 def ts_from_url(url):
@@ -464,9 +461,16 @@ def main():
         print("No radar frames found.")
         return
 
+    r2 = get_r2_client() if USE_R2 else None
+    if r2:
+        print("R2 available — composites will be uploaded to R2.")
+    else:
+        print("R2 not configured — composites stored locally only.")
+
     basemap = get_basemap()
     os.makedirs(COMPOSITE_DIR, exist_ok=True)
     keep_local = set()
+    keep_r2_keys = set()
 
     for fr in radar_frames:
         ts = ts_from_url(fr["url"])
@@ -474,7 +478,10 @@ def main():
             continue
 
         radar_local = os.path.join(COMPOSITE_DIR, f"dashboard_radar_{ts}.webp")
+        radar_r2_key = f"composites/dashboard_radar_{ts}.webp"
         keep_local.add(radar_local)
+        if r2:
+            keep_r2_keys.add(radar_r2_key)
         if needs_build(radar_local):
             print(f"Generating radar composite {ts}…")
             try:
@@ -482,16 +489,23 @@ def main():
                                       RADAR_LON_MIN, RADAR_LON_MAX,
                                       RADAR_LAT_MIN, RADAR_LAT_MAX)
                 comp.save(radar_local, "WEBP", quality=90)
-                print(f"  Saved {radar_local}")
+                if r2:
+                    r2_upload_file(r2, radar_local, radar_r2_key)
             except Exception as e:
                 print(f"  Radar failed for {ts}: {e}")
                 continue
-        fr["dashboard_radar_url"] = f"composites/dashboard_radar_{ts}.webp"
+        fr["dashboard_radar_url"] = (
+            f"{R2_PUBLIC_URL}/{radar_r2_key}" if r2
+            else f"composites/dashboard_radar_{ts}.webp"
+        )
 
         sat_url = fr.get("sat_url_bw")
         if sat_url:
             sat_local = os.path.join(COMPOSITE_DIR, f"dashboard_sat_{ts}.webp")
+            sat_r2_key = f"composites/dashboard_sat_{ts}.webp"
             keep_local.add(sat_local)
+            if r2:
+                keep_r2_keys.add(sat_r2_key)
             if needs_build(sat_local):
                 print(f"Generating sat composite {ts}…")
                 try:
@@ -499,29 +513,43 @@ def main():
                                           SAT_LON_MIN, SAT_LON_MAX,
                                           SAT_LAT_MIN, SAT_LAT_MAX)
                     comp.save(sat_local, "WEBP", quality=90)
-                    print(f"  Saved {sat_local}")
+                    if r2:
+                        r2_upload_file(r2, sat_local, sat_r2_key)
                 except Exception as e:
                     print(f"  Sat failed for {ts}: {e}")
                     continue
-            fr["dashboard_sat_url"] = f"composites/dashboard_sat_{ts}.webp"
+            fr["dashboard_sat_url"] = (
+                f"{R2_PUBLIC_URL}/{sat_r2_key}" if r2
+                else f"composites/dashboard_sat_{ts}.webp"
+            )
 
             combined_local = os.path.join(COMPOSITE_DIR, f"dashboard_combined_{ts}.webp")
+            combined_r2_key = f"composites/dashboard_combined_{ts}.webp"
             keep_local.add(combined_local)
+            if r2:
+                keep_r2_keys.add(combined_r2_key)
             if needs_build(combined_local):
                 print(f"Generating combined composite {ts}…")
                 try:
                     comp = make_combined_composite(basemap, fr["url"], sat_url)
                     comp.save(combined_local, "WEBP", quality=90)
-                    print(f"  Saved {combined_local}")
+                    if r2:
+                        r2_upload_file(r2, combined_local, combined_r2_key)
                 except Exception as e:
                     print(f"  Combined failed for {ts}: {e}")
                     continue
-            fr["dashboard_combined_url"] = f"composites/dashboard_combined_{ts}.webp"
+            fr["dashboard_combined_url"] = (
+                f"{R2_PUBLIC_URL}/{combined_r2_key}" if r2
+                else f"composites/dashboard_combined_{ts}.webp"
+            )
 
         sat_url_ir = fr.get("sat_url_ir")
         if sat_url_ir:
             ir_local = os.path.join(COMPOSITE_DIR, f"dashboard_ir_{ts}.webp")
+            ir_r2_key = f"composites/dashboard_ir_{ts}.webp"
             keep_local.add(ir_local)
+            if r2:
+                keep_r2_keys.add(ir_r2_key)
             if needs_build(ir_local):
                 print(f"Generating IR sat composite {ts}…")
                 try:
@@ -529,11 +557,15 @@ def main():
                                           SAT_LON_MIN, SAT_LON_MAX,
                                           SAT_LAT_MIN, SAT_LAT_MAX)
                     comp.save(ir_local, "WEBP", quality=90)
-                    print(f"  Saved {ir_local}")
+                    if r2:
+                        r2_upload_file(r2, ir_local, ir_r2_key)
                 except Exception as e:
                     print(f"  IR sat failed for {ts}: {e}")
                     continue
-            fr["dashboard_ir_url"] = f"composites/dashboard_ir_{ts}.webp"
+            fr["dashboard_ir_url"] = (
+                f"{R2_PUBLIC_URL}/{ir_r2_key}" if r2
+                else f"composites/dashboard_ir_{ts}.webp"
+            )
 
     # ── MSLP composites (isobars on basemap only, no sat underlay, hourly, last 24 h) ──
     if HAS_CAIROSVG and os.path.exists(MSLP_META_FILE):
@@ -552,20 +584,25 @@ def main():
             mslp_ts = ts_from_url(mf["url"])
             if not mslp_ts:
                 continue
-            comp_path = os.path.join(COMPOSITE_DIR, f"dashboard_mslp_{mslp_ts}.webp")
-            keep_local.add(comp_path)
-            if needs_build(comp_path):
+            mslp_local = os.path.join(COMPOSITE_DIR, f"dashboard_mslp_{mslp_ts}.webp")
+            mslp_r2_key = f"composites/dashboard_mslp_{mslp_ts}.webp"
+            keep_local.add(mslp_local)
+            if r2:
+                keep_r2_keys.add(mslp_r2_key)
+            if needs_build(mslp_local):
                 print(f"Generating MSLP composite {mslp_ts}…")
                 try:
                     comp = make_mslp_composite(basemap, mf["url"])
-                    comp.save(comp_path, "WEBP", quality=90)
-                    print(f"  Saved {comp_path}")
+                    comp.save(mslp_local, "WEBP", quality=90)
+                    if r2:
+                        r2_upload_file(r2, mslp_local, mslp_r2_key)
                 except Exception as e:
                     print(f"  MSLP failed for {mslp_ts}: {e}")
                     continue
             mslp_out.append({
                 "time": mf["valid_time"],
-                "mslp": f"composites/dashboard_mslp_{mslp_ts}.webp",
+                "mslp": (f"{R2_PUBLIC_URL}/{mslp_r2_key}" if r2
+                         else f"composites/dashboard_mslp_{mslp_ts}.webp"),
             })
 
         with open("frames_mslp.json", "w") as f:
@@ -574,12 +611,19 @@ def main():
     elif not HAS_CAIROSVG:
         print("cairosvg not available — MSLP composites skipped.")
 
-    # Remove old composites not in the current keep set
+    # Remove old local composites not in the current keep set
     for fname in os.listdir(COMPOSITE_DIR):
         fpath = os.path.join(COMPOSITE_DIR, fname)
         if fname.startswith("dashboard_") and fname.endswith(".webp") and fpath not in keep_local:
             os.remove(fpath)
-            print(f"  Removed old composite: {fname}")
+            print(f"  Removed old local composite: {fname}")
+
+    # Prune old composites from R2
+    if r2:
+        try:
+            cleanup_old_composites(r2, keep_r2_keys)
+        except Exception as e:
+            print(f"R2 cleanup failed: {e}")
 
     with open("frames_parallel.json", "w") as f:
         json.dump(frames, f, indent=2)
