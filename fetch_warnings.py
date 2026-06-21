@@ -266,11 +266,13 @@ def fetch_warnings_from_meteogate():
                 tags.append("snow")
             if "fog" in event_lower:
                 tags.append("fog")
-                
+            if "heat" in event_lower or "temperature" in event_lower:
+                tags.append("heat")
+
             if not tags:
                 def has_word(pattern, text):
                     return bool(re.search(r'\b(?:' + pattern + r')\b', text))
-                    
+
                 if has_word("thunderstorm|thunderstorms|lightning", event_lower) or has_word("thunderstorm|thunderstorms|lightning", desc_lower):
                     tags.append("thunderstorm")
                 if has_word("rain|precipitation|showers?", event_lower) or has_word("rain|precipitation|showers?", desc_lower):
@@ -283,6 +285,8 @@ def fetch_warnings_from_meteogate():
                     tags.append("snow")
                 if has_word("fog|foggy|mist|misty", event_lower) or has_word("fog|foggy|mist|misty", desc_lower):
                     tags.append("fog")
+                if has_word("heat|temperature|hot|warm", event_lower) or has_word("extreme heat|high temperature|heat.?wave", desc_lower):
+                    tags.append("heat")
                     
             if not tags:
                 tags.append("rain")
