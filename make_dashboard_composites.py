@@ -54,8 +54,8 @@ BOUNDARY_LAYERS = [
 HISTORY_FRAMES = 24
 RETENTION_HOURS = 48
 
-MSLP_META_FILE       = "mslp_meta.json"
-MSLP_RETENTION_DAYS  = 60   # keep MSLP composites for this many days
+MSLP_META_FILE = "mslp_meta.json"
+MSLP_HISTORY   = 24   # last 24 hourly frames (= 24 h)
 
 # Composites are saved here and committed to the repo for GitHub Pages serving
 COMPOSITE_DIR = "radarmicro/composites"
@@ -534,47 +534,41 @@ def main():
                     continue
             fr["dashboard_combined_url"] = f"composites/dashboard_combined_{ts}.webp"
 
-    # ── MSLP composites (sat + isobar overlay, hourly, 60-day rolling) ────────
+    # ── MSLP composites (sat + isobar overlay, hourly, last 24 h) ────────────
     if HAS_CAIROSVG and os.path.exists(MSLP_META_FILE):
         with open(MSLP_META_FILE) as f:
             mslp_meta = json.load(f)
-
-        # Build ts → sat_url_bw lookup (used only for NEW builds to block forecast frames)
+        # Build ts → sat_url_bw lookup from all radar frames
         sat_map = {}
         for fr in frames:
             ts = ts_from_url(fr.get("url", ""))
             if ts and fr.get("sat_url_bw"):
                 sat_map[ts] = fr["sat_url_bw"]
 
-        mslp_cutoff = (datetime.utcnow() - timedelta(days=MSLP_RETENTION_DAYS)).strftime('%Y%m%d%H%M')
-        mslp_all = [mf for mf in mslp_meta.get("frames", [])
-                    if ts_from_url(mf.get("url", "")) and ts_from_url(mf["url"]) >= mslp_cutoff]
+        # Only include MSLP frames that have a corresponding sat image (= analysis, not forecast)
+        mslp_all = mslp_meta.get("frames", [])
+        mslp_with_sat = [mf for mf in mslp_all
+                         if ts_from_url(mf.get("url", "")) and
+                         _find_closest_sat(sat_map, ts_from_url(mf["url"])) is not None]
+        mslp_recent = mslp_with_sat[-MSLP_HISTORY:]
 
         mslp_out = []
-        for mf in mslp_all:
-            mslp_ts = ts_from_url(mf.get("url", ""))
+        for mf in mslp_recent:
+            mslp_ts = ts_from_url(mf["url"])
             if not mslp_ts:
                 continue
             comp_path = os.path.join(COMPOSITE_DIR, f"dashboard_mslp_{mslp_ts}.webp")
-
-            if not needs_build(comp_path):
-                # Already built — keep it regardless of current sat availability
-                keep_local.add(comp_path)
-            else:
-                # New build — only render when real sat data exists (blocks forecast frames)
-                sat_url = _find_closest_sat(sat_map, mslp_ts)
-                if sat_url is None:
-                    continue
+            keep_local.add(comp_path)
+            if needs_build(comp_path):
                 print(f"Generating MSLP composite {mslp_ts}…")
                 try:
+                    sat_url = _find_closest_sat(sat_map, mslp_ts)
                     comp = make_mslp_composite(basemap, mf["url"], sat_url)
                     comp.save(comp_path, "WEBP", quality=90)
                     print(f"  Saved {comp_path}")
                 except Exception as e:
                     print(f"  MSLP failed for {mslp_ts}: {e}")
                     continue
-                keep_local.add(comp_path)
-
             mslp_out.append({
                 "time": mf["valid_time"],
                 "mslp": f"composites/dashboard_mslp_{mslp_ts}.webp",

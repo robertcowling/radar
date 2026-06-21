@@ -86,7 +86,6 @@ HOURS_BACK    = 48          # cover last 48 hours (hourly)
 HOURS_FORWARD = 6           # pre-render N hours ahead using GFS forecast steps
 RERENDER_HOURS = 12         # re-render recent N hours to pick up shorter-lead GFS runs
 GFS_RUN_HOURS = [0, 6, 12, 18]  # GFS runs per day
-MSLP_RETENTION_DAYS = 60   # carry forward old meta entries this long
 
 
 # ---------------------------------------------------------------------------
@@ -459,35 +458,13 @@ def main():
     r2 = get_r2_client() if USE_R2 else None
     r2_keys = list_r2_mslp_keys(r2) if USE_R2 else set()
 
-    now = datetime.datetime.now(timezone.utc).replace(tzinfo=None)
-
-    # Load old meta entries that fall outside the current HOURS_BACK window but
-    # within the retention window, so they accumulate rather than being lost.
-    import re as _re
-    retention_cutoff = now - datetime.timedelta(days=MSLP_RETENTION_DAYS)
-    oldest_new = now - datetime.timedelta(hours=HOURS_BACK)
-    old_frames = []
-    if os.path.exists(META_FILE):
-        try:
-            with open(META_FILE) as _f:
-                _old = json.load(_f)
-            for _frame in _old.get('frames', []):
-                _m = _re.search(r'/(\d{12})_mslp', _frame.get('url', ''))
-                if not _m:
-                    continue
-                _ts_dt = datetime.datetime.strptime(_m.group(1), '%Y%m%d%H%M')
-                if _ts_dt < oldest_new and _ts_dt >= retention_cutoff:
-                    old_frames.append((_ts_dt, _frame))
-        except Exception:
-            pass
-    old_frames.sort(key=lambda x: x[0])
-
     valid_times = get_valid_times()
     print(f"Processing {len(valid_times)} MSLP valid times "
           f"({valid_times[0].strftime('%Y-%m-%d %HZ')} → {valid_times[-1].strftime('%Y-%m-%d %HZ')})")
 
     meta_frames = []
 
+    now = datetime.datetime.now(timezone.utc).replace(tzinfo=None)
     base = now.replace(minute=0, second=0, microsecond=0)
     rerender_cutoff = base - datetime.timedelta(hours=RERENDER_HOURS)
 
@@ -576,20 +553,14 @@ def main():
             'url_detail': url_detail,
         })
 
-    # Merge old entries (outside current window) with freshly processed entries,
-    # then write the cumulative metadata.
-    current_tss = {vt.strftime('%Y%m%d%H%M') for vt in valid_times}
-    all_frames = [f for _, f in old_frames if
-                  _re.search(r'/(\d{12})_mslp', f.get('url', '')) and
-                  _re.search(r'/(\d{12})_mslp', f['url']).group(1) not in current_tss
-                  ] + meta_frames
+    # Write metadata JSON
     meta = {
         'generated_at': datetime.datetime.now(timezone.utc).replace(tzinfo=None).strftime('%Y-%m-%dT%H:%M:00.000Z'),
-        'frames': all_frames,
+        'frames': meta_frames,
     }
     with open(META_FILE, 'w') as f:
         json.dump(meta, f, indent=2)
-    print(f"\nMeta written: {len(all_frames)} MSLP frames ({len(old_frames)} historical + {len(meta_frames)} current) → {META_FILE}")
+    print(f"\nMeta written: {len(meta_frames)} MSLP frames → {META_FILE}")
 
     if USE_R2:
         upload_to_r2(r2, META_FILE, META_FILE, r2_keys,
