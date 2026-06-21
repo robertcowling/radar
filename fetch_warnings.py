@@ -132,20 +132,22 @@ def fetch_warnings_from_meteogate():
     now = datetime.now(timezone.utc)
     
     # We query in 23-hour windows (MeteoGate EDR restricts each query to < 24 h).
-    # One past window captures recently-issued/updated warnings; five future windows
-    # cover the full Met Office 5-day warning horizon (~115 h ahead).
+    # MeteoGate may filter on the *sent* (issued) time rather than onset time, so we
+    # cover 5 days back as well as 5 days forward to avoid missing warnings that were
+    # issued earlier in the week but are still active or upcoming.
     windows = [
-        # Past 23 hours → now (captures warnings sent/updated recently)
+        # Past 5 days in 23-hour windows (catches warnings issued up to ~5 days ago)
+        ((now - timedelta(hours=115)).strftime("%Y-%m-%dT%H:%M:%SZ"), (now - timedelta(hours=92)).strftime("%Y-%m-%dT%H:%M:%SZ")),
+        ((now - timedelta(hours=92)).strftime("%Y-%m-%dT%H:%M:%SZ"), (now - timedelta(hours=69)).strftime("%Y-%m-%dT%H:%M:%SZ")),
+        ((now - timedelta(hours=69)).strftime("%Y-%m-%dT%H:%M:%SZ"), (now - timedelta(hours=46)).strftime("%Y-%m-%dT%H:%M:%SZ")),
+        ((now - timedelta(hours=46)).strftime("%Y-%m-%dT%H:%M:%SZ"), (now - timedelta(hours=23)).strftime("%Y-%m-%dT%H:%M:%SZ")),
+        # Past 23 hours → now
         ((now - timedelta(hours=23)).strftime("%Y-%m-%dT%H:%M:%SZ"), now.strftime("%Y-%m-%dT%H:%M:%SZ")),
-        # now → now+23h
+        # Future 5 days in 23-hour windows (covers full 5-day Met Office warning horizon)
         (now.strftime("%Y-%m-%dT%H:%M:%SZ"), (now + timedelta(hours=23)).strftime("%Y-%m-%dT%H:%M:%SZ")),
-        # now+23h → now+46h
         ((now + timedelta(hours=23)).strftime("%Y-%m-%dT%H:%M:%SZ"), (now + timedelta(hours=46)).strftime("%Y-%m-%dT%H:%M:%SZ")),
-        # now+46h → now+69h
         ((now + timedelta(hours=46)).strftime("%Y-%m-%dT%H:%M:%SZ"), (now + timedelta(hours=69)).strftime("%Y-%m-%dT%H:%M:%SZ")),
-        # now+69h → now+92h
         ((now + timedelta(hours=69)).strftime("%Y-%m-%dT%H:%M:%SZ"), (now + timedelta(hours=92)).strftime("%Y-%m-%dT%H:%M:%SZ")),
-        # now+92h → now+115h  (~4.8 days ahead, covers full 5-day Met Office horizon)
         ((now + timedelta(hours=92)).strftime("%Y-%m-%dT%H:%M:%SZ"), (now + timedelta(hours=115)).strftime("%Y-%m-%dT%H:%M:%SZ")),
     ]
     
@@ -235,12 +237,13 @@ def fetch_warnings_from_meteogate():
             start_date = info.get("onset") or info.get("effective")
             end_date = info.get("expires")
             
-            # Filter out expired warnings relative to current UTC time
-            # if end_date:
-            #     end_dt = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
-            #     if end_dt < now:
-            #         print(f"    Alert {alert_id} has expired (expires at {end_date}), skipping.")
-            #         continue
+            # Drop warnings that have already expired — important since we now query
+            # past windows going back 5 days to catch warnings issued earlier in the week.
+            if end_date:
+                end_dt = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
+                if end_dt < now:
+                    print(f"    Alert {alert_id} has expired (expires at {end_date}), skipping.")
+                    continue
             
             severity_str = info.get("severity", "Moderate").lower()
             certainty = info.get("certainty", "Likely").lower()
