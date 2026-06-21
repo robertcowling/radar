@@ -184,7 +184,8 @@ def fetch_warnings_from_meteogate():
             
     # Process each unique warning
     parsed_alerts = []
-    
+    superseded_ids = set()  # alert IDs that have been superseded by an Update/Cancel
+
     for alert_id, feat in raw_alerts_by_id.items():
         links = feat.get("links", [])
         
@@ -213,6 +214,16 @@ def fetch_warnings_from_meteogate():
             with urllib.request.urlopen(geom_req, timeout=15) as geom_res:
                 geom_data = json.loads(geom_res.read().decode("utf-8"))
                 
+            # Track superseded alerts: CAP Update/Cancel messages reference the originals.
+            # CAP references format: space-separated "sender,identifier,sent" triplets.
+            msg_type = meta.get("msgType", "Alert")
+            references = meta.get("references", "")
+            if msg_type in ("Update", "Cancel") and references:
+                for ref in references.split():
+                    parts = ref.split(",")
+                    if len(parts) >= 2:
+                        superseded_ids.add(parts[1].strip())
+
             info_list = meta.get("info", [])
             if not info_list:
                 continue
@@ -325,7 +336,18 @@ def fetch_warnings_from_meteogate():
             })
         except Exception as e:
             print(f"    Error processing alert {alert_id}: {e}")
-            
+
+    # Drop any alerts that have been superseded by a newer Update/Cancel message
+    if superseded_ids:
+        before = len(parsed_alerts)
+        parsed_alerts = [
+            a for a in parsed_alerts
+            if a["alert_id"].removeprefix("meteo_") not in superseded_ids
+        ]
+        dropped = before - len(parsed_alerts)
+        if dropped:
+            print(f"  Dropped {dropped} superseded alert(s) (replaced by Update/Cancel).")
+
     print(f"Successfully processed {len(parsed_alerts)} raw-polygon weather warnings from MeteoGate EDR API.")
     return parsed_alerts
 
