@@ -326,6 +326,17 @@ def get_r2_client():
     )
 
 
+def r2_put_json(r2, data, r2_key):
+    body = json.dumps(data, separators=(",", ":")).encode("utf-8")
+    r2.put_object(
+        Bucket=R2_BUCKET, Key=r2_key,
+        Body=body,
+        ContentType="application/json; charset=utf-8",
+        CacheControl="no-cache, max-age=0",
+    )
+    print(f"  Uploaded to R2: {r2_key} ({len(body):,} bytes)")
+
+
 def r2_upload_file(r2, local_path, r2_key):
     with open(local_path, 'rb') as f:
         data = f.read()
@@ -608,6 +619,11 @@ def main():
         with open("frames_mslp.json", "w") as f:
             json.dump(mslp_out, f, indent=2)
         print(f"frames_mslp.json updated with {len(mslp_out)} frames.")
+        if r2:
+            try:
+                r2_put_json(r2, mslp_out, "composites/frames_mslp.json")
+            except Exception as e:
+                print(f"  R2 upload of frames_mslp.json failed: {e}")
     elif not HAS_CAIROSVG:
         print("cairosvg not available — MSLP composites skipped.")
 
@@ -628,6 +644,11 @@ def main():
     with open("frames_parallel.json", "w") as f:
         json.dump(frames, f, indent=2)
     print("frames_parallel.json updated.")
+    if r2:
+        try:
+            r2_put_json(r2, frames, "composites/frames_parallel.json")
+        except Exception as e:
+            print(f"  R2 upload of frames_parallel.json failed: {e}")
 
 
 if __name__ == "__main__":
