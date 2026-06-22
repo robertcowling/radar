@@ -1,292 +1,333 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <title>UK 24hr Rainfall Accumulation</title>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/png" href="favicon.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <style>
-        body {
-            padding: 0;
-            margin: 0;
-            font-family: 'Roboto', sans-serif;
-            background: #f8f9fa;
-            color: #3c4043;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>24hr Rainfall Accumulation</title>
+  <link rel="icon" type="image/png" href="../favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        #map {
-            width: 100vw;
-            height: 100vh;
-        }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #eef2f7;
+      color: #1f2937;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+    }
 
-        .surface {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
-            transition: box-shadow 0.3s ease;
-        }
+    /* ── Header ─────────────────────────────────────────────────────────────── */
+    header {
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 14px;
+      background: linear-gradient(90deg, #0ea5e9 0%, #2563eb 100%);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    .title    { font-size: 15px; font-weight: 700; white-space: nowrap; flex: 1; }
+    .subtitle { font-size: 11px; font-weight: 400; opacity: 0.75; white-space: nowrap; }
 
-        .surface:hover {
-            box-shadow: 0 12px 32px rgba(0,0,0,0.16), 0 4px 10px rgba(0,0,0,0.1);
-        }
+    /* ── Image stage ─────────────────────────────────────────────────────────── */
+    #stage {
+      flex: 1; min-height: 0;
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+      background: #dbe4ee; overflow: hidden;
+    }
+    #stage img {
+      max-width: 100%; max-height: 100%;
+      object-fit: contain; display: block;
+    }
+    #loading {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: #2563eb; font-weight: 500; background: #eef2f7;
+    }
+    #loading.done { display: none; }
 
-        .info-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            padding: 24px;
-            z-index: 1000;
-            width: 270px;
-        }
+    /* ── Dark controls panel ─────────────────────────────────────────────────── */
+    #controls {
+      flex-shrink: 0;
+      background: #1a1f2e;
+      padding: 12px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
-        .info-panel h3 {
-            margin: 0 0 4px 0;
-            font-size: 15px;
-            font-weight: 500;
-            color: #202124;
-        }
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-        .period {
-            font-size: 12px;
-            color: #5f6368;
-            margin: 0 0 16px 0;
-            line-height: 1.4;
-        }
+    #play-btn {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: #2563eb;
+      border: none; color: #fff;
+      font-size: 18px;
+      cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    #play-btn:hover { background: #1d4ed8; }
 
-        .cbar-label {
-            font-size: 11px;
-            font-weight: 500;
-            color: #5f6368;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin: 0 0 6px 0;
-        }
+    .step-btn {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.1);
+      border: none; color: rgba(255,255,255,0.85);
+      font-size: 15px;
+      cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .step-btn:hover { background: rgba(255,255,255,0.2); }
 
-        .cbar {
-            height: 12px;
-            border-radius: 6px;
-            background: linear-gradient(to right,
-                #e0f3ff 0%,
-                #81d4fa 13%,
-                #03a9f4 25%,
-                #01579b 37%,
-                #2e7d32 50%,
-                #fbc02d 62%,
-                #ef6c00 74%,
-                #c62828 87%,
-                #6a1b9a 100%
-            );
-            margin-bottom: 4px;
-        }
+    #speed-select {
+      background: rgba(255,255,255,0.1);
+      border: none; color: rgba(255,255,255,0.85);
+      font-family: inherit; font-size: 12px;
+      padding: 6px 10px; border-radius: 8px;
+      cursor: pointer; margin-left: auto;
+    }
+    #speed-select option { background: #1a1f2e; color: #fff; }
 
-        .cbar-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 9px;
-            color: #5f6368;
-            margin-bottom: 16px;
-        }
+    /* ── Scrubber ─────────────────────────────────────────────────────────────── */
+    #scrubber { display: flex; flex-direction: column; gap: 6px; }
 
-        .meta-row {
-            font-size: 11px;
-            color: #80868b;
-            margin-top: 4px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+    #progress-track {
+      position: relative; height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px; cursor: pointer;
+    }
+    #progress-fill {
+      height: 100%; background: #2563eb;
+      border-radius: 2px; position: relative;
+      transition: width .1s;
+    }
+    #scrubber-handle {
+      position: absolute; right: -6px; top: -4px;
+      width: 12px; height: 12px;
+      border-radius: 50%; background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+      pointer-events: none;
+    }
 
-        .meta-row a {
-            color: #1a73e8;
-            text-decoration: none;
-            font-weight: 500;
-        }
+    .time-labels {
+      display: flex; justify-content: space-between;
+      font-size: 10px; color: rgba(255,255,255,0.45);
+      font-weight: 500;
+    }
 
-        .meta-row a:hover {
-            text-decoration: underline;
-        }
+    /* ── Big timestamp ───────────────────────────────────────────────────────── */
+    #big-timestamp {
+      font-size: 17px; font-weight: 700;
+      color: #fff; text-align: center;
+      letter-spacing: 0.01em;
+    }
 
-        .status-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #34a853;
-            flex-shrink: 0;
-        }
-
-        .status-dot.loading {
-            background: #fbbc04;
-        }
-
-        .status-dot.error {
-            background: #ea4335;
-        }
-
-        #statusText {
-            flex: 1;
-        }
-
-        .btn-refresh {
-            background: #1a73e8;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 500;
-            font-family: 'Roboto', sans-serif;
-            font-size: 12px;
-            margin-top: 12px;
-            width: 100%;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            transition: all 0.2s ease;
-        }
-
-        .btn-refresh:hover {
-            background: #1557b0;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.25);
-            transform: translateY(-1px);
-        }
-
-        .btn-refresh:active {
-            transform: translateY(0);
-        }
-
-        .no-image-msg {
-            font-size: 13px;
-            color: #80868b;
-            text-align: center;
-            padding: 20px 0 8px;
-        }
-    </style>
+    footer {
+      flex-shrink: 0;
+      padding: 6px 14px; background: #1a1f2e;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 11px; text-align: center;
+    }
+    footer a { color: rgba(255,255,255,0.45); text-decoration: none; }
+    footer a:hover { color: rgba(255,255,255,0.85); }
+  </style>
 </head>
-
 <body>
-    <div id="map"></div>
 
-    <div class="info-panel surface">
-        <h3>24hr Rainfall Accumulation</h3>
-        <p class="period" id="periodText">Loading&hellip;</p>
+<header>
+  <span class="title">24hr Rainfall Accumulation</span>
+  <span class="subtitle">Hourly · Met Office radar</span>
+</header>
 
-        <p class="cbar-label">Total rainfall (mm)</p>
-        <div class="cbar"></div>
-        <div class="cbar-labels">
-            <span>0.5</span>
-            <span>1</span>
-            <span>2</span>
-            <span>5</span>
-            <span>10</span>
-            <span>20</span>
-            <span>40</span>
-            <span>80</span>
-            <span>160+</span>
-        </div>
+<div id="stage">
+  <img id="frame-img" alt="Rainfall accumulation" />
+  <div id="loading">Loading…</div>
+</div>
 
-        <div class="meta-row">
-            <div class="status-dot loading" id="statusDot"></div>
-            <span id="statusText">Loading&hellip;</span>
-        </div>
-        <div class="meta-row" style="margin-top: 8px;">
-            <a href="/">&#8592; Live radar</a>
-        </div>
-        <button class="btn-refresh" onclick="loadAccum()">Refresh</button>
+<div id="controls">
+  <div class="ctrl-row">
+    <button id="play-btn" onclick="togglePlay()" title="Play/Pause">⏸</button>
+    <button class="step-btn" onclick="stepFrame(-1)" title="Previous">⏮</button>
+    <button class="step-btn" onclick="stepFrame(1)"  title="Next">⏭</button>
+    <select id="speed-select" onchange="setSpeed(this.value)" title="Speed">
+      <option value="1">Slow</option>
+      <option value="2" selected>Normal</option>
+      <option value="5">Fast</option>
+    </select>
+  </div>
+  <div id="scrubber">
+    <div id="progress-track" onclick="scrubClick(event)">
+      <div id="progress-fill" style="width:0%">
+        <div id="scrubber-handle"></div>
+      </div>
     </div>
+    <div class="time-labels">
+      <span id="time-start">—</span>
+      <span id="time-end">—</span>
+    </div>
+  </div>
+  <div id="big-timestamp">—</div>
+</div>
 
-    <script>
-        var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
-        var R2_CDN  = 'https://radar.floodforecast.co.uk';
-        function cdnJson(r) { return r.text().then(function(t) { return JSON.parse(t.replaceAll(R2_BASE, R2_CDN)); }); }
+<footer>
+  <a href="../radarmicro/">Live radar →</a>
+  &nbsp;·&nbsp;
+  <a href="../index.html">Full map →</a>
+</footer>
 
-        var bounds = [[49.0, -11.5], [61.5, 3.5]];
+<script>
+const MANIFEST   = 'https://radar.floodforecast.co.uk/composites/frames_accum_hourly.json';
+const REFRESH_MS = 60 * 60 * 1000;
+const DWELL_FRAMES = 8;
 
-        var map = L.map('map', {
-            center: [54.5, -3.5],
-            zoom: 6,
-            zoomControl: true,
-        });
+let frames     = [];
+let idx        = 0;
+let playing    = true;
+let fps        = 2;
+let tickTimer  = null;
+let dwellCount = 0;
+const cache    = {};
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 19,
-        }).addTo(map);
+const img = document.getElementById('frame-img');
 
-        var accumOverlay = null;
+const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-        function setStatus(state, text) {
-            var dot = document.getElementById('statusDot');
-            dot.className = 'status-dot' + (state !== 'ok' ? ' ' + state : '');
-            document.getElementById('statusText').textContent = text;
-        }
+function fmtWindow(isoUtc) {
+  const d   = new Date(isoUtc);
+  const end = new Date(d.getTime() + 3600000);
+  const hh0 = String(d.getUTCHours()).padStart(2,'0');
+  const hh1 = String(end.getUTCHours()).padStart(2,'0');
+  const day  = DAYS[d.getUTCDay()];
+  const date = d.getUTCDate();
+  const mon  = MONTHS[d.getUTCMonth()];
+  return `${hh0}:00 – ${hh1}:00 UTC  ${day} ${date} ${mon}`;
+}
 
-        function setPeriod(meta) {
-            var el = document.getElementById('periodText');
-            if (meta.period_start && meta.period_end) {
-                el.textContent = meta.period_start + ' \u2013 ' + meta.period_end;
-            } else {
-                el.textContent = '';
-            }
-        }
+function fmtShort(isoUtc) {
+  const d = new Date(isoUtc);
+  return String(d.getUTCHours()).padStart(2,'0') + ':00';
+}
 
-        function fmtGenerated(isoStr) {
-            try {
-                var d = new Date(isoStr);
-                return 'Generated ' + d.toUTCString().replace(' GMT', ' UTC').replace(/:\d\d UTC$/, ' UTC');
-            } catch (e) {
-                return 'Generated ' + isoStr;
-            }
-        }
+function updateTimeLabels() {
+  if (!frames.length) return;
+  document.getElementById('time-start').textContent = fmtShort(frames[0].time);
+  document.getElementById('time-end').textContent   = fmtShort(frames[frames.length - 1].time);
+}
 
-        function loadAccum() {
-            setStatus('loading', 'Loading\u2026');
-            document.getElementById('periodText').textContent = 'Loading\u2026';
+async function loadManifest() {
+  try {
+    const res = await fetch(MANIFEST + '?t=' + Date.now());
+    const all = await res.json();
+    if (!all.length) {
+      document.getElementById('loading').textContent = 'No accumulation data yet — workflow may not have run.';
+      return;
+    }
 
-            fetch('../accum_24hr_meta.json?_cb=' + Date.now())
-                .then(function(r) {
-                    if (!r.ok) throw new Error('HTTP ' + r.status);
-                    return cdnJson(r);
-                })
-                .then(function(meta) {
-                    if (!meta.url) {
-                        setStatus('error', 'No image URL in metadata');
-                        return;
-                    }
+    const checked = await Promise.all(all.map(fr => new Promise(resolve => {
+      const im = new Image();
+      im.onload  = () => { cache[fr.url] = im; resolve(fr); };
+      im.onerror = () => resolve(null);
+      im.src = fr.url;
+    })));
+    frames = checked.filter(Boolean);
 
-                    setPeriod(meta);
+    if (!frames.length) {
+      document.getElementById('loading').textContent = 'Images not yet available.';
+      return;
+    }
 
-                    // Remove old overlay
-                    if (accumOverlay) {
-                        map.removeLayer(accumOverlay);
-                        accumOverlay = null;
-                    }
+    document.getElementById('loading').classList.add('done');
+    idx = frames.length - 1;
+    updateTimeLabels();
+    renderFrame(idx);
+    setInterval(refreshInBackground, REFRESH_MS);
+  } catch (e) {
+    document.getElementById('loading').textContent = 'Failed to load: ' + e.message;
+  }
+}
 
-                    var img = new Image();
-                    img.onload = function() {
-                        accumOverlay = L.imageOverlay(meta.url, bounds, { opacity: 0.85 });
-                        accumOverlay.addTo(map);
-                        setStatus('ok', fmtGenerated(meta.generated_at));
-                    };
-                    img.onerror = function() {
-                        setStatus('error', 'Image failed to load');
-                    };
-                    // Cache-bust the image too so a re-run always shows the latest
-                    img.src = meta.url + '?_cb=' + Date.now();
-                })
-                .catch(function(err) {
-                    setStatus('error', 'Not yet generated — run the workflow first');
-                    document.getElementById('periodText').textContent = '';
-                    console.error(err);
-                });
-        }
+async function refreshInBackground() {
+  try {
+    const res = await fetch(MANIFEST + '?t=' + Date.now());
+    const all = await res.json();
+    if (!all.length) return;
+    const known = new Set(frames.map(f => f.url));
+    const novel = all.filter(f => !known.has(f.url));
+    if (!novel.length) return;
+    const checked = await Promise.all(novel.map(fr => new Promise(resolve => {
+      const im = new Image();
+      im.onload  = () => { cache[fr.url] = im; resolve(fr); };
+      im.onerror = () => resolve(null);
+      im.src = fr.url;
+    })));
+    const valid = checked.filter(Boolean);
+    if (!valid.length) return;
+    const merged = [...frames, ...valid].slice(-24);
+    idx = Math.min(idx + (merged.length - frames.length), merged.length - 1);
+    frames = merged;
+    updateTimeLabels();
+  } catch (_) {}
+}
 
-        loadAccum();
-    </script>
+function renderFrame(i) {
+  const fr = frames[i];
+  img.src = fr.url;
+  document.getElementById('big-timestamp').textContent = fmtWindow(fr.time);
+  const pct = frames.length > 1 ? i / (frames.length - 1) * 100 : 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function tick() {
+  if (!frames.length) return;
+  if (idx >= frames.length - 1) {
+    if (++dwellCount < DWELL_FRAMES) return;
+    dwellCount = 0; idx = 0;
+  } else {
+    idx++;
+  }
+  renderFrame(idx);
+}
+
+function startLoop() { clearInterval(tickTimer); tickTimer = setInterval(tick, 1000 / fps); }
+function stopLoop()  { clearInterval(tickTimer); tickTimer = null; }
+
+function togglePlay() {
+  playing = !playing;
+  document.getElementById('play-btn').textContent = playing ? '⏸' : '▶';
+  playing ? startLoop() : stopLoop();
+}
+
+function stepFrame(d) {
+  idx = Math.max(0, Math.min(frames.length - 1, idx + d));
+  dwellCount = 0;
+  renderFrame(idx);
+}
+
+function setSpeed(v) { fps = parseFloat(v); if (playing) startLoop(); }
+
+function scrubClick(e) {
+  const r = e.currentTarget.getBoundingClientRect();
+  const frac = (e.clientX - r.left) / r.width;
+  idx = Math.max(0, Math.min(frames.length - 1, Math.round(frac * (frames.length - 1))));
+  dwellCount = 0;
+  renderFrame(idx);
+}
+
+loadManifest();
+startLoop();
+</script>
 </body>
-
 </html>
