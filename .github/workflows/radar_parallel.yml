@@ -5,6 +5,7 @@ on:
     paths:
       - 'process_parallel.py'
       - 'make_dashboard_composites.py'
+      - 'make_accum_hourly.py'
       - '.github/workflows/radar_parallel.yml'
   workflow_dispatch:
 
@@ -62,6 +63,15 @@ jobs:
         R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
       run: python make_dashboard_composites.py
 
+    - name: Generate hourly accumulation composites
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+      run: python make_accum_hourly.py
+
     - name: Delete files older than 14 days
       run: |
         cutoff=$(date -u -d '14 days ago' +'%Y%m%d%H%M')
@@ -88,7 +98,7 @@ jobs:
       run: |
         git config --global user.name "Radar Automator"
         git config --global user.email "radar-bot@github.com"
-        git add frames_parallel.json frames_mslp.json
+        git add frames_parallel.json frames_mslp.json frames_accum_hourly.json
         git diff --cached --quiet && echo "No changes to commit" || {
           git commit -m "Update radar parallel frames $(date -u +'%Y-%m-%d %H:%M UTC')" || exit 1
           n=0
