@@ -30,8 +30,15 @@
       color: #fff;
       box-shadow: 0 2px 8px rgba(0,0,0,0.18);
     }
-    .title    { font-size: 15px; font-weight: 700; white-space: nowrap; flex: 1; }
-    .subtitle { font-size: 11px; font-weight: 400; opacity: 0.75; white-space: nowrap; }
+    .title { font-size: 15px; font-weight: 700; white-space: nowrap; flex: 1; }
+    .toggle { display: flex; background: rgba(255,255,255,0.18); border-radius: 20px; padding: 3px; flex-shrink: 0; gap: 1px; }
+    .toggle button {
+      background: none; border: none; color: rgba(255,255,255,0.85);
+      font-family: inherit; font-size: 11px; font-weight: 500;
+      padding: 4px 10px; border-radius: 16px; cursor: pointer;
+      transition: background .18s, color .18s; white-space: nowrap;
+    }
+    .toggle button.active { background: #fff; color: #2563eb; }
 
     /* ── Image stage ─────────────────────────────────────────────────────────── */
     #stage {
@@ -48,6 +55,7 @@
       position: absolute; inset: 0;
       display: flex; align-items: center; justify-content: center;
       font-size: 14px; color: #2563eb; font-weight: 500; background: #eef2f7;
+      text-align: center; padding: 20px;
     }
     #loading.done { display: none; }
 
@@ -147,8 +155,11 @@
 <body>
 
 <header>
-  <span class="title">24hr Rainfall Accumulation</span>
-  <span class="subtitle">Hourly · Met Office radar</span>
+  <span class="title">Rainfall Accumulation</span>
+  <div class="toggle">
+    <button id="btn-hourly" class="active" onclick="setMode('hourly')">Hourly</button>
+    <button id="btn-daily"                 onclick="setMode('daily')">Daily</button>
+  </div>
 </header>
 
 <div id="stage">
@@ -188,24 +199,30 @@
 </footer>
 
 <script>
-const MANIFEST   = '../frames_accum_hourly.json';
-const REFRESH_MS = 60 * 60 * 1000;
-const DWELL_FRAMES = 8;
+const HOURLY_MANIFEST = '../frames_accum_hourly.json';
+const DAILY_MANIFEST  = '../frames_accum_daily.json';
+const REFRESH_MS      = 60 * 60 * 1000;
+const DWELL_FRAMES    = 8;
 
-let frames     = [];
-let idx        = 0;
-let playing    = true;
-let fps        = 2;
-let tickTimer  = null;
-let dwellCount = 0;
-const cache    = {};
+let hourlyFrames = [];   // [{time, url}]
+let dailyFrames  = [];   // [{date, url, label}]
+let hourlyIdx    = 0;
+let dailyIdx     = 0;
+let mode         = 'hourly';
+let playing      = true;
+let fps          = 2;
+let tickTimer    = null;
+let dwellCount   = 0;
+const cache      = {};
 
 const img = document.getElementById('frame-img');
 
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-function fmtWindow(isoUtc) {
+// ── Label formatters ─────────────────────────────────────────────────────────
+
+function fmtHourlyStamp(isoUtc) {
   const d   = new Date(isoUtc);
   const end = new Date(d.getTime() + 3600000);
   const hh0 = String(d.getUTCHours()).padStart(2,'0');
@@ -216,94 +233,155 @@ function fmtWindow(isoUtc) {
   return `${hh0}:00 – ${hh1}:00 UTC  ${day} ${date} ${mon}`;
 }
 
-function fmtShort(isoUtc) {
-  const d = new Date(isoUtc);
-  return String(d.getUTCHours()).padStart(2,'0') + ':00';
+function fmtHourlyShort(isoUtc) {
+  return String(new Date(isoUtc).getUTCHours()).padStart(2,'0') + ':00';
 }
+
+function fmtDailyStamp(fr) {
+  // fr.label set during manifest parse: 'Today so far', 'Yesterday', 'Mon 21 Jun'
+  return fr.label;
+}
+
+function parseDailyLabel(dateStr, idx) {
+  // dateStr = 'YYYYMMDD'
+  const y = +dateStr.slice(0,4), m = +dateStr.slice(4,6)-1, d = +dateStr.slice(6,8);
+  const dt = new Date(Date.UTC(y, m, d));
+  if (idx === 0) return 'Today so far';
+  if (idx === 1) return 'Yesterday · 24hr total';
+  return `${DAYS[dt.getUTCDay()]} ${d} ${MONTHS[m]} · 24hr total`;
+}
+
+// ── Active frame accessors ───────────────────────────────────────────────────
+
+function activeFrames() { return mode === 'daily' ? dailyFrames : hourlyFrames; }
+function getIdx()       { return mode === 'daily' ? dailyIdx    : hourlyIdx;    }
+function setIdx(i)      { if (mode === 'daily') dailyIdx = i; else hourlyIdx = i; }
+
+// ── UI update ────────────────────────────────────────────────────────────────
 
 function updateTimeLabels() {
-  if (!frames.length) return;
-  document.getElementById('time-start').textContent = fmtShort(frames[0].time);
-  document.getElementById('time-end').textContent   = fmtShort(frames[frames.length - 1].time);
-}
-
-async function loadManifest() {
-  try {
-    const res = await fetch(MANIFEST + '?t=' + Date.now());
-    if (!res.ok) {
-      document.getElementById('loading').textContent = 'Data not yet available — workflow has not run yet.';
-      return;
-    }
-    const all = await res.json();
-    if (!all.length) {
-      document.getElementById('loading').textContent = 'No accumulation data yet — workflow may not have run.';
-      return;
-    }
-
-    const checked = await Promise.all(all.map(fr => new Promise(resolve => {
-      const im = new Image();
-      im.onload  = () => { cache[fr.url] = im; resolve(fr); };
-      im.onerror = () => resolve(null);
-      im.src = fr.url;
-    })));
-    frames = checked.filter(Boolean);
-
-    if (!frames.length) {
-      document.getElementById('loading').textContent = 'Images not yet available.';
-      return;
-    }
-
-    document.getElementById('loading').classList.add('done');
-    idx = frames.length - 1;
-    updateTimeLabels();
-    renderFrame(idx);
-    setInterval(refreshInBackground, REFRESH_MS);
-  } catch (e) {
-    document.getElementById('loading').textContent = 'Failed to load: ' + e.message;
+  const frames = activeFrames();
+  if (!frames.length) {
+    document.getElementById('time-start').textContent = '—';
+    document.getElementById('time-end').textContent   = '—';
+    return;
+  }
+  if (mode === 'hourly') {
+    document.getElementById('time-start').textContent = fmtHourlyShort(frames[0].time);
+    document.getElementById('time-end').textContent   = fmtHourlyShort(frames[frames.length-1].time);
+  } else {
+    document.getElementById('time-start').textContent = frames[frames.length-1].label.split(' ·')[0];
+    document.getElementById('time-end').textContent   = 'Today';
   }
 }
 
-async function refreshInBackground() {
-  try {
-    const res = await fetch(MANIFEST + '?t=' + Date.now());
-    if (!res.ok) return;
-    const all = await res.json();
-    if (!all.length) return;
-    const known = new Set(frames.map(f => f.url));
-    const novel = all.filter(f => !known.has(f.url));
-    if (!novel.length) return;
-    const checked = await Promise.all(novel.map(fr => new Promise(resolve => {
-      const im = new Image();
-      im.onload  = () => { cache[fr.url] = im; resolve(fr); };
-      im.onerror = () => resolve(null);
-      im.src = fr.url;
-    })));
-    const valid = checked.filter(Boolean);
-    if (!valid.length) return;
-    const merged = [...frames, ...valid].slice(-24);
-    idx = Math.min(idx + (merged.length - frames.length), merged.length - 1);
-    frames = merged;
-    updateTimeLabels();
-  } catch (_) {}
+// ── Loaders ──────────────────────────────────────────────────────────────────
+
+async function fetchAndCache(url) {
+  return new Promise(resolve => {
+    if (cache[url]) { resolve(true); return; }
+    const im = new Image();
+    im.onload  = () => { cache[url] = im; resolve(true); };
+    im.onerror = () => resolve(false);
+    im.src = url;
+  });
 }
 
+async function loadHourlyManifest() {
+  try {
+    const res = await fetch(HOURLY_MANIFEST + '?t=' + Date.now());
+    if (!res.ok) return null;
+    const all = await res.json();
+    if (!all.length) return null;
+    const results = await Promise.all(all.map(async fr => {
+      const ok = await fetchAndCache(fr.url);
+      return ok ? fr : null;
+    }));
+    return results.filter(Boolean);
+  } catch (_) { return null; }
+}
+
+async function loadDailyManifest() {
+  try {
+    const res = await fetch(DAILY_MANIFEST + '?t=' + Date.now());
+    if (!res.ok) return null;
+    const all = await res.json();
+    if (!all.length) return null;
+    // Sorted newest-first from script; reverse so oldest is index 0 in array,
+    // but UI will show newest (today) first — keep server order (newest first)
+    const results = await Promise.all(all.map(async (fr, i) => {
+      const ok = await fetchAndCache(fr.url);
+      return ok ? { ...fr, label: parseDailyLabel(fr.date, i) } : null;
+    }));
+    return results.filter(Boolean);
+  } catch (_) { return null; }
+}
+
+async function boot() {
+  const [hourly, daily] = await Promise.all([loadHourlyManifest(), loadDailyManifest()]);
+
+  if (!hourly && !daily) {
+    document.getElementById('loading').textContent =
+      'No data yet — trigger the radar workflow first.';
+    return;
+  }
+
+  if (hourly) {
+    hourlyFrames = hourly;
+    hourlyIdx    = hourlyFrames.length - 1;
+  }
+  if (daily) {
+    dailyFrames = daily;
+    dailyIdx    = 0;   // start on today (index 0 = newest)
+  }
+
+  document.getElementById('loading').classList.add('done');
+  updateTimeLabels();
+  renderFrame(getIdx());
+  setInterval(backgroundRefresh, REFRESH_MS);
+}
+
+async function backgroundRefresh() {
+  const [hourly, daily] = await Promise.all([loadHourlyManifest(), loadDailyManifest()]);
+  if (hourly && hourly.length > hourlyFrames.length) {
+    const shift = hourly.length - hourlyFrames.length;
+    hourlyFrames = hourly;
+    hourlyIdx    = Math.min(hourlyIdx + shift, hourlyFrames.length - 1);
+    if (mode === 'hourly') { updateTimeLabels(); }
+  }
+  if (daily) {
+    dailyFrames = daily;
+    if (mode === 'daily') { updateTimeLabels(); }
+  }
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+
 function renderFrame(i) {
+  const frames = activeFrames();
+  if (!frames.length) return;
   const fr = frames[i];
   img.src = fr.url;
-  document.getElementById('big-timestamp').textContent = fmtWindow(fr.time);
+  document.getElementById('big-timestamp').textContent =
+    mode === 'daily' ? fmtDailyStamp(fr) : fmtHourlyStamp(fr.time);
   const pct = frames.length > 1 ? i / (frames.length - 1) * 100 : 100;
   document.getElementById('progress-fill').style.width = pct + '%';
 }
 
+// ── Animation ────────────────────────────────────────────────────────────────
+
 function tick() {
+  const frames = activeFrames();
   if (!frames.length) return;
-  if (idx >= frames.length - 1) {
+  let i = getIdx();
+  if (i >= frames.length - 1) {
     if (++dwellCount < DWELL_FRAMES) return;
-    dwellCount = 0; idx = 0;
+    dwellCount = 0; i = 0;
   } else {
-    idx++;
+    i++;
   }
-  renderFrame(idx);
+  setIdx(i);
+  renderFrame(i);
 }
 
 function startLoop() { clearInterval(tickTimer); tickTimer = setInterval(tick, 1000 / fps); }
@@ -316,22 +394,38 @@ function togglePlay() {
 }
 
 function stepFrame(d) {
-  idx = Math.max(0, Math.min(frames.length - 1, idx + d));
-  dwellCount = 0;
-  renderFrame(idx);
+  const frames = activeFrames();
+  const i = Math.max(0, Math.min(frames.length - 1, getIdx() + d));
+  setIdx(i); dwellCount = 0; renderFrame(i);
 }
 
 function setSpeed(v) { fps = parseFloat(v); if (playing) startLoop(); }
 
 function scrubClick(e) {
+  const frames = activeFrames();
   const r = e.currentTarget.getBoundingClientRect();
   const frac = (e.clientX - r.left) / r.width;
-  idx = Math.max(0, Math.min(frames.length - 1, Math.round(frac * (frames.length - 1))));
-  dwellCount = 0;
-  renderFrame(idx);
+  const i = Math.max(0, Math.min(frames.length - 1, Math.round(frac * (frames.length - 1))));
+  setIdx(i); dwellCount = 0; renderFrame(i);
 }
 
-loadManifest();
+// ── Mode toggle ───────────────────────────────────────────────────────────────
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-hourly').classList.toggle('active', m === 'hourly');
+  document.getElementById('btn-daily').classList.toggle('active',  m === 'daily');
+
+  if (m === 'daily' && !dailyFrames.length) {
+    document.getElementById('big-timestamp').textContent = 'Daily data not yet available';
+    return;
+  }
+  updateTimeLabels();
+  renderFrame(getIdx());
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+boot();
 startLoop();
 </script>
 </body>

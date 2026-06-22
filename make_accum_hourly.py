@@ -2,14 +2,18 @@
 """
 make_accum_hourly.py
 
-Generates 24 hourly 1-hour rainfall accumulation composite WebP images
-covering the last 24 complete clock hours. Each image uses the Met Office
-colour scheme and includes UK/Euro boundary overlays, a colour key, and a
-datetime stamp. Images and manifest are uploaded to Cloudflare R2.
+Generates two sets of rainfall accumulation composites from Met Office H5 radar:
 
-R2 outputs:
-  composites/accum_hourly_{YYYYMMDDHHMM}.webp   (one per hour, 24 total)
-  composites/frames_accum_hourly.json            (manifest)
+  Hourly (24 frames):
+    composites/accum_hourly_{YYYYMMDDHHMM}.webp  — last 24 complete clock hours
+    composites/frames_accum_hourly.json
+
+  Daily (5 frames):
+    composites/accum_daily_{YYYYMMDD}.webp  — today-so-far + 4 previous full days
+    composites/frames_accum_daily.json
+
+Both use the Met Office colour scheme. No legend or timestamp is baked into the
+images; the consuming UI renders those.
 """
 
 import io
@@ -23,7 +27,7 @@ import h5py
 import numpy as np
 from botocore import UNSIGNED
 from botocore.client import Config
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from pyproj import Transformer
 
 from make_dashboard_composites import (
@@ -43,10 +47,12 @@ R2_PUBLIC_URL    = os.environ.get("R2_PUBLIC_BASE_URL", "").rstrip("/")
 USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, R2_BUCKET, R2_PUBLIC_URL])
 
 # ── Source ─────────────────────────────────────────────────────────────────────
-MET_S3_BUCKET = "met-office-radar-obs-data"
-H5_DIR        = "data_h5"
-FRAMES_PER_HR = 4      # 4 × 15-min frames = 1 clock hour
-RETENTION_HRS = 48
+MET_S3_BUCKET      = "met-office-radar-obs-data"
+H5_DIR             = "data_h5"
+FRAMES_PER_HR      = 4    # 4 × 15-min frames = 1 clock hour
+RETENTION_HRS      = 48   # hourly images kept for 48 h
+DAILY_FRAMES       = 5    # today-so-far + 4 previous complete days
+RETENTION_DAILY_DAYS = 7
 
 # ── Met Office colour scheme ───────────────────────────────────────────────────
 MET_BOUNDS = np.array([0.03, 1, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160, 180])
@@ -67,29 +73,6 @@ MET_COLORS = np.array([
     [191, 191,   0, 255],   # olive        > 180 mm
 ], dtype=np.uint8)
 
-LEGEND_LABELS = [
-    "0.03–1 mm",
-    "1–5 mm",
-    "5–10 mm",
-    "10–20 mm",
-    "20–40 mm",
-    "40–60 mm",
-    "60–80 mm",
-    "80–100 mm",
-    "100–120 mm",
-    "120–140 mm",
-    "140–160 mm",
-    "160–180 mm",
-    "> 180 mm",
-]
-
-# ── Fonts ──────────────────────────────────────────────────────────────────────
-try:
-    _FONT      = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 11)
-    _FONT_BOLD = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 12)
-except Exception:
-    _FONT = _FONT_BOLD = ImageFont.load_default()
-
 
 # ── R2 helpers ─────────────────────────────────────────────────────────────────
 
@@ -100,6 +83,25 @@ def get_r2():
         aws_access_key_id=R2_ACCESS_KEY_ID,
         aws_secret_access_key=R2_SECRET_KEY,
         region_name="auto",
+    )
+
+
+def r2_upload(r2, buf_bytes, r2_key):
+    r2.put_object(
+        Bucket=R2_BUCKET, Key=r2_key,
+        Body=buf_bytes,
+        ContentType="image/webp",
+        CacheControl="public, max-age=86400",
+    )
+
+
+def r2_put_json(r2, data, r2_key):
+    body = json.dumps(data, separators=(",", ":")).encode()
+    r2.put_object(
+        Bucket=R2_BUCKET, Key=r2_key,
+        Body=body,
+        ContentType="application/json; charset=utf-8",
+        CacheControl="no-cache, max-age=0",
     )
 
 
@@ -123,17 +125,17 @@ def list_s3_keys_for_date(s3, date):
     return keys
 
 
-def collect_keys(s3, hours_back=27):
-    """Return sorted H5 keys covering at least hours_back hours."""
+def collect_keys(s3, days_back=6):
+    """Return sorted H5 keys covering days_back calendar days."""
     keys, date = [], datetime.utcnow()
-    for _ in range(3):
+    for _ in range(days_back):
         keys.extend(list_s3_keys_for_date(s3, date))
         date -= timedelta(days=1)
     return sorted(keys)
 
 
 def group_by_clock_hour(keys):
-    """Return {YYYYMMDDHHMM: [keys]} where YYYYMMDDHHMM is the start of the clock hour."""
+    """Return {YYYYMMDDHHMM: [keys]} keyed by clock-hour start."""
     buckets = defaultdict(list)
     for key in keys:
         base = os.path.basename(key)
@@ -141,6 +143,19 @@ def group_by_clock_hour(keys):
             dt = datetime.strptime(base[:12], "%Y%m%d%H%M")
             bucket_ts = dt.replace(minute=0, second=0, microsecond=0).strftime("%Y%m%d%H%M")
             buckets[bucket_ts].append(key)
+        except Exception:
+            pass
+    return buckets
+
+
+def group_by_date(keys):
+    """Return {YYYYMMDD: [keys]} keyed by UTC calendar date."""
+    buckets = defaultdict(list)
+    for key in keys:
+        base = os.path.basename(key)
+        try:
+            dt = datetime.strptime(base[:12], "%Y%m%d%H%M")
+            buckets[dt.strftime("%Y%m%d")].append(key)
         except Exception:
             pass
     return buckets
@@ -214,98 +229,41 @@ def render_accum_overlay(accum_mm):
     return Image.fromarray(MET_COLORS[indices], "RGBA")
 
 
-def draw_legend(img_rgba):
-    """Draw colour key in bottom-left corner; returns the modified image."""
-    pad       = 10
-    swatch_w  = 18
-    swatch_h  = 15
-    row_gap   = 2
-    text_pad  = 5
-    row_h     = swatch_h + row_gap
-    n         = len(LEGEND_LABELS)
-    box_w     = pad + swatch_w + text_pad + 88 + pad
-    box_h     = pad + n * row_h + pad
-
-    x0 = pad
-    y0 = OUT_H - box_h - pad
-
-    overlay = Image.new("RGBA", img_rgba.size, (0, 0, 0, 0))
-    draw    = ImageDraw.Draw(overlay)
-    draw.rectangle([x0, y0, x0 + box_w, y0 + box_h], fill=(20, 20, 20, 190))
-
-    for i, label in enumerate(LEGEND_LABELS):
-        color = tuple(MET_COLORS[i + 1])
-        sx = x0 + pad
-        sy = y0 + pad + i * row_h
-        draw.rectangle([sx, sy, sx + swatch_w - 1, sy + swatch_h - 1], fill=color)
-        draw.text((sx + swatch_w + text_pad, sy + 1), label,
-                  fill=(255, 255, 255, 255), font=_FONT)
-
-    return Image.alpha_composite(img_rgba, overlay)
-
-
-def draw_timestamp(img_rgba, hour_ts):
-    """Draw datetime stamp in top-right corner; returns the modified image."""
-    try:
-        dt = datetime.strptime(hour_ts, "%Y%m%d%H%M")
-        end_dt = dt + timedelta(hours=1)
-        line1 = f"1hr accumulation"
-        line2 = f"{dt.strftime('%H:%M')}–{end_dt.strftime('%H:%M')} UTC"
-        line3 = dt.strftime("%a %d %b %Y")
-    except Exception:
-        line1, line2, line3 = "1hr accumulation", hour_ts, ""
-
-    pad     = 8
-    line_h  = 16
-    lines   = [line1, line2, line3]
-    box_h   = pad + len(lines) * line_h + pad
-    box_w   = 170
-
-    x0 = OUT_W - box_w - pad
-    y0 = pad
-
-    overlay = Image.new("RGBA", img_rgba.size, (0, 0, 0, 0))
-    draw    = ImageDraw.Draw(overlay)
-    draw.rectangle([x0, y0, x0 + box_w, y0 + box_h], fill=(20, 20, 20, 190))
-    for i, line in enumerate(lines):
-        font = _FONT_BOLD if i == 0 else _FONT
-        draw.text((x0 + pad, y0 + pad + i * line_h), line,
-                  fill=(255, 255, 255, 255), font=font)
-
-    return Image.alpha_composite(img_rgba, overlay)
-
-
-def make_hourly_composite(basemap_rgba, accum_mm, hour_ts):
-    """Composite basemap + accumulation overlay + boundaries + legend + timestamp."""
+def make_composite(basemap_rgba, accum_mm):
+    """Basemap + accumulation overlay + boundary lines. Returns RGB."""
     overlay = render_accum_overlay(accum_mm)
-
     comp = basemap_rgba.copy()
     comp.alpha_composite(overlay)
-
     rgb = comp.convert("RGB")
     draw_boundary_layers(rgb)
+    return rgb
 
-    rgba = rgb.convert("RGBA")
-    rgba = draw_legend(rgba)
-    rgba = draw_timestamp(rgba, hour_ts)
-    return rgba
+
+def encode_webp(img_rgb):
+    buf = io.BytesIO()
+    img_rgb.save(buf, "WEBP", quality=90)
+    return buf.getvalue()
 
 
 # ── R2 cleanup ─────────────────────────────────────────────────────────────────
 
 def cleanup_r2(r2, keep_keys):
-    cutoff = (datetime.utcnow() - timedelta(hours=RETENTION_HRS)).strftime("%Y%m%d%H%M")
+    hour_cutoff  = (datetime.utcnow() - timedelta(hours=RETENTION_HRS)).strftime("%Y%m%d%H%M")
+    daily_cutoff = (datetime.utcnow() - timedelta(days=RETENTION_DAILY_DAYS)).strftime("%Y%m%d")
     deleted = 0
-    for page in r2.get_paginator("list_objects_v2").paginate(
-            Bucket=R2_BUCKET, Prefix="composites/accum_hourly_"):
-        for obj in page.get("Contents", []):
-            key = obj["Key"]
-            if key in keep_keys:
-                continue
-            ts = os.path.basename(key).replace("accum_hourly_", "").replace(".webp", "")
-            if ts.isdigit() and ts < cutoff:
-                r2.delete_object(Bucket=R2_BUCKET, Key=key)
-                deleted += 1
+    for prefix, is_daily in [("composites/accum_hourly_", False),
+                              ("composites/accum_daily_",  True)]:
+        for page in r2.get_paginator("list_objects_v2").paginate(
+                Bucket=R2_BUCKET, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                key = obj["Key"]
+                if key in keep_keys:
+                    continue
+                stem = os.path.basename(key).split(".")[0].split("_")[-1]
+                cutoff = daily_cutoff if is_daily else hour_cutoff
+                if stem.isdigit() and stem < cutoff:
+                    r2.delete_object(Bucket=R2_BUCKET, Key=key)
+                    deleted += 1
     if deleted:
         print(f"  Deleted {deleted} expired R2 composites.")
 
@@ -314,10 +272,7 @@ def cleanup_r2(r2, keep_keys):
 
 def main():
     r2 = get_r2() if USE_R2 else None
-    if r2:
-        print("R2 available — images will be uploaded.")
-    else:
-        print("R2 not configured — local only.")
+    print("R2 available." if r2 else "R2 not configured — local only.")
 
     ensure_geo_files()
     print("Loading basemap...")
@@ -331,35 +286,43 @@ def main():
         print("No H5 keys found — aborting.")
         return
 
-    buckets = group_by_clock_hour(all_keys)
+    # ── Determine which frames are needed ──────────────────────────────────────
+    now       = datetime.utcnow()
+    now_ts    = now.strftime("%Y%m%d%H%M")
 
-    # Take the last 24 complete hourly buckets (exactly 4 frames each)
-    complete = {ts: sorted(ks) for ts, ks in buckets.items() if len(ks) == FRAMES_PER_HR}
-    hour_slots = sorted(complete.keys())[-24:]
+    # Hourly: last 24 complete clock hours (all 4 frames present)
+    hour_buckets = group_by_clock_hour(all_keys)
+    complete_hours = {ts: sorted(ks) for ts, ks in hour_buckets.items()
+                      if len(ks) == FRAMES_PER_HR}
+    hour_slots = sorted(complete_hours.keys())[-24:]
 
-    if not hour_slots:
-        print("No complete hourly buckets found — aborting.")
+    # Daily: today-so-far + 4 previous full calendar days
+    date_buckets = group_by_date(all_keys)
+    today = now.date()
+    daily_dates = [(today - timedelta(days=i)).strftime("%Y%m%d")
+                   for i in range(DAILY_FRAMES)]
+
+    needed_hourly = {key for ts in hour_slots for key in complete_hours[ts]}
+    needed_daily  = {key for d in daily_dates for key in date_buckets.get(d, [])}
+    needed_keys   = needed_hourly | needed_daily
+
+    if not needed_keys:
+        print("No frames needed — aborting.")
         return
 
-    print(f"Processing {len(hour_slots)} hours: {hour_slots[0]} → {hour_slots[-1]}")
-
-    # Accumulate all needed frames in one pass to minimise downloads
-    needed_keys = {key for ts in hour_slots for key in complete[ts]}
+    # ── Download and read all frames in one pass ───────────────────────────────
     os.makedirs(H5_DIR, exist_ok=True)
-    mapping   = None
-    frame_mm  = {}   # key → mm/frame array
-
-    print(f"Downloading and reading {len(needed_keys)} H5 frames...")
+    mapping    = None
+    frame_mm   = {}
     downloaded = []
+
+    print(f"Downloading/reading {len(needed_keys)} H5 frames...")
     for key in sorted(needed_keys):
         h5_name = os.path.basename(key)
         h5_path = os.path.join(H5_DIR, h5_name)
         if not os.path.exists(h5_path):
             s3.download_file(MET_S3_BUCKET, key, h5_path)
             downloaded.append(h5_path)
-            print(f"  dl  {h5_name[:12]}")
-        else:
-            print(f"  hit {h5_name[:12]}")
         if mapping is None:
             mapping = get_h5_mapping(h5_path)
         try:
@@ -368,7 +331,6 @@ def main():
         except Exception as e:
             print(f"  Error reading {h5_name}: {e}")
 
-    # Delete downloaded H5s to save disk space
     for path in downloaded:
         try:
             os.remove(path)
@@ -377,53 +339,76 @@ def main():
     if downloaded:
         print(f"  Cleaned up {len(downloaded)} H5 files.")
 
-    # Render one composite per hour
-    manifest    = []
     keep_r2_keys = set()
 
+    # ── Hourly composites ──────────────────────────────────────────────────────
+    hourly_manifest = []
+    if hour_slots:
+        print(f"Rendering {len(hour_slots)} hourly frames: {hour_slots[0]} → {hour_slots[-1]}")
     for hour_ts in hour_slots:
         accum = np.zeros((OUT_H, OUT_W), dtype=np.float32)
-        for key in complete[hour_ts]:
+        for key in complete_hours[hour_ts]:
             if key in frame_mm:
                 accum += frame_mm[key]
 
-        print(f"  {hour_ts}: max={accum.max():.1f} mm")
-        comp = make_hourly_composite(basemap, accum, hour_ts)
-
         r2_key = f"composites/accum_hourly_{hour_ts}.webp"
         keep_r2_keys.add(r2_key)
-
-        buf = io.BytesIO()
-        comp.convert("RGB").save(buf, "WEBP", quality=90)
+        webp = encode_webp(make_composite(basemap, accum))
         if r2:
-            r2.put_object(
-                Bucket=R2_BUCKET, Key=r2_key,
-                Body=buf.getvalue(),
-                ContentType="image/webp",
-                CacheControl="public, max-age=86400",
-            )
+            r2_upload(r2, webp, r2_key)
 
         dt = datetime.strptime(hour_ts, "%Y%m%d%H%M")
-        manifest.append({
+        hourly_manifest.append({
             "time": dt.strftime("%Y-%m-%dT%H:%M:00Z"),
             "url":  f"{R2_PUBLIC_URL}/{r2_key}",
         })
 
-    # Upload manifest
     manifest_key = "composites/frames_accum_hourly.json"
-    manifest_bytes = json.dumps(manifest, separators=(",", ":")).encode()
     if r2:
-        r2.put_object(
-            Bucket=R2_BUCKET, Key=manifest_key,
-            Body=manifest_bytes,
-            ContentType="application/json; charset=utf-8",
-            CacheControl="no-cache, max-age=0",
-        )
+        r2_put_json(r2, hourly_manifest, manifest_key)
     with open("frames_accum_hourly.json", "w") as f:
-        json.dump(manifest, f, indent=2)
-    print(f"Manifest written: {len(manifest)} frames")
+        json.dump(hourly_manifest, f, indent=2)
+    print(f"Hourly manifest: {len(hourly_manifest)} frames")
 
-    # Prune old R2 objects
+    # ── Daily composites ───────────────────────────────────────────────────────
+    daily_manifest = []
+    print(f"Rendering {len(daily_dates)} daily frames...")
+    for date_str in daily_dates:
+        date_keys = sorted(date_buckets.get(date_str, []))
+        if not date_keys:
+            print(f"  {date_str}: no data, skipping")
+            continue
+        # For today restrict to frames up to now
+        if date_str == daily_dates[0]:
+            date_keys = [k for k in date_keys if os.path.basename(k)[:12] <= now_ts]
+
+        accum = np.zeros((OUT_H, OUT_W), dtype=np.float32)
+        for key in date_keys:
+            if key in frame_mm:
+                accum += frame_mm[key]
+
+        n_frames = sum(1 for k in date_keys if k in frame_mm)
+        print(f"  {date_str}: {n_frames} frames, max={accum.max():.1f} mm")
+
+        r2_key = f"composites/accum_daily_{date_str}.webp"
+        keep_r2_keys.add(r2_key)
+        webp = encode_webp(make_composite(basemap, accum))
+        if r2:
+            r2_upload(r2, webp, r2_key)
+
+        daily_manifest.append({
+            "date": date_str,
+            "url":  f"{R2_PUBLIC_URL}/{r2_key}",
+        })
+
+    daily_manifest_key = "composites/frames_accum_daily.json"
+    if r2:
+        r2_put_json(r2, daily_manifest, daily_manifest_key)
+    with open("frames_accum_daily.json", "w") as f:
+        json.dump(daily_manifest, f, indent=2)
+    print(f"Daily manifest: {len(daily_manifest)} frames")
+
+    # ── Prune old R2 composites ────────────────────────────────────────────────
     if r2:
         cleanup_r2(r2, keep_r2_keys)
 
