@@ -23,7 +23,7 @@ import h5py
 import numpy as np
 from botocore import UNSIGNED
 from botocore.client import Config
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from pyproj import Transformer
 
 from make_dashboard_composites import (
@@ -66,30 +66,6 @@ MET_COLORS = np.array([
     [200, 200, 200, 255],   # light grey   160–180 mm
     [191, 191,   0, 255],   # olive        > 180 mm
 ], dtype=np.uint8)
-
-LEGEND_LABELS = [
-    "0.03–1 mm",
-    "1–5 mm",
-    "5–10 mm",
-    "10–20 mm",
-    "20–40 mm",
-    "40–60 mm",
-    "60–80 mm",
-    "80–100 mm",
-    "100–120 mm",
-    "120–140 mm",
-    "140–160 mm",
-    "160–180 mm",
-    "> 180 mm",
-]
-
-# ── Fonts ──────────────────────────────────────────────────────────────────────
-try:
-    _FONT      = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 11)
-    _FONT_BOLD = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 12)
-except Exception:
-    _FONT = _FONT_BOLD = ImageFont.load_default()
-
 
 # ── R2 helpers ─────────────────────────────────────────────────────────────────
 
@@ -214,81 +190,14 @@ def render_accum_overlay(accum_mm):
     return Image.fromarray(MET_COLORS[indices], "RGBA")
 
 
-def draw_legend(img_rgba):
-    """Draw colour key in bottom-left corner; returns the modified image."""
-    pad       = 10
-    swatch_w  = 18
-    swatch_h  = 15
-    row_gap   = 2
-    text_pad  = 5
-    row_h     = swatch_h + row_gap
-    n         = len(LEGEND_LABELS)
-    box_w     = pad + swatch_w + text_pad + 88 + pad
-    box_h     = pad + n * row_h + pad
-
-    x0 = pad
-    y0 = OUT_H - box_h - pad
-
-    overlay = Image.new("RGBA", img_rgba.size, (0, 0, 0, 0))
-    draw    = ImageDraw.Draw(overlay)
-    draw.rectangle([x0, y0, x0 + box_w, y0 + box_h], fill=(20, 20, 20, 190))
-
-    for i, label in enumerate(LEGEND_LABELS):
-        color = tuple(MET_COLORS[i + 1])
-        sx = x0 + pad
-        sy = y0 + pad + i * row_h
-        draw.rectangle([sx, sy, sx + swatch_w - 1, sy + swatch_h - 1], fill=color)
-        draw.text((sx + swatch_w + text_pad, sy + 1), label,
-                  fill=(255, 255, 255, 255), font=_FONT)
-
-    return Image.alpha_composite(img_rgba, overlay)
-
-
-def draw_timestamp(img_rgba, hour_ts):
-    """Draw datetime stamp in top-right corner; returns the modified image."""
-    try:
-        dt = datetime.strptime(hour_ts, "%Y%m%d%H%M")
-        end_dt = dt + timedelta(hours=1)
-        line1 = f"1hr accumulation"
-        line2 = f"{dt.strftime('%H:%M')}–{end_dt.strftime('%H:%M')} UTC"
-        line3 = dt.strftime("%a %d %b %Y")
-    except Exception:
-        line1, line2, line3 = "1hr accumulation", hour_ts, ""
-
-    pad     = 8
-    line_h  = 16
-    lines   = [line1, line2, line3]
-    box_h   = pad + len(lines) * line_h + pad
-    box_w   = 170
-
-    x0 = OUT_W - box_w - pad
-    y0 = pad
-
-    overlay = Image.new("RGBA", img_rgba.size, (0, 0, 0, 0))
-    draw    = ImageDraw.Draw(overlay)
-    draw.rectangle([x0, y0, x0 + box_w, y0 + box_h], fill=(20, 20, 20, 190))
-    for i, line in enumerate(lines):
-        font = _FONT_BOLD if i == 0 else _FONT
-        draw.text((x0 + pad, y0 + pad + i * line_h), line,
-                  fill=(255, 255, 255, 255), font=font)
-
-    return Image.alpha_composite(img_rgba, overlay)
-
-
-def make_hourly_composite(basemap_rgba, accum_mm, hour_ts):
-    """Composite basemap + accumulation overlay + boundaries + legend + timestamp."""
+def make_hourly_composite(basemap_rgba, accum_mm):
+    """Composite basemap + accumulation overlay + boundary lines."""
     overlay = render_accum_overlay(accum_mm)
-
     comp = basemap_rgba.copy()
     comp.alpha_composite(overlay)
-
     rgb = comp.convert("RGB")
     draw_boundary_layers(rgb)
-
-    rgba = rgb.convert("RGBA")
-    rgba = draw_legend(rgba)
-    rgba = draw_timestamp(rgba, hour_ts)
-    return rgba
+    return rgb
 
 
 # ── R2 cleanup ─────────────────────────────────────────────────────────────────
@@ -388,13 +297,13 @@ def main():
                 accum += frame_mm[key]
 
         print(f"  {hour_ts}: max={accum.max():.1f} mm")
-        comp = make_hourly_composite(basemap, accum, hour_ts)
+        comp = make_hourly_composite(basemap, accum)
 
         r2_key = f"composites/accum_hourly_{hour_ts}.webp"
         keep_r2_keys.add(r2_key)
 
         buf = io.BytesIO()
-        comp.convert("RGB").save(buf, "WEBP", quality=90)
+        comp.save(buf, "WEBP", quality=90)
         if r2:
             r2.put_object(
                 Bucket=R2_BUCKET, Key=r2_key,
