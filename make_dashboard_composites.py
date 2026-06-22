@@ -15,6 +15,7 @@ import urllib.request
 from datetime import datetime, timedelta
 
 import boto3
+import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 try:
@@ -36,6 +37,10 @@ EARTH_RADIUS = 6378137.0
 TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
 BASEMAP_CACHE = "static/dashboard_basemap_uk_z8.png"
 BASEMAP_META  = "static/dashboard_basemap_uk_z8.meta"  # stores bounds so stale cache is detected
+
+MSLP_BASEMAP_CACHE = "static/dashboard_basemap_mslp_uk_z8.png"
+MSLP_BASEMAP_META  = "static/dashboard_basemap_mslp_uk_z8.meta"
+MSLP_SEA_TEAL = (178, 216, 216)  # light teal sea colour for surface pressure charts
 
 # R2-hosted GeoJSON files downloaded on first run and cached locally.
 # Not committed to git; persisted via GitHub Actions cache.
@@ -248,6 +253,36 @@ def get_basemap():
         f.write(expected_meta)
     print(f"Basemap cached: {BASEMAP_CACHE}")
     return bm
+
+
+def _tint_sea(basemap_rgba):
+    """Replace CartoDB Positron sea pixels (light cool-grey) with MSLP_SEA_TEAL."""
+    arr = np.array(basemap_rgba.convert("RGB"))
+    R = arr[:, :, 0].astype(int)
+    G = arr[:, :, 1].astype(int)
+    B = arr[:, :, 2].astype(int)
+    # Sea in CartoDB light_all is light blue-grey: B >= R, both above ~210
+    sea = (B >= R) & (R > 210) & (G > 215)
+    arr[sea] = MSLP_SEA_TEAL
+    return Image.fromarray(arr.astype(np.uint8), "RGB").convert("RGBA")
+
+
+def get_mslp_basemap():
+    """Return the basemap with sea recoloured to light teal, cached separately."""
+    expected_meta = f"{UK_LON_MIN},{UK_LON_MAX},{UK_LAT_MIN},{UK_LAT_MAX},{ZOOM},{MSLP_SEA_TEAL}"
+    if os.path.exists(MSLP_BASEMAP_CACHE) and os.path.exists(MSLP_BASEMAP_META):
+        with open(MSLP_BASEMAP_META) as f:
+            if f.read().strip() == expected_meta:
+                print("Using cached MSLP basemap.")
+                return Image.open(MSLP_BASEMAP_CACHE).convert("RGBA")
+    bm = get_basemap()
+    mslp_bm = _tint_sea(bm)
+    os.makedirs(os.path.dirname(MSLP_BASEMAP_CACHE), exist_ok=True)
+    mslp_bm.save(MSLP_BASEMAP_CACHE, "PNG")
+    with open(MSLP_BASEMAP_META, "w") as f:
+        f.write(expected_meta)
+    print(f"MSLP basemap cached: {MSLP_BASEMAP_CACHE}")
+    return mslp_bm
 
 
 # ── Overlay compositing ───────────────────────────────────────────────────────
@@ -590,6 +625,8 @@ def main():
                          if ts_from_url(mf.get("url", "")) and ts_from_url(mf["url"]) <= now_ts]
         mslp_recent = mslp_analysis[-MSLP_HISTORY:]
 
+        mslp_basemap = get_mslp_basemap()
+
         mslp_out = []
         for mf in mslp_recent:
             mslp_ts = ts_from_url(mf["url"])
@@ -603,7 +640,7 @@ def main():
             if needs_build(mslp_local):
                 print(f"Generating MSLP composite {mslp_ts}…")
                 try:
-                    comp = make_mslp_composite(basemap, mf["url"])
+                    comp = make_mslp_composite(mslp_basemap, mf["url"])
                     comp.save(mslp_local, "WEBP", quality=90)
                     if r2:
                         r2_upload_file(r2, mslp_local, mslp_r2_key)
