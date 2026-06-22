@@ -188,7 +188,7 @@
 </footer>
 
 <script>
-const MANIFEST   = 'https://radar.floodforecast.co.uk/composites/frames_accum_hourly.json';
+const MANIFEST   = '../frames_accum_hourly.json';
 const REFRESH_MS = 60 * 60 * 1000;
 const DWELL_FRAMES = 8;
 
@@ -230,6 +230,10 @@ function updateTimeLabels() {
 async function loadManifest() {
   try {
     const res = await fetch(MANIFEST + '?t=' + Date.now());
+    if (!res.ok) {
+      document.getElementById('loading').textContent = 'Data not yet available — workflow has not run yet.';
+      return;
+    }
     const all = await res.json();
     if (!all.length) {
       document.getElementById('loading').textContent = 'No accumulation data yet — workflow may not have run.';
@@ -262,6 +266,7 @@ async function loadManifest() {
 async function refreshInBackground() {
   try {
     const res = await fetch(MANIFEST + '?t=' + Date.now());
+    if (!res.ok) return;
     const all = await res.json();
     if (!all.length) return;
     const known = new Set(frames.map(f => f.url));
