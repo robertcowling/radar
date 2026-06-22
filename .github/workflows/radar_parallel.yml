@@ -29,8 +29,6 @@ jobs:
           static/radar_parallel_gh
           static/dashboard_basemap_uk_z8.png
           static/dashboard_basemap_uk_z8.meta
-          static/dashboard_basemap_mslp_uk_z8.png
-          static/dashboard_basemap_mslp_uk_z8.meta
           europe_geo.json
           uk_regions_r2.geojson
         key: radar-parallel-images-v3-${{ github.run_id }}
@@ -82,8 +80,6 @@ jobs:
           static/radar_parallel_gh
           static/dashboard_basemap_uk_z8.png
           static/dashboard_basemap_uk_z8.meta
-          static/dashboard_basemap_mslp_uk_z8.png
-          static/dashboard_basemap_mslp_uk_z8.meta
           europe_geo.json
           uk_regions_r2.geojson
         key: radar-parallel-images-v3-${{ github.run_id }}
