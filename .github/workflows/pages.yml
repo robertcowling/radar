@@ -17,6 +17,7 @@ on:
       - '**.geojson'
       - '**.css'
       - '**.js'
+      - 'agent/summary.json'
       - '.github/workflows/pages.yml'
 
 permissions:
