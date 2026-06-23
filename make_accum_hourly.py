@@ -290,7 +290,17 @@ def main():
     now       = datetime.utcnow()
     now_ts    = now.strftime("%Y%m%d%H%M")
 
-    # Hourly: last 24 complete clock hours (all 4 frames present)
+    # Build a timestamp lookup for all keys (used for rolling-window selection)
+    all_key_times = {}
+    for key in all_keys:
+        base = os.path.basename(key)
+        try:
+            all_key_times[key] = datetime.strptime(base[:12], "%Y%m%d%H%M")
+        except Exception:
+            pass
+
+    # Hourly output timestamps: last 24 complete clock hours (all 4 frames present).
+    # Each frame shows the rolling 24hr accumulation *ending* at that hour.
     hour_buckets = group_by_clock_hour(all_keys)
     complete_hours = {ts: sorted(ks) for ts, ks in hour_buckets.items()
                       if len(ks) == FRAMES_PER_HR}
@@ -302,7 +312,15 @@ def main():
     daily_dates = [(today - timedelta(days=i)).strftime("%Y%m%d")
                    for i in range(DAILY_FRAMES)]
 
-    needed_hourly = {key for ts in hour_slots for key in complete_hours[ts]}
+    # For rolling 24hr: each output slot needs all frames in the 24hr window ending there
+    needed_hourly = set()
+    for ts in hour_slots:
+        end_dt   = datetime.strptime(ts, "%Y%m%d%H%M")
+        start_dt = end_dt - timedelta(hours=24)
+        for key, dt in all_key_times.items():
+            if start_dt <= dt < end_dt:
+                needed_hourly.add(key)
+
     needed_daily  = {key for d in daily_dates for key in date_buckets.get(d, [])}
     needed_keys   = needed_hourly | needed_daily
 
@@ -341,15 +359,20 @@ def main():
 
     keep_r2_keys = set()
 
-    # ── Hourly composites ──────────────────────────────────────────────────────
+    # ── Hourly composites (rolling 24hr accumulation ending at each slot) ────────
     hourly_manifest = []
     if hour_slots:
-        print(f"Rendering {len(hour_slots)} hourly frames: {hour_slots[0]} → {hour_slots[-1]}")
+        print(f"Rendering {len(hour_slots)} rolling-24hr frames: {hour_slots[0]} → {hour_slots[-1]}")
     for hour_ts in hour_slots:
+        end_dt   = datetime.strptime(hour_ts, "%Y%m%d%H%M")
+        start_dt = end_dt - timedelta(hours=24)
         accum = np.zeros((OUT_H, OUT_W), dtype=np.float32)
-        for key in complete_hours[hour_ts]:
-            if key in frame_mm:
+        n_used = 0
+        for key, dt in all_key_times.items():
+            if start_dt <= dt < end_dt and key in frame_mm:
                 accum += frame_mm[key]
+                n_used += 1
+        print(f"  {hour_ts}: {n_used}/96 frames, max={accum.max():.1f} mm")
 
         r2_key = f"composites/accum_hourly_{hour_ts}.webp"
         keep_r2_keys.add(r2_key)
