@@ -223,14 +223,12 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 // ── Label formatters ─────────────────────────────────────────────────────────
 
 function fmtHourlyStamp(isoUtc) {
-  const d   = new Date(isoUtc);
-  const end = new Date(d.getTime() + 3600000);
-  const hh0 = String(d.getUTCHours()).padStart(2,'0');
-  const hh1 = String(end.getUTCHours()).padStart(2,'0');
+  const d    = new Date(isoUtc);
+  const hh   = String(d.getUTCHours()).padStart(2,'0');
   const day  = DAYS[d.getUTCDay()];
   const date = d.getUTCDate();
   const mon  = MONTHS[d.getUTCMonth()];
-  return `${hh0}:00 – ${hh1}:00 UTC  ${day} ${date} ${mon}`;
+  return `24hr to ${hh}:00 UTC  ${day} ${date} ${mon}`;
 }
 
 function fmtHourlyShort(isoUtc) {
