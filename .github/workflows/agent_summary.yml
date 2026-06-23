@@ -1,0 +1,67 @@
+name: Generate AI Weather Briefing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Generate AI weather briefing
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+        FFC_API_KEY: ${{ secrets.FFC_API_KEY }}
+        FGS_API_KEY: ${{ secrets.FGS_API_KEY }}
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+      run: python make_agent_summary.py
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.name "Radar Automator"
+        git config --global user.email "radar-bot@github.com"
+        git add agent/summary.json
+        git diff --cached --quiet && echo "No changes to commit" || {
+          git commit -m "Update AI weather briefing $(date -u +'%Y-%m-%d %H:%M UTC')" || exit 1
+          n=0
+          until git pull --no-rebase -X ours origin main && git push origin HEAD:main; do
+            n=$((n+1)); [ $n -ge 4 ] && exit 1
+            git merge --abort 2>/dev/null || true
+            echo "Push attempt $n/4 failed, retrying in $((n*4))s..."
+            sleep $((n*4))
+          done
+        }
+
+    - name: Report Job Status
+      if: always()
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        JOB_NAME: "AI Weather Briefing"
+        JOB_STATUS: ${{ job.status }}
+      run: python report_job_status.py
