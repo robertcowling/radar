@@ -1,0 +1,58 @@
+{
+  "generated_at": "2026-06-23T17:57:00Z",
+  "headline": "",
+  "severity": "normal",
+  "top_risk_areas": [],
+  "summary": "Briefing not yet generated — trigger the agent_summary workflow.",
+  "context_bullets": [
+    "3 active warnings (1 Red, 2 Amber)",
+    "RFG: No Rapid Flood Guidance at this time",
+    "9 images analysed: radar composites + 24hr accum + UKV forecast + MSLP"
+  ],
+  "prompt_used": "Generated: 2026-06-23T17:57 UTC\n\n=== ACTIVE MET OFFICE WARNINGS ===\n[SEVERE] Amber extreme_heat warning\n  Areas: East Midlands | East of England | London & South East England | South West England | Wales | West Midlands\n  Valid: 2026-06-22 00:00 → 2026-06-23 22:59 UTC\n  Headline: A developing hot spell through Monday and Tuesday will likely lead to widespread impacts on people and infrastructure.: UPDATED\n[SEVERE] Amber extreme_heat warning\n  Areas: East Midlands | East of England | London & South East England | North West England | South West England | Wales | West Midlands | Yorkshire & Humber\n  Valid: 2026-06-23 23:00 → 2026-06-25 22:59 UTC\n  Headline: Hot and humid weather is expected to continue through the middle of the week, with exceptionally warm temperatures both day and night.: UPDATED\n[EXTREME] Red extreme_heat warning\n  Areas: East Midlands | East of England | London & South East England | South West England | Wales | West Midlands\n  Valid: 2026-06-24 08:00 → 2026-06-25 20:00 UTC\n  Headline: An exceptional spell of hot and humid weather is expected across this region, with impacts to the general population highly likely.\n\n=== RAPID FLOOD GUIDANCE (RFG) ===\nStatus: No Rapid Flood Guidance at this time\n\n=== FLOOD GUIDANCE STATEMENT (FGS) — 5-day flood risk outlook ===\nFGS data not available.\n\n=== OBSERVED RAINFALL — RAIN GAUGE NETWORK ===\nLatest data: 2026-06-23T17:45:00\nGauge readings unavailable for this run.\n\n=== UKV NWP FORECAST ===\nRun: 23 Jun 2026 12:00 GMT\nRefer to the UKV 12hr forecast image (attached) for spatial distribution.\n\n=== IMAGERY (attached below) ===\n  5 radar rate composites — most recent + 1hr, 2hr, 6hr, 12hr ago\n  1 radar 24hr accumulation map — total rainfall today\n  1 UKV 12hr ahead forecast — predicted 1hr accumulation\n  2 MSLP analysis charts — surface pressure and frontal systems",
+  "images_used": [
+    {
+      "label": "Radar composite — Tue 23 Jun 2026 17:45 UTC (most recent)",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202606231745.webp"
+    },
+    {
+      "label": "Radar composite — Tue 23 Jun 2026 17:00 UTC (~1hr ago)",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202606231700.webp"
+    },
+    {
+      "label": "Radar composite — Tue 23 Jun 2026 16:00 UTC (~2hr ago)",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202606231600.webp"
+    },
+    {
+      "label": "Radar composite — Tue 23 Jun 2026 12:00 UTC (~6hr ago)",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202606231200.webp"
+    },
+    {
+      "label": "Radar composite — Tue 23 Jun 2026 06:00 UTC (~12hr ago)",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202606230600_ODIM_ng_radar_rainrate_composite_1km_UK.png"
+    },
+    {
+      "label": "24hr accumulated rainfall today — ending 17:57 UTC 23 Jun 2026",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/accum_daily_20260623.webp"
+    },
+    {
+      "label": "UKV 12hr forecast — 1hr precipitation valid 24 Jun 2026 00:00 GMT",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260623T1200Z/PT0012H00M_accum_1h_met.png"
+    },
+    {
+      "label": "MSLP analysis — Tue 23 Jun 2026 16:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_mslp_202606231600.webp"
+    },
+    {
+      "label": "MSLP analysis — Tue 23 Jun 2026 17:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_mslp_202606231700.webp"
+    }
+  ],
+  "data_age": {
+    "warnings_generated_at": "2026-06-23T17:54:59.623269+00:00",
+    "rfg_generated_at": "2026-06-07T07:08:47.760063+00:00",
+    "fgs_issued_at": "",
+    "rain_latest_time": "2026-06-23T17:45:00",
+    "ukv_generated_at": "2026-06-23T16:26:00.000Z"
+  }
+}
