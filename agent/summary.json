@@ -1,63 +1,54 @@
 {
-  "generated_at": "2026-06-24T03:35:00Z",
-  "headline": "Flood risk remains low, with only isolated light showers and no organised rainfall across the UK.",
-  "severity": "normal",
-  "top_risk_areas": [
-    "Argyll and Bute",
-    "Hampshire",
-    "Kent"
-  ],
-  "summary": "Over the past 24 hours, rainfall has been very limited and patchy. Rain-gauge data are unavailable for this run, so assessment relies on radar and the 24-hour accumulation map. The accumulation image shows the most notable totals in western Scotland, particularly around Argyll and Bute and nearby Hebridean waters, with smaller localised patches across parts of Hampshire, Kent and the Midlands. Successive radar composites from 21:30 UTC to 03:15 UTC show very little active precipitation over land, with only isolated weak echoes at times over western Scotland, the English Channel and briefly parts of central southern England. This indicates rainfall has been light, sparse and localised rather than widespread or strongly convective.\n\nThere are no active Met Office rain, thunderstorm or flood-related warnings; the only active warnings are for extreme heat, including a Red extreme_heat warning across parts of England and Wales. No named storms are in effect. Rapid Flood Guidance is not active, and Flood Guidance Statement data are unavailable for this run. Based on the available radar evidence, there are no clear exceedances of the operational heavy-rain thresholds of 10 mm in 1 hour or 30 mm in 1 hour, and no indication of significant 3-hour, 6-hour or 24-hour rainfall totals over land at flood-impacting scales. Antecedent soil moisture data are not provided, but the prevailing hot and largely dry pattern implies generally limited runoff sensitivity outside any very isolated shower footprints.\n\nFor the next 24 hours, the UKV forecast image valid at 09:00 UTC shows scattered light precipitation affecting mainly western and northern fringes, with the more coherent areas over the Atlantic approaches, western Scotland and the far north of Scotland. Much of England and Wales appears dry or with only isolated light showers. The MSLP analyses at 02:00 UTC and 03:00 UTC show a weak pressure pattern, with high pressure centred near Ireland and shallow lows to the east of Scotland and near the near-Continent, supporting a slack, humid regime without any organised frontal rainfall crossing the UK. The greatest concern in the outlook remains limited to western Scotland and perhaps far northern Scotland during the morning and daytime period, but forecast rainfall appears light and below flood-risk thresholds, with no clear peak rainfall signal of operational significance.",
+  "generated_at": "2026-06-24T06:33:00Z",
+  "headline": "No significant rainfall impacts across England and Wales, with extreme heat the dominant operational hazard.",
+  "summary": "Over the past 24 hours, rainfall across England and Wales has been light and patchy, with the highest gauge total only 7.0 mm at Herne Bay in SE England; other notable totals were 6.2 mm at Mersea, 6.0 mm at Broadstairs and 5.6 mm at Holland Park. Regional mean totals were low, at 1.4 mm in SE England and 0.8 mm or less elsewhere, with no gauge exceedances of 10 mm in 1 hour or 30 mm in 1 hour. Radar composites show very limited precipitation over England and Wales overnight, consisting mainly of isolated weak echoes over parts of the Midlands, south Wales, south-west England and the far south-east, with more organised showers remaining offshore to the west of Ireland and near the Channel. The 24-hour accumulation map supports a scattered, localised distribution rather than widespread rain, with the most persistent light falls focused in parts of Kent, Essex, London and adjacent south-eastern counties.\n\nThere are no active Met Office rain or thunderstorm warnings and no named storms affecting England and Wales; the only active warnings are for extreme heat, including an amber warning across much of England and Wales and a red extreme heat warning from 08:00 UTC today to 20:00 UTC on 25 June for parts of the Midlands, East of England, South West England, Wales and London and the South East. Rapid Flood Guidance is not active, and Flood Guidance Statement data are not available in this dataset. No rainfall intensity thresholds have been exceeded in the gauge network, so there is currently no evidence of heavy rainfall at or above 10 mm in 1 hour, nor any extreme short-duration rainfall at or above 30 mm in 1 hour. Antecedent soil moisture data are not provided, but the very low recent rainfall totals imply no broad wet-ground signal from the last 24 hours across England and Wales.\n\nUKV regional accumulation tables are not available, so no quantified 6-, 12-, 24- or 48-hour rainfall totals can be stated from the supplied forecast dataset. The MSLP analyses at 05:00 UTC and 06:00 UTC show weak pressure gradients across England and Wales, with a 1020 mb high to the west near Ireland and shallow lows to the east and south-east, a pattern consistent with slack, hot and humid conditions rather than organised frontal rainfall. Given the near-absence of current rain on radar over England and Wales and the lack of forecast accumulation data, no specific area of significant rainfall concern can be identified from the supplied information for the outlook period. Any precipitation signal remains isolated and slight at this time, with no evidence in the provided data of a peak rainfall episode over England and Wales.",
   "context_bullets": [
     "2 active warnings (1 Red, 1 Amber)",
     "RFG: No Rapid Flood Guidance at this time",
-    "9 images analysed: radar composites + 24hr accum + UKV forecast + MSLP",
-    "Top risk areas: Argyll and Bute, Hampshire, Kent"
+    "Peak 24hr gauge: 7.0mm at Herne Bay (SE England)",
+    "Rainfall trend: intensifying (+35% vs 6hr mean rate)",
+    "8 images analysed: radar composites + 24hr accum + MSLP"
   ],
-  "prompt_used": "Generated: 2026-06-24T03:35 UTC\n\n=== ACTIVE MET OFFICE WARNINGS ===\n[SEVERE] Amber extreme_heat warning\n  Areas: East Midlands | East of England | London & South East England | North West England | South West England | Wales | West Midlands | Yorkshire & Humber\n  Valid: 2026-06-23 23:00 → 2026-06-25 22:59 UTC\n  Headline: Hot and humid weather is expected to continue through the middle of the week, with exceptionally warm temperatures both day and night.: UPDATED\n[EXTREME] Red extreme_heat warning\n  Areas: East Midlands | East of England | London & South East England | South West England | Wales | West Midlands\n  Valid: 2026-06-24 08:00 → 2026-06-25 20:00 UTC\n  Headline: An exceptional spell of hot and humid weather is expected across this region, with impacts to the general population highly likely.\n\n=== RAPID FLOOD GUIDANCE (RFG) ===\nStatus: No Rapid Flood Guidance at this time\n\n=== FLOOD GUIDANCE STATEMENT (FGS) — 5-day flood risk outlook ===\nFGS data not available.\n\n=== OBSERVED RAINFALL — RAIN GAUGE NETWORK ===\nLatest data: 2026-06-24T03:15:00\nGauge readings unavailable for this run.\n\n=== UKV NWP FORECAST ===\nRun: 23 Jun 2026 21:00 GMT\nRefer to the UKV 12hr forecast image (attached) for spatial distribution.\n\n=== IMAGERY (attached below) ===\n  5 radar rate composites — most recent + 1hr, 2hr, 6hr, 12hr ago\n  1 radar 24hr accumulation map — total rainfall today\n  1 UKV 12hr ahead forecast — predicted 1hr accumulation\n  2 MSLP analysis charts — surface pressure and frontal systems",
+  "prompt_used": "Generated: 2026-06-24T06:33 UTC\n\n=== ACTIVE MET OFFICE WARNINGS ===\n[SEVERE] Amber extreme_heat warning\n  Areas: East Midlands | East of England | London & South East England | North West England | South West England | Wales | West Midlands | Yorkshire & Humber\n  Valid: 2026-06-23 23:00 → 2026-06-25 22:59 UTC\n  Headline: Hot and humid weather is expected to continue through the middle of the week, with exceptionally warm temperatures both day and night.: UPDATED\n[EXTREME] Red extreme_heat warning\n  Areas: East Midlands | East of England | London & South East England | South West England | Wales | West Midlands\n  Valid: 2026-06-24 08:00 → 2026-06-25 20:00 UTC\n  Headline: An exceptional spell of hot and humid weather is expected across this region, with impacts to the general population highly likely.\n\n=== RAPID FLOOD GUIDANCE (RFG) ===\nStatus: No Rapid Flood Guidance at this time\n\n=== FLOOD GUIDANCE STATEMENT (FGS) — 5-day flood risk outlook (last 3 days shown) ===\nFGS data not available.\n\n=== OBSERVED RAINFALL — RAIN GAUGE NETWORK ===\nLatest data: 2026-06-24T06:15:00\n\nRegion                  Max 24hr  Mean 24hr  >10mm/1hr  >30mm/1hr\n-----------------------------------------------------------------\nSE England                  7.0mm       1.4mm          0          0\nSW England                  2.7mm       0.5mm          0          0\nE England                   2.4mm       0.8mm          0          0\nNW England                  2.4mm       0.4mm          0          0\nScotland                    2.0mm       1.1mm          0          0\nNE England                  0.1mm       0.1mm          0          0\n\nTop 10 stations by 24hr accumulation:\n  Herne Bay (SE England): 1hr=0.0mm  6hr=0.0mm  24hr=7.0mm\n  Mersea (SE England): 1hr=0.0mm  6hr=0.0mm  24hr=6.2mm\n  Broadstairs (SE England): 1hr=0.0mm  6hr=0.0mm  24hr=6.0mm\n  Holland Park (SE England): 1hr=0.0mm  6hr=0.0mm  24hr=5.6mm\n  Redgate Mill (SE England): 1hr=0.0mm  6hr=0.0mm  24hr=5.5mm\n  Jarvis Brook (SE England): 1hr=0.0mm  6hr=0.0mm  24hr=5.2mm\n  Mayfield (SE England): 1hr=0.0mm  6hr=0.0mm  24hr=4.4mm\n  Edenbridge (SE England): 1hr=0.0mm  6hr=0.0mm  24hr=4.0mm\n  West Stourmouth (SE England): 1hr=0.0mm  6hr=0.0mm  24hr=3.4mm\n  Sellindge (SE England): 1hr=0.0mm  6hr=0.0mm  24hr=3.2mm\n\nTrend (last 1hr vs 6hr mean): intensifying (+35% above 6hr mean rate)\n\n=== UKV NWP FORECAST — REGIONAL ACCUMULATIONS ===\nUKV numerical data not available.\n\n=== IMAGERY (attached below) ===\n  5 radar rate composites — most recent + 1hr, 2hr, 6hr, 12hr ago\n  1 radar 24hr accumulation map — total rainfall today\n  2 MSLP analysis charts — surface pressure and frontal systems",
   "images_used": [
     {
-      "label": "Radar composite — Wed 24 Jun 2026 03:15 UTC (most recent)",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202606240315.webp"
+      "label": "Radar composite — Wed 24 Jun 2026 06:15 UTC (most recent)",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202606240615.webp"
     },
     {
-      "label": "Radar composite — Wed 24 Jun 2026 02:30 UTC (~1hr ago)",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202606240230.webp"
+      "label": "Radar composite — Wed 24 Jun 2026 05:30 UTC (~1hr ago)",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202606240530.webp"
     },
     {
-      "label": "Radar composite — Wed 24 Jun 2026 01:30 UTC (~2hr ago)",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202606240130.webp"
+      "label": "Radar composite — Wed 24 Jun 2026 04:30 UTC (~2hr ago)",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202606240430.webp"
     },
     {
-      "label": "Radar composite — Tue 23 Jun 2026 21:30 UTC (~6hr ago)",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202606232130.webp"
+      "label": "Radar composite — Wed 24 Jun 2026 00:30 UTC (~6hr ago)",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202606240030.webp"
     },
     {
-      "label": "Radar composite — Tue 23 Jun 2026 15:30 UTC (~12hr ago)",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202606231530_ODIM_ng_radar_rainrate_composite_1km_UK.png"
+      "label": "Radar composite — Tue 23 Jun 2026 18:30 UTC (~12hr ago)",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202606231830_ODIM_ng_radar_rainrate_composite_1km_UK.png"
     },
     {
-      "label": "24hr accumulated rainfall today — ending 03:35 UTC 24 Jun 2026",
+      "label": "24hr accumulated rainfall today — ending 06:33 UTC 24 Jun 2026",
       "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/accum_daily_20260624.webp"
     },
     {
-      "label": "UKV 12hr forecast — 1hr precipitation valid 24 Jun 2026 09:00 GMT",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260623T2100Z/PT0012H00M_accum_1h_met.png"
+      "label": "MSLP analysis — Wed 24 Jun 2026 05:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_mslp_202606240500.webp"
     },
     {
-      "label": "MSLP analysis — Wed 24 Jun 2026 02:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_mslp_202606240200.webp"
-    },
-    {
-      "label": "MSLP analysis — Wed 24 Jun 2026 03:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_mslp_202606240300.webp"
+      "label": "MSLP analysis — Wed 24 Jun 2026 06:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_mslp_202606240600.webp"
     }
   ],
   "data_age": {
-    "warnings_generated_at": "2026-06-24T03:24:56.777297+00:00",
+    "warnings_generated_at": "2026-06-24T06:24:59.278192+00:00",
     "rfg_generated_at": "2026-06-07T07:08:47.760063+00:00",
     "fgs_issued_at": "",
-    "rain_latest_time": "2026-06-24T03:15:00",
-    "ukv_generated_at": "2026-06-24T01:15:00.000Z"
+    "rain_latest_time": "2026-06-24T06:15:00",
+    "ukv_run_label": "24 Jun 2026 00:00 GMT"
   }
 }
