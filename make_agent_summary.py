@@ -170,11 +170,26 @@ def load_rfg():
 # ── FGS (5-day Flood Guidance Statement) ──────────────────────────────────────────
 
 def fetch_fgs_history(n=4):
-    """Return list of up to n recent FGS statements (newest first)."""
-    data = http_get_json(
+    """Return list of up to n recent FGS statements (newest first).
+
+    404 means no active FGS at this time (normal in low-risk periods).
+    """
+    req = urllib.request.Request(
         f"{FGS_API_BASE}/fgs",
         headers={"x-api-key": FFC_API_KEY},
     )
+    try:
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            print("  FGS: no active statement (404 — normal in low-risk periods)")
+        else:
+            print(f"  FGS HTTP {e.code}: {e}")
+        return []
+    except Exception as e:
+        print(f"  FGS: {e}")
+        return []
     if isinstance(data, list):
         return data[:n]
     elif data:
@@ -399,12 +414,8 @@ def load_ukv_poly_text():
         if not step:
             continue
         valid_label = step.get("valid_label", f"T+{offset_h}h")
-        # Try zero-padded and plain integer key formats
-        poly_data = None
-        for fmt in (f"{offset_h:03d}", str(offset_h)):
-            poly_data = r2_get_json(f"ukv_poly/{run_ts}/{fmt}.json")
-            if poly_data:
-                break
+        offset_str = step.get("offset", "")
+        poly_data = r2_get_json(f"ukv_poly/{run_ts}/{offset_str}.json") if offset_str else None
         if not poly_data:
             continue
         regional_mm = (poly_data.get("regions") or {}).get(accum_key, {})
