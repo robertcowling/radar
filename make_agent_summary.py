@@ -417,8 +417,37 @@ def parse_frame_time(time_str):
 
 # ── UKV poly numerical forecast ───────────────────────────────────────────────────
 
+# Government regions outside England & Wales — excluded from the E&W-focused tables.
+_NON_EW_REGIONS = {"scotland", "northern ireland", "ni"}
+
+
+def _top_polys(layer_dict, accum_key, limit, ew_only=False):
+    """Return sorted [(name, mm), ...] for a poly layer/period, dropping None and zeros."""
+    period = (layer_dict or {}).get(accum_key, {})
+    rows = []
+    for name, mm in period.items():
+        if mm is None:
+            continue
+        if ew_only and any(x in name.lower() for x in _NON_EW_REGIONS):
+            continue
+        try:
+            v = float(mm)
+        except (TypeError, ValueError):
+            continue
+        if v < 0.05:
+            continue
+        rows.append((name, v))
+    rows.sort(key=lambda x: -x[1])
+    return rows[:limit]
+
+
 def load_ukv_poly_text():
-    """Fetch UKV regional poly accumulations from R2 for multiple forecast steps."""
+    """Fetch UKV poly accumulations from R2 for multiple forecast steps.
+
+    For each cumulative period (T+6/12/24/48) reports the wettest England &
+    Wales regions; for the 24h period also lists the wettest river catchments
+    (the flood-relevant unit) and counties for finer spatial detail.
+    """
     meta = load_json("ukv_meta.json", {})
     runs = meta.get("runs", [])
     if not runs:
@@ -426,11 +455,12 @@ def load_ukv_poly_text():
     run      = runs[0]
     run_ts   = run.get("run_ts", "")
     run_label = run.get("run_label", run_ts)
-    # Build offset_hours → step lookup
     steps_by_h = {s.get("offset_hours"): s for s in run.get("steps", [])}
 
-    lines = [f"UKV NWP run {run_label} — cumulative regional rainfall forecasts:"]
-    # Periods: cumulative accum up to T+6, T+12, T+24, T+48
+    lines = [
+        f"UKV NWP run {run_label}. Values are cumulative forecast rainfall from "
+        f"forecast start (T+0) to the stated lead time, mm, area-mean per polygon."
+    ]
     target_offsets = [(6, "accum_6h"), (12, "accum_12h"), (24, "accum_24h"), (48, "accum_48h")]
     got_any = False
     for offset_h, accum_key in target_offsets:
@@ -442,14 +472,27 @@ def load_ukv_poly_text():
         poly_data = r2_get_json(f"ukv_poly/{run_ts}/{offset_str}.json") if offset_str else None
         if not poly_data:
             continue
-        regional_mm = (poly_data.get("regions") or {}).get(accum_key, {})
-        if not regional_mm:
+
+        regions = _top_polys(poly_data.get("regions"), accum_key, 12, ew_only=True)
+        if not regions:
             continue
         got_any = True
-        lines.append(f"\n  T+{offset_h}h (valid {valid_label}) — {offset_h}hr cumul. by region (England & Wales focus):")
-        # Sort by highest rainfall, skip Scotland for E&W focus but include if significant
-        for region, mm in sorted(regional_mm.items(), key=lambda x: -x[1])[:12]:
-            lines.append(f"    {region}: {float(mm):.1f} mm")
+        lines.append(f"\n  Next {offset_h}h (T+0 → T+{offset_h}, valid by {valid_label}) — wettest regions, England & Wales:")
+        for name, mm in regions:
+            lines.append(f"    {name}: {mm:.1f} mm")
+
+        # For the 24h period add catchment- and county-scale detail
+        if offset_h == 24:
+            catch = _top_polys(poly_data.get("catchments"), accum_key, 10)
+            if catch:
+                lines.append(f"\n  Next 24h — wettest river catchments (flood-relevant unit):")
+                for name, mm in catch:
+                    lines.append(f"    {name}: {mm:.1f} mm")
+            counties = _top_polys(poly_data.get("counties"), accum_key, 8)
+            if counties:
+                lines.append(f"\n  Next 24h — wettest counties / unitary areas:")
+                for name, mm in counties:
+                    lines.append(f"    {name}: {mm:.1f} mm")
 
     if not got_any:
         return None, run_label
@@ -469,37 +512,62 @@ def pick_nearest(frames, target_dt, time_key="time"):
 
 
 def select_images():
+    """Select images for the model. EVERY image must carry the CartoDB basemap +
+    region boundaries so the model can geolocate features. Raw overlay-only PNGs
+    (no basemap) are never used.
+    """
     images = []
     n = now_utc()
 
-    # ── Radar composites ─────────────────────────────────────────────────────────
+    # ── Radar rate composites — recent movement (last 6h, all basemap) ───────────
+    # Only the ~24 most recent radar frames have a dashboard composite (basemap);
+    # older frames have only the raw overlay, so we stay inside that window.
     radar = load_json("frames_parallel.json", [])
     if radar:
-        offsets_min = [0, 60, 120, 360, 720]
-        labels      = ["most recent", "~1hr ago", "~2hr ago", "~6hr ago", "~12hr ago"]
+        offsets_min = [0, 120, 240, 360]
+        labels      = ["most recent", "~2hr ago", "~4hr ago", "~6hr ago"]
         seen = set()
         for offset, lbl in zip(offsets_min, labels):
             f = pick_nearest(radar, n - timedelta(minutes=offset))
             if not f:
                 continue
-            url = f.get("dashboard_radar_url") or f.get("url")
+            url = f.get("dashboard_radar_url")  # basemap composite only
             if url and url not in seen:
                 seen.add(url)
-                images.append((f"Radar composite — {f['time']} ({lbl})", url))
+                images.append((f"Radar rainfall-rate composite — {f['time']} ({lbl})", url))
 
-    # ── 24hr accumulation ─────────────────────────────────────────────────────────
-    accum_daily = load_json("frames_accum_daily.json", [])
-    if accum_daily:
-        today_frame = accum_daily[0]
+    # ── Rolling 24h accumulation — build-up & trend (latest + ~12h earlier) ──────
+    accum_hourly = load_json("frames_accum_hourly.json", [])
+    if len(accum_hourly) >= 2:
+        latest = accum_hourly[-1]
+        earlier = accum_hourly[max(0, len(accum_hourly) - 13)]  # ~12h before latest
         images.append((
-            f"24hr accumulated rainfall today — ending {n.strftime('%H:%M UTC %d %b %Y')}",
-            today_frame["url"],
+            f"Rolling 24h rainfall accumulation ending {latest['time']} (current footprint)",
+            latest["url"],
         ))
+        if earlier["url"] != latest["url"]:
+            images.append((
+                f"Rolling 24h rainfall accumulation ending {earlier['time']} (~12h earlier, for trend)",
+                earlier["url"],
+            ))
+    else:
+        accum_daily = load_json("frames_accum_daily.json", [])
+        if accum_daily:
+            images.append((
+                f"24h accumulated rainfall today — ending {n.strftime('%H:%M UTC %d %b %Y')}",
+                accum_daily[0]["url"],
+            ))
 
-    # ── MSLP analysis ─────────────────────────────────────────────────────────────
+    # ── MSLP analysis — synoptic pattern & evolution (latest + ~12h earlier) ─────
     mslp = load_json("frames_mslp.json", [])
-    for f in mslp[-2:]:
-        images.append((f"MSLP analysis — {f['time']}", f["mslp"]))
+    if len(mslp) >= 2:
+        latest_m = mslp[-1]
+        earlier_m = mslp[max(0, len(mslp) - 13)]
+        images.append((f"MSLP analysis — {latest_m['time']} (latest)", latest_m["mslp"]))
+        if earlier_m["mslp"] != latest_m["mslp"]:
+            images.append((f"MSLP analysis — {earlier_m['time']} (~12h earlier, for evolution)", earlier_m["mslp"]))
+    elif mslp:
+        images.append((f"MSLP analysis — {mslp[-1]['time']}", mslp[-1]["mslp"]))
 
     return images
 
@@ -507,21 +575,31 @@ def select_images():
 # ── System prompt ─────────────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """\
-You are an expert UK weather analyst writing a concise operational briefing for flood risk and emergency planning practitioners in England and Wales. You have been given structured observational and forecast data PLUS radar composite images, a 24hr rainfall accumulation map, and MSLP analysis charts.
+You are an expert UK operational meteorologist and hydrologist writing a concise flood-risk briefing for emergency planning and Flood Forecasting Centre practitioners. Your focus is England and Wales at regional scale, dropping to catchment or county scale only where the data clearly justifies singling out a smaller area.
+
+You are given (a) structured observational and forecast data and (b) a set of map images. EVERY image is rendered on the SAME geographic basemap with national/regional boundary lines and coastlines drawn on top, so you can geolocate every feature precisely — name the actual regions, coasts and uplands the rainfall sits over rather than describing abstract positions. The image set, in order, is:
+  • Four radar rainfall-RATE composites (most recent, ~2h, ~4h, ~6h ago) — read these as a short loop to judge where rain is now and which way systems are tracking.
+  • Two ROLLING 24-HOUR ACCUMULATION maps (current footprint and one ~12h earlier) — compare them to see where totals are building up and whether the wet footprint is expanding, shifting or decaying.
+  • Two MSLP analysis charts (latest and ~12h earlier) — use isobar spacing and frontal positions to explain the synoptic driver and its evolution.
+
+Method — reason across sources before writing:
+  1. Cross-check the radar/accumulation imagery against the rain-gauge table; trust gauge mm values for magnitude and imagery for spatial pattern and motion.
+  2. Weigh forecast rainfall (UKV tables + MSLP) against antecedent soil moisture and any rainfall already banked in the last 24h — the flood risk is highest where fresh heavy rain falls on already-wet ground or saturated catchments.
+  3. Reconcile the official guidance (Met Office warnings, RFG, FGS trend) with what the data shows; flag clearly if observations look more or less severe than the official line.
 
 Respond with a JSON object inside <json> tags with exactly these fields:
-- "headline": One punchy sentence (maximum 20 words) capturing the most significant current weather situation or outlook.
-- "summary": Three paragraphs separated by double newline (\\n\\n):
-    Para 1 — Observations: where heaviest rainfall has fallen over the past 24 hours across England and Wales; integrate gauge data AND describe what the radar images show about spatial distribution and evolution; note whether rainfall is widespread or convective and localised. Where appropriate, name specific regions (e.g. North West England, South Wales, Yorkshire) or smaller units (catchments, counties) when the data supports it.
-    Para 2 — Hazards and Guidance: active Met Office warnings — name any named storms explicitly; Rapid Flood Guidance status; Flood Guidance Statement 5-day outlook by area — if multiple statements are provided, note any trend in risk levels day-to-day; threshold exceedances (10 mm/1hr heavy, 30 mm/1hr extreme flash flood risk); antecedent soil moisture and its implications for runoff.
-    Para 3 — Forecast: use the UKV NWP regional accumulation tables (provided as structured data) to describe forecast rainfall totals for England and Wales by region over the next 6, 12, 24 and 48 hours; integrate the synoptic pattern from the MSLP charts; identify the areas of greatest concern in the outlook period and the timing of any peak rainfall.
+- "headline": One sharp sentence (max 20 words) capturing the single most decision-relevant point now or in the outlook.
+- "summary": Exactly three paragraphs separated by a double newline (\\n\\n):
+    Para 1 — Observations (last 24h): where the heaviest rain has fallen and how it is currently behaving. Anchor to gauge mm values and to what the radar loop and accumulation maps show (widespread/frontal vs convective/localised; intensifying, steady or easing). Name specific regions, and catchments or counties where warranted.
+    Para 2 — Hazards & guidance: active Met Office warnings (name any named storm explicitly); RFG status; FGS England/Wales outlook and its day-to-day trend; gauge threshold exceedances; antecedent soil-moisture state and what it means for runoff and catchment response.
+    Para 3 — Forecast (next 6–48h): use the UKV regional/catchment accumulation tables and the MSLP charts to give expected totals and where/when the peak falls, by region (and catchment where it matters). State where greatest concern lies and why, linking forecast rain to current wetness.
 
 Rainfall significance thresholds:
-  10 mm/1hr: heavy  |  30 mm/1hr: extreme, flash flood risk
-  25 mm/3hr: significant  |  40 mm/3hr: very significant
-  50 mm/6hr or 100 mm/24hr: exceptional
+  10 mm/1h heavy | 30 mm/1h extreme (flash-flood risk)
+  25 mm/3h significant | 40 mm/3h very significant
+  50 mm/6h or 100 mm/24h exceptional
 
-Write in professional, factual third-person prose. No bullet points within the summary. Use specific place names and mm values from the data. Do not speculate beyond what the data shows. Use UTC for all times. If a data source shows no significant activity, state that briefly and move on."""
+Style: professional, factual, third-person prose; no bullet points inside the summary; specific place names and mm values, not vague adjectives; UTC for all times. Do not invent data — if a source is missing or quiet, say so briefly and move on. Be calm and proportionate: in benign conditions say so plainly rather than manufacturing alarm."""
 
 
 # ── Prompt data block ─────────────────────────────────────────────────────────────
@@ -604,15 +682,15 @@ def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top1
         L.append("")
 
     # UKV
-    L.append("=== UKV NWP FORECAST — REGIONAL ACCUMULATIONS ===")
+    L.append("=== UKV NWP FORECAST — POLYGON ACCUMULATIONS (England & Wales focus) ===")
     L.append(ukv_poly_text or "UKV numerical data not available.")
     L.append("")
 
     # Image context
-    L.append("=== IMAGERY (attached below) ===")
-    L.append("  5 radar rate composites — most recent + 1hr, 2hr, 6hr, 12hr ago")
-    L.append("  1 radar 24hr accumulation map — total rainfall today")
-    L.append("  2 MSLP analysis charts — surface pressure and frontal systems")
+    L.append("=== IMAGERY (attached below — all share one basemap with boundaries) ===")
+    L.append("  4 radar rainfall-rate composites — most recent, ~2h, ~4h, ~6h ago (motion/loop)")
+    L.append("  2 rolling 24h accumulation maps — current footprint and ~12h earlier (build-up/trend)")
+    L.append("  2 MSLP analysis charts — latest and ~12h earlier (synoptic driver/evolution)")
 
     return "\n".join(L)
 
@@ -715,7 +793,7 @@ def build_bullets(warnings, rfg, fgs_text, gauge_regional, gauge_top10,
     if cosmos:
         B.append(f"Soil moisture: {cosmos['condition'].split('—')[0].strip()} (mean VWC {cosmos['mean_vwc']}%)")
 
-    B.append(f"{len(images)} images analysed: radar composites + 24hr accum + MSLP")
+    B.append(f"{len(images)} basemap images analysed: radar loop + 24h accumulation (×2) + MSLP (×2)")
 
     return B
 
@@ -777,13 +855,24 @@ def main():
     bullets = build_bullets(warnings, rfg, fgs_history_text, gauge_regional, gauge_top10,
                              gauge_trend, cosmos, images, parsed)
 
+    # Full prompt shown on the front end: system instructions + data + image manifest.
+    image_manifest = "\n".join(f"  {i+1}. {lbl}" for i, (lbl, _u) in enumerate(images))
+    full_prompt = (
+        "######## SYSTEM PROMPT ########\n"
+        f"{SYSTEM_PROMPT}\n\n"
+        "######## DATA (user message) ########\n"
+        f"{data_block}\n\n"
+        "######## IMAGES ATTACHED (in order) ########\n"
+        f"{image_manifest}"
+    )
+
     output = {
         "generated_at":    now_utc().strftime("%Y-%m-%dT%H:%M:00Z"),
         "headline":        (parsed or {}).get("headline", ""),
         "summary":         (parsed or {}).get("summary",
                             "Briefing not yet generated — trigger the agent_summary workflow."),
         "context_bullets": bullets,
-        "prompt_used":     data_block,
+        "prompt_used":     full_prompt,
         "images_used":     [{"label": lbl, "url": url} for lbl, url in images],
         "data_age": {
             "warnings_generated_at": warnings_gen,
