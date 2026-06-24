@@ -172,28 +172,38 @@ def load_rfg():
 def fetch_fgs_history(n=4):
     """Return list of up to n recent FGS statements (newest first).
 
-    404 means no active FGS at this time (normal in low-risk periods).
+    Tries /statements then /fgs. 404 means no active FGS (normal in summer).
     """
-    req = urllib.request.Request(
-        f"{FGS_API_BASE}/fgs",
-        headers={"x-api-key": FFC_API_KEY},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            print("  FGS: no active statement (404 — normal in low-risk periods)")
+    for path in ("statements", "fgs"):
+        req = urllib.request.Request(
+            f"{FGS_API_BASE}/{path}",
+            headers={"x-api-key": FFC_API_KEY},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            break
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                continue
+            print(f"  FGS HTTP {e.code} on /{path}: {e}")
+            return []
+        except Exception as e:
+            print(f"  FGS /{path}: {e}")
+            return []
+    else:
+        print("  FGS: no active statement (404 — normal in low-risk periods)")
+        return []
+    # Unwrap if wrapped in an object e.g. {"statements": [...]}
+    if isinstance(data, dict):
+        for key in ("statements", "fgs", "results", "data"):
+            if isinstance(data.get(key), list):
+                data = data[key]
+                break
         else:
-            print(f"  FGS HTTP {e.code}: {e}")
-        return []
-    except Exception as e:
-        print(f"  FGS: {e}")
-        return []
+            data = [data]
     if isinstance(data, list):
         return data[:n]
-    elif data:
-        return [data]
     return []
 
 
@@ -201,35 +211,49 @@ def fmt_fgs(fgs_data):
     if not fgs_data:
         return "FGS data not available."
     lines = []
-    issued = (fgs_data.get("issued_at") or fgs_data.get("issuedAt") or "")
-    if issued:
-        lines.append(f"Issued: {issued}")
-    areas = (fgs_data.get("areas") or fgs_data.get("guidance_areas") or
-             fgs_data.get("floodAreas") or [])
-    if isinstance(areas, list):
-        for area in areas[:12]:
-            name = (area.get("area_name") or area.get("name") or area.get("areaName") or "Unknown")
-            risks = []
-            for day_n in range(1, 6):
-                for key in (f"day{day_n}", f"day_{day_n}"):
-                    day = area.get(key) or {}
-                    if isinstance(day, dict):
-                        risk = (day.get("risk") or day.get("riskLevel") or "").strip()
-                        if risk:
-                            risks.append(f"D{day_n}:{risk}")
-                            break
-            if risks:
-                lines.append(f"  {name}: {', '.join(risks)}")
-    elif isinstance(areas, dict):
-        for name, detail in list(areas.items())[:12]:
-            risk = detail.get("risk") or detail.get("level") or str(detail)[:60]
-            lines.append(f"  {name}: {risk}")
+
+    # Published date
+    pf = fgs_data.get("public_forecast") or {}
+    published = pf.get("published_at") or fgs_data.get("issued_at") or fgs_data.get("issuedAt") or ""
+    if published:
+        lines.append(f"Published: {published[:19].replace('T', ' ')} UTC")
+
+    # England / Wales outlook text
+    eng = pf.get("england_forecast") or pf.get("english_forecast") or ""
+    wal = pf.get("wales_forecast_english") or ""
+    if eng:
+        lines.append(f"England: {eng.strip()}")
+    if wal:
+        lines.append(f"Wales: {wal.strip()}")
+
+    # 5-day flood risk trend
+    trend = fgs_data.get("flood_risk_trend") or {}
+    if trend:
+        trend_str = "  ".join(
+            f"D{i+1}:{trend.get(f'day{i+1}', '?')}"
+            for i in range(5)
+        )
+        lines.append(f"5-day trend: {trend_str}")
+
+    # Fallback to per-area format if present
     if not lines:
-        for key in ("summary", "overall_risk", "headline", "text", "description"):
-            val = fgs_data.get(key)
-            if val and isinstance(val, str):
-                lines.append(val[:400])
-                break
+        areas = (fgs_data.get("areas") or fgs_data.get("guidance_areas") or
+                 fgs_data.get("floodAreas") or [])
+        if isinstance(areas, list):
+            for area in areas[:12]:
+                name = (area.get("area_name") or area.get("name") or "Unknown")
+                risks = []
+                for day_n in range(1, 6):
+                    for key in (f"day{day_n}", f"day_{day_n}"):
+                        day = area.get(key) or {}
+                        if isinstance(day, dict):
+                            risk = (day.get("risk") or day.get("riskLevel") or "").strip()
+                            if risk:
+                                risks.append(f"D{day_n}:{risk}")
+                                break
+                if risks:
+                    lines.append(f"  {name}: {', '.join(risks)}")
+
     if not lines:
         lines.append(f"FGS received — structure: {list(fgs_data.keys())[:6]}")
     return "\n".join(lines)
