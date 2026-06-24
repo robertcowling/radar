@@ -477,7 +477,7 @@ _NON_EW_REGIONS = {"scotland", "northern ireland", "ni"}
 
 
 def _fmt_ddhhmm(label):
-    """Convert a UKV time label to compact 'DD/HHMM GMT' form.
+    """Convert a UKV time label to 'ddd D/HHMM GMT/BST' form.
 
     Accepts human labels ('24 Jun 2026 03:00 GMT') or run_ts ('20260624T0300Z').
     Falls back to the original string if it cannot be parsed.
@@ -487,7 +487,9 @@ def _fmt_ddhhmm(label):
     s = label.strip()
     for fmt in ("%d %b %Y %H:%M GMT", "%d %b %Y %H:%M UTC", "%Y%m%dT%H%MZ"):
         try:
-            return datetime.strptime(s, fmt).strftime("%d/%H%M GMT")
+            dt = datetime.strptime(s, fmt).replace(tzinfo=timezone.utc)
+            local, tz = _uk_local(dt)
+            return local.strftime(f"%a %-d/%H%M {tz}")
         except ValueError:
             continue
     return label
@@ -714,19 +716,19 @@ You are an expert UK operational meteorologist writing a concise weather and flo
 
 All map images share the same geographic basemap with boundary lines — geolocate features precisely. Image order:
   • Four radar RATE composites (~6h loop) — current rainfall location and motion.
-  • Five DAILY ACCUMULATION maps (today partial + 4 prior complete days) — multi-day antecedent rainfall by region.
+  • Five DAILY ACCUMULATION maps (today partial + 4 prior complete days) — multi-day antecedent context.
   • Two MSLP charts (latest + ~12h earlier) — synoptic driver and evolution.
 
 Respond with a JSON object inside <json> tags:
-- "headline": One sentence, max 15 words.
-- "summary": Three paragraphs separated by \\n\\n. Each paragraph is 2–3 sentences — concise and direct. MANDATORY structure, never merge:
-    Para 1 — Synoptic scene: what the MSLP charts show (pressure centres, fronts, air mass); how the pattern has evolved; what is driving the current weather.
-    Para 2 — Recent observations: heaviest rainfall in the last 24h with gauge point-totals and region names; multi-day antecedent context from the daily accumulation maps; active Met Office warnings (name any storm).
-    Para 3 — Outlook: UKV (run DD/HHMM GMT) day-1 and day-2 spatial area-mean totals for wettest regions and catchments, with valid times as DD/HHMM GMT; only mention FGS risk levels (using block caps: VERY LOW, LOW, MEDIUM, HIGH) and catchment wetness where they add something beyond the obvious; arrive at a brief flood-risk conclusion naturally at the end.
+- "headline": One sentence, max 12 words.
+- "summary": Three paragraphs separated by \\n\\n. Two sentences each — be direct and concise. MANDATORY structure, never merge:
+    Para 1 — Synoptic scene: describe what the MSLP charts show and how the pattern has changed; name the feature driving the weather (front, low, ridge etc).
+    Para 2 — Recent observations: where the heaviest rain fell in the last 24h with gauge point-totals and region names; note antecedent context from the daily accumulation maps and any active Met Office warnings (naming any storm).
+    Para 3 — Outlook: UKV day-1 and day-2 area-mean totals for the wettest regions and catchments, cited as "UKV (run ddd D/HHMM BST/GMT)" with natural valid-time phrases like "up to early Friday morning (Fri 25/0300 BST)"; close with a brief flood-risk conclusion referencing FGS levels (block caps: VERY LOW, LOW, MEDIUM, HIGH) only if relevant.
 
-Rainfall thresholds for context: 10mm/1h heavy; 30mm/1h extreme; 100mm/24h exceptional.
+Rainfall thresholds: 10mm/1h heavy; 30mm/1h extreme; 100mm/24h exceptional.
 
-Style: professional third-person prose; no bullet points; specific place names and mm values. Gauge values are single-site point totals; UKV values are spatial area-means — keep these distinct. Use UTC for observation times. Do not repeat flood-risk language throughout — say it once, proportionately, at the end. In quiet conditions say so plainly."""
+Style: professional third-person prose; no bullet points; specific place names and mm values. Gauge values are single-site point totals; UKV values are spatial area-means — keep these distinct. All times in GMT or BST — never UTC. Use natural time phrases where possible (e.g. "compared with yesterday morning", "up to early Friday"); you may bracket the precise time for verifiability. Only mention meteorological mechanisms (orographic enhancement, frontal lifting, convective instability, etc.) where the radar imagery, gauge distribution, or MSLP charts specifically support it — do not assert mechanisms without evidence. Say flood risk once, proportionately, at the end. In quiet conditions say so plainly."""
 
 
 # ── Prompt data block ─────────────────────────────────────────────────────────────
@@ -740,7 +742,7 @@ def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top1
     L.append("=== ACTIVE MET OFFICE WARNINGS ===")
     if warnings:
         for w in warnings:
-            L.append(f"[{w['severity'].upper()}] {w['title']}")
+            L.append(f"[{w['severity'].replace('_', ' ').title()}] {w['title']}")
             if w.get("storm"):
                 L.append(f"  Named storm: {w['storm']}")
             if w.get("area"):
