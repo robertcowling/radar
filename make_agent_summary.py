@@ -119,6 +119,35 @@ def now_utc():
     return datetime.now(timezone.utc)
 
 
+def _uk_local(dt_utc):
+    """Return (local_dt, tz_name) for UK time (BST or GMT), no external deps."""
+    import calendar
+    year = dt_utc.year
+    def last_sunday(y, month):
+        last_day = calendar.monthrange(y, month)[1]
+        d = datetime(y, month, last_day, 1, 0, tzinfo=timezone.utc)
+        while d.weekday() != 6:
+            d -= timedelta(days=1)
+        return d
+    bst_start = last_sunday(year, 3)
+    bst_end   = last_sunday(year, 10)
+    if bst_start <= dt_utc < bst_end:
+        return dt_utc + timedelta(hours=1), "BST"
+    return dt_utc, "GMT"
+
+
+def _fmt_uk_time(iso_str):
+    """'2026-06-24T08:00:00Z' → 'Wed 24 Jun at 09:00 BST'"""
+    if not iso_str:
+        return ""
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00")).astimezone(timezone.utc)
+        local, tz = _uk_local(dt)
+        return local.strftime(f"%a %-d %b at %H:%M {tz}")
+    except Exception:
+        return iso_str[:16]
+
+
 # ── Region assignment (bounding-box lookup) ───────────────────────────────────────
 
 def assign_region(lat, lon):
@@ -237,13 +266,11 @@ def fmt_fgs(fgs_data):
         return "FGS data not available."
     lines = []
 
-    # Published date
     pf = fgs_data.get("public_forecast") or {}
     published = pf.get("published_at") or fgs_data.get("issued_at") or fgs_data.get("issuedAt") or ""
     if published:
-        lines.append(f"Published: {published[:19].replace('T', ' ')} UTC")
+        lines.append(f"Issued: {_fmt_uk_time(published)}")
 
-    # England / Wales outlook text
     eng = pf.get("england_forecast") or pf.get("english_forecast") or ""
     wal = pf.get("wales_forecast_english") or ""
     if eng:
@@ -251,14 +278,14 @@ def fmt_fgs(fgs_data):
     if wal:
         lines.append(f"Wales: {wal.strip()}")
 
-    # 5-day flood risk trend
+    # 5-day flood risk trend — risk levels in block caps per FGS convention
     trend = fgs_data.get("flood_risk_trend") or {}
     if trend:
         trend_str = "  ".join(
-            f"D{i+1}:{trend.get(f'day{i+1}', '?')}"
+            f"D{i+1}:{trend.get(f'day{i+1}', '?').upper()}"
             for i in range(5)
         )
-        lines.append(f"5-day trend: {trend_str}")
+        lines.append(f"5-day risk: {trend_str}")
 
     # Fallback to per-area format if present
     if not lines:
@@ -683,31 +710,23 @@ def select_images():
 # ── System prompt ─────────────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """\
-You are an expert UK operational meteorologist and hydrologist writing a concise flood-risk briefing for emergency planning and Flood Forecasting Centre practitioners. Your focus is England and Wales at regional scale, dropping to catchment or county scale only where the data clearly justifies singling out a smaller area.
+You are an expert UK operational meteorologist writing a concise weather and flood-risk briefing for Flood Forecasting Centre and emergency planning practitioners. Focus on England and Wales.
 
-You are given (a) structured observational and forecast data and (b) a set of map images. EVERY image is rendered on the SAME geographic basemap with national/regional boundary lines and coastlines drawn on top, so you can geolocate every feature precisely — name the actual regions, coasts and uplands the rainfall sits over rather than describing abstract positions. The image set, in order, is:
-  • Four radar rainfall-RATE composites (most recent, ~2h, ~4h, ~6h ago) — read these as a short loop to judge where rain is now and which way systems are tracking.
-  • Five DAILY ACCUMULATION maps (today partial midnight-to-now, then 4 complete prior days midnight-to-midnight) — use these to see where rainfall has been accumulating over the past week and assess multi-day antecedent wetness by region.
-  • Two MSLP analysis charts (latest and ~12h earlier) — use isobar spacing and frontal positions to explain the synoptic driver and its evolution.
+All map images share the same geographic basemap with boundary lines — geolocate features precisely. Image order:
+  • Four radar RATE composites (~6h loop) — current rainfall location and motion.
+  • Five DAILY ACCUMULATION maps (today partial + 4 prior complete days) — multi-day antecedent rainfall by region.
+  • Two MSLP charts (latest + ~12h earlier) — synoptic driver and evolution.
 
-Method — reason across sources before writing:
-  1. Cross-check the radar/accumulation imagery against the rain-gauge table; trust gauge mm values for magnitude and imagery for spatial pattern and motion.
-  2. Weigh forecast rainfall (UKV tables + MSLP) against antecedent soil moisture and any rainfall already banked in the last 24h — the flood risk is highest where fresh heavy rain falls on already-wet ground or saturated catchments.
-  3. Reconcile the official guidance (Met Office warnings, RFG, FGS trend) with what the data shows; flag clearly if observations look more or less severe than the official line.
+Respond with a JSON object inside <json> tags:
+- "headline": One sentence, max 15 words.
+- "summary": Three paragraphs separated by \\n\\n. Each paragraph is 2–3 sentences — concise and direct. MANDATORY structure, never merge:
+    Para 1 — Synoptic scene: what the MSLP charts show (pressure centres, fronts, air mass); how the pattern has evolved; what is driving the current weather.
+    Para 2 — Recent observations: heaviest rainfall in the last 24h with gauge point-totals and region names; multi-day antecedent context from the daily accumulation maps; active Met Office warnings (name any storm).
+    Para 3 — Outlook: UKV (run DD/HHMM GMT) day-1 and day-2 spatial area-mean totals for wettest regions and catchments, with valid times as DD/HHMM GMT; only mention FGS risk levels (using block caps: VERY LOW, LOW, MEDIUM, HIGH) and catchment wetness where they add something beyond the obvious; arrive at a brief flood-risk conclusion naturally at the end.
 
-Respond with a JSON object inside <json> tags with exactly these fields:
-- "headline": One sharp sentence (max 20 words) capturing the single most decision-relevant point now or in the outlook.
-- "summary": Exactly three paragraphs separated by a double newline (\\n\\n). Each paragraph is 3–4 sentences. The three-paragraph structure is MANDATORY regardless of how quiet or active conditions are — do not merge or omit paragraphs:
-    Para 1 — Observations (last 24h): where the heaviest rain fell and peak gauge point-totals with region names; what the radar loop and accumulation maps show about spatial pattern and recent trend; any notable intensification, easing, or spatial shift.
-    Para 2 — Hazards & guidance: active warnings (naming any storm) and RFG/FGS status with the 5-day flood-risk trend; key gauge threshold exceedances; antecedent state from the 48h gauge totals and COSMOS soil moisture, and what it means for runoff and catchment response.
-    Para 3 — Forecast (next 6–48h): expected day-1 and day-2 totals by region and key catchments from UKV (these are spatial area-means, not point totals), attributed to the model run; synoptic context from the MSLP charts and whether the latest UKV run is firming up or easing versus prior runs; timing and location of peak risk linked to current catchment wetness.
+Rainfall thresholds for context: 10mm/1h heavy; 30mm/1h extreme; 100mm/24h exceptional.
 
-Rainfall significance thresholds:
-  10 mm/1h heavy | 30 mm/1h extreme (flash-flood risk)
-  25 mm/3h significant | 40 mm/3h very significant
-  50 mm/6h or 100 mm/24h exceptional
-
-Style: professional, factual, third-person prose; no bullet points inside the summary; specific place names and mm values, not vague adjectives. Keep gauge values clearly identified as point totals (single-site measurements); keep UKV values clearly identified as spatial area-means over the named polygon — never conflate the two. When citing forecast rainfall, attribute it to the model and its run as "UKV (run DD/HHMM GMT)", and give all forecast valid times in the same DD/HHMM GMT form (e.g. "by 25/0300 GMT"); use UTC for observation times. Do not invent data — if a source is missing or quiet, say so briefly and move on. Be calm and proportionate: in benign conditions say so plainly rather than manufacturing alarm."""
+Style: professional third-person prose; no bullet points; specific place names and mm values. Gauge values are single-site point totals; UKV values are spatial area-means — keep these distinct. Use UTC for observation times. Do not repeat flood-risk language throughout — say it once, proportionately, at the end. In quiet conditions say so plainly."""
 
 
 # ── Prompt data block ─────────────────────────────────────────────────────────────
