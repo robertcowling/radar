@@ -71,23 +71,48 @@ def http_get_json(url, headers=None, timeout=12):
         return None
 
 
-def r2_get_json(key):
-    """Fetch a JSON object directly from R2 using authenticated boto3 access."""
+def _r2_client():
+    """Return a boto3 S3 client pointed at R2, or None if credentials missing."""
     if not all([R2_ACCOUNT_ID, R2_ACCESS_KEY, R2_SECRET_KEY, R2_BUCKET]):
         return None
     try:
         import boto3
-        client = boto3.client(
+        return boto3.client(
             "s3",
             endpoint_url=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
             aws_access_key_id=R2_ACCESS_KEY,
             aws_secret_access_key=R2_SECRET_KEY,
         )
+    except Exception as e:
+        print(f"  R2 client init: {e}")
+        return None
+
+
+def r2_get_json(key):
+    """Fetch a JSON object directly from R2 using authenticated boto3 access."""
+    client = _r2_client()
+    if client is None:
+        return None
+    try:
         resp = client.get_object(Bucket=R2_BUCKET, Key=key)
         return json.loads(resp["Body"].read())
     except Exception as e:
         print(f"  R2 {key}: {e}")
         return None
+
+
+def r2_put_json(key, obj):
+    """Upload a JSON object to R2. Returns True on success."""
+    client = _r2_client()
+    if client is None:
+        return False
+    try:
+        body = json.dumps(obj, indent=2, ensure_ascii=False).encode("utf-8")
+        client.put_object(Bucket=R2_BUCKET, Key=key, Body=body, ContentType="application/json")
+        return True
+    except Exception as e:
+        print(f"  R2 upload {key}: {e}")
+        return False
 
 
 def now_utc():
@@ -481,16 +506,19 @@ def load_ukv_poly_text():
         for name, mm in regions:
             lines.append(f"    {name}: {mm:.1f} mm")
 
-        # For the 24h period add catchment- and county-scale detail
-        if offset_h == 24:
-            catch = _top_polys(poly_data.get("catchments"), accum_key, 10)
-            if catch:
-                lines.append(f"\n  Next 24h — wettest river catchments (flood-relevant unit):")
-                for name, mm in catch:
-                    lines.append(f"    {name}: {mm:.1f} mm")
+        # Catchments at all time steps (flood-relevant unit for decision-making)
+        catch_limit = 10 if offset_h == 24 else 8
+        catch = _top_polys(poly_data.get("catchments"), accum_key, catch_limit)
+        if catch:
+            lines.append(f"\n  Next {offset_h}h — wettest river catchments:")
+            for name, mm in catch:
+                lines.append(f"    {name}: {mm:.1f} mm")
+
+        # Counties and detailed spatial breakdown at 24h and 48h
+        if offset_h in (24, 48):
             counties = _top_polys(poly_data.get("counties"), accum_key, 8)
             if counties:
-                lines.append(f"\n  Next 24h — wettest counties / unitary areas:")
+                lines.append(f"\n  Next {offset_h}h — wettest counties / unitary areas:")
                 for name, mm in counties:
                     lines.append(f"    {name}: {mm:.1f} mm")
 
@@ -589,10 +617,10 @@ Method — reason across sources before writing:
 
 Respond with a JSON object inside <json> tags with exactly these fields:
 - "headline": One sharp sentence (max 20 words) capturing the single most decision-relevant point now or in the outlook.
-- "summary": Exactly three paragraphs separated by a double newline (\\n\\n):
-    Para 1 — Observations (last 24h): where the heaviest rain has fallen and how it is currently behaving. Anchor to gauge mm values and to what the radar loop and accumulation maps show (widespread/frontal vs convective/localised; intensifying, steady or easing). Name specific regions, and catchments or counties where warranted.
-    Para 2 — Hazards & guidance: active Met Office warnings (name any named storm explicitly); RFG status; FGS England/Wales outlook and its day-to-day trend; gauge threshold exceedances; antecedent soil-moisture state and what it means for runoff and catchment response.
-    Para 3 — Forecast (next 6–48h): use the UKV regional/catchment accumulation tables and the MSLP charts to give expected totals and where/when the peak falls, by region (and catchment where it matters). State where greatest concern lies and why, linking forecast rain to current wetness.
+- "summary": Exactly three paragraphs separated by a double newline (\\n\\n). Each paragraph must be exactly 3 sentences — no more, no fewer:
+    Para 1 — Observations (last 24h): where the heaviest rain fell and peak gauge values with region names; what the radar loop and accumulation maps show about spatial pattern and recent trend; any notable intensification, easing, or spatial shift.
+    Para 2 — Hazards & guidance: active warnings (naming any storm) and RFG/FGS status with the 5-day flood-risk trend; key threshold exceedances at gauge sites; antecedent soil moisture and what it means for runoff and catchment response.
+    Para 3 — Forecast (next 6–48h): expected totals by region and key catchments from UKV, with synoptic context from the MSLP charts; timing and location of peak risk; brief closing risk assessment linking forecast rainfall to current catchment wetness.
 
 Rainfall significance thresholds:
   10 mm/1h heavy | 30 mm/1h extreme (flash-flood risk)
@@ -886,6 +914,17 @@ def main():
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
     print(f"Written {OUTPUT_PATH}")
+
+    # Upload slim copy (without large prompt_used field) to R2.
+    # Save both a rolling latest and a dated archive for 2-week history.
+    # Set a lifecycle rule on the agent/summaries/ prefix in the R2 console
+    # (expire after 14 days) to keep storage bounded.
+    slim = {k: v for k, v in output.items() if k != "prompt_used"}
+    ts_tag = now_utc().strftime("%Y%m%d_%H%M")
+    if r2_put_json("agent/summary.json", slim):
+        print("  Uploaded agent/summary.json to R2 (rolling latest)")
+    if r2_put_json(f"agent/summaries/{ts_tag}.json", slim):
+        print(f"  Uploaded agent/summaries/{ts_tag}.json to R2 (archive)")
 
 
 if __name__ == "__main__":
