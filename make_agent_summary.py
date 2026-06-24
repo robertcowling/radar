@@ -308,8 +308,6 @@ def load_rain_gauge_stats():
         return None, None, None, meta.get("latest_time", "")
 
     n = now_utc()
-    today_str      = n.strftime("%Y%m%d")
-    yesterday_str  = (n - timedelta(days=1)).strftime("%Y%m%d")
     current_slot   = (n.hour * 60 + n.minute) // 15
 
     def fetch_day(date_str):
@@ -320,14 +318,12 @@ def load_rain_gauge_stats():
         return (data or {}).get("readings", {})
 
     print("  Gauge: fetching readings...")
-    today_r     = fetch_day(today_str)
-    yesterday_r = fetch_day(yesterday_str)
-    if not today_r and not yesterday_r:
+    # days[0] = today, [1] = yesterday, [2] = day before — covers a 48h window.
+    days = [fetch_day((n - timedelta(days=d)).strftime("%Y%m%d")) for d in range(3)]
+    if not days[0] and not days[1]:
         return None, None, None, meta.get("latest_time", "")
 
     def slot_val(day_dict, sid, idx):
-        if idx < 0:
-            return 0.0
         return float((day_dict.get(sid) or {}).get(str(idx), 0) or 0)
 
     station_stats = []
@@ -340,19 +336,24 @@ def load_rain_gauge_stats():
         def acc(n_slots):
             total = 0.0
             for i in range(n_slots):
-                idx = last - i
-                total += (slot_val(today_r, sid, idx) if idx >= 0
-                          else slot_val(yesterday_r, sid, 96 + idx))
+                idx, d = last - i, 0
+                while idx < 0:        # walk back into earlier days, 96 slots each
+                    idx += 96
+                    d += 1
+                if d < len(days):
+                    total += slot_val(days[d], sid, idx)
             return total
 
         a24 = acc(96)
-        if a24 < 0.1:
+        a48 = acc(192)
+        if a48 < 0.1:
             continue
         station_stats.append({
             "name": name, "region": region,
             "acc_1hr":  round(acc(4),  1),
             "acc_6hr":  round(acc(24), 1),
             "acc_24hr": round(a24,     1),
+            "acc_48hr": round(a48,     1),
         })
 
     if not station_stats:
@@ -365,10 +366,12 @@ def load_rain_gauge_stats():
     regional = {}
     for reg, stns in sorted(by_region.items()):
         v24 = [s["acc_24hr"] for s in stns]
+        v48 = [s["acc_48hr"] for s in stns]
         v1  = [s["acc_1hr"]  for s in stns]
         regional[reg] = {
             "max_24hr":      round(max(v24), 1),
             "mean_24hr":     round(sum(v24) / len(v24), 1),
+            "max_48hr":      round(max(v48), 1),
             "over_10mm_1hr": sum(1 for v in v1 if v > 10),
             "over_30mm_1hr": sum(1 for v in v1 if v > 30),
             "n_stations":    len(stns),
@@ -446,6 +449,40 @@ def parse_frame_time(time_str):
 _NON_EW_REGIONS = {"scotland", "northern ireland", "ni"}
 
 
+def _fmt_ddhhmm(label):
+    """Convert a UKV time label to compact 'DD/HHMM GMT' form.
+
+    Accepts human labels ('24 Jun 2026 03:00 GMT') or run_ts ('20260624T0300Z').
+    Falls back to the original string if it cannot be parsed.
+    """
+    if not label:
+        return label
+    s = label.strip()
+    for fmt in ("%d %b %Y %H:%M GMT", "%d %b %Y %H:%M UTC", "%Y%m%dT%H%MZ"):
+        try:
+            return datetime.strptime(s, fmt).strftime("%d/%H%M GMT")
+        except ValueError:
+            continue
+    return label
+
+
+def _run_window_regions(run, target_valid_label):
+    """Return the accum_24h region dict for the step in `run` valid at
+    `target_valid_label`, or None. Used for run-to-run trend comparison —
+    the rolling-24h window ending at a fixed valid time is identical across
+    runs, so only the forecast lead differs.
+    """
+    run_ts = run.get("run_ts", "")
+    for s in run.get("steps", []):
+        if s.get("valid_label") == target_valid_label:
+            offset_str = s.get("offset", "")
+            poly = r2_get_json(f"ukv_poly/{run_ts}/{offset_str}.json") if offset_str else None
+            if poly:
+                return (poly.get("regions") or {}).get("accum_24h", {})
+            return None
+    return None
+
+
 def _top_polys(layer_dict, accum_key, limit, ew_only=False):
     """Return sorted [(name, mm), ...] for a poly layer/period, dropping None and zeros."""
     period = (layer_dict or {}).get(accum_key, {})
@@ -467,28 +504,42 @@ def _top_polys(layer_dict, accum_key, limit, ew_only=False):
 
 
 def load_ukv_poly_text():
-    """Fetch UKV poly accumulations from R2 for multiple forecast steps.
+    """Fetch UKV poly accumulations from R2 for several forecast windows.
 
-    For each cumulative period (T+6/12/24/48) reports the wettest England &
-    Wales regions; for the 24h period also lists the wettest river catchments
-    (the flood-relevant unit) and counties for finer spatial detail.
+    Reports the wettest England & Wales regions (plus catchments and counties)
+    for the next 6h / 12h / day-1 (T+0→24) / day-2 (T+24→48) windows, then a
+    short run-to-run trend: how the latest few UKV runs' forecast for a fixed
+    24h-ending-valid-time window has changed (wetter / drier / steady).
     """
     meta = load_json("ukv_meta.json", {})
     runs = meta.get("runs", [])
     if not runs:
         return None, None
-    run      = runs[0]
-    run_ts   = run.get("run_ts", "")
+    run       = runs[0]
+    run_ts    = run.get("run_ts", "")
     run_label = run.get("run_label", run_ts)
+    run_ddhhmm = _fmt_ddhhmm(run_label)
     steps_by_h = {s.get("offset_hours"): s for s in run.get("steps", [])}
 
     lines = [
-        f"UKV NWP run {run_label}. Values are cumulative forecast rainfall from "
-        f"forecast start (T+0) to the stated lead time, mm, area-mean per polygon."
+        f"UKV model — run {run_ddhhmm} (issued {run_label}). Values are forecast "
+        f"rainfall accumulated over the stated window, mm, area-mean per polygon. "
+        f"In prose, attribute forecasts as 'UKV (run {run_ddhhmm})' and give valid "
+        f"times as DD/HHMM GMT."
     ]
-    target_offsets = [(6, "accum_6h"), (12, "accum_12h"), (24, "accum_24h"), (48, "accum_48h")]
+    # (label, accum_key, step_offset_h, window_desc). Day 2 uses the rolling
+    # accum_24h at T+48 — i.e. the T+24→T+48 window — since steps carry no
+    # accum_48h field.
+    windows = [
+        ("Next 6h",         "accum_6h",  6,  "T+0 → T+6"),
+        ("Next 12h",        "accum_12h", 12, "T+0 → T+12"),
+        ("Day 1 (next 24h)", "accum_24h", 24, "T+0 → T+24"),
+        ("Day 2",           "accum_24h", 48, "T+24 → T+48"),
+    ]
     got_any = False
-    for offset_h, accum_key in target_offsets:
+    day1_top = None          # wettest E&W regions for T+0→24 (focus for trend)
+    day1_valid_label = None
+    for label, accum_key, offset_h, window_desc in windows:
         step = steps_by_h.get(offset_h)
         if not step:
             continue
@@ -502,25 +553,58 @@ def load_ukv_poly_text():
         if not regions:
             continue
         got_any = True
-        lines.append(f"\n  Next {offset_h}h (T+0 → T+{offset_h}, valid by {valid_label}) — wettest regions, England & Wales:")
+        if offset_h == 24:
+            day1_top = regions
+            day1_valid_label = valid_label
+        lines.append(f"\n  {label} ({window_desc}, valid by {_fmt_ddhhmm(valid_label)}) — wettest regions, England & Wales:")
         for name, mm in regions:
             lines.append(f"    {name}: {mm:.1f} mm")
 
-        # Catchments at all time steps (flood-relevant unit for decision-making)
+        # Catchments at every window (flood-relevant unit for decision-making)
         catch_limit = 10 if offset_h == 24 else 8
         catch = _top_polys(poly_data.get("catchments"), accum_key, catch_limit)
         if catch:
-            lines.append(f"\n  Next {offset_h}h — wettest river catchments:")
+            lines.append(f"\n  {label} — wettest river catchments:")
             for name, mm in catch:
                 lines.append(f"    {name}: {mm:.1f} mm")
 
-        # Counties and detailed spatial breakdown at 24h and 48h
+        # County / unitary detail on the two daily windows
         if offset_h in (24, 48):
             counties = _top_polys(poly_data.get("counties"), accum_key, 8)
             if counties:
-                lines.append(f"\n  Next {offset_h}h — wettest counties / unitary areas:")
+                lines.append(f"\n  {label} — wettest counties / unitary areas:")
                 for name, mm in counties:
                     lines.append(f"    {name}: {mm:.1f} mm")
+
+    # Run-to-run trend for the wettest day-1 region: same 24h-ending-valid-time
+    # window across the latest few runs shows whether the model is firming up.
+    if day1_top and day1_valid_label:
+        focus_region, focus_val = day1_top[0]
+        series = [(run_ddhhmm, focus_val)]
+        for prev in runs[1:4]:
+            regs = _run_window_regions(prev, day1_valid_label)
+            if not regs:
+                continue
+            pv = regs.get(focus_region)
+            if pv is None:
+                continue
+            try:
+                series.append((_fmt_ddhhmm(prev.get("run_label", "")), float(pv)))
+            except (TypeError, ValueError):
+                continue
+        if len(series) >= 2 and focus_val >= 1.0:
+            oldest = series[-1][1]
+            if focus_val > oldest * 1.15:
+                direction = "trending wetter"
+            elif focus_val < oldest * 0.85:
+                direction = "trending drier"
+            else:
+                direction = "steady run-to-run"
+            chain = " → ".join(f"{lbl}: {v:.1f}mm" for lbl, v in series)
+            lines.append(
+                f"\n  Run-to-run consistency — {focus_region}, 24h to "
+                f"{_fmt_ddhhmm(day1_valid_label)} (newest run first): {chain} ({direction})."
+            )
 
     if not got_any:
         return None, run_label
@@ -619,15 +703,15 @@ Respond with a JSON object inside <json> tags with exactly these fields:
 - "headline": One sharp sentence (max 20 words) capturing the single most decision-relevant point now or in the outlook.
 - "summary": Exactly three paragraphs separated by a double newline (\\n\\n). Each paragraph must be exactly 3 sentences — no more, no fewer:
     Para 1 — Observations (last 24h): where the heaviest rain fell and peak gauge values with region names; what the radar loop and accumulation maps show about spatial pattern and recent trend; any notable intensification, easing, or spatial shift.
-    Para 2 — Hazards & guidance: active warnings (naming any storm) and RFG/FGS status with the 5-day flood-risk trend; key threshold exceedances at gauge sites; antecedent soil moisture and what it means for runoff and catchment response.
-    Para 3 — Forecast (next 6–48h): expected totals by region and key catchments from UKV, with synoptic context from the MSLP charts; timing and location of peak risk; brief closing risk assessment linking forecast rainfall to current catchment wetness.
+    Para 2 — Hazards & guidance: active warnings (naming any storm) and RFG/FGS status with the 5-day flood-risk trend; key gauge threshold exceedances; antecedent state from the 48h gauge totals and COSMOS soil moisture, and what it means for runoff and catchment response.
+    Para 3 — Forecast (next 6–48h): expected day-1 and day-2 totals by region and key catchments, attributed to the UKV model and its run; synoptic context from the MSLP charts and how the latest UKV run compares with previous runs (firming up or easing); timing and location of peak risk linked to current catchment wetness.
 
 Rainfall significance thresholds:
   10 mm/1h heavy | 30 mm/1h extreme (flash-flood risk)
   25 mm/3h significant | 40 mm/3h very significant
   50 mm/6h or 100 mm/24h exceptional
 
-Style: professional, factual, third-person prose; no bullet points inside the summary; specific place names and mm values, not vague adjectives; UTC for all times. Do not invent data — if a source is missing or quiet, say so briefly and move on. Be calm and proportionate: in benign conditions say so plainly rather than manufacturing alarm."""
+Style: professional, factual, third-person prose; no bullet points inside the summary; specific place names and mm values, not vague adjectives. When citing forecast rainfall, attribute it to the model and its run as "UKV (run DD/HHMM GMT)", and give all forecast valid times in the same DD/HHMM GMT form (e.g. "by 25/0300 GMT"); use UTC for observation times. Do not invent data — if a source is missing or quiet, say so briefly and move on. Be calm and proportionate: in benign conditions say so plainly rather than manufacturing alarm."""
 
 
 # ── Prompt data block ─────────────────────────────────────────────────────────────
@@ -673,19 +757,21 @@ def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top1
         L.append(f"Latest data: {rain_latest_time}")
     if gauge_regional:
         L.append("")
-        L.append(f"{'Region':<22} {'Max 24hr':>9} {'Mean 24hr':>10} {'>10mm/1hr':>10} {'>30mm/1hr':>10}")
-        L.append("-" * 65)
+        L.append(f"{'Region':<22} {'Max 24hr':>9} {'Mean 24hr':>10} {'Max 48hr':>9} {'>10mm/1hr':>10} {'>30mm/1hr':>10}")
+        L.append("-" * 75)
         for reg, s in sorted(gauge_regional.items(), key=lambda x: -x[1]["max_24hr"]):
             L.append(
-                f"{reg:<22} {s['max_24hr']:>8.1f}mm {s['mean_24hr']:>9.1f}mm"
+                f"{reg:<22} {s['max_24hr']:>8.1f}mm {s['mean_24hr']:>9.1f}mm {s.get('max_48hr', 0):>8.1f}mm"
                 f" {s['over_10mm_1hr']:>10} {s['over_30mm_1hr']:>10}"
             )
+        L.append("(48hr = antecedent window: rain already banked on the ground)")
         L.append("")
         if gauge_top10:
             L.append("Top 10 stations by 24hr accumulation:")
             for st in gauge_top10:
                 L.append(f"  {st['name']} ({st['region']}): "
-                         f"1hr={st['acc_1hr']}mm  6hr={st['acc_6hr']}mm  24hr={st['acc_24hr']}mm")
+                         f"1hr={st['acc_1hr']}mm  6hr={st['acc_6hr']}mm  "
+                         f"24hr={st['acc_24hr']}mm  48hr={st.get('acc_48hr', '?')}mm")
         L.append("")
         if gauge_trend:
             d = gauge_trend["direction"]
