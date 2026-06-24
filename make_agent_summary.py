@@ -599,12 +599,13 @@ def load_ukv_poly_text():
             elif focus_val < oldest * 0.85:
                 direction = "trending drier"
             else:
-                direction = "steady run-to-run"
-            chain = " → ".join(f"{lbl}: {v:.1f}mm" for lbl, v in series)
-            lines.append(
-                f"\n  Run-to-run consistency — {focus_region}, 24h to "
-                f"{_fmt_ddhhmm(day1_valid_label)} (newest run first): {chain} ({direction})."
-            )
+                direction = None  # steady — not worth mentioning
+            if direction:
+                chain = " → ".join(f"{lbl}: {v:.1f}mm" for lbl, v in series)
+                lines.append(
+                    f"\n  Run-to-run consistency — {focus_region}, 24h to "
+                    f"{_fmt_ddhhmm(day1_valid_label)} (newest run first): {chain} ({direction})."
+                )
 
     if not got_any:
         return None, run_label
@@ -648,27 +649,22 @@ def select_images():
                 seen.add(url)
                 images.append((f"Radar rainfall-rate composite — {f['time']} ({lbl})", url))
 
-    # ── Rolling 24h accumulation — build-up & trend (latest + ~12h earlier) ──────
-    accum_hourly = load_json("frames_accum_hourly.json", [])
-    if len(accum_hourly) >= 2:
-        latest = accum_hourly[-1]
-        earlier = accum_hourly[max(0, len(accum_hourly) - 13)]  # ~12h before latest
-        images.append((
-            f"Rolling 24h rainfall accumulation ending {latest['time']} (current footprint)",
-            latest["url"],
-        ))
-        if earlier["url"] != latest["url"]:
-            images.append((
-                f"Rolling 24h rainfall accumulation ending {earlier['time']} (~12h earlier, for trend)",
-                earlier["url"],
-            ))
-    else:
-        accum_daily = load_json("frames_accum_daily.json", [])
-        if accum_daily:
-            images.append((
-                f"24h accumulated rainfall today — ending {n.strftime('%H:%M UTC %d %b %Y')}",
-                accum_daily[0]["url"],
-            ))
+    # ── Daily accumulation composites — last 5 days, midnight-to-midnight ───────────
+    # frames_accum_daily.json is ordered newest first; today's entry is partial
+    # (midnight to current time), prior days are complete 24h totals.
+    accum_daily = load_json("frames_accum_daily.json", [])
+    for i, frame in enumerate(accum_daily[:5]):
+        date_str = frame.get("date", "")
+        try:
+            dt = datetime.strptime(date_str, "%Y%m%d")
+            label_date = dt.strftime("%-d %b %Y")
+        except Exception:
+            label_date = date_str
+        if i == 0:
+            day_lbl = f"Daily rainfall accumulation — {label_date} (today, midnight to {n.strftime('%H:%M UTC')})"
+        else:
+            day_lbl = f"Daily rainfall accumulation — {label_date} (midnight to midnight)"
+        images.append((day_lbl, frame["url"]))
 
     # ── MSLP analysis — synoptic pattern & evolution (latest + ~12h earlier) ─────
     mslp = load_json("frames_mslp.json", [])
@@ -691,7 +687,7 @@ You are an expert UK operational meteorologist and hydrologist writing a concise
 
 You are given (a) structured observational and forecast data and (b) a set of map images. EVERY image is rendered on the SAME geographic basemap with national/regional boundary lines and coastlines drawn on top, so you can geolocate every feature precisely — name the actual regions, coasts and uplands the rainfall sits over rather than describing abstract positions. The image set, in order, is:
   • Four radar rainfall-RATE composites (most recent, ~2h, ~4h, ~6h ago) — read these as a short loop to judge where rain is now and which way systems are tracking.
-  • Two ROLLING 24-HOUR ACCUMULATION maps (current footprint and one ~12h earlier) — compare them to see where totals are building up and whether the wet footprint is expanding, shifting or decaying.
+  • Five DAILY ACCUMULATION maps (today partial midnight-to-now, then 4 complete prior days midnight-to-midnight) — use these to see where rainfall has been accumulating over the past week and assess multi-day antecedent wetness by region.
   • Two MSLP analysis charts (latest and ~12h earlier) — use isobar spacing and frontal positions to explain the synoptic driver and its evolution.
 
 Method — reason across sources before writing:
@@ -701,17 +697,17 @@ Method — reason across sources before writing:
 
 Respond with a JSON object inside <json> tags with exactly these fields:
 - "headline": One sharp sentence (max 20 words) capturing the single most decision-relevant point now or in the outlook.
-- "summary": Exactly three paragraphs separated by a double newline (\\n\\n). Each paragraph must be exactly 3 sentences — no more, no fewer:
-    Para 1 — Observations (last 24h): where the heaviest rain fell and peak gauge values with region names; what the radar loop and accumulation maps show about spatial pattern and recent trend; any notable intensification, easing, or spatial shift.
+- "summary": Exactly three paragraphs separated by a double newline (\\n\\n). Each paragraph is 3–4 sentences. The three-paragraph structure is MANDATORY regardless of how quiet or active conditions are — do not merge or omit paragraphs:
+    Para 1 — Observations (last 24h): where the heaviest rain fell and peak gauge point-totals with region names; what the radar loop and accumulation maps show about spatial pattern and recent trend; any notable intensification, easing, or spatial shift.
     Para 2 — Hazards & guidance: active warnings (naming any storm) and RFG/FGS status with the 5-day flood-risk trend; key gauge threshold exceedances; antecedent state from the 48h gauge totals and COSMOS soil moisture, and what it means for runoff and catchment response.
-    Para 3 — Forecast (next 6–48h): expected day-1 and day-2 totals by region and key catchments, attributed to the UKV model and its run; synoptic context from the MSLP charts and how the latest UKV run compares with previous runs (firming up or easing); timing and location of peak risk linked to current catchment wetness.
+    Para 3 — Forecast (next 6–48h): expected day-1 and day-2 totals by region and key catchments from UKV (these are spatial area-means, not point totals), attributed to the model run; synoptic context from the MSLP charts and whether the latest UKV run is firming up or easing versus prior runs; timing and location of peak risk linked to current catchment wetness.
 
 Rainfall significance thresholds:
   10 mm/1h heavy | 30 mm/1h extreme (flash-flood risk)
   25 mm/3h significant | 40 mm/3h very significant
   50 mm/6h or 100 mm/24h exceptional
 
-Style: professional, factual, third-person prose; no bullet points inside the summary; specific place names and mm values, not vague adjectives. When citing forecast rainfall, attribute it to the model and its run as "UKV (run DD/HHMM GMT)", and give all forecast valid times in the same DD/HHMM GMT form (e.g. "by 25/0300 GMT"); use UTC for observation times. Do not invent data — if a source is missing or quiet, say so briefly and move on. Be calm and proportionate: in benign conditions say so plainly rather than manufacturing alarm."""
+Style: professional, factual, third-person prose; no bullet points inside the summary; specific place names and mm values, not vague adjectives. Keep gauge values clearly identified as point totals (single-site measurements); keep UKV values clearly identified as spatial area-means over the named polygon — never conflate the two. When citing forecast rainfall, attribute it to the model and its run as "UKV (run DD/HHMM GMT)", and give all forecast valid times in the same DD/HHMM GMT form (e.g. "by 25/0300 GMT"); use UTC for observation times. Do not invent data — if a source is missing or quiet, say so briefly and move on. Be calm and proportionate: in benign conditions say so plainly rather than manufacturing alarm."""
 
 
 # ── Prompt data block ─────────────────────────────────────────────────────────────
@@ -752,7 +748,7 @@ def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top1
     L.append("")
 
     # Gauges
-    L.append("=== OBSERVED RAINFALL — RAIN GAUGE NETWORK ===")
+    L.append("=== OBSERVED RAINFALL — RAIN GAUGE NETWORK (point totals: single-site spot measurements, mm) ===")
     if rain_latest_time:
         L.append(f"Latest data: {rain_latest_time}")
     if gauge_regional:
@@ -796,14 +792,14 @@ def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top1
         L.append("")
 
     # UKV
-    L.append("=== UKV NWP FORECAST — POLYGON ACCUMULATIONS (England & Wales focus) ===")
+    L.append("=== UKV NWP FORECAST — POLYGON ACCUMULATIONS (spatial area-means, NOT point totals; England & Wales focus) ===")
     L.append(ukv_poly_text or "UKV numerical data not available.")
     L.append("")
 
     # Image context
     L.append("=== IMAGERY (attached below — all share one basemap with boundaries) ===")
     L.append("  4 radar rainfall-rate composites — most recent, ~2h, ~4h, ~6h ago (motion/loop)")
-    L.append("  2 rolling 24h accumulation maps — current footprint and ~12h earlier (build-up/trend)")
+    L.append("  5 daily accumulation maps — today (partial, midnight to now) + 4 prior complete days (multi-day antecedent context)")
     L.append("  2 MSLP analysis charts — latest and ~12h earlier (synoptic driver/evolution)")
 
     return "\n".join(L)
@@ -907,7 +903,7 @@ def build_bullets(warnings, rfg, fgs_text, gauge_regional, gauge_top10,
     if cosmos:
         B.append(f"Soil moisture: {cosmos['condition'].split('—')[0].strip()} (mean VWC {cosmos['mean_vwc']}%)")
 
-    B.append(f"{len(images)} basemap images analysed: radar loop + 24h accumulation (×2) + MSLP (×2)")
+    B.append(f"{len(images)} basemap images analysed: 4 radar rate + 5 daily accum + 2 MSLP")
 
     return B
 
