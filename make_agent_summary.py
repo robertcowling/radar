@@ -701,17 +701,17 @@ Method — reason across sources before writing:
 
 Respond with a JSON object inside <json> tags with exactly these fields:
 - "headline": One sharp sentence (max 20 words) capturing the single most decision-relevant point now or in the outlook.
-- "summary": Exactly three paragraphs separated by a double newline (\\n\\n). Each paragraph must be exactly 3 sentences — no more, no fewer:
-    Para 1 — Observations (last 24h): where the heaviest rain fell and peak gauge values with region names; what the radar loop and accumulation maps show about spatial pattern and recent trend; any notable intensification, easing, or spatial shift.
+- "summary": Exactly three paragraphs separated by a double newline (\\n\\n). Each paragraph is 3–4 sentences. The three-paragraph structure is MANDATORY regardless of how quiet or active conditions are — do not merge or omit paragraphs:
+    Para 1 — Observations (last 24h): where the heaviest rain fell and peak gauge point-totals with region names; what the radar loop and accumulation maps show about spatial pattern and recent trend; any notable intensification, easing, or spatial shift.
     Para 2 — Hazards & guidance: active warnings (naming any storm) and RFG/FGS status with the 5-day flood-risk trend; key gauge threshold exceedances; antecedent state from the 48h gauge totals and COSMOS soil moisture, and what it means for runoff and catchment response.
-    Para 3 — Forecast (next 6–48h): expected day-1 and day-2 totals by region and key catchments, attributed to the UKV model and its run; synoptic context from the MSLP charts and how the latest UKV run compares with previous runs (firming up or easing); timing and location of peak risk linked to current catchment wetness.
+    Para 3 — Forecast (next 6–48h): expected day-1 and day-2 totals by region and key catchments from UKV (these are spatial area-means, not point totals), attributed to the model run; synoptic context from the MSLP charts and whether the latest UKV run is firming up or easing versus prior runs; timing and location of peak risk linked to current catchment wetness.
 
 Rainfall significance thresholds:
   10 mm/1h heavy | 30 mm/1h extreme (flash-flood risk)
   25 mm/3h significant | 40 mm/3h very significant
   50 mm/6h or 100 mm/24h exceptional
 
-Style: professional, factual, third-person prose; no bullet points inside the summary; specific place names and mm values, not vague adjectives. When citing forecast rainfall, attribute it to the model and its run as "UKV (run DD/HHMM GMT)", and give all forecast valid times in the same DD/HHMM GMT form (e.g. "by 25/0300 GMT"); use UTC for observation times. Do not invent data — if a source is missing or quiet, say so briefly and move on. Be calm and proportionate: in benign conditions say so plainly rather than manufacturing alarm."""
+Style: professional, factual, third-person prose; no bullet points inside the summary; specific place names and mm values, not vague adjectives. Keep gauge values clearly identified as point totals (single-site measurements); keep UKV values clearly identified as spatial area-means over the named polygon — never conflate the two. When citing forecast rainfall, attribute it to the model and its run as "UKV (run DD/HHMM GMT)", and give all forecast valid times in the same DD/HHMM GMT form (e.g. "by 25/0300 GMT"); use UTC for observation times. Do not invent data — if a source is missing or quiet, say so briefly and move on. Be calm and proportionate: in benign conditions say so plainly rather than manufacturing alarm."""
 
 
 # ── Prompt data block ─────────────────────────────────────────────────────────────
@@ -752,7 +752,7 @@ def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top1
     L.append("")
 
     # Gauges
-    L.append("=== OBSERVED RAINFALL — RAIN GAUGE NETWORK ===")
+    L.append("=== OBSERVED RAINFALL — RAIN GAUGE NETWORK (point totals: single-site spot measurements, mm) ===")
     if rain_latest_time:
         L.append(f"Latest data: {rain_latest_time}")
     if gauge_regional:
@@ -796,7 +796,7 @@ def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top1
         L.append("")
 
     # UKV
-    L.append("=== UKV NWP FORECAST — POLYGON ACCUMULATIONS (England & Wales focus) ===")
+    L.append("=== UKV NWP FORECAST — POLYGON ACCUMULATIONS (spatial area-means, NOT point totals; England & Wales focus) ===")
     L.append(ukv_poly_text or "UKV numerical data not available.")
     L.append("")
 
