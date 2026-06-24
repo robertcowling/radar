@@ -28,19 +28,6 @@
       flex-wrap: wrap;
     }
     .header-title { font-size: 17px; font-weight: 700; flex: 1; min-width: 120px; }
-    .severity-pill {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      color: #fff;
-      background: #16a34a;
-    }
-    .severity-pill.elevated  { background: #ca8a04; }
-    .severity-pill.significant { background: #ea580c; }
-    .severity-pill.severe    { background: #dc2626; }
     .updated-time {
       font-size: 12px;
       opacity: 0.85;
@@ -78,22 +65,6 @@
       line-height: 1.35;
       color: #1f2937;
     }
-    .risk-areas {
-      margin-top: 12px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .risk-area-tag {
-      background: #fef3c7;
-      color: #92400e;
-      font-size: 12px;
-      font-weight: 500;
-      padding: 3px 10px;
-      border-radius: 12px;
-      border: 1px solid #fcd34d;
-    }
-
     /* ── Summary card ───────────────────────── */
     .summary-card {
       background: #fff;
@@ -292,7 +263,6 @@
 
 <header>
   <div class="header-title">Weather Briefing</div>
-  <span id="severity-pill" class="severity-pill">Loading</span>
   <span class="updated-time" id="updated-time"></span>
 </header>
 
@@ -314,9 +284,6 @@
 </footer>
 
 <script>
-  const SEVERITY_CLASSES = { normal: '', elevated: 'elevated', significant: 'significant', severe: 'severe' };
-  const SEVERITY_LABELS  = { normal: 'Normal', elevated: 'Elevated', significant: 'Significant', severe: 'Severe' };
-
   function fmtDateUTC(iso) {
     const d = new Date(iso);
     const days  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -330,12 +297,6 @@
     const main = document.getElementById('main-content');
     main.innerHTML = '';
 
-    // Severity pill
-    const sev = (data.severity || 'normal').toLowerCase();
-    const pill = document.getElementById('severity-pill');
-    pill.textContent = SEVERITY_LABELS[sev] || sev;
-    pill.className = 'severity-pill ' + (SEVERITY_CLASSES[sev] || '');
-
     // Updated time
     if (data.generated_at) {
       document.getElementById('updated-time').textContent = fmtDateUTC(data.generated_at);
@@ -346,17 +307,6 @@
     headline.className = 'headline-card';
     headline.innerHTML = `<div class="headline-label">Today's briefing</div>
       <div class="headline-text">${escHtml(data.headline || 'No headline available.')}</div>`;
-    if (data.top_risk_areas && data.top_risk_areas.length) {
-      const areas = document.createElement('div');
-      areas.className = 'risk-areas';
-      data.top_risk_areas.forEach(a => {
-        const tag = document.createElement('span');
-        tag.className = 'risk-area-tag';
-        tag.textContent = a;
-        areas.appendChild(tag);
-      });
-      headline.appendChild(areas);
-    }
     main.appendChild(headline);
 
     // Summary card

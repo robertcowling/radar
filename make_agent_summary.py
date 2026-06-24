@@ -32,12 +32,23 @@ from glob import glob
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
 OPENAI_MODEL   = (os.environ.get("OPENAI_MODEL", "") or "gpt-5.4").strip()
-FFC_API_KEY    = (
-    os.environ.get("FFC_API_KEY", "").strip() or
-    os.environ.get("FGS_API_KEY", "").strip()
-)
+def _ffc_key_fallback():
+    """Read the FFC API key already committed in fetch_rfg.py as a fallback."""
+    try:
+        with open("fetch_rfg.py", encoding="utf-8") as _f:
+            m = re.search(r'"([a-f0-9]{64})"', _f.read())
+            return m.group(1) if m else ""
+    except Exception:
+        return ""
+
+FFC_API_KEY = os.environ.get("FFC_API_KEY", "").strip() or _ffc_key_fallback()
 FGS_API_BASE   = "https://api.ffc-environment-agency.fgs.metoffice.gov.uk/api/public/v3"
 OUTPUT_PATH    = "agent/summary.json"
+
+R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID", "").strip()
+R2_ACCESS_KEY = os.environ.get("R2_ACCESS_KEY_ID", "").strip()
+R2_SECRET_KEY = os.environ.get("R2_SECRET_ACCESS_KEY", "").strip()
+R2_BUCKET     = os.environ.get("R2_BUCKET_NAME", "").strip()
 
 
 # ── Generic helpers ──────────────────────────────────────────────────────────────
@@ -57,6 +68,25 @@ def http_get_json(url, headers=None, timeout=12):
             return json.loads(resp.read().decode("utf-8"))
     except Exception as e:
         print(f"  HTTP {url[:80]}: {e}")
+        return None
+
+
+def r2_get_json(key):
+    """Fetch a JSON object directly from R2 using authenticated boto3 access."""
+    if not all([R2_ACCOUNT_ID, R2_ACCESS_KEY, R2_SECRET_KEY, R2_BUCKET]):
+        return None
+    try:
+        import boto3
+        client = boto3.client(
+            "s3",
+            endpoint_url=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
+            aws_access_key_id=R2_ACCESS_KEY,
+            aws_secret_access_key=R2_SECRET_KEY,
+        )
+        resp = client.get_object(Bucket=R2_BUCKET, Key=key)
+        return json.loads(resp["Body"].read())
+    except Exception as e:
+        print(f"  R2 {key}: {e}")
         return None
 
 
@@ -139,17 +169,17 @@ def load_rfg():
 
 # ── FGS (5-day Flood Guidance Statement) ──────────────────────────────────────────
 
-def fetch_fgs():
-    if not FFC_API_KEY:
-        print("  FGS: no API key configured")
-        return None
+def fetch_fgs_history(n=4):
+    """Return list of up to n recent FGS statements (newest first)."""
     data = http_get_json(
         f"{FGS_API_BASE}/fgs",
         headers={"x-api-key": FFC_API_KEY},
     )
     if isinstance(data, list):
-        data = data[0] if data else None
-    return data
+        return data[:n]
+    elif data:
+        return [data]
+    return []
 
 
 def fmt_fgs(fgs_data):
@@ -190,6 +220,19 @@ def fmt_fgs(fgs_data):
     return "\n".join(lines)
 
 
+def fmt_fgs_history(fgs_list):
+    """Format multiple FGS statements to show 3-day trend."""
+    if not fgs_list:
+        return "FGS data not available."
+    parts = []
+    for i, stmt in enumerate(fgs_list):
+        issued = stmt.get("issued_at") or stmt.get("issuedAt") or ""
+        label = f"Statement {i+1}" + (f" (issued {issued})" if issued else "")
+        parts.append(f"--- {label} ---")
+        parts.append(fmt_fgs(stmt))
+    return "\n".join(parts)
+
+
 # ── Rain gauge observations ───────────────────────────────────────────────────────
 
 def load_rain_gauge_stats():
@@ -206,7 +249,10 @@ def load_rain_gauge_stats():
     current_slot   = (n.hour * 60 + n.minute) // 15
 
     def fetch_day(date_str):
-        data = http_get_json(f"{r2_base}/rain/readings/{date_str}.json")
+        key  = f"rain/readings/{date_str}.json"
+        data = r2_get_json(key)
+        if data is None:
+            data = http_get_json(f"{r2_base}/rain/readings/{date_str}.json")
         return (data or {}).get("readings", {})
 
     print("  Gauge: fetching readings...")
@@ -330,6 +376,51 @@ def parse_frame_time(time_str):
         return None
 
 
+# ── UKV poly numerical forecast ───────────────────────────────────────────────────
+
+def load_ukv_poly_text():
+    """Fetch UKV regional poly accumulations from R2 for multiple forecast steps."""
+    meta = load_json("ukv_meta.json", {})
+    runs = meta.get("runs", [])
+    if not runs:
+        return None, None
+    run      = runs[0]
+    run_ts   = run.get("run_ts", "")
+    run_label = run.get("run_label", run_ts)
+    # Build offset_hours → step lookup
+    steps_by_h = {s.get("offset_hours"): s for s in run.get("steps", [])}
+
+    lines = [f"UKV NWP run {run_label} — cumulative regional rainfall forecasts:"]
+    # Periods: cumulative accum up to T+6, T+12, T+24, T+48
+    target_offsets = [(6, "accum_6h"), (12, "accum_12h"), (24, "accum_24h"), (48, "accum_48h")]
+    got_any = False
+    for offset_h, accum_key in target_offsets:
+        step = steps_by_h.get(offset_h)
+        if not step:
+            continue
+        valid_label = step.get("valid_label", f"T+{offset_h}h")
+        # Try zero-padded and plain integer key formats
+        poly_data = None
+        for fmt in (f"{offset_h:03d}", str(offset_h)):
+            poly_data = r2_get_json(f"ukv_poly/{run_ts}/{fmt}.json")
+            if poly_data:
+                break
+        if not poly_data:
+            continue
+        regional_mm = (poly_data.get("regions") or {}).get(accum_key, {})
+        if not regional_mm:
+            continue
+        got_any = True
+        lines.append(f"\n  T+{offset_h}h (valid {valid_label}) — {offset_h}hr cumul. by region (England & Wales focus):")
+        # Sort by highest rainfall, skip Scotland for E&W focus but include if significant
+        for region, mm in sorted(regional_mm.items(), key=lambda x: -x[1])[:12]:
+            lines.append(f"    {region}: {float(mm):.1f} mm")
+
+    if not got_any:
+        return None, run_label
+    return "\n".join(lines), run_label
+
+
 def pick_nearest(frames, target_dt, time_key="time"):
     best, best_d = None, None
     for f in frames:
@@ -370,20 +461,6 @@ def select_images():
             today_frame["url"],
         ))
 
-    # ── UKV T+12 forecast ─────────────────────────────────────────────────────────
-    ukv = load_json("ukv_meta.json", {})
-    if ukv.get("runs"):
-        steps = ukv["runs"][0].get("steps", [])
-        step12 = next((s for s in steps if s.get("offset_hours") == 12), None)
-        if not step12 and steps:
-            step12 = min(steps, key=lambda s: abs(s.get("offset_hours", 0) - 12))
-        if step12:
-            url = (step12.get("accum_1h") or {}).get("met") or \
-                  (step12.get("accum_1h") or {}).get("norm")
-            if url:
-                valid = step12.get("valid_label", "T+12hr")
-                images.append((f"UKV 12hr forecast — 1hr precipitation valid {valid}", url))
-
     # ── MSLP analysis ─────────────────────────────────────────────────────────────
     mslp = load_json("frames_mslp.json", [])
     for f in mslp[-2:]:
@@ -395,29 +472,27 @@ def select_images():
 # ── System prompt ─────────────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """\
-You are an expert UK weather analyst writing a concise operational briefing for flood risk and emergency planning practitioners. You have been given structured observational and forecast data PLUS a sequence of radar composite images, a 24hr rainfall accumulation map, a UKV NWP forecast image, and MSLP analysis charts.
+You are an expert UK weather analyst writing a concise operational briefing for flood risk and emergency planning practitioners in England and Wales. You have been given structured observational and forecast data PLUS radar composite images, a 24hr rainfall accumulation map, and MSLP analysis charts.
 
 Respond with a JSON object inside <json> tags with exactly these fields:
 - "headline": One punchy sentence (maximum 20 words) capturing the most significant current weather situation or outlook.
-- "severity": One of "normal" (routine/quiet), "elevated" (some concern), "significant" (notable event underway or imminent), "severe" (exceptional/dangerous).
-- "top_risk_areas": Array of up to 3 specific UK place names (counties, regions, or river catchments) at highest current or forecast flood risk.
 - "summary": Three paragraphs separated by double newline (\\n\\n):
-    Para 1 — Observations: where heaviest rainfall has fallen over the past 24 hours; integrate gauge data AND describe what the radar images show about spatial distribution and evolution; note whether rainfall is widespread or convective and localised.
-    Para 2 — Hazards and Guidance: active Met Office warnings — name any named storms explicitly; Rapid Flood Guidance status; Flood Guidance Statement 5-day outlook by area; threshold exceedances (10 mm/1hr heavy, 30 mm/1hr extreme flash flood risk); antecedent soil moisture and its implications for runoff.
-    Para 3 — Forecast: what the UKV NWP model and forecast image show for the next 24 hours by region; integrate the synoptic pattern from the MSLP charts; identify the areas of greatest concern in the outlook period and the timing of any peak rainfall.
+    Para 1 — Observations: where heaviest rainfall has fallen over the past 24 hours across England and Wales; integrate gauge data AND describe what the radar images show about spatial distribution and evolution; note whether rainfall is widespread or convective and localised. Where appropriate, name specific regions (e.g. North West England, South Wales, Yorkshire) or smaller units (catchments, counties) when the data supports it.
+    Para 2 — Hazards and Guidance: active Met Office warnings — name any named storms explicitly; Rapid Flood Guidance status; Flood Guidance Statement 5-day outlook by area — if multiple statements are provided, note any trend in risk levels day-to-day; threshold exceedances (10 mm/1hr heavy, 30 mm/1hr extreme flash flood risk); antecedent soil moisture and its implications for runoff.
+    Para 3 — Forecast: use the UKV NWP regional accumulation tables (provided as structured data) to describe forecast rainfall totals for England and Wales by region over the next 6, 12, 24 and 48 hours; integrate the synoptic pattern from the MSLP charts; identify the areas of greatest concern in the outlook period and the timing of any peak rainfall.
 
 Rainfall significance thresholds:
   10 mm/1hr: heavy  |  30 mm/1hr: extreme, flash flood risk
   25 mm/3hr: significant  |  40 mm/3hr: very significant
   50 mm/6hr or 100 mm/24hr: exceptional
 
-Write in professional, factual third-person prose. No bullet points within the summary. Use specific UK place names and mm values from the data provided. Do not speculate beyond what the data shows. Use UTC for all times. If a data source shows no significant activity, state that briefly and move on."""
+Write in professional, factual third-person prose. No bullet points within the summary. Use specific place names and mm values from the data. Do not speculate beyond what the data shows. Use UTC for all times. If a data source shows no significant activity, state that briefly and move on."""
 
 
 # ── Prompt data block ─────────────────────────────────────────────────────────────
 
-def build_data_block(warnings, rfg, fgs_text, gauge_regional, gauge_top10, gauge_trend,
-                     cosmos, ukv_run_label, rain_latest_time):
+def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top10, gauge_trend,
+                     cosmos, ukv_poly_text, rain_latest_time):
     L = []
     L.append(f"Generated: {now_utc().strftime('%Y-%m-%dT%H:%M UTC')}\n")
 
@@ -447,8 +522,8 @@ def build_data_block(warnings, rfg, fgs_text, gauge_regional, gauge_top10, gauge
     L.append("")
 
     # FGS
-    L.append("=== FLOOD GUIDANCE STATEMENT (FGS) — 5-day flood risk outlook ===")
-    L.append(fgs_text or "FGS data not available.")
+    L.append("=== FLOOD GUIDANCE STATEMENT (FGS) — 5-day flood risk outlook (last 3 days shown) ===")
+    L.append(fgs_history_text or "FGS data not available.")
     L.append("")
 
     # Gauges
@@ -494,17 +569,14 @@ def build_data_block(warnings, rfg, fgs_text, gauge_regional, gauge_top10, gauge
         L.append("")
 
     # UKV
-    L.append("=== UKV NWP FORECAST ===")
-    if ukv_run_label:
-        L.append(f"Run: {ukv_run_label}")
-    L.append("Refer to the UKV 12hr forecast image (attached) for spatial distribution.")
+    L.append("=== UKV NWP FORECAST — REGIONAL ACCUMULATIONS ===")
+    L.append(ukv_poly_text or "UKV numerical data not available.")
     L.append("")
 
     # Image context
     L.append("=== IMAGERY (attached below) ===")
     L.append("  5 radar rate composites — most recent + 1hr, 2hr, 6hr, 12hr ago")
     L.append("  1 radar 24hr accumulation map — total rainfall today")
-    L.append("  1 UKV 12hr ahead forecast — predicted 1hr accumulation")
     L.append("  2 MSLP analysis charts — surface pressure and frontal systems")
 
     return "\n".join(L)
@@ -557,7 +629,7 @@ def parse_openai_response(text):
         return json.loads(text)
     except json.JSONDecodeError:
         pass
-    return {"headline": "", "severity": "normal", "top_risk_areas": [], "summary": text}
+    return {"headline": "", "summary": text}
 
 
 # ── Context bullets ───────────────────────────────────────────────────────────────
@@ -608,10 +680,7 @@ def build_bullets(warnings, rfg, fgs_text, gauge_regional, gauge_top10,
     if cosmos:
         B.append(f"Soil moisture: {cosmos['condition'].split('—')[0].strip()} (mean VWC {cosmos['mean_vwc']}%)")
 
-    B.append(f"{len(images)} images analysed: radar composites + 24hr accum + UKV forecast + MSLP")
-
-    if parsed and parsed.get("top_risk_areas"):
-        B.append(f"Top risk areas: {', '.join(parsed['top_risk_areas'][:3])}")
+    B.append(f"{len(images)} images analysed: radar composites + 24hr accum + MSLP")
 
     return B
 
@@ -630,10 +699,10 @@ def main():
     print(f"  {rfg['status'][:60]}")
 
     print("Fetching FGS...")
-    fgs_data = fetch_fgs()
-    fgs_text = fmt_fgs(fgs_data)
-    fgs_issued = (fgs_data or {}).get("issued_at") or (fgs_data or {}).get("issuedAt", "")
-    print(f"  {'received' if fgs_data else 'not available'}")
+    fgs_list = fetch_fgs_history(n=4)
+    fgs_history_text = fmt_fgs_history(fgs_list)
+    fgs_issued = (fgs_list[0].get("issued_at") or fgs_list[0].get("issuedAt", "")) if fgs_list else ""
+    print(f"  {len(fgs_list)} FGS statement(s) received" if fgs_list else "  not available")
 
     print("Loading rain gauge stats...")
     gauge_regional, gauge_top10, gauge_trend, rain_latest = load_rain_gauge_stats()
@@ -643,19 +712,20 @@ def main():
     cosmos = load_cosmos_moisture()
     print(f"  {'loaded' if cosmos else 'not available'}")
 
+    print("Loading UKV poly forecast data...")
+    ukv_poly_text, ukv_run_label = load_ukv_poly_text()
+    print(f"  {'loaded' if ukv_poly_text else 'not available'}")
+
     print("Selecting images...")
     images = select_images()
     print(f"  {len(images)} image(s) selected")
 
     ukv_meta = load_json("ukv_meta.json", {})
-    ukv_run_label = None
-    if ukv_meta.get("runs"):
-        ukv_run_label = ukv_meta["runs"][0].get("run_label")
 
     print("Building prompt...")
     data_block = build_data_block(
-        warnings, rfg, fgs_text, gauge_regional, gauge_top10, gauge_trend,
-        cosmos, ukv_run_label, rain_latest,
+        warnings, rfg, fgs_history_text, gauge_regional, gauge_top10, gauge_trend,
+        cosmos, ukv_poly_text, rain_latest,
     )
 
     parsed = None
@@ -665,30 +735,27 @@ def main():
         if raw:
             parsed = parse_openai_response(raw)
             if parsed:
-                print(f"  severity={parsed.get('severity')}  "
-                      f"areas={parsed.get('top_risk_areas')}")
+                print(f"  headline={parsed.get('headline', '')[:60]}")
     else:
         print("OpenAI not configured — writing skeleton output")
 
-    bullets = build_bullets(warnings, rfg, fgs_text, gauge_regional, gauge_top10,
+    bullets = build_bullets(warnings, rfg, fgs_history_text, gauge_regional, gauge_top10,
                              gauge_trend, cosmos, images, parsed)
 
     output = {
-        "generated_at":   now_utc().strftime("%Y-%m-%dT%H:%M:00Z"),
-        "headline":       (parsed or {}).get("headline", ""),
-        "severity":       (parsed or {}).get("severity", "normal"),
-        "top_risk_areas": (parsed or {}).get("top_risk_areas", []),
-        "summary":        (parsed or {}).get("summary",
-                           "Briefing not yet generated — trigger the agent_summary workflow."),
+        "generated_at":    now_utc().strftime("%Y-%m-%dT%H:%M:00Z"),
+        "headline":        (parsed or {}).get("headline", ""),
+        "summary":         (parsed or {}).get("summary",
+                            "Briefing not yet generated — trigger the agent_summary workflow."),
         "context_bullets": bullets,
-        "prompt_used":    data_block,
-        "images_used": [{"label": lbl, "url": url} for lbl, url in images],
+        "prompt_used":     data_block,
+        "images_used":     [{"label": lbl, "url": url} for lbl, url in images],
         "data_age": {
             "warnings_generated_at": warnings_gen,
             "rfg_generated_at":      rfg.get("generated_at", ""),
             "fgs_issued_at":         fgs_issued,
             "rain_latest_time":      rain_latest,
-            "ukv_generated_at":      ukv_meta.get("generated_at", ""),
+            "ukv_run_label":         ukv_run_label or ukv_meta.get("generated_at", ""),
         },
     }
 
