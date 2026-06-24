@@ -599,12 +599,13 @@ def load_ukv_poly_text():
             elif focus_val < oldest * 0.85:
                 direction = "trending drier"
             else:
-                direction = "steady run-to-run"
-            chain = " → ".join(f"{lbl}: {v:.1f}mm" for lbl, v in series)
-            lines.append(
-                f"\n  Run-to-run consistency — {focus_region}, 24h to "
-                f"{_fmt_ddhhmm(day1_valid_label)} (newest run first): {chain} ({direction})."
-            )
+                direction = None  # steady — not worth mentioning
+            if direction:
+                chain = " → ".join(f"{lbl}: {v:.1f}mm" for lbl, v in series)
+                lines.append(
+                    f"\n  Run-to-run consistency — {focus_region}, 24h to "
+                    f"{_fmt_ddhhmm(day1_valid_label)} (newest run first): {chain} ({direction})."
+                )
 
     if not got_any:
         return None, run_label
@@ -648,27 +649,22 @@ def select_images():
                 seen.add(url)
                 images.append((f"Radar rainfall-rate composite — {f['time']} ({lbl})", url))
 
-    # ── Rolling 24h accumulation — build-up & trend (latest + ~12h earlier) ──────
-    accum_hourly = load_json("frames_accum_hourly.json", [])
-    if len(accum_hourly) >= 2:
-        latest = accum_hourly[-1]
-        earlier = accum_hourly[max(0, len(accum_hourly) - 13)]  # ~12h before latest
-        images.append((
-            f"Rolling 24h rainfall accumulation ending {latest['time']} (current footprint)",
-            latest["url"],
-        ))
-        if earlier["url"] != latest["url"]:
-            images.append((
-                f"Rolling 24h rainfall accumulation ending {earlier['time']} (~12h earlier, for trend)",
-                earlier["url"],
-            ))
-    else:
-        accum_daily = load_json("frames_accum_daily.json", [])
-        if accum_daily:
-            images.append((
-                f"24h accumulated rainfall today — ending {n.strftime('%H:%M UTC %d %b %Y')}",
-                accum_daily[0]["url"],
-            ))
+    # ── Daily accumulation composites — last 5 days, midnight-to-midnight ───────────
+    # frames_accum_daily.json is ordered newest first; today's entry is partial
+    # (midnight to current time), prior days are complete 24h totals.
+    accum_daily = load_json("frames_accum_daily.json", [])
+    for i, frame in enumerate(accum_daily[:5]):
+        date_str = frame.get("date", "")
+        try:
+            dt = datetime.strptime(date_str, "%Y%m%d")
+            label_date = dt.strftime("%-d %b %Y")
+        except Exception:
+            label_date = date_str
+        if i == 0:
+            day_lbl = f"Daily rainfall accumulation — {label_date} (today, midnight to {n.strftime('%H:%M UTC')})"
+        else:
+            day_lbl = f"Daily rainfall accumulation — {label_date} (midnight to midnight)"
+        images.append((day_lbl, frame["url"]))
 
     # ── MSLP analysis — synoptic pattern & evolution (latest + ~12h earlier) ─────
     mslp = load_json("frames_mslp.json", [])
@@ -691,7 +687,7 @@ You are an expert UK operational meteorologist and hydrologist writing a concise
 
 You are given (a) structured observational and forecast data and (b) a set of map images. EVERY image is rendered on the SAME geographic basemap with national/regional boundary lines and coastlines drawn on top, so you can geolocate every feature precisely — name the actual regions, coasts and uplands the rainfall sits over rather than describing abstract positions. The image set, in order, is:
   • Four radar rainfall-RATE composites (most recent, ~2h, ~4h, ~6h ago) — read these as a short loop to judge where rain is now and which way systems are tracking.
-  • Two ROLLING 24-HOUR ACCUMULATION maps (current footprint and one ~12h earlier) — compare them to see where totals are building up and whether the wet footprint is expanding, shifting or decaying.
+  • Five DAILY ACCUMULATION maps (today partial midnight-to-now, then 4 complete prior days midnight-to-midnight) — use these to see where rainfall has been accumulating over the past week and assess multi-day antecedent wetness by region.
   • Two MSLP analysis charts (latest and ~12h earlier) — use isobar spacing and frontal positions to explain the synoptic driver and its evolution.
 
 Method — reason across sources before writing:
@@ -803,7 +799,7 @@ def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top1
     # Image context
     L.append("=== IMAGERY (attached below — all share one basemap with boundaries) ===")
     L.append("  4 radar rainfall-rate composites — most recent, ~2h, ~4h, ~6h ago (motion/loop)")
-    L.append("  2 rolling 24h accumulation maps — current footprint and ~12h earlier (build-up/trend)")
+    L.append("  5 daily accumulation maps — today (partial, midnight to now) + 4 prior complete days (multi-day antecedent context)")
     L.append("  2 MSLP analysis charts — latest and ~12h earlier (synoptic driver/evolution)")
 
     return "\n".join(L)
@@ -907,7 +903,7 @@ def build_bullets(warnings, rfg, fgs_text, gauge_regional, gauge_top10,
     if cosmos:
         B.append(f"Soil moisture: {cosmos['condition'].split('—')[0].strip()} (mean VWC {cosmos['mean_vwc']}%)")
 
-    B.append(f"{len(images)} basemap images analysed: radar loop + 24h accumulation (×2) + MSLP (×2)")
+    B.append(f"{len(images)} basemap images analysed: 4 radar rate + 5 daily accum + 2 MSLP")
 
     return B
 
