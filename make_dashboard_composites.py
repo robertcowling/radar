@@ -338,6 +338,14 @@ def r2_put_json(r2, data, r2_key):
 
 
 def r2_upload_file(r2, local_path, r2_key):
+    # Skip if already in R2 — composites are content-addressed by timestamp
+    # so if the key exists the content is identical. head_object is Class B
+    # (cheap), avoiding a Class A PUT for every frame on every ephemeral run.
+    try:
+        r2.head_object(Bucket=R2_BUCKET, Key=r2_key)
+        return  # already exists
+    except Exception:
+        pass  # not found — fall through to upload
     with open(local_path, 'rb') as f:
         data = f.read()
     r2.put_object(
