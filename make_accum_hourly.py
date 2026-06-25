@@ -86,7 +86,13 @@ def get_r2():
     )
 
 
-def r2_upload(r2, buf_bytes, r2_key):
+def r2_upload(r2, buf_bytes, r2_key, force=False):
+    if not force:
+        try:
+            r2.head_object(Bucket=R2_BUCKET, Key=r2_key)
+            return  # already exists and stable
+        except Exception:
+            pass
     r2.put_object(
         Bucket=R2_BUCKET, Key=r2_key,
         Body=buf_bytes,
@@ -378,7 +384,11 @@ def main():
         keep_r2_keys.add(r2_key)
         webp = encode_webp(make_composite(basemap, accum))
         if r2:
-            r2_upload(r2, webp, r2_key)
+            # Slots within the last 3h may still be updating as radar arrives;
+            # older slots are stable so skip the upload if already in R2.
+            slot_dt = datetime.strptime(hour_ts, "%Y%m%d%H%M")
+            recent = (datetime.utcnow() - slot_dt).total_seconds() < 3 * 3600
+            r2_upload(r2, webp, r2_key, force=recent)
 
         dt = datetime.strptime(hour_ts, "%Y%m%d%H%M")
         hourly_manifest.append({
@@ -417,7 +427,9 @@ def main():
         keep_r2_keys.add(r2_key)
         webp = encode_webp(make_composite(basemap, accum))
         if r2:
-            r2_upload(r2, webp, r2_key)
+            # Today's daily composite is always partial/updating; prior days stable.
+            is_today = (date_str == daily_dates[0])
+            r2_upload(r2, webp, r2_key, force=is_today)
 
         daily_manifest.append({
             "date": date_str,
