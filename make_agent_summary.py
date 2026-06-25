@@ -641,6 +641,20 @@ def load_ukv_poly_text():
     return "\n".join(lines), run_label
 
 
+def load_ukv_trends():
+    """Load UKV run-to-run comparison insights and diff image URL."""
+    data = load_json("ukv_trends.json") or r2_get_json("ukv_trends.json")
+    if not data:
+        return None, None
+    insights = data.get("insights") or []
+    diff_url = None
+    for comp in (data.get("comparisons") or []):
+        diff_url = comp.get("diff_image_url")
+        if diff_url:
+            break
+    return insights, diff_url
+
+
 def pick_nearest(frames, target_dt, time_key="time"):
     best, best_d = None, None
     for f in frames:
@@ -718,6 +732,7 @@ All map images share the same geographic basemap with boundary lines — geoloca
   • Four radar RATE composites (~6h loop) — current rainfall location and motion.
   • Five DAILY ACCUMULATION maps (today partial + 4 prior complete days) — multi-day antecedent context.
   • Two MSLP charts (latest + ~12h earlier) — synoptic driver and evolution.
+  • (If present) UKV catchment diff — blue=drier, red=wetter vs prior run. Use only if the UKV trends section shows significant changes.
 
 Respond with a JSON object inside <json> tags:
 - "headline": One sentence, max 12 words.
@@ -734,7 +749,7 @@ Style: professional third-person prose; no bullet points; specific place names a
 # ── Prompt data block ─────────────────────────────────────────────────────────────
 
 def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top10, gauge_trend,
-                     cosmos, ukv_poly_text, rain_latest_time):
+                     cosmos, ukv_poly_text, rain_latest_time, ukv_trends_insights=None):
     L = []
     L.append(f"Generated: {now_utc().strftime('%Y-%m-%dT%H:%M UTC')}\n")
 
@@ -817,11 +832,20 @@ def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top1
     L.append(ukv_poly_text or "UKV numerical data not available.")
     L.append("")
 
+    # UKV trends
+    if ukv_trends_insights:
+        L.append("=== UKV RUN-TO-RUN TRENDS (catchment & 20km grid; blue=drier, red=wetter in diff image) ===")
+        for ins in ukv_trends_insights:
+            L.append(f"  {ins}")
+        L.append("")
+
     # Image context
     L.append("=== IMAGERY (attached below — all share one basemap with boundaries) ===")
     L.append("  4 radar rainfall-rate composites — most recent, ~2h, ~4h, ~6h ago (motion/loop)")
     L.append("  5 daily accumulation maps — today (partial, midnight to now) + 4 prior complete days (multi-day antecedent context)")
     L.append("  2 MSLP analysis charts — latest and ~12h earlier (synoptic driver/evolution)")
+    if ukv_trends_insights:
+        L.append("  1 UKV catchment diff — latest run vs prior (blue=drier, red=wetter)")
 
     return "\n".join(L)
 
@@ -879,7 +903,7 @@ def parse_openai_response(text):
 # ── Context bullets ───────────────────────────────────────────────────────────────
 
 def build_bullets(warnings, rfg, fgs_text, gauge_regional, gauge_top10,
-                  gauge_trend, cosmos, images, parsed):
+                  gauge_trend, cosmos, images, parsed, ukv_trends_insights=None):
     B = []
 
     if warnings:
@@ -924,7 +948,12 @@ def build_bullets(warnings, rfg, fgs_text, gauge_regional, gauge_top10,
     if cosmos:
         B.append(f"Soil moisture: {cosmos['condition'].split('—')[0].strip()} (mean VWC {cosmos['mean_vwc']}%)")
 
-    B.append(f"{len(images)} basemap images analysed: 4 radar rate + 5 daily accum + 2 MSLP")
+    if ukv_trends_insights:
+        B.append(f"UKV trend: {ukv_trends_insights[0][:90]}")
+
+    n_diff = 1 if ukv_trends_insights else 0
+    B.append(f"{len(images)} basemap images: 4 radar rate + 5 daily accum + 2 MSLP"
+             + (f" + {n_diff} UKV diff" if n_diff else ""))
 
     return B
 
@@ -960,8 +989,14 @@ def main():
     ukv_poly_text, ukv_run_label = load_ukv_poly_text()
     print(f"  {'loaded' if ukv_poly_text else 'not available'}")
 
+    print("Loading UKV run-to-run trends...")
+    ukv_trends_insights, ukv_diff_url = load_ukv_trends()
+    print(f"  {'loaded' if ukv_trends_insights else 'not available'}")
+
     print("Selecting images...")
     images = select_images()
+    if ukv_diff_url:
+        images.append(("UKV catchment diff — latest run vs prior (blue=drier, red=wetter)", ukv_diff_url))
     print(f"  {len(images)} image(s) selected")
 
     ukv_meta = load_json("ukv_meta.json", {})
@@ -970,6 +1005,7 @@ def main():
     data_block = build_data_block(
         warnings, rfg, fgs_history_text, gauge_regional, gauge_top10, gauge_trend,
         cosmos, ukv_poly_text, rain_latest,
+        ukv_trends_insights=ukv_trends_insights,
     )
 
     parsed = None
@@ -984,7 +1020,8 @@ def main():
         print("OpenAI not configured — writing skeleton output")
 
     bullets = build_bullets(warnings, rfg, fgs_history_text, gauge_regional, gauge_top10,
-                             gauge_trend, cosmos, images, parsed)
+                             gauge_trend, cosmos, images, parsed,
+                             ukv_trends_insights=ukv_trends_insights)
 
     # Full prompt shown on the front end: system instructions + data + image manifest.
     image_manifest = "\n".join(f"  {i+1}. {lbl}" for i, (lbl, _u) in enumerate(images))
