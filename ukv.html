@@ -144,6 +144,24 @@
   }
   .info-modal-close:hover { color: #475569; }
 
+  .trend-meta { font-size: 11px; color: #94a3b8; margin: 0 0 10px; }
+  .trend-insight {
+    font-size: 12px; color: #334155; line-height: 1.55; padding: 8px 0;
+    border-bottom: 1px solid #f1f5f9; display: flex; gap: 8px;
+  }
+  .trend-insight:last-child { border-bottom: none; }
+  .trend-insight::before { content: "•"; color: #1a73e8; font-weight: 700; }
+  .trend-empty { font-size: 12px; color: #64748b; padding: 8px 0; }
+  .trend-diff-img {
+    width: 100%; border-radius: 10px; margin-top: 12px; border: 1px solid #e2e8f0;
+    background: #eef2f7;
+  }
+  .trend-legend {
+    display: flex; align-items: center; gap: 6px; font-size: 11px; color: #64748b;
+    margin-top: 8px; justify-content: center;
+  }
+  .trend-legend .sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+
   .panel-header {
     background: #1e293b;
     color: #f1f5f9;
@@ -463,6 +481,9 @@
   <div class="collapsed-top-row">
     <span class="collapsed-title">UKV Forecast</span>
     <div style="display:flex;align-items:center;gap:6px;">
+      <button class="info-icon-btn" onclick="toggleTrendsModal()" title="Run-to-run trends">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      </button>
       <button class="info-icon-btn" onclick="toggleInfoModal()" title="About this data">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
       </button>
@@ -480,6 +501,9 @@
   <div class="panel-header hide-collapsed">
     <span class="panel-header-title">UKV Forecast</span>
     <div style="display:flex;align-items:center;gap:8px;">
+      <button class="info-icon-btn" onclick="toggleTrendsModal()" title="Run-to-run trends">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      </button>
       <button class="info-icon-btn" onclick="toggleInfoModal()" title="About this data">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
       </button>
@@ -528,6 +552,25 @@
       <li><strong>Catchment boundaries:</strong> National River Flow Archive (2014). NERC Environmental Information Data Centre. <a href="https://doi.org/10.5285/1957166d-7523-44f4-b279-aa5314163237" target="_blank">doi:10.5285/1957166d</a>.</li>
       <li><strong>Region / county boundaries:</strong> Office for National Statistics (ONS). Open Government Licence.</li>
     </ul>
+  </div>
+</div>
+
+<!-- Run-to-run trends modal -->
+<div id="trendsModalBackdrop" class="info-modal-backdrop" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="info-modal" style="max-width:460px;">
+    <button class="info-modal-close" onclick="toggleTrendsModal()" title="Close">&times;</button>
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      Run-to-run trends
+    </h3>
+    <p class="trend-meta" id="trendMeta"></p>
+    <div id="trendInsights"><p class="trend-empty">Loading…</p></div>
+    <img id="trendDiffImg" class="trend-diff-img" style="display:none;" alt="UKV catchment rainfall difference vs prior run">
+    <div class="trend-legend" id="trendLegend" style="display:none;">
+      <span class="sw" style="background:#1565c0;"></span> Drier
+      <span class="sw" style="background:#fafafa;border:1px solid #cbd5e1;"></span> No change
+      <span class="sw" style="background:#b71c1c;"></span> Wetter
+    </div>
   </div>
 </div>
 
@@ -1067,7 +1110,61 @@ function setOpacity(val) {
 function toggleInfoModal() {
   document.getElementById('infoModalBackdrop').classList.toggle('open');
 }
-document.addEventListener('keydown', function(e) { if (e.key === 'Escape') document.getElementById('infoModalBackdrop').classList.remove('open'); });
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.getElementById('infoModalBackdrop').classList.remove('open');
+    document.getElementById('trendsModalBackdrop').classList.remove('open');
+  }
+});
+
+var _trendsLoaded = false;
+function _escHtml(s) {
+  return String(s).replace(/[&<>"]/g, function(c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+function toggleTrendsModal() {
+  var bd = document.getElementById('trendsModalBackdrop');
+  bd.classList.toggle('open');
+  if (bd.classList.contains('open') && !_trendsLoaded) loadTrends();
+}
+function loadTrends() {
+  fetch('ukv_trends.json?_=' + Date.now())
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return cdnJson(r); })
+    .then(function(data) {
+      _trendsLoaded = true;
+      var comps = (data.comparisons || []).map(function(c) { return c.label; }).join(', ');
+      document.getElementById('trendMeta').textContent =
+        'Latest run ' + (data.latest_label || data.latest_run || '') +
+        (comps ? ' vs ' + comps : '');
+
+      var insights = data.insights || [];
+      document.getElementById('trendInsights').innerHTML = insights.length
+        ? insights.map(function(t) { return '<div class="trend-insight">' + _escHtml(t) + '</div>'; }).join('')
+        : '<p class="trend-empty">No significant run-to-run changes.</p>';
+
+      var diffUrl = '';
+      (data.comparisons || []).some(function(c) {
+        if (c.diff_image_url) { diffUrl = c.diff_image_url; return true; }
+        return false;
+      });
+      var img = document.getElementById('trendDiffImg');
+      var leg = document.getElementById('trendLegend');
+      if (diffUrl) {
+        img.src = diffUrl.replace(R2_BASE, R2_CDN);
+        img.style.display = 'block';
+        leg.style.display = 'flex';
+      } else {
+        img.style.display = 'none';
+        leg.style.display = 'none';
+      }
+    })
+    .catch(function() {
+      document.getElementById('trendMeta').textContent = '';
+      document.getElementById('trendInsights').innerHTML =
+        '<p class="trend-empty">Trends not available yet — generated after the next model run.</p>';
+    });
+}
 
 function toggleInfo() {
   var panel = document.getElementById('infoPanel');
