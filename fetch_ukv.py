@@ -15,6 +15,8 @@ import os
 import re
 import sys
 import tempfile
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 
 import boto3
@@ -113,6 +115,15 @@ def get_r2():
         aws_secret_access_key=R2_SECRET_KEY,
         region_name="auto",
     )
+
+
+# Thread-local R2 client so upload threads each hold their own connection.
+_tl = threading.local()
+
+def _r2_tl():
+    if not getattr(_tl, "r2", None):
+        _tl.r2 = get_r2()
+    return _tl.r2
 
 
 def get_s3():
@@ -413,34 +424,68 @@ def download_nc(s3, run_ts, valid_ts, offset, param):
         return None
 
 
-def load_arr(s3, run_ts, valid_ts, offset, param, mapping):
-    """Download NC, write temp file, extract array. Returns None on failure."""
-    nc_bytes = download_nc(s3, run_ts, valid_ts, offset, param)
-    if nc_bytes is None:
-        return None
-    with tempfile.NamedTemporaryFile(suffix=".nc", delete=False) as tmp:
-        tmp.write(nc_bytes)
-        path = tmp.name
-    try:
-        arr = extract_array(path, mapping)
-        if arr is not None:
-            print(f"      max={arr.max():.4f}  nonzero={np.count_nonzero(arr)}")
-        return arr
-    finally:
-        os.unlink(path)
 
-
-def upload_schemes(r2, arr, schemes, run_ts, offset, prefix):
-    """Render arr with each scheme, upload PNGs, return {scheme_name: url}."""
+def upload_schemes(arr, schemes, run_ts, offset, prefix):
+    """Render arr with each scheme, upload PNGs in parallel, return {scheme_name: url}."""
     if arr is None:
         return None
-    urls = {}
-    for sname, scheme in schemes.items():
+
+    def _upload_one(sname, scheme):
         img = render_png(arr, scheme)
         key = f"ukv/{run_ts}/{offset}_{prefix}_{sname}.png"
-        png_to_r2(r2, key, img)
-        urls[sname] = f"{R2_PUBLIC_URL}/{key}"
+        png_to_r2(_r2_tl(), key, img)
+        return sname, f"{R2_PUBLIC_URL}/{key}"
+
+    urls = {}
+    with ThreadPoolExecutor(max_workers=len(schemes)) as ex:
+        for sname, url in ex.map(lambda item: _upload_one(*item), schemes.items()):
+            urls[sname] = url
     return urls
+
+
+def _download_nc_bytes(s3, run_ts, valid_ts, offset, param):
+    """Download a single NetCDF from Met Office S3, return raw bytes or None."""
+    key = f"{UKV_PREFIX}{run_ts}/{valid_ts}-{offset}-{param}.nc"
+    try:
+        obj = s3.get_object(Bucket=MET_BUCKET, Key=key)
+        return obj["Body"].read()
+    except Exception as e:
+        print(f"    Warning: {os.path.basename(key)} — {e}")
+        return None
+
+
+def load_arr_both(s3, run_ts, valid_ts, offset, mapping):
+    """Download rainfall_rate and rainfall_accumulation-PT01H in parallel.
+
+    Returns (arr_rate, arr_accum_1h) — either may be None.
+    """
+    params = [
+        ("rainfall_rate", "rate"),
+        ("rainfall_accumulation-PT01H", "accum"),
+    ]
+
+    results = {}
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        futs = {ex.submit(_download_nc_bytes, s3, run_ts, valid_ts, offset, p): label
+                for p, label in params}
+        for fut in as_completed(futs):
+            label = futs[fut]
+            nc_bytes = fut.result()
+            if nc_bytes is None:
+                results[label] = None
+                continue
+            with tempfile.NamedTemporaryFile(suffix=".nc", delete=False) as tmp:
+                tmp.write(nc_bytes)
+                path = tmp.name
+            try:
+                arr = extract_array(path, mapping)
+                if arr is not None:
+                    print(f"      [{label}] max={arr.max():.4f}  nonzero={np.count_nonzero(arr)}")
+                results[label] = arr
+            finally:
+                os.unlink(path)
+
+    return results.get("rate"), results.get("accum")
 
 
 # ── Polygon masks (UKV grid) ──────────────────────────────────────────────────────
@@ -924,14 +969,14 @@ def main():
 
         entry = {"offset": offset, "offset_hours": hours, "valid_label": vlabel}
 
-        # Precipitation rate
-        arr  = load_arr(s3, run_ts, valid_ts, offset, "rainfall_rate", mapping)
-        urls = upload_schemes(r2, arr, RATE_SCHEMES, run_ts, offset, "rate")
+        # Download rate + accum in parallel, then upload rate PNGs in parallel.
+        arr, arr_1h = load_arr_both(s3, run_ts, valid_ts, offset, mapping)
+
+        urls = upload_schemes(arr, RATE_SCHEMES, run_ts, offset, "rate")
         if urls:
             entry["rainfall_rate"] = urls
 
         # Accumulation: real 1h file if available, else approximate from rate.
-        arr_1h = load_arr(s3, run_ts, valid_ts, offset, "rainfall_accumulation-PT01H", mapping)
         if arr_1h is not None:
             accum_stack.append({"arr": arr_1h, "hours": 1, "estimated": False})
         elif arr is not None:
@@ -949,6 +994,8 @@ def main():
             arrays_for_poly = {}
             any_estimated   = False
 
+            # Collect all (arr_n, n, is_est) first, then upload all accum PNGs in parallel.
+            accum_renders = []
             for n in ACCUM_PERIODS:
                 if total_stk < n:
                     continue
@@ -972,50 +1019,64 @@ def main():
                         break
                 if covered < n:
                     continue
+                accum_renders.append((n, np.sum(arrs, axis=0).astype(np.float32), is_est))
 
-                arr_n = np.sum(arrs, axis=0).astype(np.float32)
-                urls  = {}
-                for sname, scheme in ACCUM_SCHEMES.items():
-                    img = render_png(arr_n, scheme)
-                    key = f"ukv/{run_ts}/{offset}_accum_{n}h_{sname}.png"
-                    png_to_r2(r2, key, img)
-                    urls[sname] = f"{R2_PUBLIC_URL}/{key}"
-                entry[f"accum_{n}h"] = urls
-                arrays_for_poly[f"accum_{n}h"] = arr_n
-                if is_est:
-                    any_estimated = True
+            def _upload_accum(n, arr_n, is_est):
+                urls = upload_schemes(arr_n, ACCUM_SCHEMES, run_ts, offset, f"accum_{n}h")
+                return n, arr_n, urls, is_est
+
+            if accum_renders:
+                with ThreadPoolExecutor(max_workers=min(len(accum_renders), 6)) as ex:
+                    futs = [ex.submit(_upload_accum, n, a, e) for n, a, e in accum_renders]
+                    for fut in as_completed(futs):
+                        n, arr_n, urls, is_est = fut.result()
+                        entry[f"accum_{n}h"] = urls
+                        arrays_for_poly[f"accum_{n}h"] = arr_n
+                        if is_est:
+                            any_estimated = True
 
             if any_estimated:
                 entry["accum_estimated"] = True
 
             if arrays_for_poly and ukv_masks:
                 poly_data = compute_poly_averages(arrays_for_poly, ukv_masks)
-                r2.put_object(
-                    Bucket=R2_BUCKET,
-                    Key=f"ukv_poly/{run_ts}/{offset}.json",
-                    Body=json.dumps(poly_data).encode(),
-                    ContentType="application/json; charset=utf-8",
-                )
+
+                def _upload_poly_gauge():
+                    _r2_tl().put_object(
+                        Bucket=R2_BUCKET,
+                        Key=f"ukv_poly/{run_ts}/{offset}.json",
+                        Body=json.dumps(poly_data).encode(),
+                        ContentType="application/json; charset=utf-8",
+                    )
+
+                gauge_body = None
+                if station_pixels_ukv:
+                    gauge_data = {}
+                    for sid, (row, col) in station_pixels_ukv.items():
+                        vals = {k: round(float(a[row, col]), 2)
+                                for k, a in arrays_for_poly.items()
+                                if float(a[row, col]) >= 0}
+                        if vals:
+                            gauge_data[sid] = vals
+                    if gauge_data:
+                        gauge_body = json.dumps(gauge_data, separators=(",", ":")).encode()
+
+                def _upload_gauge():
+                    if gauge_body:
+                        _r2_tl().put_object(
+                            Bucket=R2_BUCKET,
+                            Key=f"ukv_gauge/{run_ts}/{offset}.json",
+                            Body=gauge_body,
+                            ContentType="application/json; charset=utf-8",
+                        )
+
+                with ThreadPoolExecutor(max_workers=2) as ex:
+                    list(ex.map(lambda fn: fn(), [_upload_poly_gauge, _upload_gauge]))
+
                 ts_entry = {'hours': hours}
                 for layer_name in ukv_masks:
                     ts_entry[layer_name] = poly_data.get(layer_name, {}).get('accum_1h', {})
                 area_ts_steps.append(ts_entry)
-
-            if arrays_for_poly and station_pixels_ukv:
-                gauge_data = {}
-                for sid, (row, col) in station_pixels_ukv.items():
-                    vals = {k: round(float(arr[row, col]), 2)
-                            for k, arr in arrays_for_poly.items()
-                            if float(arr[row, col]) >= 0}
-                    if vals:
-                        gauge_data[sid] = vals
-                if gauge_data:
-                    r2.put_object(
-                        Bucket=R2_BUCKET,
-                        Key=f"ukv_gauge/{run_ts}/{offset}.json",
-                        Body=json.dumps(gauge_data, separators=(",", ":")).encode(),
-                        ContentType="application/json; charset=utf-8",
-                    )
 
         step_entries.append(entry)
 
