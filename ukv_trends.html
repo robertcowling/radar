@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UKV Run Comparison | Flood Forecast</title>
+<link rel="icon" type="image/png" href="https://floodforecast.co.uk/static/images/avatar.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Roboto', sans-serif; background: #f1f5f9; color: #1e293b; }
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+.page-header {
+  background: #1e293b; color: #f1f5f9; padding: 0 16px;
+  display: flex; align-items: center; gap: 12px; height: 52px;
+  position: sticky; top: 0; z-index: 1000;
+}
+.back-btn {
+  background: none; border: none; color: #94a3b8; cursor: pointer;
+  display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500;
+  text-decoration: none; transition: color .15s;
+}
+.back-btn:hover { color: #f1f5f9; }
+.hdr-div { width: 1px; height: 20px; background: #334155; }
+.hdr-title { font-size: 14px; font-weight: 600; }
+.hdr-meta  { margin-left: auto; font-size: 11px; color: #64748b; }
+
+/* ── Page ────────────────────────────────────────────────────────────── */
+.page-content { max-width: 1080px; margin: 0 auto; padding: 16px 14px 40px; }
+
+/* ── Cards ───────────────────────────────────────────────────────────── */
+.card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.07); margin-bottom: 14px; }
+.card-header {
+  padding: 13px 18px 9px; border-bottom: 1px solid #f1f5f9;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
+.card-body  { padding: 14px 18px; }
+
+/* ── Run selectors ───────────────────────────────────────────────────── */
+.sel-row {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+}
+.run-block { display: flex; flex-direction: column; gap: 4px; }
+.run-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: .5px;
+  padding: 2px 8px; border-radius: 10px; text-transform: uppercase;
+  display: inline-block;
+}
+.run-tag.bench { background: #dbeafe; color: #1e40af; }
+.run-tag.cmp   { background: #fce7f3; color: #9d174d; }
+.run-select {
+  padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 8px;
+  font-size: 13px; color: #1e293b; background: #fff; cursor: pointer;
+  max-width: 230px;
+}
+.run-select:focus { outline: 2px solid #1a73e8; }
+.sel-arrow { color: #94a3b8; font-size: 18px; padding: 0 2px; align-self: flex-end; margin-bottom: 6px; }
+.sel-spacer { flex: 1; min-width: 12px; }
+.ctl-grp { display: flex; flex-direction: column; gap: 4px; }
+.ctl-lbl { font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: .4px; text-transform: uppercase; }
+.seg { display: flex; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.seg-btn {
+  padding: 5px 11px; border: none; background: #fff; font-size: 12px;
+  cursor: pointer; color: #475569; border-right: 1px solid #e2e8f0; transition: background .12s;
+}
+.seg-btn:last-child { border-right: none; }
+.seg-btn.active { background: #1e293b; color: #fff; }
+.seg-btn:hover:not(.active) { background: #f8fafc; }
+.match-note { font-size: 11px; color: #64748b; margin-top: 10px; line-height: 1.5; }
+.match-note b { color: #1e293b; }
+
+/* ── 3-panel map ─────────────────────────────────────────────────────── */
+.panels-header {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  border-bottom: 1px solid #f1f5f9;
+}
+.ph {
+  padding: 10px 14px; font-size: 12px; font-weight: 500; color: #475569;
+  display: flex; align-items: center; gap: 7px; border-right: 1px solid #f1f5f9;
+}
+.ph:last-child { border-right: none; }
+.ph-tag {
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+  letter-spacing: .4px; flex-shrink: 0;
+}
+.ph-tag.bench { background: #dbeafe; color: #1e40af; }
+.ph-tag.cmp   { background: #fce7f3; color: #9d174d; }
+.ph-tag.diff  { background: #f0fdf4; color: #166534; }
+.ph-run-label { font-size: 12px; font-weight: 600; color: #1e293b; }
+.panels-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0;
+}
+.map-wrap { position: relative; }
+.map-pane { height: 420px; background: #dce8f0; }
+.map-pane + .map-pane { border-left: 2px solid #f1f5f9; }
+.leaflet-image-layer { image-rendering: pixelated; }
+.map-panel-sep { width: 2px; background: #f1f5f9; }
+.map-legend {
+  position: absolute; bottom: 10px; right: 8px; z-index: 600;
+  background: rgba(255,255,255,.92); border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.15); padding: 7px 9px;
+}
+.leg-title { font-size: 10px; font-weight: 600; color: #475569; margin-bottom: 5px; }
+.leg-row { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #475569; margin-bottom: 3px; }
+.leg-row:last-child { margin-bottom: 0; }
+.leg-sw { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; border: 1px solid rgba(0,0,0,.08); }
+.raster-ck {
+  margin-left: auto; font-size: 11px; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; gap: 4px; white-space: nowrap;
+}
+.poly-tip { font-size: 12px; line-height: 1.5; }
+.poly-tip b { font-size: 12.5px; }
+.pt-pos { color: #b91c1c; font-weight: 600; }
+.pt-neg { color: #1565c0; font-weight: 600; }
+@media (max-width: 760px) {
+  .panels-header { grid-template-columns: 1fr; }
+  .ph { border-right: none; border-bottom: 1px solid #f1f5f9; }
+  .panels-grid { grid-template-columns: 1fr; }
+  .map-pane { height: 280px; }
+  .map-pane + .map-pane { border-left: none; border-top: 2px solid #f1f5f9; }
+}
+
+/* ── Insights ────────────────────────────────────────────────────────── */
+.ins-row {
+  display: flex; gap: 9px; padding: 8px 0; border-bottom: 1px solid #f8fafc;
+  font-size: 13px; line-height: 1.55; color: #334155;
+}
+.ins-row:last-child { border-bottom: none; }
+.ins-row.head { font-weight: 600; color: #1e293b; font-size: 13.5px; }
+.ins-row.wetter .ins-icon { color: #b91c1c; }
+.ins-row.drier  .ins-icon { color: #1565c0; }
+.ins-row.region .ins-icon { color: #6b7280; }
+.ins-icon { flex-shrink: 0; margin-top: 1px; font-weight: 700; }
+
+/* ── Table ───────────────────────────────────────────────────────────── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table th {
+  text-align: left; font-size: 11px; font-weight: 600; color: #475569;
+  padding: 6px 10px; border-bottom: 2px solid #e2e8f0; white-space: nowrap;
+}
+.data-table td { padding: 7px 10px; border-bottom: 1px solid #f8fafc; color: #334155; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: #f8fafc; }
+.td-pos { color: #b91c1c; font-weight: 600; }
+.td-neg { color: #1565c0; font-weight: 600; }
+.reason-pill {
+  font-size: 10px; padding: 1px 6px; border-radius: 10px;
+  background: #f1f5f9; color: #64748b;
+}
+.sig-dot.w { color: #b91c1c; } .sig-dot.d { color: #1565c0; }
+.show-all-btn {
+  margin-top: 10px; display: block; width: 100%; text-align: center;
+  font-size: 11px; color: #64748b; background: none; border: 1px solid #e2e8f0;
+  border-radius: 6px; padding: 5px; cursor: pointer;
+}
+.show-all-btn:hover { background: #f8fafc; }
+.empty-msg { font-size: 12px; color: #94a3b8; text-align: center; padding: 20px; }
+
+/* ── States ──────────────────────────────────────────────────────────── */
+.state-msg { text-align: center; padding: 48px 20px; font-size: 13px; color: #64748b; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <a href="ukv.html" class="back-btn">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    UKV Forecast
+  </a>
+  <div class="hdr-div"></div>
+  <span class="hdr-title">Run comparison</span>
+  <span class="hdr-meta" id="hdrMeta"></span>
+</div>
+
+<div class="page-content">
+
+  <div id="loadState" class="state-msg">Loading runs…</div>
+  <div id="errState"  class="state-msg" style="display:none;">Could not load UKV model data.</div>
+
+  <div id="main" style="display:none;">
+
+    <!-- Run selectors -->
+    <div class="card">
+      <div class="card-body">
+        <div class="sel-row">
+
+          <div class="run-block">
+            <span class="run-tag bench">Benchmark (A)</span>
+            <select id="selA" class="run-select" onchange="onSelChange()"></select>
+          </div>
+
+          <div class="sel-arrow">→</div>
+
+          <div class="run-block">
+            <span class="run-tag cmp">Compare (B)</span>
+            <select id="selB" class="run-select" onchange="onSelChange()"></select>
+          </div>
+
+          <div class="sel-spacer"></div>
+
+          <div class="ctl-grp">
+            <span class="ctl-lbl">Window</span>
+            <div class="seg" id="winSeg">
+              <button class="seg-btn"        data-v="12h"  onclick="setWin('12h')">12h</button>
+              <button class="seg-btn active" data-v="day1" onclick="setWin('day1')">Day 1</button>
+              <button class="seg-btn"        data-v="day2" onclick="setWin('day2')">Day 2</button>
+            </div>
+          </div>
+
+          <div class="ctl-grp">
+            <span class="ctl-lbl">Diff layer</span>
+            <div class="seg" id="layerSeg">
+              <button class="seg-btn active" data-v="catchments" onclick="setLayer('catchments')">Catchments</button>
+              <button class="seg-btn"        data-v="regions"    onclick="setLayer('regions')">Regions</button>
+              <button class="seg-btn"        data-v="grid"       onclick="setLayer('grid')">Grid 20km</button>
+            </div>
+          </div>
+
+        </div>
+        <div class="match-note" id="matchNote"></div>
+      </div>
+    </div>
+
+    <!-- 3-panel map -->
+    <div class="card" style="overflow:hidden;">
+      <div class="panels-header">
+        <div class="ph">
+          <span class="ph-tag bench">A</span>
+          <span class="ph-run-label" id="phA">—</span>
+          <label class="raster-ck" title="Toggle raw raster on A &amp; B panels">
+            <input type="checkbox" id="rasterCk" onchange="toggleRaster()" checked> Raw raster
+          </label>
+        </div>
+        <div class="ph">
+          <span class="ph-tag cmp">B</span>
+          <span class="ph-run-label" id="phB">—</span>
+        </div>
+        <div class="ph">
+          <span class="ph-tag diff">Δ</span>
+          <span id="phDiff">Difference B − A</span>
+        </div>
+      </div>
+      <div class="panels-grid">
+        <div class="map-wrap"><div id="mapA" class="map-pane"></div><div class="map-legend" id="legA"></div></div>
+        <div class="map-wrap"><div id="mapB" class="map-pane"></div><div class="map-legend" id="legB"></div></div>
+        <div class="map-wrap"><div id="mapD" class="map-pane"></div><div class="map-legend" id="legD"></div></div>
+      </div>
+    </div>
+
+    <!-- Insights -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          What changed
+        </span>
+      </div>
+      <div class="card-body" id="insBody"><p class="empty-msg">Loading…</p></div>
+    </div>
+
+    <!-- Detail table -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          <span id="tblTitle">Detail</span>
+        </span>
+      </div>
+      <div class="card-body" style="padding-top:10px;">
+        <div id="tblWrap"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ── Config ───────────────────────────────────────────────────────────── */
+var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
+var R2_CDN  = 'https://radar.floodforecast.co.uk';
+var IMG_BOUNDS = [[43.0, -26.0], [63.0, 17.0]];
+
+var WIN = {
+  '12h':  { label: '12h',   accum_key: 'accum_12h', off_h: 12 },
+  'day1': { label: 'Day 1', accum_key: 'accum_24h', off_h: 24 },
+  'day2': { label: 'Day 2', accum_key: 'accum_24h', off_h: 48 },
+};
+var LAYER = {
+  catchments: { label: 'catchments', geo: 'uk_catchments.geojson', key: 'HA_NAME', floor: 2 },
+  regions:    { label: 'regions',    geo: 'uk_regions.geojson',    key: 'rgn19nm', floor: 2 },
+  grid:       { label: '20km grid',  geo: 'uk_grid_20km.geojson',  key: 'name',    floor: 5 },
+};
+var THRESHOLDS = [10, 25, 50, 100];
+
+/* Diverging scale (diff panel) */
+var DIFF_B = [-25,-10,-3,3,10,25];
+var DIFF_C = ['#1a237e','#1565c0','#64b5f6','#f0f4f8','#ffcc80','#e53935','#b71c1c'];
+var DIFF_L = [
+  ['#1a237e','< −25mm (much drier)'], ['#1565c0','−25..−10mm'], ['#64b5f6','−10..−3mm'],
+  ['#f0f4f8','±3mm'], ['#ffcc80','+3..+10mm'], ['#e53935','+10..+25mm'], ['#b71c1c','> +25mm (much wetter)']
+];
+
+/* Sequential scale (panels A & B, polygon overlay mode) */
+var ABS_B = [1,5,10,25,50,100];
+var ABS_C = ['#f1f5f9','#bae6fd','#7dd3fc','#38bdf8','#0284c7','#075985','#1e1b4b'];
+var ABS_L = [
+  ['#f1f5f9','< 1mm'],['#bae6fd','1–5mm'],['#7dd3fc','5–10mm'],
+  ['#38bdf8','10–25mm'],['#0284c7','25–50mm'],['#075985','50–100mm'],['#1e1b4b','> 100mm']
+];
+
+/* ── State ────────────────────────────────────────────────────────────── */
+var _meta  = null;
+var _idxA  = 1, _idxB = 0;   // default: A=older, B=newer
+var _win   = 'day1', _layer = 'catchments';
+var _polyA = null, _polyB = null;
+var _raster = true, _showAll = false;
+var _mA = null, _mB = null, _mD = null;
+var _ovA = null, _ovB = null, _polyOvA = null, _polyOvB = null, _diffLyr = null;
+var _syncing = false;
+var _pCache = {}, _gCache = {};
+
+/* ── Helpers ──────────────────────────────────────────────────────────── */
+function cdnUrl(u) { return (u || '').replace(R2_BASE, R2_CDN); }
+function esc(s)    { return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function fmtMm(v)  { return (v == null) ? '—' : (+v).toFixed(1) + 'mm'; }
+function fmtDelta(d){ if (d == null) return '—'; return (d >= 0 ? '+' : '') + (+d).toFixed(1) + 'mm'; }
+
+function parseRunTs(ts) {
+  var m = (ts || '').match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})Z$/)
+       || (ts || '').match(/^(\d{4})(\d{2})(\d{2})T(\d{2})Z$/);
+  if (!m) return new Date(0);
+  return new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +(m[5]||0)));
+}
+
+function shortLabel(run) {
+  /* "26 Jun 2026 06:00 GMT" → "26 Jun 06Z" */
+  var m = (run.run_label || '').match(/(\d+\s+\w+)\s+\d+\s+(\d+):\d+/);
+  return m ? m[1] + ' ' + m[2] + 'Z' : run.run_ts;
+}
+
+function bucketColor(v, bounds, colors) {
+  if (v == null) return null;
+  var i = 0;
+  while (i < bounds.length && v >= bounds[i]) i++;
+  return colors[i];
+}
+
+function findClosestStep(run, targetH) {
+  var best = null, bestD = Infinity;
+  (run.steps || []).forEach(function(s) {
+    var d = Math.abs(s.offset_hours - targetH);
+    if (d < bestD) { bestD = d; best = s; }
+  });
+  return bestD <= 3 ? best : null;
+}
+
+/* Same-valid-time matching: B's T+off_h defines the target; find matching step in A */
+function matchSteps(runA, runB, win) {
+  var cfg = WIN[win];
+  var dtA = parseRunTs(runA.run_ts), dtB = parseRunTs(runB.run_ts);
+  var lagH = (dtB - dtA) / 3600000;  // hours B is newer than A
+  var stepB = findClosestStep(runB, cfg.off_h);
+  var stepA = findClosestStep(runA, cfg.off_h + lagH);
+  return { stepA: stepA, stepB: stepB, lagH: lagH };
+}
+
+function getImgUrl(run, step, win) {
+  if (!step) return null;
+  var urls = step[WIN[win].accum_key];
+  return urls ? cdnUrl(urls.met || urls.norm || '') : null;
+}
+
+/* ── Poly data ────────────────────────────────────────────────────────── */
+function loadPoly(run_ts, offset_str) {
+  var k = run_ts + '/' + offset_str;
+  if (_pCache[k] != null) return Promise.resolve(_pCache[k]);
+  return fetch(R2_CDN + '/ukv_poly/' + run_ts + '/' + offset_str + '.json')
+    .then(function(r) { return r.ok ? r.json() : {}; })
+    .catch(function() { return {}; })
+    .then(function(d) { _pCache[k] = d; return d; });
+}
+
+function loadGeo(layer) {
+  if (_gCache[layer]) return Promise.resolve(_gCache[layer]);
+  return fetch(LAYER[layer].geo)
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(d) { _gCache[layer] = d; return d; })
+    .catch(function() { return null; });
+}
+
+/* ── Significance ─────────────────────────────────────────────────────── */
+function sigReason(delta, prior, floor) {
+  if (delta == null || Math.abs(delta) < floor) return null;
+  var lo = Math.min(prior, prior + delta), hi = Math.max(prior, prior + delta);
+  for (var i = 0; i < THRESHOLDS.length; i++) {
+    if (lo < THRESHOLDS[i] && THRESHOLDS[i] <= hi)
+      return 'crosses ' + THRESHOLDS[i] + 'mm/24h';
+  }
+  if (prior > 1 && Math.abs(delta) / prior > 0.20)
+    return Math.round(Math.abs(delta) / prior * 100) + '% shift';
+  return null;
+}
+
+/* ── Delta computation ────────────────────────────────────────────────── */
+function computeDeltas(polyA, polyB, win, layer) {
+  var cfg   = WIN[win];
+  var lyrA  = (polyA && polyA[layer] && polyA[layer][cfg.accum_key]) || {};
+  var lyrB  = (polyB && polyB[layer] && polyB[layer][cfg.accum_key]) || {};
+  var names = {};
+  Object.keys(lyrA).forEach(function(n) { names[n] = 1; });
+  Object.keys(lyrB).forEach(function(n) { names[n] = 1; });
+  var result = {};
+  Object.keys(names).forEach(function(n) {
+    var a = lyrA[n] != null ? +lyrA[n] : null;
+    var b = lyrB[n] != null ? +lyrB[n] : null;
+    result[n] = { a: a, b: b, delta: (a != null && b != null) ? b - a : null };
+  });
+  return result;
+}
+
+/* ── Map init + sync ──────────────────────────────────────────────────── */
+function makeTileLayer() {
+  return L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    maxZoom: 13,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
+  });
+}
+
+function initMaps() {
+  _mA = L.map('mapA', { zoomControl: true  }).setView([54.5,-3.5], 5); makeTileLayer().addTo(_mA);
+  _mB = L.map('mapB', { zoomControl: false }).setView([54.5,-3.5], 5); makeTileLayer().addTo(_mB);
+  _mD = L.map('mapD', { zoomControl: false }).setView([54.5,-3.5], 5); makeTileLayer().addTo(_mD);
+  syncMaps([_mA, _mB, _mD]);
+}
+
+function syncMaps(maps) {
+  maps.forEach(function(m) {
+    m.on('move', function() {
+      if (_syncing) return;
+      _syncing = true;
+      var c = m.getCenter(), z = m.getZoom();
+      maps.forEach(function(other) {
+        if (other !== m) other.setView(c, z, { animate: false });
+      });
+      _syncing = false;
+    });
+  });
+}
+
+/* ── Rendering ────────────────────────────────────────────────────────── */
+function updateOverlays(stepA, stepB) {
+  /* Raster imageOverlays on panels A and B */
+  if (_ovA) { _mA.removeLayer(_ovA); _ovA = null; }
+  if (_ovB) { _mB.removeLayer(_ovB); _ovB = null; }
+
+  var urlA = getImgUrl(_meta.runs[_idxA], stepA, _win);
+  var urlB = getImgUrl(_meta.runs[_idxB], stepB, _win);
+
+  if (_raster) {
+    if (urlA) _ovA = L.imageOverlay(urlA, IMG_BOUNDS, { opacity: 0.80 }).addTo(_mA);
+    if (urlB) _ovB = L.imageOverlay(urlB, IMG_BOUNDS, { opacity: 0.80 }).addTo(_mB);
+  }
+
+  /* Polygon choropleth overlays on A and B (values, semi-transparent) */
+  if (_polyOvA) { _mA.removeLayer(_polyOvA); _polyOvA = null; }
+  if (_polyOvB) { _mB.removeLayer(_polyOvB); _polyOvB = null; }
+
+  var deltas = computeDeltas(_polyA, _polyB, _win, _layer);
+
+  loadGeo(_layer).then(function(geo) {
+    if (!geo) return;
+    var cfg = WIN[_win]; var info = LAYER[_layer];
+    var lyrA = (_polyA && _polyA[_layer] && _polyA[_layer][cfg.accum_key]) || {};
+    var lyrB = (_polyB && _polyB[_layer] && _polyB[_layer][cfg.accum_key]) || {};
+
+    function polyStyle(vals) {
+      return function(feature) {
+        var v = vals[feature.properties[info.key]];
+        var c = (v != null) ? bucketColor(+v, ABS_B, ABS_C) : null;
+        return c
+          ? { color: '#334155', weight: 0.6, fillColor: c, fillOpacity: 0.55 }
+          : { color: '#94a3b8', weight: 0.4, fillOpacity: 0.05, fillColor: '#fff' };
+      };
+    }
+
+    function diffStyle(feature) {
+      var name = feature.properties[info.key];
+      var d = deltas[name];
+      var delta = d ? d.delta : null;
+      var c = (delta != null) ? bucketColor(delta, DIFF_B, DIFF_C) : null;
+      return c
+        ? { color: '#1e293b', weight: 0.7, fillColor: c, fillOpacity: 0.78 }
+        : { color: '#94a3b8', weight: 0.4, fillOpacity: 0.05, fillColor: '#fff' };
+    }
+
+    function absTip(vals, runLabel) {
+      return function(feature) {
+        var name = feature.properties[info.key];
+        var v = vals[name];
+        return '<div class="poly-tip"><b>' + esc(name) + '</b><br>' +
+          esc(runLabel) + ': ' + fmtMm(v) + '</div>';
+      };
+    }
+
+    function diffTip(feature) {
+      var name = feature.properties[info.key];
+      var d = deltas[name] || {};
+      var cls = d.delta > 0 ? 'pt-pos' : (d.delta < 0 ? 'pt-neg' : '');
+      return '<div class="poly-tip"><b>' + esc(name) + '</b><br>' +
+        'A: ' + fmtMm(d.a) + ' → B: ' + fmtMm(d.b) + '<br>' +
+        'Change: <span class="' + cls + '">' + fmtDelta(d.delta) + '</span></div>';
+    }
+
+    _polyOvA = L.geoJSON(geo, { style: polyStyle(lyrA),
+      onEachFeature: function(f, l) { l.bindTooltip(absTip(lyrA, shortLabel(_meta.runs[_idxA])), { sticky: true }); }
+    }).addTo(_mA);
+
+    _polyOvB = L.geoJSON(geo, { style: polyStyle(lyrB),
+      onEachFeature: function(f, l) { l.bindTooltip(absTip(lyrB, shortLabel(_meta.runs[_idxB])), { sticky: true }); }
+    }).addTo(_mB);
+
+    /* Diff GeoJSON */
+    if (_diffLyr) { _mD.removeLayer(_diffLyr); _diffLyr = null; }
+    _diffLyr = L.geoJSON(geo, { style: diffStyle,
+      onEachFeature: function(f, l) { l.bindTooltip(diffTip, { sticky: true }); }
+    }).addTo(_mD);
+
+    try {
+      var b = _polyOvA.getBounds();
+      if (b.isValid()) { _mA.fitBounds(b, { padding: [16,16], maxZoom: 7 }); }
+    } catch(e) {}
+  });
+}
+
+function renderLegends(runA, runB) {
+  function legHtml(items, title) {
+    return '<div class="leg-title">' + title + '</div>' +
+      items.map(function(r) {
+        return '<div class="leg-row"><span class="leg-sw" style="background:' + r[0] + '"></span>' + r[1] + '</div>';
+      }).join('');
+  }
+  var lA = shortLabel(runA), lB = shortLabel(runB);
+  document.getElementById('legA').innerHTML = legHtml(ABS_L, lA);
+  document.getElementById('legB').innerHTML = legHtml(ABS_L, lB);
+  document.getElementById('legD').innerHTML = legHtml(DIFF_L, 'B − A');
+}
+
+/* ── Insights ─────────────────────────────────────────────────────────── */
+function buildInsights(polyA, polyB, win, layer, runA, runB) {
+  var floor   = LAYER[layer].floor;
+  var deltas  = computeDeltas(polyA, polyB, win, layer);
+  var lA = shortLabel(runA), lB = shortLabel(runB);
+  var winLabel = WIN[win].label;
+  var bullets = [];
+
+  var entries = Object.entries(deltas).filter(function(e) { return e[1].delta != null; });
+
+  var sig = entries.filter(function(e) {
+    return sigReason(e[1].delta, e[1].a != null ? e[1].a : 0, floor) != null;
+  });
+  var wetter = sig.filter(function(e) { return e[1].delta > 0; })
+                  .sort(function(x,y) { return y[1].delta - x[1].delta; });
+  var drier  = sig.filter(function(e) { return e[1].delta < 0; })
+                  .sort(function(x,y) { return x[1].delta - y[1].delta; });
+
+  /* 1. Headline */
+  if (!sig.length) {
+    var allAbs = entries.map(function(e) { return Math.abs(e[1].delta); });
+    var maxD = allAbs.length ? Math.max.apply(null, allAbs) : 0;
+    bullets.push({ type: 'head',
+      text: lB + ' vs ' + lA + ' — runs broadly consistent for ' + winLabel.toLowerCase() + '. ' +
+            'Largest delta: ' + maxD.toFixed(1) + 'mm. No area crosses a significance rule.' });
+  } else {
+    var parts = [];
+    if (wetter.length) parts.push(wetter.length + ' ' + LAYER[layer].label + ' significantly wetter');
+    if (drier.length)  parts.push(drier.length  + ' drier');
+    bullets.push({ type: 'head',
+      text: lB + ' vs ' + lA + ': ' + parts.join(', ') + ' (' + winLabel.toLowerCase() + ').' });
+  }
+
+  /* 2. Top movers (up to 5, sorted by |delta|) */
+  sig.slice().sort(function(x,y) { return Math.abs(y[1].delta) - Math.abs(x[1].delta); })
+     .slice(0, 5).forEach(function(e) {
+    var name = e[0], d = e[1];
+    var reason = sigReason(d.delta, d.a != null ? d.a : 0, floor) || '';
+    var sign   = d.delta >= 0 ? '+' : '';
+    var note   = reason ? ' — ' + reason : '';
+    bullets.push({
+      type: d.delta > 0 ? 'wetter' : 'drier',
+      text: name + ': ' + (d.a != null ? d.a.toFixed(0) : '?') + ' → ' +
+            (d.b != null ? d.b.toFixed(0) : '?') + 'mm (' + sign + d.delta.toFixed(0) + 'mm)' + note + '.'
+    });
+  });
+
+  /* 3. Regional spatial pattern — always use regions layer for geographic context */
+  var regA = (polyA && polyA.regions && polyA.regions[WIN[win].accum_key]) || {};
+  var regB = (polyB && polyB.regions && polyB.regions[WIN[win].accum_key]) || {};
+  var regEntries = Object.keys(regA).map(function(r) {
+    var a = +regA[r], b = +(regB[r] || 0), delta = b - a;
+    return { name: r, a: a, b: b, delta: delta };
+  }).filter(function(r) {
+    /* A region matters if its delta is ≥2mm AND either crosses 10mm threshold or ≥15% shift */
+    return Math.abs(r.delta) >= 2 &&
+      (sigReason(r.delta, r.a, 2) != null || (r.a > 1 && Math.abs(r.delta)/r.a > 0.15));
+  });
+
+  var rWet = regEntries.filter(function(r) { return r.delta > 0; })
+    .sort(function(a,b) { return b.delta - a.delta; });
+  var rDry = regEntries.filter(function(r) { return r.delta < 0; })
+    .sort(function(a,b) { return a.delta - b.delta; });
+
+  if (rWet.length) {
+    bullets.push({ type: 'region',
+      text: 'Wetter signal mainly in: ' + rWet.slice(0,3).map(function(r) {
+        return r.name + ' (+' + r.delta.toFixed(0) + 'mm avg)';
+      }).join(', ') + '.'
+    });
+  }
+  if (rDry.length) {
+    bullets.push({ type: 'region',
+      text: 'Drier signal mainly in: ' + rDry.slice(0,3).map(function(r) {
+        return r.name + ' (' + r.delta.toFixed(0) + 'mm avg)';
+      }).join(', ') + '.'
+    });
+  }
+
+  /* 4. Threshold crossings summary (if any areas cross a flood band) */
+  var crossings = {};
+  sig.forEach(function(e) {
+    var reason = sigReason(e[1].delta, e[1].a != null ? e[1].a : 0, floor) || '';
+    var m = reason.match(/crosses (\d+)mm/);
+    if (m) crossings[m[1]] = (crossings[m[1]] || 0) + 1;
+  });
+  Object.keys(crossings).sort(function(a,b){ return +b - +a; }).slice(0,2).forEach(function(t) {
+    bullets.push({ type: 'thresh',
+      text: crossings[t] + ' ' + LAYER[layer].label + ' cross the ' + t + 'mm/24h flood threshold in this update.'
+    });
+  });
+
+  return bullets;
+}
+
+function renderInsights(bullets) {
+  var icons = { head:'—', wetter:'↑', drier:'↓', region:'◆', thresh:'⚠' };
+  var el = document.getElementById('insBody');
+  if (!bullets || !bullets.length) {
+    el.innerHTML = '<p class="empty-msg">No data.</p>'; return;
+  }
+  el.innerHTML = bullets.map(function(b) {
+    return '<div class="ins-row ' + b.type + '">' +
+      '<span class="ins-icon">' + (icons[b.type] || '•') + '</span>' +
+      '<span>' + esc(b.text) + '</span></div>';
+  }).join('');
+}
+
+/* ── Detail table ─────────────────────────────────────────────────────── */
+function renderTable() {
+  var floor  = LAYER[_layer].floor;
+  var runA   = _meta.runs[_idxA], runB = _meta.runs[_idxB];
+  var deltas = computeDeltas(_polyA, _polyB, _win, _layer);
+  var keys   = Object.keys(deltas).filter(function(k) { return deltas[k].delta != null; });
+
+  keys.sort(function(a,b) {
+    var sA = sigReason(deltas[a].delta, deltas[a].a||0, floor) ? 1 : 0;
+    var sB = sigReason(deltas[b].delta, deltas[b].a||0, floor) ? 1 : 0;
+    if (sA !== sB) return sB - sA;
+    return Math.abs(deltas[b].delta||0) - Math.abs(deltas[a].delta||0);
+  });
+
+  var sigKeys = keys.filter(function(k) { return sigReason(deltas[k].delta, deltas[k].a||0, floor); });
+  var show    = (_showAll || !sigKeys.length) ? keys : sigKeys;
+
+  document.getElementById('tblTitle').textContent =
+    'Detail — ' + LAYER[_layer].label + ' ' + WIN[_win].label.toLowerCase() +
+    ' (' + shortLabel(runA) + ' vs ' + shortLabel(runB) + ')';
+
+  if (!show.length) {
+    document.getElementById('tblWrap').innerHTML = '<p class="empty-msg">No data for this window/layer.</p>';
+    return;
+  }
+
+  var lA = esc(shortLabel(runA)), lB = esc(shortLabel(runB));
+  var html = '<div style="overflow-x:auto"><table class="data-table"><thead><tr>' +
+    '<th>Area</th><th>' + lA + ' (A)</th><th>' + lB + ' (B)</th>' +
+    '<th>Change</th><th>Significance</th><th></th></tr></thead><tbody>';
+
+  show.forEach(function(k) {
+    var d = deltas[k];
+    var reason = sigReason(d.delta, d.a||0, floor);
+    var cls  = d.delta > 0 ? 'td-pos' : (d.delta < 0 ? 'td-neg' : '');
+    var dot  = reason ? (d.delta > 0 ? '<span class="sig-dot w">●</span>' : '<span class="sig-dot d">●</span>') : '';
+    var rpill = reason ? '<span class="reason-pill">' + esc(reason) + '</span>' : '';
+    html += '<tr>' +
+      '<td>' + esc(k) + '</td>' +
+      '<td>' + fmtMm(d.a) + '</td>' +
+      '<td>' + fmtMm(d.b) + '</td>' +
+      '<td class="' + cls + '">' + fmtDelta(d.delta) + '</td>' +
+      '<td>' + rpill + '</td>' +
+      '<td>' + dot + '</td></tr>';
+  });
+
+  html += '</tbody></table></div>';
+  if (!_showAll && sigKeys.length < keys.length) {
+    html += '<button class="show-all-btn" onclick="showAll()">Show all ' + keys.length + ' areas</button>';
+  }
+  document.getElementById('tblWrap').innerHTML = html;
+}
+function showAll() { _showAll = true; renderTable(); }
+
+/* ── Full update ──────────────────────────────────────────────────────── */
+function refresh() {
+  var runA = _meta.runs[_idxA], runB = _meta.runs[_idxB];
+  var ms   = matchSteps(runA, runB, _win);
+  var stepA = ms.stepA, stepB = ms.stepB;
+
+  /* Panel headers */
+  document.getElementById('phA').textContent = shortLabel(runA);
+  document.getElementById('phB').textContent = shortLabel(runB);
+
+  /* Match note */
+  var mn = '';
+  if (stepA && stepB) {
+    var winCfg = WIN[_win];
+    mn = 'Same valid time — B at T+' + stepB.offset_hours + 'h (' + stepB.valid_label + ')' +
+         ' matched against A at T+' + stepA.offset_hours + 'h (' + stepA.valid_label + ').';
+    if (Math.abs(stepA.offset_hours - (winCfg.off_h + ms.lagH)) > 0.5) {
+      mn += ' Nearest step used (within 3h).';
+    }
+  } else {
+    mn = stepA ? '' : '⚠ No matching step in benchmark run for this window.';
+    mn += stepB ? '' : '⚠ No matching step in comparison run for this window.';
+  }
+  document.getElementById('matchNote').textContent = mn;
+
+  /* Load poly data then render */
+  var promises = [];
+  if (stepA) promises.push(loadPoly(runA.run_ts, stepA.offset));
+  else        promises.push(Promise.resolve({}));
+  if (stepB) promises.push(loadPoly(runB.run_ts, stepB.offset));
+  else        promises.push(Promise.resolve({}));
+
+  Promise.all(promises).then(function(results) {
+    _polyA = results[0]; _polyB = results[1];
+    _showAll = false;
+
+    renderLegends(runA, runB);
+    updateOverlays(stepA, stepB);
+
+    var bullets = buildInsights(_polyA, _polyB, _win, _layer, runA, runB);
+    renderInsights(bullets);
+    renderTable();
+  });
+}
+
+/* ── Control handlers ─────────────────────────────────────────────────── */
+function onSelChange() {
+  _idxA = +document.getElementById('selA').value;
+  _idxB = +document.getElementById('selB').value;
+  refresh();
+}
+function setWin(w) {
+  _win = w;
+  document.querySelectorAll('#winSeg .seg-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.v === w);
+  });
+  refresh();
+}
+function setLayer(l) {
+  _layer = l;
+  document.querySelectorAll('#layerSeg .seg-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.v === l);
+  });
+  /* Re-draw diff layer; clear GeoJSON cache so it re-loads the new layer's geo */
+  if (_polyOvA) { _mA.removeLayer(_polyOvA); _polyOvA = null; }
+  if (_polyOvB) { _mB.removeLayer(_polyOvB); _polyOvB = null; }
+  if (_diffLyr) { _mD.removeLayer(_diffLyr); _diffLyr = null; }
+  refresh();
+}
+function toggleRaster() {
+  _raster = document.getElementById('rasterCk').checked;
+  if (!_raster) {
+    if (_ovA) { _mA.removeLayer(_ovA); _ovA = null; }
+    if (_ovB) { _mB.removeLayer(_ovB); _ovB = null; }
+  } else {
+    var ms = matchSteps(_meta.runs[_idxA], _meta.runs[_idxB], _win);
+    var urlA = getImgUrl(_meta.runs[_idxA], ms.stepA, _win);
+    var urlB = getImgUrl(_meta.runs[_idxB], ms.stepB, _win);
+    if (urlA) _ovA = L.imageOverlay(urlA, IMG_BOUNDS, { opacity: 0.80 }).addTo(_mA);
+    if (urlB) _ovB = L.imageOverlay(urlB, IMG_BOUNDS, { opacity: 0.80 }).addTo(_mB);
+  }
+}
+
+/* ── Bootstrap ────────────────────────────────────────────────────────── */
+function populateSelectors() {
+  var runs = _meta.runs;
+  var opts = runs.map(function(r, i) {
+    return '<option value="' + i + '">' + esc(shortLabel(r)) + '</option>';
+  }).join('');
+  document.getElementById('selA').innerHTML = opts;
+  document.getElementById('selB').innerHTML = opts;
+  /* Default: A = runs[1] (second newest), B = runs[0] (newest) */
+  _idxA = Math.min(1, runs.length - 1);
+  _idxB = 0;
+  document.getElementById('selA').value = _idxA;
+  document.getElementById('selB').value = _idxB;
+}
+
+fetch('ukv_meta.json?_=' + Date.now())
+  .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(function(data) {
+    _meta = data;
+    if (!data.runs || !data.runs.length) throw new Error('no runs');
+
+    document.getElementById('loadState').style.display = 'none';
+    document.getElementById('main').style.display      = '';
+
+    var d = new Date(data.generated_at || '');
+    if (!isNaN(d)) {
+      var pad = function(n) { return n < 10 ? '0'+n : ''+n; };
+      document.getElementById('hdrMeta').textContent =
+        'Meta updated ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' UTC';
+    }
+
+    populateSelectors();
+
+    try { initMaps(); } catch(e) { console.warn('Leaflet init failed:', e); }
+
+    refresh();
+  })
+  .catch(function(e) {
+    console.error(e);
+    document.getElementById('loadState').style.display = 'none';
+    document.getElementById('errState').style.display  = '';
+  });
+</script>
+</body>
+</html>
