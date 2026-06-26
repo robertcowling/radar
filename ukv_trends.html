@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UKV Run-to-Run Trends | Flood Forecast</title>
+<link rel="icon" type="image/png" href="https://floodforecast.co.uk/static/images/avatar.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Roboto', sans-serif; background: #f1f5f9; color: #1e293b; min-height: 100vh; }
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.page-header {
+  background: #1e293b; color: #f1f5f9; padding: 0 20px;
+  display: flex; align-items: center; gap: 14px; height: 52px;
+  position: sticky; top: 0; z-index: 100;
+}
+.back-btn {
+  background: transparent; border: none; cursor: pointer;
+  color: #94a3b8; display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 500; padding: 0; transition: color 0.2s;
+  text-decoration: none;
+}
+.back-btn:hover { color: #f1f5f9; }
+.header-divider { width: 1px; height: 20px; background: #334155; }
+.header-title { font-size: 14px; font-weight: 600; color: #f1f5f9; }
+.header-meta  { font-size: 11px; color: #64748b; margin-left: auto; }
+
+/* ── Layout ─────────────────────────────────────────────────────────── */
+.page-content { max-width: 900px; margin: 0 auto; padding: 20px 16px 40px; }
+
+/* ── Cards ──────────────────────────────────────────────────────────── */
+.card {
+  background: white; border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px;
+}
+.card-header {
+  padding: 14px 18px 10px; border-bottom: 1px solid #f1f5f9;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title {
+  font-size: 13px; font-weight: 600; color: #1e293b;
+  display: flex; align-items: center; gap: 7px;
+}
+.card-body { padding: 16px 18px; }
+
+/* ── Insights ───────────────────────────────────────────────────────── */
+.insight-row {
+  display: flex; gap: 10px; padding: 9px 0;
+  border-bottom: 1px solid #f8fafc; font-size: 13px; line-height: 1.55; color: #334155;
+}
+.insight-row:last-child { border-bottom: none; }
+.insight-dot { color: #1a73e8; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+/* ── Diff image + legend ────────────────────────────────────────────── */
+.diff-wrap { display: flex; gap: 16px; align-items: flex-start; }
+.diff-img-col { flex: 1; min-width: 0; }
+.diff-img {
+  width: 100%; border-radius: 10px; border: 1px solid #e2e8f0;
+  background: #eef2f7; display: block;
+}
+.diff-caption { font-size: 11px; color: #64748b; margin-top: 6px; text-align: center; }
+.diff-legend-col {
+  width: 120px; flex-shrink: 0; padding-top: 4px;
+}
+.legend-title { font-size: 11px; font-weight: 600; color: #475569; margin-bottom: 8px; }
+.legend-row {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; color: #64748b; margin-bottom: 6px;
+}
+.legend-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+@media (max-width: 520px) {
+  .diff-wrap { flex-direction: column; }
+  .diff-legend-col { width: 100%; display: flex; gap: 16px; padding-top: 0; }
+  .legend-title { display: none; }
+}
+
+/* ── Tabs ───────────────────────────────────────────────────────────── */
+.tab-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.tab-btn {
+  padding: 5px 13px; border-radius: 20px; border: 1px solid #e2e8f0;
+  font-size: 12px; font-weight: 500; cursor: pointer; background: white; color: #475569;
+  transition: background 0.15s, color 0.15s;
+}
+.tab-btn.active { background: #1e293b; color: white; border-color: #1e293b; }
+.tab-btn:hover:not(.active) { background: #f8fafc; }
+
+/* ── Comparison window controls ─────────────────────────────────────── */
+.controls-row {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px;
+}
+.ctl-label { font-size: 11px; font-weight: 600; color: #64748b; }
+.seg { display: flex; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.seg-btn {
+  padding: 5px 12px; border: none; background: white; font-size: 12px;
+  cursor: pointer; color: #475569; border-right: 1px solid #e2e8f0; transition: background 0.15s;
+}
+.seg-btn:last-child { border-right: none; }
+.seg-btn.active { background: #1e293b; color: white; }
+.seg-btn:hover:not(.active) { background: #f8fafc; }
+
+/* ── Table ──────────────────────────────────────────────────────────── */
+.data-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+.data-table th {
+  text-align: left; font-weight: 600; color: #475569; font-size: 11px;
+  padding: 6px 10px; border-bottom: 2px solid #e2e8f0; white-space: nowrap;
+}
+.data-table td {
+  padding: 7px 10px; border-bottom: 1px solid #f8fafc; color: #334155;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: #f8fafc; }
+.delta-pos { color: #b91c1c; font-weight: 600; }
+.delta-neg { color: #1565c0; font-weight: 600; }
+.sig-dot { font-size: 16px; line-height: 1; }
+.sig-dot.wetter { color: #b91c1c; }
+.sig-dot.drier  { color: #1565c0; }
+.empty-msg { font-size: 12px; color: #94a3b8; text-align: center; padding: 24px 0; }
+.show-all-wrap { text-align: center; margin-top: 10px; }
+.show-all-btn {
+  font-size: 11px; color: #64748b; background: none; border: 1px solid #e2e8f0;
+  border-radius: 6px; padding: 4px 12px; cursor: pointer;
+}
+.show-all-btn:hover { background: #f8fafc; }
+
+/* ── Loading / error state ──────────────────────────────────────────── */
+.state-msg { text-align: center; padding: 48px 20px; font-size: 13px; color: #64748b; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <a href="ukv.html" class="back-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    UKV Forecast
+  </a>
+  <div class="header-divider"></div>
+  <span class="header-title">Run-to-run trends</span>
+  <span class="header-meta" id="headerMeta"></span>
+</div>
+
+<div class="page-content">
+
+  <!-- Loading state -->
+  <div id="loadingState" class="state-msg">Loading…</div>
+  <div id="errorState"   class="state-msg" style="display:none;">
+    Trends not available yet — generated after the next UKV model run.
+  </div>
+
+  <div id="mainContent" style="display:none;">
+
+    <!-- Insights -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          Insights
+        </span>
+      </div>
+      <div class="card-body" id="insightsBody"></div>
+    </div>
+
+    <!-- Diff image -->
+    <div class="card" id="diffCard" style="display:none;">
+      <div class="card-header">
+        <span class="card-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Catchment diff — latest run vs prior (day 1, 24h)
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="diff-wrap">
+          <div class="diff-img-col">
+            <img id="diffImg" class="diff-img" alt="UKV catchment rainfall difference vs prior run">
+            <p class="diff-caption" id="diffCaption"></p>
+          </div>
+          <div class="diff-legend-col">
+            <div class="legend-title">Change</div>
+            <div class="legend-row"><span class="legend-swatch" style="background:#1a237e;"></span> &lt;−25mm</div>
+            <div class="legend-row"><span class="legend-swatch" style="background:#1565c0;"></span> −25..−10mm</div>
+            <div class="legend-row"><span class="legend-swatch" style="background:#64b5f6;"></span> −10..−3mm</div>
+            <div class="legend-row"><span class="legend-swatch" style="background:#f1f5f9;border:1px solid #cbd5e1;"></span> ±3mm</div>
+            <div class="legend-row"><span class="legend-swatch" style="background:#ffcc80;"></span> +3..+10mm</div>
+            <div class="legend-row"><span class="legend-swatch" style="background:#e53935;"></span> +10..+25mm</div>
+            <div class="legend-row"><span class="legend-swatch" style="background:#b71c1c;"></span> &gt;+25mm</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison tables -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          Comparison detail
+        </span>
+      </div>
+      <div class="card-body">
+
+        <!-- Comparison selector -->
+        <div id="compTabs" class="tab-row"></div>
+
+        <!-- Window + layer controls -->
+        <div class="controls-row">
+          <span class="ctl-label">Window</span>
+          <div class="seg" id="winSeg">
+            <button class="seg-btn active" data-win="12h"  onclick="setWin('12h')">12h</button>
+            <button class="seg-btn"        data-win="day1" onclick="setWin('day1')">Day 1</button>
+            <button class="seg-btn"        data-win="day2" onclick="setWin('day2')">Day 2</button>
+          </div>
+          <span class="ctl-label" style="margin-left:8px;">Areas</span>
+          <div class="seg" id="layerSeg">
+            <button class="seg-btn active" data-layer="catchments" onclick="setLayer('catchments')">Catchments</button>
+            <button class="seg-btn"        data-layer="grid"       onclick="setLayer('grid')">Grid 20km</button>
+          </div>
+        </div>
+
+        <div id="tableWrap"></div>
+
+      </div>
+    </div>
+
+  </div><!-- /mainContent -->
+</div>
+
+<script>
+var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
+var R2_CDN  = 'https://radar.floodforecast.co.uk';
+
+var _data        = null;
+var _compIdx     = 0;
+var _win         = 'day1';
+var _layer       = 'catchments';
+var _showAll     = false;
+var SIG_ONLY_MAX = 40;   // show all-rows toggle when > this many rows
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+  });
+}
+
+function fmtDelta(d) {
+  if (d === null || d === undefined) return '—';
+  var sign = d >= 0 ? '+' : '';
+  return sign + d.toFixed(1) + 'mm';
+}
+
+function renderInsights(insights) {
+  var el = document.getElementById('insightsBody');
+  if (!insights || !insights.length) {
+    el.innerHTML = '<p style="font-size:13px;color:#64748b;">No significant run-to-run changes in this update.</p>';
+    return;
+  }
+  el.innerHTML = insights.map(function(t) {
+    return '<div class="insight-row"><span class="insight-dot">•</span><span>' + esc(t) + '</span></div>';
+  }).join('');
+}
+
+function renderDiff(comparisons) {
+  var diffUrl = '';
+  var caption = '';
+  for (var i = 0; i < comparisons.length; i++) {
+    if (comparisons[i].diff_image_url) {
+      diffUrl = comparisons[i].diff_image_url.replace(R2_BASE, R2_CDN);
+      caption = esc(comparisons[i].run_a_label || '') + ' vs ' + esc(comparisons[i].run_b_label || '');
+      break;
+    }
+  }
+  if (!diffUrl) { document.getElementById('diffCard').style.display = 'none'; return; }
+  document.getElementById('diffCard').style.display = '';
+  document.getElementById('diffImg').src = diffUrl;
+  document.getElementById('diffCaption').textContent = caption;
+}
+
+function renderCompTabs(comparisons) {
+  var el = document.getElementById('compTabs');
+  el.innerHTML = comparisons.map(function(c, i) {
+    var cls = 'tab-btn' + (i === _compIdx ? ' active' : '');
+    return '<button class="' + cls + '" onclick="setComp(' + i + ')">' + esc(c.label || 'Run ' + (i+1)) + '</button>';
+  }).join('');
+}
+
+function renderTable() {
+  var comp   = _data.comparisons[_compIdx];
+  var winData = (comp.windows && comp.windows[_win]) || {};
+  var rows   = winData[_layer] || {};
+  var keys   = Object.keys(rows);
+
+  // Sort: significant first, then by abs delta desc
+  keys.sort(function(a, b) {
+    var sa = rows[a].significant ? 1 : 0, sb = rows[b].significant ? 1 : 0;
+    if (sa !== sb) return sb - sa;
+    return Math.abs(rows[b].delta_mm || 0) - Math.abs(rows[a].delta_mm || 0);
+  });
+
+  var sigKeys = keys.filter(function(k) { return rows[k].significant; });
+  var display = (_showAll || sigKeys.length === 0) ? keys : sigKeys;
+
+  var html = '';
+  if (display.length === 0) {
+    html = '<p class="empty-msg">No data for this window / layer combination.</p>';
+  } else {
+    html = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr>' +
+      '<th>Area</th>' +
+      '<th>' + esc(comp.run_b_label || 'Prior run') + '</th>' +
+      '<th>' + esc(comp.run_a_label || 'Latest run') + '</th>' +
+      '<th>Delta</th><th></th></tr></thead><tbody>';
+    display.forEach(function(k) {
+      var r = rows[k];
+      var d = r.delta_mm;
+      var cls = d > 0 ? 'delta-pos' : (d < 0 ? 'delta-neg' : '');
+      var dotCls = r.significant ? (d > 0 ? 'sig-dot wetter' : 'sig-dot drier') : '';
+      html += '<tr>' +
+        '<td>' + esc(k) + '</td>' +
+        '<td>' + (r.run_b_mm != null ? r.run_b_mm.toFixed(1) + 'mm' : '—') + '</td>' +
+        '<td>' + (r.run_a_mm != null ? r.run_a_mm.toFixed(1) + 'mm' : '—') + '</td>' +
+        '<td class="' + cls + '">' + fmtDelta(d) + '</td>' +
+        '<td><span class="' + dotCls + '">' + (r.significant ? '●' : '') + '</span></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+    if (!_showAll && sigKeys.length < keys.length) {
+      html += '<div class="show-all-wrap"><button class="show-all-btn" onclick="showAll()">' +
+        'Show all ' + keys.length + ' areas</button></div>';
+    }
+  }
+  document.getElementById('tableWrap').innerHTML = html;
+}
+
+function setComp(i) {
+  _compIdx = i;
+  _showAll = false;
+  renderCompTabs(_data.comparisons);
+  renderTable();
+}
+function setWin(w) {
+  _win = w;
+  _showAll = false;
+  document.querySelectorAll('#winSeg .seg-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.win === w);
+  });
+  renderTable();
+}
+function setLayer(l) {
+  _layer = l;
+  _showAll = false;
+  document.querySelectorAll('#layerSeg .seg-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.layer === l);
+  });
+  renderTable();
+}
+function showAll() { _showAll = true; renderTable(); }
+
+function render(data) {
+  _data = data;
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('mainContent').style.display  = '';
+
+  var metaEl = document.getElementById('headerMeta');
+  if (data.generated_at) {
+    var d = new Date(data.generated_at);
+    var pad = function(n) { return n < 10 ? '0'+n : ''+n; };
+    metaEl.textContent = 'Updated ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' GMT';
+  }
+
+  renderInsights(data.insights);
+  renderDiff(data.comparisons || []);
+  renderCompTabs(data.comparisons || []);
+  renderTable();
+}
+
+fetch('ukv_trends.json?_=' + Date.now())
+  .then(function(r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+  .then(function(t) { return JSON.parse(t.replaceAll(R2_BASE, R2_CDN)); })
+  .then(render)
+  .catch(function() {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorState').style.display   = '';
+  });
+</script>
+</body>
+</html>
