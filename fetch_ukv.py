@@ -625,16 +625,17 @@ _COMP_CHANGE_FRAC     = 0.20  # also flag if 20% relative change
 
 
 def _comp_is_significant(delta, prior, floor):
+    """Return (is_significant, reason) where reason ∈ {'threshold','relative',None}."""
     if abs(delta) < floor:
-        return False
+        return False, None
     lo = min(prior, prior + delta)
     hi = max(prior, prior + delta)
     for t in _COMP_THRESHOLDS:
         if lo < t <= hi:
-            return True
+            return True, "threshold"
     if prior > 1.0 and abs(delta) / prior > _COMP_CHANGE_FRAC:
-        return True
-    return False
+        return True, "relative"
+    return False, None
 
 
 def _find_matching_step(run, target_h):
@@ -662,7 +663,12 @@ def _load_poly_layer(r2, run_ts, step, accum_key, layer):
 
 
 def _render_diff_png(ukv_masks, layer_name, area_deltas):
-    """Render a diverging choropleth diff PNG. Returns PIL Image or None."""
+    """Render a diverging choropleth diff PNG, auto-cropped to the data extent.
+
+    The full output grid is mostly empty ocean, so we crop to the bounding box of
+    the rendered polygons (with padding) before resizing — this makes catchments
+    fill the frame instead of being a tiny cluster lost in the domain.
+    """
     layer_masks = (ukv_masks or {}).get(layer_name)
     if not layer_masks:
         return None
@@ -677,9 +683,19 @@ def _render_diff_png(ukv_masks, layer_name, area_deltas):
         idx = int(np.searchsorted(_DIFF_BOUNDS, float(delta)))
         idx = max(0, min(idx, len(_DIFF_COLORS) - 1))
         canvas[rows, cols] = _DIFF_COLORS[idx]
+
+    # Auto-crop to non-transparent extent (all rendered polygons have alpha > 0).
+    ys, xs = np.where(canvas[:, :, 3] > 0)
+    if len(ys) == 0:
+        return None
+    pad = 60
+    r0, r1 = max(0, int(ys.min()) - pad), min(HEIGHT, int(ys.max()) + pad)
+    c0, c1 = max(0, int(xs.min()) - pad), min(WIDTH,  int(xs.max()) + pad)
+    canvas = canvas[r0:r1, c0:c1]
+
     img = Image.fromarray(canvas, "RGBA")
-    thumb_w = 500
-    thumb_h = round(HEIGHT * thumb_w / WIDTH)
+    thumb_w = 600
+    thumb_h = max(1, round(canvas.shape[0] * thumb_w / canvas.shape[1]))
     return img.resize((thumb_w, thumb_h), Image.LANCZOS)
 
 
@@ -697,66 +713,84 @@ def _generate_trends_insights(comparisons):
     if not comparisons:
         return ["No run-to-run comparison data available."]
 
-    sig_wetter, sig_drier = {}, {}
+    # The immediate predecessor comparison (first entry) drives the headline.
+    primary = comparisons[0]
+    insights = []
+
+    # ── 1. Headline: net day-1 direction vs the immediate prior run ─────────
+    p_catch = primary.get("windows", {}).get("day1", {}).get("catchments", {})
+    sig_up   = [(n, d["delta_mm"]) for n, d in p_catch.items() if d.get("significant") and d["delta_mm"] > 0]
+    sig_down = [(n, d["delta_mm"]) for n, d in p_catch.items() if d.get("significant") and d["delta_mm"] < 0]
+    lbl = f"{_label_to_ddhhmm(primary['run_b_label'])} → {_label_to_ddhhmm(primary['run_a_label'])}"
+
+    if not sig_up and not sig_down:
+        insights.append(f"Day-1 picture broadly unchanged vs the prior run ({lbl}) — no catchment crossed a significance rule.")
+    elif sig_up and not sig_down:
+        insights.append(f"Latest run is wetter for day 1: {len(sig_up)} catchment(s) up significantly, none down ({lbl}).")
+    elif sig_down and not sig_up:
+        insights.append(f"Latest run is drier for day 1: {len(sig_down)} catchment(s) down significantly, none up ({lbl}).")
+    else:
+        insights.append(f"Mixed day-1 signal vs prior run: {len(sig_up)} catchment(s) wetter, {len(sig_down)} drier ({lbl}).")
+
+    # ── 2. Largest individual shift (across all comparisons, day 1) ─────────
     largest_abs, largest_info = 0.0, None
-
     for comp in comparisons:
-        catchments = comp.get("windows", {}).get("day1", {}).get("catchments", {})
-        for name, d in catchments.items():
-            if not d.get("significant"):
-                continue
-            delta = d["delta_mm"]
-            if delta > 0:
-                sig_wetter[name] = sig_wetter.get(name, 0) + 1
-            else:
-                sig_drier[name] = sig_drier.get(name, 0) + 1
-            if abs(delta) > largest_abs:
-                largest_abs  = abs(delta)
-                largest_info = (name, delta, comp["run_a_label"], comp["run_b_label"])
-
-    n_comps   = len(comparisons)
-    threshold = max(1, n_comps - 1)
-    insights  = []
-
-    wetter_consistent = sorted(
-        (n for n, c in sig_wetter.items() if c >= threshold), key=lambda n: -sig_wetter[n]
-    )
-    drier_consistent = sorted(
-        (n for n, c in sig_drier.items() if c >= threshold), key=lambda n: -sig_drier[n]
-    )
-
-    if wetter_consistent:
-        top  = wetter_consistent[:3]
-        more = f" (+{len(wetter_consistent)-3} more)" if len(wetter_consistent) > 3 else ""
-        insights.append(
-            f"Day-1 forecast trending wetter across {len(wetter_consistent)} catchment(s) "
-            f"consistently: {', '.join(top)}{more}."
-        )
-    elif drier_consistent:
-        top  = drier_consistent[:3]
-        more = f" (+{len(drier_consistent)-3} more)" if len(drier_consistent) > 3 else ""
-        insights.append(
-            f"Day-1 forecast trending drier across {len(drier_consistent)} catchment(s) "
-            f"consistently: {', '.join(top)}{more}."
-        )
-
+        for name, d in comp.get("windows", {}).get("day1", {}).get("catchments", {}).items():
+            if d.get("significant") and abs(d["delta_mm"]) > largest_abs:
+                largest_abs  = abs(d["delta_mm"])
+                largest_info = (name, d["delta_mm"], d.get("run_a_mm"), d.get("run_b_mm"),
+                                comp["run_a_label"], comp["run_b_label"])
     if largest_info:
-        name, delta, lbl_a, lbl_b = largest_info
+        name, delta, a_mm, b_mm, lbl_a, lbl_b = largest_info
         direction = "wetter" if delta > 0 else "drier"
+        totals = ""
+        if a_mm is not None and b_mm is not None:
+            totals = f" ({b_mm:.0f} → {a_mm:.0f}mm)"
         insights.append(
-            f"Largest shift: {name} {direction} by {abs(delta):.0f}mm/24h "
-            f"({_label_to_ddhhmm(lbl_b)} → {_label_to_ddhhmm(lbl_a)})."
+            f"Largest shift: {name} {direction} by {abs(delta):.0f}mm/24h{totals} "
+            f"from {_label_to_ddhhmm(lbl_b)} to {_label_to_ddhhmm(lbl_a)}."
         )
 
-    day2_wetter, day2_drier = set(), set()
-    for comp in comparisons:
-        for name, d in comp.get("windows", {}).get("day2", {}).get("catchments", {}).items():
-            if d.get("significant"):
-                (day2_wetter if d["delta_mm"] > 0 else day2_drier).add(name)
-    if day2_wetter:
-        insights.append(f"Day-2 also trending wetter over {len(day2_wetter)} catchment(s).")
-    elif day2_drier:
-        insights.append(f"Day-2 also trending drier over {len(day2_drier)} catchment(s).")
+    # ── 3. Region-level spatial summary (where is the change concentrated) ──
+    reg_up, reg_down = {}, {}
+    for name, d in primary.get("windows", {}).get("day1", {}).get("regions", {}).items():
+        if not d.get("significant"):
+            continue
+        (reg_up if d["delta_mm"] > 0 else reg_down).setdefault(name, d["delta_mm"])
+    if reg_up:
+        top = sorted(reg_up.items(), key=lambda kv: -kv[1])[:3]
+        insights.append("Wetter signal focused over: " + ", ".join(f"{n} (+{v:.0f}mm)" for n, v in top) + ".")
+    if reg_down:
+        top = sorted(reg_down.items(), key=lambda kv: kv[1])[:3]
+        insights.append("Drier signal focused over: " + ", ".join(f"{n} ({v:.0f}mm)" for n, v in top) + ".")
+
+    # ── 4. Consistency across the run sequence ──────────────────────────────
+    if len(comparisons) >= 2:
+        dir_per_run = []
+        for comp in comparisons:
+            c = comp.get("windows", {}).get("day1", {}).get("catchments", {})
+            up   = sum(1 for d in c.values() if d.get("significant") and d["delta_mm"] > 0)
+            down = sum(1 for d in c.values() if d.get("significant") and d["delta_mm"] < 0)
+            dir_per_run.append(1 if up > down else (-1 if down > up else 0))
+        nonzero = [d for d in dir_per_run if d != 0]
+        if nonzero and all(d == nonzero[0] for d in nonzero):
+            word = "wetter" if nonzero[0] > 0 else "drier"
+            insights.append(f"Trend is consistent across the last {len(comparisons)} runs (all leaning {word}).")
+        elif nonzero:
+            insights.append("Run-to-run signal is unsettled — direction differs between recent runs.")
+
+    # ── 5. Day-2 outlook ────────────────────────────────────────────────────
+    day2_up = sum(1 for n, d in primary.get("windows", {}).get("day2", {}).get("catchments", {}).items()
+                  if d.get("significant") and d["delta_mm"] > 0)
+    day2_down = sum(1 for n, d in primary.get("windows", {}).get("day2", {}).get("catchments", {}).items()
+                    if d.get("significant") and d["delta_mm"] < 0)
+    if day2_up or day2_down:
+        if day2_up and not day2_down:
+            insights.append(f"Day 2 also trending wetter ({day2_up} catchment(s)).")
+        elif day2_down and not day2_up:
+            insights.append(f"Day 2 also trending drier ({day2_down} catchment(s)).")
+        else:
+            insights.append(f"Day 2 mixed: {day2_up} wetter, {day2_down} drier.")
 
     if not insights:
         insights.append("No significant run-to-run changes in this update.")
@@ -800,7 +834,12 @@ def compute_run_trends(r2, meta, ukv_masks):
         ("day1", "accum_24h", 24),
         ("day2", "accum_24h", 48),   # rolling 24h ending at T+48 = T+24→T+48
     ]
-    LAYERS = [("catchments", _COMP_FLOOR_CATCHMENT), ("grid", _COMP_FLOOR_GRID)]
+    # Floors per layer: catchments/regions use the catchment floor, grid uses its own.
+    LAYERS = [
+        ("catchments", _COMP_FLOOR_CATCHMENT),
+        ("regions",    _COMP_FLOOR_CATCHMENT),
+        ("grid",       _COMP_FLOOR_GRID),
+    ]
 
     comparisons     = []
     first_pair_diff = None
@@ -834,23 +873,34 @@ def compute_run_trends(r2, meta, ukv_masks):
                     if va is None or vb is None:
                         continue
                     delta = round(float(va) - float(vb), 2)
+                    sig, reason = _comp_is_significant(delta, float(vb), floor)
                     layer_deltas[name] = {
                         "delta_mm":    delta,
                         "run_a_mm":    round(float(va), 2),
                         "run_b_mm":    round(float(vb), 2),
-                        "significant": _comp_is_significant(delta, float(vb), floor),
+                        "significant": sig,
+                        "reason":      reason,
                     }
                 win_data[layer_name] = layer_deltas
 
             entry["windows"][win_key] = win_data
 
-            # Render diff PNG once: first pair, day-1 catchments
-            if first_pair_diff is None and win_key == "day1" and comp_run is cand[0]:
-                catchment_deltas = {
-                    k: v["delta_mm"] for k, v in win_data.get("catchments", {}).items()
-                }
-                if catchment_deltas:
-                    first_pair_diff = _render_diff_png(ukv_masks, "catchments", catchment_deltas)
+            # Day-1 specials: diff PNG + raw UKV raster URLs for the actual totals
+            if win_key == "day1":
+                if step_a:
+                    entry["raw_image_a_url"] = (
+                        f"{R2_PUBLIC_URL}/ukv/{lat_ts}/{step_a['offset']}_accum_24h_met.png"
+                    )
+                if step_b:
+                    entry["raw_image_b_url"] = (
+                        f"{R2_PUBLIC_URL}/ukv/{comp_ts}/{step_b['offset']}_accum_24h_met.png"
+                    )
+                if first_pair_diff is None and comp_run is cand[0]:
+                    catchment_deltas = {
+                        k: v["delta_mm"] for k, v in win_data.get("catchments", {}).items()
+                    }
+                    if catchment_deltas:
+                        first_pair_diff = _render_diff_png(ukv_masks, "catchments", catchment_deltas)
 
         if first_pair_diff is not None and comp_run is cand[0]:
             diff_key = f"ukv_trends/{lat_ts}_vs_{comp_ts}_day1_diff.png"
@@ -868,6 +918,13 @@ def compute_run_trends(r2, meta, ukv_masks):
         "latest_label": lat_lbl,
         "comparisons":  comparisons,
         "insights":     insights,
+        "image_bounds": [[LAT_MIN, LON_MIN], [LAT_MAX, LON_MAX]],
+        "significance_rules": {
+            "catchment_floor_mm":  _COMP_FLOOR_CATCHMENT,
+            "grid_floor_mm":       _COMP_FLOOR_GRID,
+            "thresholds_mm":       list(_COMP_THRESHOLDS),
+            "relative_change_pct": round(_COMP_CHANGE_FRAC * 100),
+        },
     }
 
     with open("ukv_trends.json", "w") as f:
