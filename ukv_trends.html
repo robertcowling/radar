@@ -40,6 +40,18 @@ html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidde
 }
 .hdr-btn:hover { background: #3b495e; color: #ffffff; border-color: #64748b; }
 
+/* Integrated top-bar dropdowns for map headers */
+.hdr-select {
+  appearance: none; -webkit-appearance: none;
+  background: #2b3649; border: 1px solid #475569; border-radius: 20px;
+  color: #f1f5f9; font-family: 'Roboto', sans-serif; font-size: 13px; font-weight: 600;
+  padding: 4px 28px 4px 14px; cursor: pointer; text-align: center; outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2394A3B8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center; transition: all 0.2s;
+  max-width: 90%; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
+}
+.hdr-select:hover { background-color: #3b495e; border-color: #64748b; color: #ffffff; }
+
 /* ── App Outer ───────────────────────────────────────────────────────── */
 .app-outer {
   height: calc(100vh - 52px);
@@ -51,11 +63,11 @@ html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidde
   flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
 }
 .trends-map-header-row {
-  display: flex; background: #34435b; height: 44px; flex-shrink: 0; align-items: center;
+  display: flex; background: #34435b; height: 48px; flex-shrink: 0; align-items: center;
 }
 .trends-map-header-cell {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  border-left: 2px solid #374151; gap: 1px; padding: 0 6px; overflow: hidden;
+  border-left: 2px solid #374151; gap: 2px; padding: 0 6px; overflow: hidden;
 }
 .trends-map-header-cell:first-child { border-left: none; }
 .trends-map-header-cell .cell-title {
@@ -63,7 +75,7 @@ html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidde
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
 }
 .trends-map-header-cell .cell-sub {
-  font-size: 12px; font-weight: 400; color: #cbd5e1;
+  font-size: 11px; font-weight: 400; color: #cbd5e1;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
 }
 
@@ -242,16 +254,16 @@ select:hover { background-color: #e8eaed; }
   <div id="mainContent" class="trends-maps-outer" style="display:none;">
     <div class="trends-map-header-row">
       <div class="trends-map-header-cell">
-        <span class="cell-title" id="headerPriorTitle">Prior Run</span>
+        <select id="selectRunLeft" class="hdr-select" onchange="onRunSelectChange('left')"></select>
         <span class="cell-sub" id="headerPriorSub">Accumulation</span>
       </div>
       <div class="trends-map-header-cell">
-        <span class="cell-title" id="headerLatestTitle">Latest Run</span>
+        <select id="selectRunRight" class="hdr-select" onchange="onRunSelectChange('right')"></select>
         <span class="cell-sub" id="headerLatestSub">Accumulation</span>
       </div>
       <div class="trends-map-header-cell">
         <span class="cell-title" id="headerDiffTitle">Difference</span>
-        <span class="cell-sub" id="headerDiffSub">Latest minus Prior</span>
+        <span class="cell-sub" id="headerDiffSub">Left minus Centre</span>
       </div>
     </div>
 
@@ -276,7 +288,7 @@ select:hover { background-color: #e8eaed; }
 <!-- Floating Player / Controls Panel -->
 <div class="player-panel surface" id="playerPanel" style="display:none;">
   <div class="control-group">
-    <span class="control-label">Comparison run</span>
+    <span class="control-label">Compare vs</span>
     <div class="tab-row" id="compTabs"></div>
   </div>
 
@@ -362,7 +374,7 @@ var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
 var R2_CDN  = 'https://radar.floodforecast.co.uk';
 
 var _data     = null;
-var _compIdx  = 0;
+var _compIdx  = 2; // Default to -12h run comparison (Latest vs 12h ago)
 var _win      = 'day1';
 var _layer    = 'catchments';
 var _showAll  = false;
@@ -489,7 +501,34 @@ function renderRules(rules) {
     '</div>';
 }
 
-/* ── Comparison tabs ─────────────────────────────────────────────────── */
+/* ── Comparison tabs and Top Bar Selectors ────────────────────────────── */
+function renderHeaderSelects() {
+  var sLeft  = document.getElementById('selectRunLeft');
+  var sRight = document.getElementById('selectRunRight');
+  if (!sLeft || !sRight || !_data) return;
+
+  var comps = _data.comparisons || [];
+  var cur   = currentComp();
+
+  sLeft.innerHTML = '<option value="latest">' + esc(_data.latest_label || cur.run_a_label || 'Latest Run') + '</option>';
+
+  sRight.innerHTML = comps.map(function(c, i) {
+    var sel = (i === _compIdx) ? ' selected' : '';
+    var lbl = esc(c.run_b_label || c.label || ('Run ' + (i + 1)));
+    return '<option value="' + i + '"' + sel + '>' + lbl + '</option>';
+  }).join('');
+}
+
+function onRunSelectChange(side) {
+  if (side === 'right') {
+    var sRight = document.getElementById('selectRunRight');
+    if (sRight) {
+      var idx = parseInt(sRight.value, 10);
+      if (!isNaN(idx)) setComp(idx);
+    }
+  }
+}
+
 function renderCompTabs() {
   var el = document.getElementById('compTabs');
   var comps = _data.comparisons || [];
@@ -560,8 +599,8 @@ function tooltipHtml(name) {
   var d = r.delta_mm;
   var dCls = d > 0 ? 'pt-delta-pos' : (d < 0 ? 'pt-delta-neg' : '');
   return '<div class="poly-tip"><b>' + esc(name) + '</b><br>' +
-    esc(comp.run_b_label || 'Prior') + ': ' + fmtMm(r.run_b_mm) + '<br>' +
     esc(comp.run_a_label || 'Latest') + ': ' + fmtMm(r.run_a_mm) + '<br>' +
+    esc(comp.run_b_label || 'Comparison') + ': ' + fmtMm(r.run_b_mm) + '<br>' +
     'Change: <span class="' + dCls + '">' + fmtDelta(d) + '</span>' +
     (r.significant ? ' ●' : '') +
     '</div>';
@@ -586,8 +625,8 @@ function drawPolys() {
       }).addTo(mapInst);
     }
 
-    _polyPrior  = createPolyLayer(_mapPrior,  'prior');
-    _polyLatest = createPolyLayer(_mapLatest, 'latest');
+    _polyPrior  = createPolyLayer(_mapPrior,  'latest');
+    _polyLatest = createPolyLayer(_mapLatest, 'prior');
     _polyDiff   = createPolyLayer(_mapDiff,   'diff');
 
     try {
@@ -602,27 +641,23 @@ function drawPolys() {
 }
 
 function refreshPolyStyles() {
-  if (_polyPrior)  _polyPrior.setStyle(function(f) { return styleFeature(f, 'prior'); });
-  if (_polyLatest) _polyLatest.setStyle(function(f) { return styleFeature(f, 'latest'); });
+  if (_polyPrior)  _polyPrior.setStyle(function(f) { return styleFeature(f, 'latest'); });
+  if (_polyLatest) _polyLatest.setStyle(function(f) { return styleFeature(f, 'prior'); });
   if (_polyDiff)   _polyDiff.setStyle(function(f) { return styleFeature(f, 'diff'); });
 }
 
 function renderLegend() {
   var comp = currentComp();
   
-  var pTitle = document.getElementById('headerPriorTitle');
-  var lTitle = document.getElementById('headerLatestTitle');
   var dTitle = document.getElementById('headerDiffTitle');
-  if (pTitle) pTitle.textContent = comp.run_b_label || 'Prior Run';
-  if (lTitle) lTitle.textContent = comp.run_a_label || 'Latest Run';
-  if (dTitle) dTitle.textContent = 'Difference (Latest minus Prior)';
+  if (dTitle) dTitle.textContent = 'Difference';
   
   var pSub = document.getElementById('headerPriorSub');
   var lSub = document.getElementById('headerLatestSub');
   var dSub = document.getElementById('headerDiffSub');
   if (pSub) pSub.textContent = 'Run total (' + WIN_LABEL[_win] + ')';
   if (lSub) lSub.textContent = 'Run total (' + WIN_LABEL[_win] + ')';
-  if (dSub) dSub.textContent = (comp.run_a_label || 'Latest') + ' vs ' + (comp.run_b_label || 'Prior');
+  if (dSub) dSub.textContent = 'Left minus Centre';
 
   function buildAccumCbarHtml(title) {
     var s = SCHEMES[_scheme];
@@ -650,12 +685,12 @@ function renderLegend() {
       return '<span class="cbar-label" style="left:' + pct.toFixed(1) + '%;">' + (v > 0 ? '+' : '') + Math.round(v) + '</span>';
     }).join('');
     labels += '<span class="cbar-label" style="left:' + (5.5 / n * 100).toFixed(1) + '%;font-weight:600;">±2</span>';
-    return '<p>Difference: Latest minus Prior (mm)</p>' +
+    return '<p>Difference (mm)</p>' +
       '<div class="cbar">' + blocks + '</div>' +
       '<div class="cbar-labels">' + labels + '</div>' +
       '<div class="bias-arrows">' +
-        '<span style="color:#b91c1c;font-weight:600;">◄ Prior higher (drier)</span>' +
-        '<span style="color:#2166ac;font-weight:600;">Latest higher (wetter) ►</span>' +
+        '<span style="color:#b91c1c;font-weight:600;">◄ Centre higher</span>' +
+        '<span style="color:#2166ac;font-weight:600;">Left higher ►</span>' +
       '</div>';
   }
 
@@ -674,15 +709,15 @@ function updateRaster() {
   });
   if (_viewMode !== 'grid' || !_data || !_data.image_bounds) return;
   var comp = currentComp();
-  var urlB = (comp.raw_image_b_url || '').replace(R2_BASE, R2_CDN);
   var urlA = (comp.raw_image_a_url || '').replace(R2_BASE, R2_CDN);
+  var urlB = (comp.raw_image_b_url || '').replace(R2_BASE, R2_CDN);
   var urlD = (comp.diff_image_url || '').replace(R2_BASE, R2_CDN);
 
-  if (urlB && _mapPrior) {
-    _rasterPrior = L.imageOverlay(urlB, _data.image_bounds, { opacity: 0.8, interactive: false }).addTo(_mapPrior);
+  if (urlA && _mapPrior) {
+    _rasterPrior = L.imageOverlay(urlA, _data.image_bounds, { opacity: 0.8, interactive: false }).addTo(_mapPrior);
   }
-  if (urlA && _mapLatest) {
-    _rasterLatest = L.imageOverlay(urlA, _data.image_bounds, { opacity: 0.8, interactive: false }).addTo(_mapLatest);
+  if (urlB && _mapLatest) {
+    _rasterLatest = L.imageOverlay(urlB, _data.image_bounds, { opacity: 0.8, interactive: false }).addTo(_mapLatest);
   }
   if (urlD && _mapDiff) {
     _rasterDiff = L.imageOverlay(urlD, _data.image_bounds, { opacity: 0.8, interactive: false }).addTo(_mapDiff);
@@ -731,8 +766,8 @@ function renderTable() {
   } else {
     html = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr>' +
       '<th>Area</th>' +
-      '<th>' + esc(comp.run_b_label || 'Prior run') + '</th>' +
-      '<th>' + esc(comp.run_a_label || 'Latest run') + '</th>' +
+      '<th>' + esc(comp.run_a_label || 'Left run') + '</th>' +
+      '<th>' + esc(comp.run_b_label || 'Centre run') + '</th>' +
       '<th>Change</th><th>Flagged by</th><th></th></tr></thead><tbody>';
     display.forEach(function(k) {
       var r = rows[k];
@@ -744,8 +779,8 @@ function renderTable() {
         : '';
       html += '<tr>' +
         '<td>' + esc(k) + '</td>' +
-        '<td>' + fmtMm(r.run_b_mm) + '</td>' +
         '<td>' + fmtMm(r.run_a_mm) + '</td>' +
+        '<td>' + fmtMm(r.run_b_mm) + '</td>' +
         '<td class="' + cls + '">' + fmtDelta(d) + '</td>' +
         '<td>' + reason + '</td>' +
         '<td><span class="' + dotCls + '">' + (r.significant ? '●' : '') + '</span></td>' +
@@ -765,6 +800,7 @@ function showAll() { _showAll = true; renderTable(); }
 /* ── State setters ───────────────────────────────────────────────────── */
 function setComp(i) {
   _compIdx = i; _showAll = false;
+  renderHeaderSelects();
   renderCompTabs();
   renderInsights(currentComp().insights || _data.insights);
   refreshPolyStyles(); renderLegend(); updateRaster();
@@ -801,6 +837,16 @@ function render(data) {
     metaEl.textContent = 'Updated ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' GMT';
   }
 
+  // Set default comparison to -12h run if available
+  var defaultIdx = 0;
+  (data.comparisons || []).forEach(function(c, i) {
+    if (c.label === '-12h run' || (c.run_b_label && c.run_b_label.indexOf('03:00') !== -1)) {
+      defaultIdx = i;
+    }
+  });
+  _compIdx = defaultIdx;
+
+  renderHeaderSelects();
   renderInsights(currentComp().insights || data.insights);
   renderRules(data.significance_rules);
   renderCompTabs();
