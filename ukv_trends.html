@@ -33,7 +33,7 @@ body { margin: 0; font-family: 'Roboto', sans-serif; background: #f1f5f9; color:
 .header-meta  { font-size: 11px; color: #64748b; margin-left: auto; }
 
 /* ── Layout ─────────────────────────────────────────────────────────── */
-.page-content { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
+.page-content { max-width: 1360px; margin: 0 auto; padding: 20px 16px 40px; }
 
 /* ── Cards ──────────────────────────────────────────────────────────── */
 .card {
@@ -72,27 +72,80 @@ body { margin: 0; font-family: 'Roboto', sans-serif; background: #f1f5f9; color:
   margin-left: auto; font-weight: 500;
 }
 
-/* ── Map ────────────────────────────────────────────────────────────── */
-#map { height: 480px; border-radius: 0 0 12px 12px; background: #e2e8f0; }
+/* ── 3-Panel Map Layout ────────────────────────────────────────────── */
+.trends-maps-outer {
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+.trends-map-header-row {
+  display: flex;
+  background: #1e293b;
+  color: #f1f5f9;
+}
+.trends-map-header-cell {
+  flex: 1;
+  padding: 10px 14px;
+  text-align: center;
+  border-left: 1px solid #334155;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+.trends-map-header-cell:first-child { border-left: none; }
+.trends-map-header-cell .cell-title {
+  font-size: 13px; font-weight: 700; color: #f8fafc;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.trends-map-header-cell .cell-sub {
+  font-size: 11px; font-weight: 400; color: #94a3b8;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.trends-maps-row {
+  display: flex;
+  height: 480px;
+  background: #cbd5e1;
+}
+.trends-map-pane-wrap {
+  flex: 1;
+  position: relative;
+  height: 100%;
+  border-left: 2px solid #e2e8f0;
+  overflow: hidden;
+}
+.trends-map-pane-wrap:first-child { border-left: none; }
+.trends-map-pane { width: 100%; height: 100%; background: #e2e8f0; }
+
+/* In-panel legends */
+.panel-legend {
+  position: absolute; bottom: 12px; right: 12px; z-index: 600;
+  background: rgba(255,255,255,0.94); border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18); padding: 7px 10px; font-size: 10px;
+  max-width: 155px; pointer-events: none;
+}
+.panel-legend .legend-title { font-size: 10px; font-weight: 700; color: #334155; margin-bottom: 4px; }
+.panel-legend .legend-row { display: flex; align-items: center; gap: 6px; color: #475569; margin-bottom: 3px; }
+.panel-legend .legend-swatch { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.08); }
+
+@media (max-width: 900px) {
+  .trends-maps-row { flex-direction: column; height: auto; }
+  .trends-map-pane-wrap { height: 360px; border-left: none; border-top: 2px solid #e2e8f0; }
+  .trends-map-header-row { display: none; }
+  .panel-legend { top: 10px; bottom: auto; }
+}
+
 .leaflet-image-layer { image-rendering: pixelated; }
 .map-controls {
   display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center;
   padding: 12px 18px; border-bottom: 1px solid #f1f5f9;
 }
-.map-legend {
-  position: absolute; bottom: 14px; right: 12px; z-index: 600;
-  background: rgba(255,255,255,0.94); border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.18); padding: 8px 11px; font-size: 11px;
-  max-width: 160px;
-}
-.map-legend .legend-title { font-size: 10px; font-weight: 600; color: #475569; margin-bottom: 6px; }
-.legend-row { display: flex; align-items: center; gap: 7px; color: #475569; margin-bottom: 4px; }
-.legend-swatch { width: 13px; height: 13px; border-radius: 3px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.08); }
 .poly-tip { font-size: 12px; line-height: 1.5; }
 .poly-tip b { font-size: 12.5px; }
 .poly-tip .pt-delta-pos { color: #b91c1c; font-weight: 600; }
 .poly-tip .pt-delta-neg { color: #1565c0; font-weight: 600; }
-.map-wrap { position: relative; }
 .raster-check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; cursor: pointer; }
 
 /* ── Tabs / segmented controls ──────────────────────────────────────── */
@@ -189,27 +242,21 @@ body { margin: 0; font-family: 'Roboto', sans-serif; background: #f1f5f9; color:
       <div class="card-body" id="rulesBody"></div>
     </div>
 
-    <!-- Interactive map -->
+    <!-- Interactive 3-panel map -->
     <div class="card">
       <div class="card-header">
         <span class="card-title">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-          <span id="mapTitle">Map — run-to-run difference</span>
+          Map — 3-panel run-to-run comparison
         </span>
       </div>
 
       <!-- Comparison-pair selector -->
       <div class="map-controls" id="compTabs"></div>
 
-      <!-- Mode / window / layer / raster -->
+      <!-- Window / layer / raster -->
       <div class="map-controls">
-        <span class="ctl-label">Show</span>
-        <div class="seg" id="modeSeg">
-          <button class="seg-btn active" data-mode="diff"   onclick="setMode('diff')">Difference</button>
-          <button class="seg-btn"        data-mode="latest" onclick="setMode('latest')">Latest total</button>
-          <button class="seg-btn"        data-mode="prior"  onclick="setMode('prior')">Prior total</button>
-        </div>
-        <span class="ctl-label" style="margin-left:6px;">Window</span>
+        <span class="ctl-label">Window</span>
         <div class="seg" id="winSeg">
           <button class="seg-btn"        data-win="12h"  onclick="setWin('12h')">12h</button>
           <button class="seg-btn active" data-win="day1" onclick="setWin('day1')">Day 1</button>
@@ -226,9 +273,36 @@ body { margin: 0; font-family: 'Roboto', sans-serif; background: #f1f5f9; color:
         </label>
       </div>
 
-      <div class="map-wrap">
-        <div id="map"></div>
-        <div class="map-legend" id="mapLegend"></div>
+      <div class="trends-maps-outer">
+        <div class="trends-map-header-row">
+          <div class="trends-map-header-cell">
+            <span class="cell-title" id="headerPriorTitle">Prior Run</span>
+            <span class="cell-sub" id="headerPriorSub">Prior run total</span>
+          </div>
+          <div class="trends-map-header-cell">
+            <span class="cell-title" id="headerLatestTitle">Latest Run</span>
+            <span class="cell-sub" id="headerLatestSub">Latest run total</span>
+          </div>
+          <div class="trends-map-header-cell">
+            <span class="cell-title" id="headerDiffTitle">Difference</span>
+            <span class="cell-sub" id="headerDiffSub">Latest minus Prior</span>
+          </div>
+        </div>
+
+        <div class="trends-maps-row">
+          <div class="trends-map-pane-wrap">
+            <div id="mapPrior" class="trends-map-pane"></div>
+            <div class="panel-legend" id="legendPrior"></div>
+          </div>
+          <div class="trends-map-pane-wrap">
+            <div id="mapLatest" class="trends-map-pane"></div>
+            <div class="panel-legend" id="legendLatest"></div>
+          </div>
+          <div class="trends-map-pane-wrap">
+            <div id="mapDiff" class="trends-map-pane"></div>
+            <div class="panel-legend" id="legendDiff"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -265,7 +339,10 @@ var _mode     = 'diff';
 var _showAll  = false;
 var _rasterOn = false;
 
-var _map = null, _polyLayer = null, _rasterLayer = null;
+var _mapPrior = null, _mapLatest = null, _mapDiff = null;
+var _polyPrior = null, _polyLatest = null, _polyDiff = null;
+var _rasterLatest = null;
+var _syncing = false;
 var _geoCache = {};   // layer -> geojson  (lazy fetched)
 
 var GEO_FILES = {
@@ -327,11 +404,11 @@ function currentRows() {
   var w = (c.windows && c.windows[_win]) || {};
   return w[_layer] || {};
 }
-function valueFor(name) {
+function valueFor(name, mode) {
   var r = currentRows()[name];
   if (!r) return null;
-  if (_mode === 'latest') return r.run_a_mm;
-  if (_mode === 'prior')  return r.run_b_mm;
+  if (mode === 'latest') return r.run_a_mm;
+  if (mode === 'prior')  return r.run_b_mm;
   return r.delta_mm;
 }
 
@@ -395,11 +472,31 @@ function renderCompTabs() {
 
 /* ── Map ─────────────────────────────────────────────────────────────── */
 function initMap() {
-  _map = L.map('map', { zoomControl: true }).setView([54.5, -3.5], 5);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    maxZoom: 12,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-  }).addTo(_map);
+  var INIT_CENTER = [54.5, -3.5], INIT_ZOOM = 5;
+  var TILE_URL  = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  var TILE_OPTS = { maxZoom: 12, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>' };
+
+  _mapPrior  = L.map('mapPrior',  { zoomControl: true }).setView(INIT_CENTER, INIT_ZOOM);
+  _mapLatest = L.map('mapLatest', { zoomControl: false }).setView(INIT_CENTER, INIT_ZOOM);
+  _mapDiff   = L.map('mapDiff',   { zoomControl: false }).setView(INIT_CENTER, INIT_ZOOM);
+
+  [_mapPrior, _mapLatest, _mapDiff].forEach(function(m) {
+    L.tileLayer(TILE_URL, TILE_OPTS).addTo(m);
+  });
+
+  function sync(src) {
+    if (_syncing) return;
+    _syncing = true;
+    var c = src.getCenter(), z = src.getZoom();
+    [_mapPrior, _mapLatest, _mapDiff].forEach(function(m) {
+      if (m && m !== src) m.setView(c, z, { animate: false });
+    });
+    _syncing = false;
+  }
+
+  _mapPrior.on('moveend',  function() { sync(_mapPrior); });
+  _mapLatest.on('moveend', function() { sync(_mapLatest); });
+  _mapDiff.on('moveend',   function() { sync(_mapDiff); });
 }
 
 function loadGeo(layer) {
@@ -410,11 +507,11 @@ function loadGeo(layer) {
     .then(function(g) { _geoCache[layer] = g; return g; });
 }
 
-function styleFeature(feature) {
+function styleFeature(feature, mode) {
   var info = GEO_FILES[_layer];
   var name = feature.properties[info.key];
-  var v = valueFor(name);
-  var color = (_mode === 'diff')
+  var v = valueFor(name, mode);
+  var color = (mode === 'diff')
     ? bucketColor(v, DIFF_BOUNDS, DIFF_COLORS)
     : bucketColor(v, ABS_BOUNDS, ABS_COLORS);
   if (color === null) {
@@ -438,49 +535,77 @@ function tooltipHtml(name) {
 }
 
 function drawPolys() {
-  if (!_map) return;
+  if (!_mapPrior || !_mapLatest || !_mapDiff) return;
   loadGeo(_layer).then(function(geo) {
-    if (_polyLayer) { _map.removeLayer(_polyLayer); _polyLayer = null; }
+    if (_polyPrior)  { _mapPrior.removeLayer(_polyPrior);   _polyPrior = null; }
+    if (_polyLatest) { _mapLatest.removeLayer(_polyLatest); _polyLatest = null; }
+    if (_polyDiff)   { _mapDiff.removeLayer(_polyDiff);     _polyDiff = null; }
+
     var info = GEO_FILES[_layer];
-    _polyLayer = L.geoJSON(geo, {
-      style: styleFeature,
-      onEachFeature: function(feature, lyr) {
-        var name = feature.properties[info.key];
-        lyr.bindTooltip(function() { return tooltipHtml(name); }, { sticky: true });
-      }
-    }).addTo(_map);
+
+    function createPolyLayer(mapInst, mode) {
+      return L.geoJSON(geo, {
+        style: function(f) { return styleFeature(f, mode); },
+        onEachFeature: function(feature, lyr) {
+          var name = feature.properties[info.key];
+          lyr.bindTooltip(function() { return tooltipHtml(name); }, { sticky: true });
+        }
+      }).addTo(mapInst);
+    }
+
+    _polyPrior  = createPolyLayer(_mapPrior,  'prior');
+    _polyLatest = createPolyLayer(_mapLatest, 'latest');
+    _polyDiff   = createPolyLayer(_mapDiff,   'diff');
+
     try {
-      var b = _polyLayer.getBounds();
-      if (b.isValid()) _map.fitBounds(b, { padding: [20, 20], maxZoom: 8 });
+      var b = _polyPrior.getBounds();
+      if (b.isValid()) {
+        [_mapPrior, _mapLatest, _mapDiff].forEach(function(m) {
+          m.fitBounds(b, { padding: [15, 15], maxZoom: 8 });
+        });
+      }
     } catch (e) {}
-  }).catch(function() {
-    /* geojson missing — leave basemap only */
-  });
+  }).catch(function() {});
 }
 
 function refreshPolyStyles() {
-  if (_polyLayer) _polyLayer.setStyle(styleFeature);
+  if (_polyPrior)  _polyPrior.setStyle(function(f) { return styleFeature(f, 'prior'); });
+  if (_polyLatest) _polyLatest.setStyle(function(f) { return styleFeature(f, 'latest'); });
+  if (_polyDiff)   _polyDiff.setStyle(function(f) { return styleFeature(f, 'diff'); });
 }
 
 function renderLegend() {
-  var el = document.getElementById('mapLegend');
   var comp = currentComp();
-  var rowsHtml, title;
-  if (_mode === 'diff') {
-    title = 'Change vs ' + esc(comp.run_b_label || 'prior run');
-    rowsHtml = DIFF_LEGEND;
-  } else {
-    title = (_mode === 'latest' ? 'Latest run total' : 'Prior run total') + ' (' + WIN_LABEL[_win] + ')';
-    rowsHtml = ABS_LEGEND;
+  
+  var pTitle = document.getElementById('headerPriorTitle');
+  var lTitle = document.getElementById('headerLatestTitle');
+  var dTitle = document.getElementById('headerDiffTitle');
+  if (pTitle) pTitle.textContent = comp.run_b_label || 'Prior Run';
+  if (lTitle) lTitle.textContent = comp.run_a_label || 'Latest Run';
+  if (dTitle) dTitle.textContent = 'Difference';
+  
+  var dSub = document.getElementById('headerDiffSub');
+  if (dSub) dSub.textContent = (comp.run_a_label || 'Latest') + ' minus ' + (comp.run_b_label || 'Prior');
+
+  function buildLegendHtml(title, items) {
+    return '<div class="legend-title">' + title + '</div>' +
+      items.map(function(r) {
+        return '<div class="legend-row"><span class="legend-swatch" style="background:' + r[0] + ';"></span>' + r[1] + '</div>';
+      }).join('');
   }
-  el.innerHTML = '<div class="legend-title">' + title + '</div>' +
-    rowsHtml.map(function(r) {
-      return '<div class="legend-row"><span class="legend-swatch" style="background:' + r[0] + ';"></span>' + r[1] + '</div>';
-    }).join('');
+
+  var absTitle = 'Total (' + WIN_LABEL[_win] + ')';
+  var diffTitle = 'Change (mm)';
+
+  var elP = document.getElementById('legendPrior');
+  var elL = document.getElementById('legendLatest');
+  var elD = document.getElementById('legendDiff');
+  if (elP) elP.innerHTML = buildLegendHtml(absTitle, ABS_LEGEND);
+  if (elL) elL.innerHTML = buildLegendHtml(absTitle, ABS_LEGEND);
+  if (elD) elD.innerHTML = buildLegendHtml(diffTitle, DIFF_LEGEND);
 }
 
 function rasterAvailable() {
-  // Raw UKV raster is only emitted for the day-1 24h window.
   return _win === 'day1' && !!currentComp().raw_image_a_url;
 }
 function syncRasterControl() {
@@ -496,12 +621,12 @@ function syncRasterControl() {
   }
 }
 function updateRaster() {
-  if (!_map) return;
-  if (_rasterLayer) { _map.removeLayer(_rasterLayer); _rasterLayer = null; }
+  if (_rasterLatest && _mapLatest) { _mapLatest.removeLayer(_rasterLatest); _rasterLatest = null; }
   if (!_rasterOn || !rasterAvailable() || !_data.image_bounds) return;
-  var url = (currentComp().raw_image_a_url || '').replace(R2_BASE, R2_CDN);
-  if (!url) return;
-  _rasterLayer = L.imageOverlay(url, _data.image_bounds, { opacity: 0.65, interactive: false }).addTo(_map);
+  var urlA = (currentComp().raw_image_a_url || '').replace(R2_BASE, R2_CDN);
+  if (urlA && _mapLatest) {
+    _rasterLatest = L.imageOverlay(urlA, _data.image_bounds, { opacity: 0.65, interactive: false }).addTo(_mapLatest);
+  }
 }
 function toggleRaster() {
   _rasterOn = document.getElementById('rasterCheck').checked;
@@ -569,16 +694,6 @@ function setComp(i) {
   syncRasterControl();
   refreshPolyStyles(); renderLegend(); updateRaster();
   renderTable();
-}
-function setMode(m) {
-  _mode = m;
-  document.querySelectorAll('#modeSeg .seg-btn').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.mode === m);
-  });
-  document.getElementById('mapTitle').textContent =
-    m === 'diff' ? 'Map — run-to-run difference'
-    : (m === 'latest' ? 'Map — latest run total' : 'Map — prior run total');
-  refreshPolyStyles(); renderLegend();
 }
 function setWin(w) {
   _win = w; _showAll = false;
