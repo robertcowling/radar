@@ -117,8 +117,8 @@ html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidde
 /* ── Floating Player/Control Panel (matching compare.html) ──────────── */
 .player-panel {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-  padding: 10px 18px; z-index: 1000; width: 94%; max-width: 1080px;
-  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 10px 18px; z-index: 1000; width: auto; max-width: 1080px;
+  display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;
 }
 .surface {
   background: white; border-radius: 16px;
@@ -135,8 +135,6 @@ html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidde
   font-family: 'Roboto', sans-serif; font-size: 12px; font-weight: 500; color: #5f6368; cursor: pointer;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s; white-space: nowrap;
 }
-.tab-row { display: flex; gap: 4px; flex-wrap: wrap; }
-.tab-btn { background: #f1f3f4; }
 .seg-btn.active, .tab-btn.active {
   background: white; color: #202124; box-shadow: 0 1px 3px rgba(0,0,0,0.18);
 }
@@ -288,11 +286,6 @@ select:hover { background-color: #e8eaed; }
 <!-- Floating Player / Controls Panel -->
 <div class="player-panel surface" id="playerPanel" style="display:none;">
   <div class="control-group">
-    <span class="control-label">Compare vs</span>
-    <div class="tab-row" id="compTabs"></div>
-  </div>
-
-  <div class="control-group">
     <span class="control-label">Window</span>
     <div class="seg" id="winSeg">
       <button class="seg-btn"        data-win="12h"  onclick="setWin('12h')">12h</button>
@@ -373,8 +366,11 @@ select:hover { background-color: #e8eaed; }
 var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
 var R2_CDN  = 'https://radar.floodforecast.co.uk';
 
-var _data     = null;
-var _compIdx  = 2; // Default to -12h run comparison (Latest vs 12h ago)
+var _data             = null;
+var _meta             = null;
+var _compIdx          = 2; // Default to -12h run comparison
+var _selectedRunLeft  = null;
+var _selectedRunRight = null;
 var _win      = 'day1';
 var _layer    = 'catchments';
 var _showAll  = false;
@@ -501,42 +497,64 @@ function renderRules(rules) {
     '</div>';
 }
 
-/* ── Comparison tabs and Top Bar Selectors ────────────────────────────── */
+/* ── Top Bar Selectors for Left and Centre Panels ─────────────────────── */
 function renderHeaderSelects() {
   var sLeft  = document.getElementById('selectRunLeft');
   var sRight = document.getElementById('selectRunRight');
   if (!sLeft || !sRight || !_data) return;
 
-  var comps = _data.comparisons || [];
-  var cur   = currentComp();
+  var allRuns = [];
+  var seen = {};
 
-  sLeft.innerHTML = '<option value="latest">' + esc(_data.latest_label || cur.run_a_label || 'Latest Run') + '</option>';
+  if (_meta && _meta.runs && _meta.runs.length > 0) {
+    allRuns = _meta.runs.map(function(r) { return { ts: r.run_ts, label: r.run_label }; });
+  } else {
+    if (_data.latest_run) {
+      seen[_data.latest_run] = true;
+      allRuns.push({ ts: _data.latest_run, label: _data.latest_label });
+    }
+    (_data.comparisons || []).forEach(function(c) {
+      if (c.run_b && !seen[c.run_b]) {
+        seen[c.run_b] = true;
+        allRuns.push({ ts: c.run_b, label: c.run_b_label });
+      }
+    });
+  }
 
-  sRight.innerHTML = comps.map(function(c, i) {
-    var sel = (i === _compIdx) ? ' selected' : '';
-    var lbl = esc(c.run_b_label || c.label || ('Run ' + (i + 1)));
-    return '<option value="' + i + '"' + sel + '>' + lbl + '</option>';
+  sLeft.innerHTML = allRuns.map(function(r) {
+    var sel = (r.ts === _selectedRunLeft) ? ' selected' : '';
+    return '<option value="' + esc(r.ts) + '"' + sel + '>' + esc(r.label) + '</option>';
+  }).join('');
+
+  sRight.innerHTML = allRuns.map(function(r) {
+    var sel = (r.ts === _selectedRunRight) ? ' selected' : '';
+    return '<option value="' + esc(r.ts) + '"' + sel + '>' + esc(r.label) + '</option>';
   }).join('');
 }
 
 function onRunSelectChange(side) {
-  if (side === 'right') {
-    var sRight = document.getElementById('selectRunRight');
-    if (sRight) {
-      var idx = parseInt(sRight.value, 10);
-      if (!isNaN(idx)) setComp(idx);
-    }
-  }
-}
+  var sLeft  = document.getElementById('selectRunLeft');
+  var sRight = document.getElementById('selectRunRight');
+  if (sLeft && sRight) {
+    _selectedRunLeft  = sLeft.value;
+    _selectedRunRight = sRight.value;
 
-function renderCompTabs() {
-  var el = document.getElementById('compTabs');
-  var comps = _data.comparisons || [];
-  el.innerHTML = comps.map(function(c, i) {
-    var cls = 'tab-btn' + (i === _compIdx ? ' active' : '');
-    var labelText = esc(c.run_b_label || c.label || 'Run ' + (i + 1));
-    return '<button class="' + cls + '" onclick="setComp(' + i + ')">' + labelText + '</button>';
-  }).join('');
+    // Find matching comparison in _data.comparisons
+    var comps = _data.comparisons || [];
+    var foundIdx = 0;
+    comps.forEach(function(c, i) {
+      if (c.run_b === _selectedRunRight) {
+        foundIdx = i;
+      }
+    });
+    _compIdx = foundIdx;
+
+    refreshPolyStyles();
+    renderLegend();
+    updateRaster();
+    renderTable();
+    renderInsights(currentComp().insights || _data.insights);
+  }
 }
 
 /* ── Map ─────────────────────────────────────────────────────────────── */
@@ -798,14 +816,6 @@ function renderTable() {
 function showAll() { _showAll = true; renderTable(); }
 
 /* ── State setters ───────────────────────────────────────────────────── */
-function setComp(i) {
-  _compIdx = i; _showAll = false;
-  renderHeaderSelects();
-  renderCompTabs();
-  renderInsights(currentComp().insights || _data.insights);
-  refreshPolyStyles(); renderLegend(); updateRaster();
-  renderTable();
-}
 function setWin(w) {
   _win = w; _showAll = false;
   document.querySelectorAll('#winSeg .seg-btn').forEach(function(b) {
@@ -824,32 +834,36 @@ function setLayer(l) {
 }
 
 /* ── Boot ────────────────────────────────────────────────────────────── */
-function render(data) {
-  _data = data;
+function render(trendsData, metaData) {
+  _data = trendsData;
+  _meta = metaData;
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('mainContent').style.display  = '';
   document.getElementById('playerPanel').style.display  = 'flex';
 
   var metaEl = document.getElementById('headerMeta');
-  if (data.generated_at) {
-    var d = new Date(data.generated_at);
+  if (trendsData.generated_at) {
+    var d = new Date(trendsData.generated_at);
     var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
     metaEl.textContent = 'Updated ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' GMT';
   }
 
   // Set default comparison to -12h run if available
   var defaultIdx = 0;
-  (data.comparisons || []).forEach(function(c, i) {
+  (trendsData.comparisons || []).forEach(function(c, i) {
     if (c.label === '-12h run' || (c.run_b_label && c.run_b_label.indexOf('03:00') !== -1)) {
       defaultIdx = i;
     }
   });
   _compIdx = defaultIdx;
+  
+  var cur = (trendsData.comparisons || [])[defaultIdx] || {};
+  _selectedRunLeft  = trendsData.latest_run || cur.run_a;
+  _selectedRunRight = cur.run_b;
 
   renderHeaderSelects();
-  renderInsights(currentComp().insights || data.insights);
-  renderRules(data.significance_rules);
-  renderCompTabs();
+  renderInsights(currentComp().insights || trendsData.insights);
+  renderRules(trendsData.significance_rules);
   renderLegend();
   renderTable();
 
@@ -862,14 +876,15 @@ function render(data) {
   }
 }
 
-fetch('ukv_trends.json?_=' + Date.now())
-  .then(function(r) { if (!r.ok) throw new Error(r.status); return r.text(); })
-  .then(function(t) { return JSON.parse(t.replaceAll(R2_BASE, R2_CDN)); })
-  .then(render)
-  .catch(function() {
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('errorState').style.display   = '';
-  });
+Promise.all([
+  fetch('ukv_trends.json?_=' + Date.now()).then(function(r) { return r.json(); }),
+  fetch('ukv_meta.json?_=' + Date.now()).then(function(r) { return r.json(); }).catch(function() { return null; })
+]).then(function(results) {
+  render(results[0], results[1]);
+}).catch(function() {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('errorState').style.display   = '';
+});
 </script>
 </body>
 </html>
