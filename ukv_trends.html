@@ -496,39 +496,18 @@ function renderRules(rules) {
     '</div>';
 }
 
-/* ── Master-Detail Top Bar Selectors for Left and Centre Panels ─────────── */
+/* ── Top Bar Selectors for Left and Centre Panels ─────────────────────── */
 function renderHeaderSelects() {
   var sLeft  = document.getElementById('selectRunLeft');
   var sRight = document.getElementById('selectRunRight');
   if (!sLeft || !sRight || !_data) return;
 
-  var allRuns = [];
-  if (_meta && _meta.runs && _meta.runs.length > 0) {
-    allRuns = _meta.runs.map(function(r) { return { ts: r.run_ts, label: r.run_label }; });
-  } else {
-    var seen = {};
-    if (_data.latest_run) {
-      seen[_data.latest_run] = true;
-      allRuns.push({ ts: _data.latest_run, label: _data.latest_label });
-    }
-    (_data.comparisons || []).forEach(function(c) {
-      if (c.run_b && !seen[c.run_b]) {
-        seen[c.run_b] = true;
-        allRuns.push({ ts: c.run_b, label: c.run_b_label });
-      }
-    });
-  }
-
-  if (!_selectedRunLeft) _selectedRunLeft = _data.latest_run;
-
-  // Master Left Dropdown (Lists ALL Available UKV Forecast Runs)
-  sLeft.innerHTML = allRuns.map(function(r) {
-    var sel = (r.ts === _selectedRunLeft) ? ' selected' : '';
-    return '<option value="' + esc(r.ts) + '"' + sel + '>' + esc(r.label) + '</option>';
-  }).join('');
-
-  // Slave Centre Dropdown (Populates Valid Overlapping Comparisons Dynamically)
   var comps = _data.comparisons || [];
+
+  // Left panel shows the target run being evaluated (Latest run)
+  sLeft.innerHTML = '<option value="' + esc(_data.latest_run) + '" selected>' + esc(_data.latest_label || 'Latest Run') + '</option>';
+
+  // Centre panel shows ONLY valid overlapping comparison runs where full data overlap exists
   sRight.innerHTML = comps.map(function(c, i) {
     var sel = (i === _compIdx) ? ' selected' : '';
     var lbl = esc(c.run_b_label || ('Run ' + (i + 1))) + ' (' + esc(c.label || '') + ')';
@@ -537,19 +516,12 @@ function renderHeaderSelects() {
 }
 
 function onRunSelectChange(side) {
-  var sLeft  = document.getElementById('selectRunLeft');
   var sRight = document.getElementById('selectRunRight');
-  if (!sLeft || !sRight) return;
-
-  _selectedRunLeft = sLeft.value;
-
-  if (side === 'left') {
-    renderHeaderSelects();
-  }
-
-  var idx = parseInt(sRight.value, 10);
-  if (!isNaN(idx)) {
-    setComp(idx);
+  if (sRight) {
+    var idx = parseInt(sRight.value, 10);
+    if (!isNaN(idx)) {
+      setComp(idx);
+    }
   }
 }
 
@@ -703,8 +675,8 @@ function renderLegend() {
       '<div class="cbar">' + blocks + '</div>' +
       '<div class="cbar-labels">' + labels + '</div>' +
       '<div class="bias-arrows">' +
-        '<span style="color:#b91c1c;font-weight:600;">◄ Centre higher</span>' +
-        '<span style="color:#2166ac;font-weight:600;">Left higher ►</span>' +
+        '<span style="color:#b91c1c;font-weight:600;">◄ Drier (Centre higher)</span>' +
+        '<span style="color:#2166ac;font-weight:600;">Wetter (Left higher) ►</span>' +
       '</div>';
   }
 
@@ -837,9 +809,8 @@ function setLayer(l) {
 }
 
 /* ── Boot ────────────────────────────────────────────────────────────── */
-function render(trendsData, metaData) {
+function render(trendsData) {
   _data = trendsData;
-  _meta = metaData;
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('mainContent').style.display  = '';
   document.getElementById('playerPanel').style.display  = 'flex';
@@ -875,15 +846,14 @@ function render(trendsData, metaData) {
   }
 }
 
-Promise.all([
-  fetch('ukv_trends.json?_=' + Date.now()).then(function(r) { return r.json(); }),
-  fetch('ukv_meta.json?_=' + Date.now()).then(function(r) { return r.json(); }).catch(function() { return null; })
-]).then(function(results) {
-  render(results[0], results[1]);
-}).catch(function() {
-  document.getElementById('loadingState').style.display = 'none';
-  document.getElementById('errorState').style.display   = '';
-});
+fetch('ukv_trends.json?_=' + Date.now())
+  .then(function(r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+  .then(function(t) { return JSON.parse(t.replaceAll(R2_BASE, R2_CDN)); })
+  .then(render)
+  .catch(function() {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorState').style.display   = '';
+  });
 </script>
 </body>
 </html>
