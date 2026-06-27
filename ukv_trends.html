@@ -232,11 +232,11 @@ select:hover { background-color: #e8eaed; }
   
   <div class="header-actions">
     <button class="hdr-btn" onclick="openInsightsModal()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
       Insights &amp; Rules
     </button>
     <button class="hdr-btn" onclick="openTableModal()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
       Data Table
     </button>
   </div>
@@ -366,11 +366,9 @@ select:hover { background-color: #e8eaed; }
 var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
 var R2_CDN  = 'https://radar.floodforecast.co.uk';
 
-var _data             = null;
-var _meta             = null;
-var _compIdx          = 2; // Default to -12h run comparison
-var _selectedRunLeft  = null;
-var _selectedRunRight = null;
+var _data     = null;
+var _meta     = null;
+var _compIdx  = 2; // Default to -12h run comparison (index 2)
 var _win      = 'day1';
 var _layer    = 'catchments';
 var _showAll  = false;
@@ -503,57 +501,26 @@ function renderHeaderSelects() {
   var sRight = document.getElementById('selectRunRight');
   if (!sLeft || !sRight || !_data) return;
 
-  var allRuns = [];
-  var seen = {};
+  var comps = _data.comparisons || [];
 
-  if (_meta && _meta.runs && _meta.runs.length > 0) {
-    allRuns = _meta.runs.map(function(r) { return { ts: r.run_ts, label: r.run_label }; });
-  } else {
-    if (_data.latest_run) {
-      seen[_data.latest_run] = true;
-      allRuns.push({ ts: _data.latest_run, label: _data.latest_label });
-    }
-    (_data.comparisons || []).forEach(function(c) {
-      if (c.run_b && !seen[c.run_b]) {
-        seen[c.run_b] = true;
-        allRuns.push({ ts: c.run_b, label: c.run_b_label });
-      }
-    });
-  }
+  // Left panel shows the target run being evaluated (Latest run)
+  sLeft.innerHTML = '<option value="' + esc(_data.latest_run) + '" selected>' + esc(_data.latest_label || 'Latest Run') + '</option>';
 
-  sLeft.innerHTML = allRuns.map(function(r) {
-    var sel = (r.ts === _selectedRunLeft) ? ' selected' : '';
-    return '<option value="' + esc(r.ts) + '"' + sel + '>' + esc(r.label) + '</option>';
-  }).join('');
-
-  sRight.innerHTML = allRuns.map(function(r) {
-    var sel = (r.ts === _selectedRunRight) ? ' selected' : '';
-    return '<option value="' + esc(r.ts) + '"' + sel + '>' + esc(r.label) + '</option>';
+  // Centre panel shows ONLY valid overlapping comparison runs where full data overlap exists
+  sRight.innerHTML = comps.map(function(c, i) {
+    var sel = (i === _compIdx) ? ' selected' : '';
+    var lbl = esc(c.run_b_label || ('Run ' + (i + 1))) + ' (' + esc(c.label || '') + ')';
+    return '<option value="' + i + '"' + sel + '>' + lbl + '</option>';
   }).join('');
 }
 
 function onRunSelectChange(side) {
-  var sLeft  = document.getElementById('selectRunLeft');
   var sRight = document.getElementById('selectRunRight');
-  if (sLeft && sRight) {
-    _selectedRunLeft  = sLeft.value;
-    _selectedRunRight = sRight.value;
-
-    // Find matching comparison in _data.comparisons
-    var comps = _data.comparisons || [];
-    var foundIdx = 0;
-    comps.forEach(function(c, i) {
-      if (c.run_b === _selectedRunRight) {
-        foundIdx = i;
-      }
-    });
-    _compIdx = foundIdx;
-
-    refreshPolyStyles();
-    renderLegend();
-    updateRaster();
-    renderTable();
-    renderInsights(currentComp().insights || _data.insights);
+  if (sRight) {
+    var idx = parseInt(sRight.value, 10);
+    if (!isNaN(idx)) {
+      setComp(idx);
+    }
   }
 }
 
@@ -816,6 +783,13 @@ function renderTable() {
 function showAll() { _showAll = true; renderTable(); }
 
 /* ── State setters ───────────────────────────────────────────────────── */
+function setComp(i) {
+  _compIdx = i; _showAll = false;
+  renderHeaderSelects();
+  renderInsights(currentComp().insights || _data.insights);
+  refreshPolyStyles(); renderLegend(); updateRaster();
+  renderTable();
+}
 function setWin(w) {
   _win = w; _showAll = false;
   document.querySelectorAll('#winSeg .seg-btn').forEach(function(b) {
@@ -834,9 +808,8 @@ function setLayer(l) {
 }
 
 /* ── Boot ────────────────────────────────────────────────────────────── */
-function render(trendsData, metaData) {
+function render(trendsData) {
   _data = trendsData;
-  _meta = metaData;
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('mainContent').style.display  = '';
   document.getElementById('playerPanel').style.display  = 'flex';
@@ -848,7 +821,7 @@ function render(trendsData, metaData) {
     metaEl.textContent = 'Updated ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' GMT';
   }
 
-  // Set default comparison to -12h run if available
+  // Default comparison to -12h run if available
   var defaultIdx = 0;
   (trendsData.comparisons || []).forEach(function(c, i) {
     if (c.label === '-12h run' || (c.run_b_label && c.run_b_label.indexOf('03:00') !== -1)) {
@@ -856,10 +829,6 @@ function render(trendsData, metaData) {
     }
   });
   _compIdx = defaultIdx;
-  
-  var cur = (trendsData.comparisons || [])[defaultIdx] || {};
-  _selectedRunLeft  = trendsData.latest_run || cur.run_a;
-  _selectedRunRight = cur.run_b;
 
   renderHeaderSelects();
   renderInsights(currentComp().insights || trendsData.insights);
@@ -876,15 +845,14 @@ function render(trendsData, metaData) {
   }
 }
 
-Promise.all([
-  fetch('ukv_trends.json?_=' + Date.now()).then(function(r) { return r.json(); }),
-  fetch('ukv_meta.json?_=' + Date.now()).then(function(r) { return r.json(); }).catch(function() { return null; })
-]).then(function(results) {
-  render(results[0], results[1]);
-}).catch(function() {
-  document.getElementById('loadingState').style.display = 'none';
-  document.getElementById('errorState').style.display   = '';
-});
+fetch('ukv_trends.json?_=' + Date.now())
+  .then(function(r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+  .then(function(t) { return JSON.parse(t.replaceAll(R2_BASE, R2_CDN)); })
+  .then(render)
+  .catch(function() {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorState').style.display   = '';
+  });
 </script>
 </body>
 </html>
