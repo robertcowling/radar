@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UK Lightning | Flood Forecast</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; font-family: 'Roboto', sans-serif; color: #1e293b; }
+#map { position: absolute; inset: 0; background: #0b1220; }
+
+.panel {
+  position: absolute; top: 12px; left: 12px; z-index: 1000;
+  background: rgba(255,255,255,.96); border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.25); padding: 14px 16px; width: 300px;
+}
+.panel h1 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+.panel .sub { font-size: 11px; color: #64748b; margin-bottom: 12px; line-height: 1.4; }
+.fld { margin-bottom: 9px; }
+.fld label { display: block; font-size: 11px; font-weight: 600; color: #475569; margin-bottom: 3px; }
+.fld input, .fld select {
+  width: 100%; padding: 6px 9px; border: 1px solid #e2e8f0; border-radius: 8px;
+  font-size: 13px; color: #1e293b; font-family: inherit;
+}
+.fld-row { display: flex; gap: 8px; }
+.fld-row .fld { flex: 1; }
+.go {
+  width: 100%; padding: 9px; border: none; border-radius: 8px; cursor: pointer;
+  background: #1e293b; color: #fff; font-size: 13px; font-weight: 600; margin-top: 4px;
+}
+.go:hover { background: #334155; }
+.go:disabled { background: #94a3b8; cursor: default; }
+.status { font-size: 11px; color: #475569; margin-top: 10px; line-height: 1.5; min-height: 16px; }
+.status.err { color: #b91c1c; }
+.bar { height: 4px; background: #e2e8f0; border-radius: 3px; margin-top: 8px; overflow: hidden; display: none; }
+.bar > div { height: 100%; width: 0; background: #f59e0b; transition: width .2s; }
+.legend { margin-top: 12px; padding-top: 10px; border-top: 1px solid #f1f5f9; }
+.legend .lr { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #475569; margin-bottom: 4px; }
+.dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,.2); }
+.count { font-size: 13px; font-weight: 600; color: #b45309; }
+details { margin-top: 10px; }
+summary { font-size: 11px; color: #64748b; cursor: pointer; }
+.adv { padding-top: 8px; }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="panel">
+  <h1>⚡ UK lightning</h1>
+  <div class="sub">Observed strikes from the OpenWeather Lightning API, tiled across the UK. Key stays in your browser — it is never sent anywhere but OpenWeather.</div>
+
+  <div class="fld">
+    <label>API key</label>
+    <input type="password" id="key" placeholder="OpenWeather API key" autocomplete="off">
+  </div>
+
+  <div class="fld-row">
+    <div class="fld">
+      <label>Start (UTC)</label>
+      <input type="datetime-local" id="start">
+    </div>
+    <div class="fld">
+      <label>End (UTC)</label>
+      <input type="datetime-local" id="end">
+    </div>
+  </div>
+
+  <button class="go" id="go" onclick="run()">Fetch strikes</button>
+
+  <div class="bar" id="bar"><div id="barFill"></div></div>
+  <div class="status" id="status"></div>
+
+  <div class="legend">
+    <div class="lr"><span class="dot" style="background:#f59e0b"></span>good</div>
+    <div class="lr"><span class="dot" style="background:#3b82f6"></span>medium</div>
+    <div class="lr"><span class="dot" style="background:#9333ea"></span>bad / undefined</div>
+  </div>
+
+  <details>
+    <summary>Advanced (tiling &amp; rate limit)</summary>
+    <div class="adv">
+      <div class="fld-row">
+        <div class="fld">
+          <label>Lat step (°)</label>
+          <input type="number" id="latStep" value="0.6" step="0.1" min="0.2">
+        </div>
+        <div class="fld">
+          <label>Lon step (°)</label>
+          <input type="number" id="lonStep" value="0.9" step="0.1" min="0.2">
+        </div>
+      </div>
+      <div class="fld-row">
+        <div class="fld">
+          <label>Radius (km)</label>
+          <input type="number" id="radius" value="50" step="5" min="1" max="50">
+        </div>
+        <div class="fld">
+          <label>Concurrency</label>
+          <input type="number" id="conc" value="4" step="1" min="1" max="10">
+        </div>
+      </div>
+    </div>
+  </details>
+</div>
+
+<script>
+/* OpenWeather Lightning API — documented endpoint */
+var API = 'https://demo.openweathermap.org/lightning/1.0/data';
+
+/* UK bounding box (incl. Northern Ireland, Hebrides, Shetland) */
+var UK = { latMin: 49.8, latMax: 61.0, lonMin: -8.3, lonMax: 1.9 };
+
+/* ── Map ──────────────────────────────────────────────────────────── */
+var map = L.map('map', { preferCanvas: true }).setView([54.7, -3.2], 6);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  maxZoom: 12,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a> · lightning &copy; OpenWeather'
+}).addTo(map);
+map.fitBounds([[UK.latMin, UK.lonMin], [UK.latMax, UK.lonMax]]);
+
+var strikeLayer = L.layerGroup().addTo(map);
+
+/* ── Defaults: last 24h ─────────────────────────────────────────── */
+function isoLocal(d) {
+  var p = function(n){ return (n<10?'0':'')+n; };
+  return d.getUTCFullYear()+'-'+p(d.getUTCMonth()+1)+'-'+p(d.getUTCDate())+
+         'T'+p(d.getUTCHours())+':'+p(d.getUTCMinutes());
+}
+(function() {
+  var now = new Date();
+  var ago = new Date(now.getTime() - 24*3600*1000);
+  document.getElementById('end').value   = isoLocal(now);
+  document.getElementById('start').value = isoLocal(ago);
+})();
+
+/* ── Tiling ────────────────────────────────────────────────────── */
+function buildTiles(latStep, lonStep) {
+  var tiles = [];
+  for (var lat = UK.latMin; lat <= UK.latMax + 1e-9; lat += latStep) {
+    for (var lon = UK.lonMin; lon <= UK.lonMax + 1e-9; lon += lonStep) {
+      tiles.push({ lat: +lat.toFixed(4), lon: +lon.toFixed(4) });
+    }
+  }
+  return tiles;
+}
+
+function qColor(q) {
+  if (q === 'good')   return '#f59e0b';
+  if (q === 'medium') return '#3b82f6';
+  return '#9333ea';
+}
+
+/* ── Throttled fetch over tiles ────────────────────────────────────── */
+function run() {
+  var key = document.getElementById('key').value.trim();
+  if (!key) { setStatus('Enter your API key first.', true); return; }
+
+  var startV = document.getElementById('start').value;
+  var endV   = document.getElementById('end').value;
+  if (!startV || !endV) { setStatus('Pick a start and end time.', true); return; }
+  var start = startV + ':00Z';
+  var end   = endV   + ':00Z';
+
+  var latStep = +document.getElementById('latStep').value || 0.6;
+  var lonStep = +document.getElementById('lonStep').value || 0.9;
+  var radius  = +document.getElementById('radius').value  || 50;
+  var conc    = Math.max(1, +document.getElementById('conc').value || 4);
+
+  var tiles = buildTiles(latStep, lonStep);
+  strikeLayer.clearLayers();
+
+  var seen = {}, total = 0, done = 0, errors = 0, lastErr = '';
+  var btn = document.getElementById('go');
+  btn.disabled = true;
+  document.getElementById('bar').style.display = 'block';
+  setStatus('Querying ' + tiles.length + ' tiles…');
+
+  function progress() {
+    var pct = Math.round(done / tiles.length * 100);
+    document.getElementById('barFill').style.width = pct + '%';
+    setStatus(done + '/' + tiles.length + ' tiles · ' +
+      '<span class="count">' + total + ' strikes</span>' +
+      (errors ? ' · ' + errors + ' tile errors' : ''));
+  }
+
+  function plot(s) {
+    if (!s.id || seen[s.id]) return;
+    seen[s.id] = 1; total++;
+    L.circleMarker([s.lat, s.lon], {
+      radius: 4, color: qColor(s.quality), weight: 1,
+      fillColor: qColor(s.quality), fillOpacity: 0.85
+    }).bindPopup(
+      '<b>⚡ ' + (s.quality || 'undefined') + '</b><br>' +
+      new Date(s.datetime).toUTCString() + '<br>' +
+      'err ±' + (s.error != null ? s.error : '?') + ' km<br>' +
+      s.lat.toFixed(4) + ', ' + s.lon.toFixed(4)
+    ).addTo(strikeLayer);
+  }
+
+  function fetchTile(t) {
+    var u = API + '?lat=' + t.lat + '&lon=' + t.lon + '&radius=' + radius +
+            '&start_date=' + encodeURIComponent(start) +
+            '&end_date='   + encodeURIComponent(end) +
+            '&apikey=' + encodeURIComponent(key);
+    return fetch(u).then(function(r) {
+      if (!r.ok) {
+        errors++;
+        return r.json().catch(function(){ return {}; }).then(function(j) {
+          lastErr = 'HTTP ' + r.status + (j && j.message ? ' — ' + j.message : '');
+          if (r.status === 401) lastErr = 'Unauthorized (401) — check the API key.';
+          return null;
+        });
+      }
+      return r.json();
+    }).then(function(j) {
+      if (j && j.lightnings) j.lightnings.forEach(plot);
+    }).catch(function(e) {
+      errors++; lastErr = e.message || 'network error';
+    }).then(function() {
+      done++; progress();
+    });
+  }
+
+  /* simple concurrency pool */
+  var idx = 0;
+  function worker() {
+    if (idx >= tiles.length) return Promise.resolve();
+    var t = tiles[idx++];
+    return fetchTile(t).then(worker);
+  }
+  var pool = [];
+  for (var i = 0; i < Math.min(conc, tiles.length); i++) pool.push(worker());
+
+  Promise.all(pool).then(function() {
+    btn.disabled = false;
+    var msg = 'Done · <span class="count">' + total + ' strikes</span> across ' +
+              tiles.length + ' tiles.';
+    if (errors) msg += ' ' + errors + ' tile(s) failed' + (lastErr ? ' — ' + lastErr : '') + '.';
+    if (!total && !errors) msg += ' No lightning in this window — try a stormy date.';
+    setStatus(msg, errors && !total);
+  });
+}
+
+function setStatus(html, isErr) {
+  var el = document.getElementById('status');
+  el.innerHTML = html;
+  el.className = 'status' + (isErr ? ' err' : '');
+}
+</script>
+</body>
+</html>
