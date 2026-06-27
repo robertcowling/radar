@@ -81,60 +81,71 @@ body { margin: 0; font-family: 'Roboto', sans-serif; background: #f1f5f9; color:
 }
 .trends-map-header-row {
   display: flex;
-  background: #1e293b;
-  color: #f1f5f9;
+  background: #34435b;
+  height: 52px;
+  align-items: center;
 }
 .trends-map-header-cell {
   flex: 1;
-  padding: 10px 14px;
-  text-align: center;
-  border-left: 1px solid #334155;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  border-left: 2px solid #374151;
+  gap: 1px;
+  padding: 0 6px;
   overflow: hidden;
 }
 .trends-map-header-cell:first-child { border-left: none; }
 .trends-map-header-cell .cell-title {
-  font-size: 13px; font-weight: 700; color: #f8fafc;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 13px; font-weight: 600; color: #e2e8f0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
 }
 .trends-map-header-cell .cell-sub {
-  font-size: 11px; font-weight: 400; color: #94a3b8;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 12px; font-weight: 400; color: #cbd5e1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
 }
 
 .trends-maps-row {
   display: flex;
-  height: 480px;
-  background: #cbd5e1;
+  height: 520px;
+  background: #34435b;
 }
 .trends-map-pane-wrap {
   flex: 1;
   position: relative;
   height: 100%;
-  border-left: 2px solid #e2e8f0;
+  border-left: 2px solid #374151;
   overflow: hidden;
 }
 .trends-map-pane-wrap:first-child { border-left: none; }
-.trends-map-pane { width: 100%; height: 100%; background: #e2e8f0; }
+.trends-map-pane { width: 100%; height: 100%; background: #1e293b; }
 
-/* In-panel legends */
-.panel-legend {
-  position: absolute; bottom: 12px; right: 12px; z-index: 600;
-  background: rgba(255,255,255,0.94); border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.18); padding: 7px 10px; font-size: 10px;
-  max-width: 155px; pointer-events: none;
+/* In-map colour bar overlays matching compare.html */
+.map-cbar {
+  position: absolute; top: 10px; right: 10px; z-index: 500;
+  background: rgba(255,255,255,0.93); border-radius: 8px;
+  padding: 7px 10px 6px; pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.14); width: 280px;
 }
-.panel-legend .legend-title { font-size: 10px; font-weight: 700; color: #334155; margin-bottom: 4px; }
-.panel-legend .legend-row { display: flex; align-items: center; gap: 6px; color: #475569; margin-bottom: 3px; }
-.panel-legend .legend-swatch { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.08); }
+.map-cbar p {
+  font-size: 11px; font-weight: 600; color: #3c4043;
+  margin: 0 0 4px; white-space: nowrap;
+}
+.map-cbar .bias-arrows {
+  display: flex; justify-content: space-between;
+  font-size: 9px; color: #5f6368; margin-top: 2px;
+}
+.cbar { display: flex; height: 10px; border-radius: 4px; overflow: hidden; }
+.cbar-block { flex: 1; }
+.cbar-labels { position: relative; height: 13px; margin-top: 2px; font-size: 10px; color: #5f6368; font-weight: 500; }
+.cbar-label { position: absolute; transform: translateX(-50%); white-space: nowrap; }
 
 @media (max-width: 900px) {
   .trends-maps-row { flex-direction: column; height: auto; }
-  .trends-map-pane-wrap { height: 360px; border-left: none; border-top: 2px solid #e2e8f0; }
+  .trends-map-pane-wrap { height: 360px; border-left: none; border-top: 2px solid #374151; }
   .trends-map-header-row { display: none; }
-  .panel-legend { top: 10px; bottom: auto; }
+  .map-cbar { top: 6px; right: 6px; padding: 5px 8px 4px; width: calc(100% - 24px); }
 }
 
 .leaflet-image-layer { image-rendering: pixelated; }
@@ -148,24 +159,27 @@ body { margin: 0; font-family: 'Roboto', sans-serif; background: #f1f5f9; color:
 .poly-tip .pt-delta-neg { color: #1565c0; font-weight: 600; }
 .raster-check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; cursor: pointer; }
 
-/* ── Tabs / segmented controls ──────────────────────────────────────── */
+/* ── Tabs / segmented controls matching Flood Forecast ──────────────────────── */
 .tab-row { display: flex; gap: 6px; flex-wrap: wrap; }
 .tab-btn {
-  padding: 5px 13px; border-radius: 20px; border: 1px solid #e2e8f0;
-  font-size: 12px; font-weight: 500; cursor: pointer; background: white; color: #475569;
-  transition: background 0.15s, color 0.15s;
+  padding: 6px 14px; border-radius: 20px; border: none;
+  font-size: 12px; font-weight: 500; cursor: pointer; background: #f1f3f4; color: #5f6368;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
-.tab-btn.active { background: #1e293b; color: white; border-color: #1e293b; }
-.tab-btn:hover:not(.active) { background: #f8fafc; }
+.tab-btn.active { background: white; color: #202124; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+.tab-btn:hover:not(.active) { background: #e8eaed; }
 .ctl-label { font-size: 11px; font-weight: 600; color: #64748b; }
-.seg { display: flex; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.seg { display: flex; background: #f1f3f4; border-radius: 24px; padding: 3px; gap: 0; border: none; }
 .seg-btn {
-  padding: 5px 12px; border: none; background: white; font-size: 12px;
-  cursor: pointer; color: #475569; border-right: 1px solid #e2e8f0; transition: background 0.15s;
+  flex: 1; border: none; background: transparent;
+  padding: 6px 14px; border-radius: 21px;
+  font-family: 'Roboto', sans-serif; font-size: 12px;
+  font-weight: 500; color: #5f6368; cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
 }
-.seg-btn:last-child { border-right: none; }
-.seg-btn.active { background: #1e293b; color: white; }
-.seg-btn:hover:not(.active) { background: #f8fafc; }
+.seg-btn.active { background: white; color: #202124; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+.seg-btn:hover:not(.active) { color: #202124; }
 .controls-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
 
 /* ── Table ──────────────────────────────────────────────────────────── */
@@ -292,15 +306,15 @@ body { margin: 0; font-family: 'Roboto', sans-serif; background: #f1f5f9; color:
         <div class="trends-maps-row">
           <div class="trends-map-pane-wrap">
             <div id="mapPrior" class="trends-map-pane"></div>
-            <div class="panel-legend" id="legendPrior"></div>
+            <div class="map-cbar" id="legendPrior"></div>
           </div>
           <div class="trends-map-pane-wrap">
             <div id="mapLatest" class="trends-map-pane"></div>
-            <div class="panel-legend" id="legendLatest"></div>
+            <div class="map-cbar" id="legendLatest"></div>
           </div>
           <div class="trends-map-pane-wrap">
             <div id="mapDiff" class="trends-map-pane"></div>
-            <div class="panel-legend" id="legendDiff"></div>
+            <div class="map-cbar" id="legendDiff"></div>
           </div>
         </div>
       </div>
@@ -582,27 +596,54 @@ function renderLegend() {
   var dTitle = document.getElementById('headerDiffTitle');
   if (pTitle) pTitle.textContent = comp.run_b_label || 'Prior Run';
   if (lTitle) lTitle.textContent = comp.run_a_label || 'Latest Run';
-  if (dTitle) dTitle.textContent = 'Difference';
+  if (dTitle) dTitle.textContent = 'Difference (Latest minus Prior)';
   
+  var pSub = document.getElementById('headerPriorSub');
+  var lSub = document.getElementById('headerLatestSub');
   var dSub = document.getElementById('headerDiffSub');
-  if (dSub) dSub.textContent = (comp.run_a_label || 'Latest') + ' minus ' + (comp.run_b_label || 'Prior');
+  if (pSub) pSub.textContent = 'Total (' + WIN_LABEL[_win] + ')';
+  if (lSub) lSub.textContent = 'Total (' + WIN_LABEL[_win] + ')';
+  if (dSub) dSub.textContent = (comp.run_a_label || 'Latest') + ' vs ' + (comp.run_b_label || 'Prior');
 
-  function buildLegendHtml(title, items) {
-    return '<div class="legend-title">' + title + '</div>' +
-      items.map(function(r) {
-        return '<div class="legend-row"><span class="legend-swatch" style="background:' + r[0] + ';"></span>' + r[1] + '</div>';
-      }).join('');
+  function buildAccumCbarHtml(title) {
+    var blocks = ABS_COLORS.map(function(c) {
+      return '<div class="cbar-block" style="background:' + c + ';"></div>';
+    }).join('');
+    var n = ABS_COLORS.length;
+    var labels = ABS_BOUNDS.map(function(v, i) {
+      var pct = ((i + 1) / n * 100).toFixed(1);
+      return '<span class="cbar-label" style="left:' + pct + '%;">' + v + '</span>';
+    }).join('');
+    return '<p>' + title + '</p>' +
+      '<div class="cbar">' + blocks + '</div>' +
+      '<div class="cbar-labels"><span class="cbar-label" style="left:0%;">0</span>' + labels + '</div>';
   }
 
-  var absTitle = 'Total (' + WIN_LABEL[_win] + ')';
-  var diffTitle = 'Change (mm)';
+  function buildDiffCbarHtml() {
+    var blocks = DIFF_COLORS.map(function(c) {
+      return '<div class="cbar-block" style="background:' + c + ';"></div>';
+    }).join('');
+    var labelsArr = ['-25', '-10', '-3', '0', '+3', '+10', '+25'];
+    var n = DIFF_COLORS.length; // 7
+    var labels = labelsArr.map(function(lbl, i) {
+      var pct = ((i + 0.5) / n * 100).toFixed(1);
+      return '<span class="cbar-label" style="left:' + pct + '%;">' + lbl + '</span>';
+    }).join('');
+    return '<p>Difference: Latest minus Prior (mm)</p>' +
+      '<div class="cbar">' + blocks + '</div>' +
+      '<div class="cbar-labels">' + labels + '</div>' +
+      '<div class="bias-arrows">' +
+        '<span style="color:#1565c0;font-weight:600;">◄ Drier</span>' +
+        '<span style="color:#b91c1c;font-weight:600;">Wetter ►</span>' +
+      '</div>';
+  }
 
   var elP = document.getElementById('legendPrior');
   var elL = document.getElementById('legendLatest');
   var elD = document.getElementById('legendDiff');
-  if (elP) elP.innerHTML = buildLegendHtml(absTitle, ABS_LEGEND);
-  if (elL) elL.innerHTML = buildLegendHtml(absTitle, ABS_LEGEND);
-  if (elD) elD.innerHTML = buildLegendHtml(diffTitle, DIFF_LEGEND);
+  if (elP) elP.innerHTML = buildAccumCbarHtml('Accumulation (' + WIN_LABEL[_win] + ')');
+  if (elL) elL.innerHTML = buildAccumCbarHtml('Accumulation (' + WIN_LABEL[_win] + ')');
+  if (elD) elD.innerHTML = buildDiffCbarHtml();
 }
 
 function rasterAvailable() {
