@@ -810,19 +810,14 @@ def compute_run_trends(r2, meta, ukv_masks):
     lat_dt  = parse_run_dt(lat_ts)
     lat_lbl = latest.get("run_label", lat_ts)
 
-    # Select up to 4 comparison runs (deduped): immediate predecessors + nearest 03Z/15Z
+    # Select prior comparison runs up to 24h lag (deduped)
     seen, cand = {lat_ts}, []
-    for r in runs[1:3]:
-        rt = r["run_ts"]
-        if rt not in seen:
-            seen.add(rt); cand.append(r)
     for r in runs[1:]:
         rt = r["run_ts"]
-        if rt in seen:
-            continue
-        if parse_run_dt(rt).hour in _MEDIUM_HOURS:
-            seen.add(rt); cand.append(r)
-        if len(cand) >= 4:
+        if rt not in seen:
+            seen.add(rt)
+            cand.append(r)
+        if len(cand) >= 10:
             break
 
     if not cand:
