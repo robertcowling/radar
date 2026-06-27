@@ -368,8 +368,9 @@ var R2_CDN  = 'https://radar.floodforecast.co.uk';
 
 var _data             = null;
 var _meta             = null;
-var _compIdx          = 2; // Default to -12h run comparison (index 2)
+var _compIdx          = 2; // Default to -12h run comparison
 var _selectedRunLeft  = null;
+var _selectedRunRight = null;
 var _win      = 'day1';
 var _layer    = 'catchments';
 var _showAll  = false;
@@ -496,7 +497,7 @@ function renderRules(rules) {
     '</div>';
 }
 
-/* ── Top Bar Selectors for Left and Centre Panels ─────────────────────── */
+/* ── Master-Detail Top Bar Selectors for Left and Centre Panels ─────────── */
 function renderHeaderSelects() {
   var sLeft  = document.getElementById('selectRunLeft');
   var sRight = document.getElementById('selectRunRight');
@@ -504,10 +505,28 @@ function renderHeaderSelects() {
 
   var comps = _data.comparisons || [];
 
-  // Left panel shows the target run being evaluated (Latest run)
-  sLeft.innerHTML = '<option value="' + esc(_data.latest_run) + '" selected>' + esc(_data.latest_label || 'Latest Run') + '</option>';
+  // Left panel shows available target runs
+  var leftRuns = [];
+  var seenLeft = {};
+  if (_data.latest_run) {
+    seenLeft[_data.latest_run] = true;
+    leftRuns.push({ ts: _data.latest_run, label: _data.latest_label || 'Latest Run' });
+  }
+  comps.forEach(function(c) {
+    if (c.run_a && !seenLeft[c.run_a]) {
+      seenLeft[c.run_a] = true;
+      leftRuns.push({ ts: c.run_a, label: c.run_a_label });
+    }
+  });
 
-  // Centre panel shows ONLY valid overlapping comparison runs where full data overlap exists
+  if (!_selectedRunLeft) _selectedRunLeft = _data.latest_run;
+
+  sLeft.innerHTML = leftRuns.map(function(r) {
+    var sel = (r.ts === _selectedRunLeft) ? ' selected' : '';
+    return '<option value="' + esc(r.ts) + '"' + sel + '>' + esc(r.label) + '</option>';
+  }).join('');
+
+  // Centre panel shows available comparison runs
   sRight.innerHTML = comps.map(function(c, i) {
     var sel = (i === _compIdx) ? ' selected' : '';
     var lbl = esc(c.run_b_label || ('Run ' + (i + 1))) + ' (' + esc(c.label || '') + ')';
@@ -516,12 +535,19 @@ function renderHeaderSelects() {
 }
 
 function onRunSelectChange(side) {
+  var sLeft  = document.getElementById('selectRunLeft');
   var sRight = document.getElementById('selectRunRight');
-  if (sRight) {
-    var idx = parseInt(sRight.value, 10);
-    if (!isNaN(idx)) {
-      setComp(idx);
-    }
+  if (!sLeft || !sRight) return;
+
+  _selectedRunLeft = sLeft.value;
+
+  if (side === 'left') {
+    renderHeaderSelects();
+  }
+
+  var idx = parseInt(sRight.value, 10);
+  if (!isNaN(idx)) {
+    setComp(idx);
   }
 }
 
