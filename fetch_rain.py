@@ -53,11 +53,20 @@ def get_r2():
 
 
 def r2_get_json(r2, key, default=None):
+    """Fetch JSON from R2. Returns (data, success_bool).
+    success_bool is False only if a network/read exception occurred.
+    """
     try:
         obj = r2.get_object(Bucket=R2_BUCKET, Key=key)
-        return json.loads(obj["Body"].read())
-    except Exception:
-        return default
+        return json.loads(obj["Body"].read()), True
+    except Exception as e:
+        err_code = ""
+        if hasattr(e, "response") and isinstance(e.response, dict):
+            err_code = e.response.get("Error", {}).get("Code", "")
+        if err_code in ("NoSuchKey", "404", "NoSuchBucket"):
+            return default, True
+        print(f"Warning: R2 read error for {key}: {e}")
+        return default, False
 
 
 def r2_put_json(r2, key, data):
@@ -402,14 +411,25 @@ def main():
         "generated_at": "", "latest_time": "", "available_days": [], "r2_base_url": ""
     })
 
-    # ── Fetch today's readings (and yesterday's in the first 30 min of the day) ─
-    # The EA API only supports ?since= at the station/measure level, not globally.
-    # Using ?date= returns all readings for that day with no default limit.
+    # ── Fetch today's readings (and yesterday's if missing or degraded) ──────────
     today_str     = now.strftime("%Y-%m-%d")
     yesterday_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+    yesterday_key = (now - timedelta(days=1)).strftime("%Y%m%d")
+
+    fetch_yesterday = False
+    if now.hour == 0 and now.minute < 30:
+        fetch_yesterday = True
+    elif USE_R2:
+        r2_key_yest = f"{R2_READINGS_PFX}/{yesterday_key}.json"
+        existing_yest, yest_ok = r2_get_json(r2, r2_key_yest, None)
+        if yest_ok and (not existing_yest or len(existing_yest.get("readings", {})) < 100):
+            print(f"Yesterday's archive ({yesterday_key}) missing or degraded in R2 — triggering self-healing fetch.")
+            fetch_yesterday = True
+
     try:
         items = fetch_readings_for_date(today_str)
-        if now.hour == 0 and now.minute < 30:
+        if fetch_yesterday:
+            print(f"  Fetching full archive readings for yesterday ({yesterday_str})...")
             items += fetch_readings_for_date(yesterday_str)
     except Exception as e:
         print(f"Error fetching readings: {e}")
@@ -453,7 +473,10 @@ def main():
     for date_key, new_readings in sorted(by_date.items()):
         r2_key = f"{R2_READINGS_PFX}/{date_key}.json"
         if USE_R2:
-            existing = r2_get_json(r2, r2_key, {"date": date_key, "readings": {}})
+            existing, get_ok = r2_get_json(r2, r2_key, {"date": date_key, "readings": {}})
+            if not get_ok:
+                print(f"  Warning: Skipping update for {r2_key} due to R2 read error (protecting existing historical data).")
+                continue
         else:
             existing = {"date": date_key, "readings": {}}
 
