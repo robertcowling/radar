@@ -243,11 +243,11 @@ select:hover { background-color: #e8eaed; }
     <div class="trends-map-header-row">
       <div class="trends-map-header-cell">
         <span class="cell-title" id="headerPriorTitle">Prior Run</span>
-        <span class="cell-sub" id="headerPriorSub">Baseline total</span>
+        <span class="cell-sub" id="headerPriorSub">Accumulation</span>
       </div>
       <div class="trends-map-header-cell">
         <span class="cell-title" id="headerLatestTitle">Latest Run</span>
-        <span class="cell-sub" id="headerLatestSub">Target total</span>
+        <span class="cell-sub" id="headerLatestSub">Accumulation</span>
       </div>
       <div class="trends-map-header-cell">
         <span class="cell-title" id="headerDiffTitle">Difference</span>
@@ -276,7 +276,7 @@ select:hover { background-color: #e8eaed; }
 <!-- Floating Player / Controls Panel -->
 <div class="player-panel surface" id="playerPanel" style="display:none;">
   <div class="control-group">
-    <span class="control-label">Compare vs</span>
+    <span class="control-label">Comparison run</span>
     <div class="tab-row" id="compTabs"></div>
   </div>
 
@@ -383,9 +383,9 @@ var GEO_FILES = {
 var WIN_LABEL   = { '12h': '12h', 'day1': 'day 1', 'day2': 'day 2' };
 var LAYER_LABEL = { catchments: 'catchments', regions: 'regions', grid: '20 km grid' };
 
-/* ── Diverging scale for difference ─────────────────────────────────── */
-var DIFF_BOUNDS = [-25, -10, -3, 3, 10, 25];
-var DIFF_COLORS = ['#1a237e', '#1565c0', '#64b5f6', '#eef2f7', '#ffcc80', '#e53935', '#b71c1c'];
+/* ── Bias colour scale matching compare.html (under-forecast = red, over-forecast = blue) ─ */
+var BIAS_BOUNDS = [-30, -15, -10, -5, -2, 2, 5, 10, 15, 30];
+var BIAS_COLORS = ['#67001f','#a50026','#d73027','#fdae61','#fdd9a0','#d4d4d4','#c6e2f0','#abd9e9','#74add1','#2166ac','#023858'];
 
 /* ── Sequential scales for absolute totals (matching compare.html) ───── */
 var SCHEMES = {
@@ -419,11 +419,12 @@ function fmtDelta(d) {
 }
 function fmtMm(v) { return (v === null || v === undefined) ? '—' : v.toFixed(1) + 'mm'; }
 
-function bucketColor(v, bounds, colors) {
-  if (v === null || v === undefined) return null;
-  var i = 0;
-  while (i < bounds.length && v >= bounds[i]) i++;
-  return colors[i];
+function biasFillColor(mm) {
+  if (mm == null) return null;
+  for (var i = 0; i < BIAS_BOUNDS.length; i++) {
+    if (mm < BIAS_BOUNDS[i]) return BIAS_COLORS[i];
+  }
+  return BIAS_COLORS[BIAS_BOUNDS.length];
 }
 
 function bucketColorForScheme(v, schemeKey) {
@@ -494,7 +495,8 @@ function renderCompTabs() {
   var comps = _data.comparisons || [];
   el.innerHTML = comps.map(function(c, i) {
     var cls = 'tab-btn' + (i === _compIdx ? ' active' : '');
-    return '<button class="' + cls + '" onclick="setComp(' + i + ')">' + esc(c.label || 'Run ' + (i + 1)) + '</button>';
+    var labelText = esc(c.run_b_label || c.label || 'Run ' + (i + 1));
+    return '<button class="' + cls + '" onclick="setComp(' + i + ')">' + labelText + '</button>';
   }).join('');
 }
 
@@ -543,7 +545,7 @@ function styleFeature(feature, mode) {
     return { color: '#475569', weight: 0.5, fillColor: '#000000', fillOpacity: 0.0 };
   }
   var color = (mode === 'diff')
-    ? bucketColor(v, DIFF_BOUNDS, DIFF_COLORS)
+    ? biasFillColor(v)
     : bucketColorForScheme(v, _scheme);
   if (color === null) {
     return { color: '#94a3b8', weight: 0.5, fillColor: '#cbd5e1', fillOpacity: 0.05 };
@@ -618,8 +620,8 @@ function renderLegend() {
   var pSub = document.getElementById('headerPriorSub');
   var lSub = document.getElementById('headerLatestSub');
   var dSub = document.getElementById('headerDiffSub');
-  if (pSub) pSub.textContent = 'Baseline total (' + WIN_LABEL[_win] + ')';
-  if (lSub) lSub.textContent = 'Target total (' + WIN_LABEL[_win] + ')';
+  if (pSub) pSub.textContent = 'Run total (' + WIN_LABEL[_win] + ')';
+  if (lSub) lSub.textContent = 'Run total (' + WIN_LABEL[_win] + ')';
   if (dSub) dSub.textContent = (comp.run_a_label || 'Latest') + ' vs ' + (comp.run_b_label || 'Prior');
 
   function buildAccumCbarHtml(title) {
@@ -639,21 +641,21 @@ function renderLegend() {
   }
 
   function buildDiffCbarHtml() {
-    var blocks = DIFF_COLORS.map(function(c) {
+    var blocks = BIAS_COLORS.map(function(c) {
       return '<div class="cbar-block" style="background:' + c + ';"></div>';
     }).join('');
-    var labelsArr = ['-25', '-10', '-3', '0', '+3', '+10', '+25'];
-    var n = DIFF_COLORS.length; // 7
-    var labels = labelsArr.map(function(lbl, i) {
-      var pct = ((i + 0.5) / n * 100).toFixed(1);
-      return '<span class="cbar-label" style="left:' + pct + '%;">' + lbl + '</span>';
+    var n = BIAS_COLORS.length; // 11
+    var labels = BIAS_BOUNDS.map(function(v, i) {
+      var pct = i < 5 ? (i + 0.5) / n * 100 : (i + 1.5) / n * 100;
+      return '<span class="cbar-label" style="left:' + pct.toFixed(1) + '%;">' + (v > 0 ? '+' : '') + Math.round(v) + '</span>';
     }).join('');
+    labels += '<span class="cbar-label" style="left:' + (5.5 / n * 100).toFixed(1) + '%;font-weight:600;">±2</span>';
     return '<p>Difference: Latest minus Prior (mm)</p>' +
       '<div class="cbar">' + blocks + '</div>' +
       '<div class="cbar-labels">' + labels + '</div>' +
       '<div class="bias-arrows">' +
-        '<span style="color:#1565c0;font-weight:600;">◄ Prior higher (drier)</span>' +
-        '<span style="color:#b91c1c;font-weight:600;">Latest higher (wetter) ►</span>' +
+        '<span style="color:#b91c1c;font-weight:600;">◄ Prior higher (drier)</span>' +
+        '<span style="color:#2166ac;font-weight:600;">Latest higher (wetter) ►</span>' +
       '</div>';
   }
 
