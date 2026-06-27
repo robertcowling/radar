@@ -81,7 +81,7 @@ html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidde
   position: absolute; top: 12px; right: 12px; z-index: 500;
   background: rgba(255,255,255,0.93); border-radius: 8px;
   padding: 7px 10px 6px; pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.14); width: 280px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.14); width: 300px;
 }
 .map-cbar p {
   font-size: 11px; font-weight: 600; color: #3c4043;
@@ -105,7 +105,7 @@ html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidde
 /* ── Floating Player/Control Panel (matching compare.html) ──────────── */
 .player-panel {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-  padding: 10px 18px; z-index: 1000; width: 92%; max-width: 1020px;
+  padding: 10px 18px; z-index: 1000; width: 94%; max-width: 1080px;
   display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
 }
 .surface {
@@ -130,7 +130,14 @@ html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidde
 }
 .seg-btn:hover:not(.active), .tab-btn:hover:not(.active) { color: #202124; }
 
-.raster-check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; cursor: pointer; font-weight: 500; }
+select {
+  appearance: none; -webkit-appearance: none;
+  background: #f1f3f4; border: none; padding: 7px 30px 7px 14px; border-radius: 24px;
+  font-family: 'Roboto', sans-serif; font-size: 12px; color: #202124; font-weight: 500; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; outline: none; transition: background 0.2s;
+}
+select:hover { background-color: #e8eaed; }
 
 /* ── Modals / Backdrops (matching compare.html) ──────────────────────── */
 .modal-backdrop {
@@ -236,11 +243,11 @@ html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidde
     <div class="trends-map-header-row">
       <div class="trends-map-header-cell">
         <span class="cell-title" id="headerPriorTitle">Prior Run</span>
-        <span class="cell-sub" id="headerPriorSub">Prior run total</span>
+        <span class="cell-sub" id="headerPriorSub">Accumulation</span>
       </div>
       <div class="trends-map-header-cell">
         <span class="cell-title" id="headerLatestTitle">Latest Run</span>
-        <span class="cell-sub" id="headerLatestSub">Latest run total</span>
+        <span class="cell-sub" id="headerLatestSub">Accumulation</span>
       </div>
       <div class="trends-map-header-cell">
         <span class="cell-title" id="headerDiffTitle">Difference</span>
@@ -269,7 +276,7 @@ html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidde
 <!-- Floating Player / Controls Panel -->
 <div class="player-panel surface" id="playerPanel" style="display:none;">
   <div class="control-group">
-    <span class="control-label">Compare latest run vs</span>
+    <span class="control-label">Comparison run</span>
     <div class="tab-row" id="compTabs"></div>
   </div>
 
@@ -283,6 +290,14 @@ html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidde
   </div>
 
   <div class="control-group">
+    <span class="control-label">View</span>
+    <div class="seg" id="viewSeg">
+      <button id="btnGrid" class="seg-btn"        onclick="setViewMode('grid')">Grid</button>
+      <button id="btnArea" class="seg-btn active" onclick="setViewMode('area')">Areas</button>
+    </div>
+  </div>
+
+  <div class="control-group" id="boundaryControl">
     <span class="control-label">Areas</span>
     <div class="seg" id="layerSeg">
       <button class="seg-btn active" data-layer="catchments" onclick="setLayer('catchments')">Catchments</button>
@@ -292,10 +307,12 @@ html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidde
   </div>
 
   <div class="control-group">
-    <span class="control-label">Overlays</span>
-    <label class="raster-check" id="rasterCheckWrap">
-      <input type="checkbox" id="rasterCheck" onchange="toggleRaster()"> UKV raster
-    </label>
+    <span class="control-label">Colour scale</span>
+    <select id="schemeSelect" onchange="setScheme(this.value)">
+      <option value="norm">Normal</option>
+      <option value="high">High events</option>
+      <option value="met" selected>Alternative (Met Office)</option>
+    </select>
   </div>
 </div>
 
@@ -349,11 +366,12 @@ var _compIdx  = 0;
 var _win      = 'day1';
 var _layer    = 'catchments';
 var _showAll  = false;
-var _rasterOn = false;
+var _viewMode = 'area';
+var _scheme   = 'met';
 
 var _mapPrior = null, _mapLatest = null, _mapDiff = null;
 var _polyPrior = null, _polyLatest = null, _polyDiff = null;
-var _rasterLatest = null;
+var _rasterPrior = null, _rasterLatest = null, _rasterDiff = null;
 var _syncing = false;
 var _geoCache = {};   // layer -> geojson  (lazy fetched)
 
@@ -365,13 +383,25 @@ var GEO_FILES = {
 var WIN_LABEL   = { '12h': '12h', 'day1': 'day 1', 'day2': 'day 2' };
 var LAYER_LABEL = { catchments: 'catchments', regions: 'regions', grid: '20 km grid' };
 
-/* ── Diverging scale for difference ─────────────────────────────────── */
-var DIFF_BOUNDS = [-25, -10, -3, 3, 10, 25];
-var DIFF_COLORS = ['#1a237e', '#1565c0', '#64b5f6', '#eef2f7', '#ffcc80', '#e53935', '#b71c1c'];
+/* ── Bias colour scale matching compare.html (under-forecast = red, over-forecast = blue) ─ */
+var BIAS_BOUNDS = [-30, -15, -10, -5, -2, 2, 5, 10, 15, 30];
+var BIAS_COLORS = ['#67001f','#a50026','#d73027','#fdae61','#fdd9a0','#d4d4d4','#c6e2f0','#abd9e9','#74add1','#2166ac','#023858'];
 
-/* ── Sequential scale for absolute totals ────────────────────────────── */
-var ABS_BOUNDS = [1, 5, 10, 25, 50, 100];
-var ABS_COLORS = ['#eef2f7', '#cfe8f3', '#a5cde4', '#6aaed6', '#3a8fc7', '#1f6cb0', '#4a1d96'];
+/* ── Sequential scales for absolute totals (matching compare.html) ───── */
+var SCHEMES = {
+  norm: {
+    bounds: [0.5, 1, 2, 5, 10, 20, 40, 80, 160],
+    colors: ['#e0f3ff','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a']
+  },
+  high: {
+    bounds: [2, 5, 10, 25, 50, 100, 150, 200, 350],
+    colors: ['#e0f3ff','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a']
+  },
+  met: {
+    bounds: [0.03, 1, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160, 180],
+    colors: ['#3A6CFF','#00FF00','#FFFF95','#FFD563','#FF9618','#E86100','#BA2000','#CC537D','#DB92DC','#FF02FF','#FFFFFF','#C8C8C8','#BFBF00']
+  }
+};
 
 function openInsightsModal() { document.getElementById('insightsModalBackdrop').classList.add('open'); }
 function closeInsightsModal() { document.getElementById('insightsModalBackdrop').classList.remove('open'); }
@@ -389,11 +419,22 @@ function fmtDelta(d) {
 }
 function fmtMm(v) { return (v === null || v === undefined) ? '—' : v.toFixed(1) + 'mm'; }
 
-function bucketColor(v, bounds, colors) {
+function biasFillColor(mm) {
+  if (mm == null) return null;
+  for (var i = 0; i < BIAS_BOUNDS.length; i++) {
+    if (mm < BIAS_BOUNDS[i]) return BIAS_COLORS[i];
+  }
+  return BIAS_COLORS[BIAS_BOUNDS.length];
+}
+
+function bucketColorForScheme(v, schemeKey) {
   if (v === null || v === undefined) return null;
-  var i = 0;
-  while (i < bounds.length && v >= bounds[i]) i++;
-  return colors[i];
+  var s = SCHEMES[schemeKey || _scheme];
+  if (v < s.bounds[0]) return null;
+  for (var i = s.bounds.length - 1; i >= 0; i--) {
+    if (v >= s.bounds[i]) return s.colors[i];
+  }
+  return null;
 }
 
 /* ── Data access ─────────────────────────────────────────────────────── */
@@ -454,7 +495,8 @@ function renderCompTabs() {
   var comps = _data.comparisons || [];
   el.innerHTML = comps.map(function(c, i) {
     var cls = 'tab-btn' + (i === _compIdx ? ' active' : '');
-    return '<button class="' + cls + '" onclick="setComp(' + i + ')">' + esc(c.label || 'Run ' + (i + 1)) + '</button>';
+    var labelText = esc(c.run_b_label || c.label || 'Run ' + (i + 1));
+    return '<button class="' + cls + '" onclick="setComp(' + i + ')">' + labelText + '</button>';
   }).join('');
 }
 
@@ -499,9 +541,12 @@ function styleFeature(feature, mode) {
   var info = GEO_FILES[_layer];
   var name = feature.properties[info.key];
   var v = valueFor(name, mode);
+  if (_viewMode === 'grid') {
+    return { color: '#475569', weight: 0.5, fillColor: '#000000', fillOpacity: 0.0 };
+  }
   var color = (mode === 'diff')
-    ? bucketColor(v, DIFF_BOUNDS, DIFF_COLORS)
-    : bucketColor(v, ABS_BOUNDS, ABS_COLORS);
+    ? biasFillColor(v)
+    : bucketColorForScheme(v, _scheme);
   if (color === null) {
     return { color: '#94a3b8', weight: 0.5, fillColor: '#cbd5e1', fillOpacity: 0.05 };
   }
@@ -575,40 +620,42 @@ function renderLegend() {
   var pSub = document.getElementById('headerPriorSub');
   var lSub = document.getElementById('headerLatestSub');
   var dSub = document.getElementById('headerDiffSub');
-  if (pSub) pSub.textContent = 'Total (' + WIN_LABEL[_win] + ')';
-  if (lSub) lSub.textContent = 'Total (' + WIN_LABEL[_win] + ')';
+  if (pSub) pSub.textContent = 'Run total (' + WIN_LABEL[_win] + ')';
+  if (lSub) lSub.textContent = 'Run total (' + WIN_LABEL[_win] + ')';
   if (dSub) dSub.textContent = (comp.run_a_label || 'Latest') + ' vs ' + (comp.run_b_label || 'Prior');
 
   function buildAccumCbarHtml(title) {
-    var blocks = ABS_COLORS.map(function(c) {
+    var s = SCHEMES[_scheme];
+    var blocks = s.colors.map(function(c) {
       return '<div class="cbar-block" style="background:' + c + ';"></div>';
     }).join('');
-    var n = ABS_COLORS.length;
-    var labels = ABS_BOUNDS.map(function(v, i) {
-      var pct = ((i + 1) / n * 100).toFixed(1);
-      return '<span class="cbar-label" style="left:' + pct + '%;">' + v + '</span>';
+    var n = s.colors.length;
+    var labels = s.bounds.map(function(v, i) {
+      var pct = ((i + 0.5) / n * 100).toFixed(1);
+      var valStr = v < 1 ? v.toString().replace('0.', '.') : Math.round(v);
+      return '<span class="cbar-label" style="left:' + pct + '%;">' + valStr + '</span>';
     }).join('');
     return '<p>' + title + '</p>' +
       '<div class="cbar">' + blocks + '</div>' +
-      '<div class="cbar-labels"><span class="cbar-label" style="left:0%;">0</span>' + labels + '</div>';
+      '<div class="cbar-labels">' + labels + '</div>';
   }
 
   function buildDiffCbarHtml() {
-    var blocks = DIFF_COLORS.map(function(c) {
+    var blocks = BIAS_COLORS.map(function(c) {
       return '<div class="cbar-block" style="background:' + c + ';"></div>';
     }).join('');
-    var labelsArr = ['-25', '-10', '-3', '0', '+3', '+10', '+25'];
-    var n = DIFF_COLORS.length; // 7
-    var labels = labelsArr.map(function(lbl, i) {
-      var pct = ((i + 0.5) / n * 100).toFixed(1);
-      return '<span class="cbar-label" style="left:' + pct + '%;">' + lbl + '</span>';
+    var n = BIAS_COLORS.length; // 11
+    var labels = BIAS_BOUNDS.map(function(v, i) {
+      var pct = i < 5 ? (i + 0.5) / n * 100 : (i + 1.5) / n * 100;
+      return '<span class="cbar-label" style="left:' + pct.toFixed(1) + '%;">' + (v > 0 ? '+' : '') + Math.round(v) + '</span>';
     }).join('');
+    labels += '<span class="cbar-label" style="left:' + (5.5 / n * 100).toFixed(1) + '%;font-weight:600;">±2</span>';
     return '<p>Difference: Latest minus Prior (mm)</p>' +
       '<div class="cbar">' + blocks + '</div>' +
       '<div class="cbar-labels">' + labels + '</div>' +
       '<div class="bias-arrows">' +
-        '<span style="color:#1565c0;font-weight:600;">◄ Drier</span>' +
-        '<span style="color:#b91c1c;font-weight:600;">Wetter ►</span>' +
+        '<span style="color:#b91c1c;font-weight:600;">◄ Prior higher (drier)</span>' +
+        '<span style="color:#2166ac;font-weight:600;">Latest higher (wetter) ►</span>' +
       '</div>';
   }
 
@@ -620,32 +667,42 @@ function renderLegend() {
   if (elD) elD.innerHTML = buildDiffCbarHtml();
 }
 
-function rasterAvailable() {
-  return _win === 'day1' && !!currentComp().raw_image_a_url;
-}
-function syncRasterControl() {
-  var wrap = document.getElementById('rasterCheckWrap');
-  var chk  = document.getElementById('rasterCheck');
-  if (rasterAvailable()) {
-    wrap.style.opacity = '1';
-    chk.disabled = false;
-  } else {
-    wrap.style.opacity = '0.4';
-    chk.disabled = true;
-    if (_rasterOn) { _rasterOn = false; chk.checked = false; }
-  }
-}
 function updateRaster() {
-  if (_rasterLatest && _mapLatest) { _mapLatest.removeLayer(_rasterLatest); _rasterLatest = null; }
-  if (!_rasterOn || !rasterAvailable() || !_data.image_bounds) return;
-  var urlA = (currentComp().raw_image_a_url || '').replace(R2_BASE, R2_CDN);
+  [_mapPrior, _mapLatest, _mapDiff].forEach(function(m, i) {
+    var vName = i === 0 ? '_rasterPrior' : (i === 1 ? '_rasterLatest' : '_rasterDiff');
+    if (window[vName] && m) { m.removeLayer(window[vName]); window[vName] = null; }
+  });
+  if (_viewMode !== 'grid' || !_data || !_data.image_bounds) return;
+  var comp = currentComp();
+  var urlB = (comp.raw_image_b_url || '').replace(R2_BASE, R2_CDN);
+  var urlA = (comp.raw_image_a_url || '').replace(R2_BASE, R2_CDN);
+  var urlD = (comp.diff_image_url || '').replace(R2_BASE, R2_CDN);
+
+  if (urlB && _mapPrior) {
+    _rasterPrior = L.imageOverlay(urlB, _data.image_bounds, { opacity: 0.8, interactive: false }).addTo(_mapPrior);
+  }
   if (urlA && _mapLatest) {
-    _rasterLatest = L.imageOverlay(urlA, _data.image_bounds, { opacity: 0.65, interactive: false }).addTo(_mapLatest);
+    _rasterLatest = L.imageOverlay(urlA, _data.image_bounds, { opacity: 0.8, interactive: false }).addTo(_mapLatest);
+  }
+  if (urlD && _mapDiff) {
+    _rasterDiff = L.imageOverlay(urlD, _data.image_bounds, { opacity: 0.8, interactive: false }).addTo(_mapDiff);
   }
 }
-function toggleRaster() {
-  _rasterOn = document.getElementById('rasterCheck').checked;
+
+function setViewMode(mode) {
+  _viewMode = mode;
+  document.getElementById('btnGrid').classList.toggle('active', mode === 'grid');
+  document.getElementById('btnArea').classList.toggle('active', mode === 'area');
+  var bControl = document.getElementById('boundaryControl');
+  if (bControl) bControl.style.opacity = mode === 'grid' ? '0.5' : '1';
+  refreshPolyStyles();
   updateRaster();
+}
+
+function setScheme(s) {
+  _scheme = s;
+  refreshPolyStyles();
+  renderLegend();
 }
 
 /* ── Table ───────────────────────────────────────────────────────────── */
@@ -709,7 +766,7 @@ function showAll() { _showAll = true; renderTable(); }
 function setComp(i) {
   _compIdx = i; _showAll = false;
   renderCompTabs();
-  syncRasterControl();
+  renderInsights(currentComp().insights || _data.insights);
   refreshPolyStyles(); renderLegend(); updateRaster();
   renderTable();
 }
@@ -718,7 +775,6 @@ function setWin(w) {
   document.querySelectorAll('#winSeg .seg-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.win === w);
   });
-  syncRasterControl();
   refreshPolyStyles(); renderLegend(); updateRaster();
   renderTable();
 }
@@ -745,10 +801,9 @@ function render(data) {
     metaEl.textContent = 'Updated ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' GMT';
   }
 
-  renderInsights(data.insights);
+  renderInsights(currentComp().insights || data.insights);
   renderRules(data.significance_rules);
   renderCompTabs();
-  syncRasterControl();
   renderLegend();
   renderTable();
 
