@@ -250,11 +250,22 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    min-width: 160px;
+    min-width: 180px;
     flex-shrink: 0;
   }
   #playerDateLine { font-size: 12px; font-weight: 700; color: #1e293b; }
   #playerOffsetLine { font-size: 11px; font-weight: 500; color: #64748b; }
+  #noDataBadge {
+    display: none;
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
 
   @media (max-width: 768px) {
     .info-panel { width: calc(100vw - 40px); right: 20px; }
@@ -341,11 +352,13 @@
       <div id="playerDateLine">—</div>
       <div id="playerOffsetLine">—</div>
     </div>
+    <div id="noDataBadge">⚠ No splat data for frame</div>
   </div>
 </div>
 
 <script>
 var R2_CDN = 'https://radar.floodforecast.co.uk';
+var BLANK_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
 // Distinct high-contrast color palette for up to 4 successive runs
 var RUN_COLORS = [
@@ -367,9 +380,21 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 // ── Leaflet overlays for up to 4 runs ────────────────────────────────────────
 var runOverlays = [];
 for (var r = 0; r < 4; r++) {
-  var overlay = L.imageOverlay('', imgBounds, { opacity: 0.8, interactive: false }).addTo(map);
+  var overlay = L.imageOverlay(BLANK_PNG, imgBounds, { opacity: 0.8, interactive: false }).addTo(map);
   overlay._expectedRawUrl = '';
   runOverlays.push(overlay);
+}
+
+function setOverlayState(overlay, url, opacity) {
+  if (!url) {
+    overlay._expectedRawUrl = '';
+    overlay.setUrl(BLANK_PNG);
+    if (overlay.getElement()) overlay.getElement().style.display = 'none';
+  } else {
+    overlay.setUrl(url);
+    overlay.setOpacity(opacity);
+    if (overlay.getElement()) overlay.getElement().style.display = 'block';
+  }
 }
 
 // ── Geographic Boundary Layers ────────────────────────────────────────────────
@@ -521,13 +546,15 @@ function initRunSelect() {
 
 function buildMasterTimeline() {
   var msSet = new Set();
-  var focusRun = meta && meta.runs && meta.runs[focusRunIdx];
-  if (focusRun && focusRun.steps) {
-    focusRun.steps.forEach(function(s) {
-      var ms = stepValidMs(focusRun, s);
-      if (!isNaN(ms)) msSet.add(ms);
-    });
-  }
+  var activeRuns = getActiveRunObjects();
+  activeRuns.forEach(function(run) {
+    if (run && run.steps) {
+      run.steps.forEach(function(s) {
+        var ms = stepValidMs(run, s);
+        if (!isNaN(ms)) msSet.add(ms);
+      });
+    }
+  });
 
   masterValidMsList = Array.from(msSet);
   masterValidMsList.sort(function(a, b) { return a - b; });
@@ -575,12 +602,13 @@ function updateDisplay() {
   var activeRuns = getActiveRunObjects();
   renderLegendList(activeRuns, targetMs);
 
+  var anySplatActive = false;
+
   // Update map overlays for each of the 4 runs with race condition prevention
   activeRuns.forEach(function(run, slotIdx) {
     var overlay = runOverlays[slotIdx];
     if (!run || !runEnabled[slotIdx]) {
-      overlay._expectedRawUrl = '';
-      overlay.setUrl('');
+      setOverlayState(overlay, '', 0);
       return;
     }
 
@@ -592,11 +620,11 @@ function updateDisplay() {
     });
 
     if (!matchingStep || !matchingStep.splats || !matchingStep.splats[activeThreshold]) {
-      overlay._expectedRawUrl = '';
-      overlay.setUrl('');
+      setOverlayState(overlay, '', 0);
       return;
     }
 
+    anySplatActive = true;
     var rawSplatUrl = matchingStep.splats[activeThreshold];
     overlay._expectedRawUrl = rawSplatUrl;
     var colorHex = RUN_COLORS[slotIdx].hex;
@@ -604,8 +632,7 @@ function updateDisplay() {
     getColorizedSplatUrl(rawSplatUrl, colorHex, function(tintedUrl) {
       // Prevent race condition: verify this overlay still expects this raw URL
       if (overlay._expectedRawUrl === rawSplatUrl) {
-        overlay.setUrl(tintedUrl);
-        overlay.setOpacity(globalOpacity);
+        setOverlayState(overlay, tintedUrl, globalOpacity);
       }
     });
   });
@@ -614,28 +641,62 @@ function updateDisplay() {
     var ms = stepValidMs(activeRuns[0], s);
     return !isNaN(ms) && Math.abs(ms - targetMs) < 60000;
   }) : null;
-  document.getElementById('playerOffsetLine').textContent = focusStep ? ('Focus run ' + focusStep.offset) : 'Out of focus run range';
+
+  if (focusStep) {
+    document.getElementById('playerOffsetLine').textContent = 'Focus run ' + focusStep.offset;
+  } else {
+    document.getElementById('playerOffsetLine').textContent = 'Before focus run start (showing older runs)';
+  }
+
+  document.getElementById('noDataBadge').style.display = anySplatActive ? 'none' : 'block';
 }
 
 function renderLegendList(activeRuns, targetMs) {
   var container = document.getElementById('runLegendList');
   container.innerHTML = '';
+  var reqHours = parseInt(activeThreshold.split('h')[0]) || 1;
 
   activeRuns.forEach(function(run, slotIdx) {
     var card = document.createElement('div');
-    var isCovered = false;
+    var matchingStep = null;
     if (run && run.steps) {
-      isCovered = run.steps.some(function(s) {
+      matchingStep = run.steps.find(function(s) {
         var ms = stepValidMs(run, s);
         return !isNaN(ms) && Math.abs(ms - targetMs) < 60000;
       });
     }
 
-    card.className = 'run-legend-card' + (!isCovered || !runEnabled[slotIdx] ? ' inactive' : '');
+    var hasSplat = matchingStep && matchingStep.splats && matchingStep.splats[activeThreshold];
+    var isEnabled = runEnabled[slotIdx];
+    var isActive = hasSplat && isEnabled;
+
+    card.className = 'run-legend-card' + (!isActive ? ' inactive' : '');
 
     var colorInfo = RUN_COLORS[slotIdx];
     var labelText = slotIdx === 0 ? 'Focus: ' + (run ? run.run_label : 'N/A') : (run ? run.run_label : 'No run data');
-    var subText = isCovered ? 'Active at timestamp' : (run ? 'No coverage at timestamp' : 'Run unavailable');
+    var subText = '';
+
+    if (!run) {
+      subText = 'Run unavailable';
+    } else if (!matchingStep) {
+      // Check if targetMs is before the run's start time
+      var firstMs = run.steps && run.steps[0] ? stepValidMs(run, run.steps[0]) : NaN;
+      if (!isNaN(firstMs) && targetMs < firstMs) {
+        subText = 'Before run initialization';
+      } else {
+        subText = 'Outside forecast range';
+      }
+    } else if (hasSplat) {
+      subText = 'Active at timestamp (' + matchingStep.offset + ')';
+    } else {
+      // Step exists, but splat does not exist for this threshold
+      var offsetH = matchingStep.offset_hours || 0;
+      if (offsetH < reqHours) {
+        subText = 'Needs ' + reqHours + 'h lead time (offset ' + matchingStep.offset + ')';
+      } else {
+        subText = 'Threshold exceedance mask empty';
+      }
+    }
 
     card.innerHTML =
       '<div class="run-info">' +
@@ -645,7 +706,7 @@ function renderLegendList(activeRuns, targetMs) {
           '<span class="run-time-sub">' + subText + '</span>' +
         '</div>' +
       '</div>' +
-      '<input type="checkbox" class="run-toggle-check" ' + (runEnabled[slotIdx] ? 'checked' : '') +
+      '<input type="checkbox" class="run-toggle-check" ' + (isEnabled ? 'checked' : '') +
       ' onchange="toggleRunSlot(' + slotIdx + ', this.checked)">';
 
     container.appendChild(card);
