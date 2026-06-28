@@ -440,6 +440,7 @@ var SCHEMES = {
 var _data = null, _meta = null;
 var _geoCache = {}, _tsCache = {};
 var _tsA = null, _tsB = null, _lagH = 0;
+var _maxOffA = 54, _maxOffB = 54;
 var _compInfo = null;
 var _currentSliderData = null;
 var _sliderSteps = [];
@@ -547,78 +548,88 @@ function loadGeo(layer) {
 }
 
 // ── Computation ──────────────────────────────────────────────────────────
-function computeLayerWindow(tsA, tsB, start, end, lag_h, lyr, rules) {
-  var floor = (lyr === 'grid') ? (rules.grid_floor_mm || 5) : (rules.catchment_floor_mm || 2);
-  var startB = start + lag_h, endB = end + lag_h;
+// Sum hourly increments over the forecast window (startH, endH] in *offset hours*.
+// Values are mapped through step_hours[] (never by raw array index) so non-contiguous
+// or capped time series stay correct. Returns null if the window isn't fully covered.
+function sumWindow(ts, lyr, name, startH, endH) {
+  if (!ts) return null;
+  var sh    = ts.step_hours || [];
+  var areas = ts[lyr]; if (!areas) return null;
+  var arr   = areas[name]; if (!arr) return null;
+  var sum = 0, count = 0;
+  for (var i = 0; i < sh.length; i++) {
+    if (sh[i] > startH && sh[i] <= endH) {
+      var v = arr[i];
+      if (v == null) return null;   // a missing hour means the window is incomplete
+      sum += v; count++;
+    }
+  }
+  if (count < (endH - startH)) return null;  // not every hour in the window is present
+  return sum;
+}
+
+// Compare base (A) and reference (B) over the same valid-time window.
+// Base window  = (T - W, T]  in A's forecast frame.
+// Ref  window  = same valid time → (T + lag - W, T + lag]  in B's frame (lag = dtA - dtB).
+function computeLayerWindow(tsA, tsB, T, W, lag_h, lyr, rules) {
+  var floor  = (lyr === 'grid') ? (rules.grid_floor_mm || 5) : (rules.catchment_floor_mm || 2);
   var areasA = (tsA && tsA[lyr]) || {}, areasB = (tsB && tsB[lyr]) || {};
-  var keys = Object.keys(areasA).length ? Object.keys(areasA) : Object.keys(areasB);
+  var keys   = Object.keys(areasA).length ? Object.keys(areasA) : Object.keys(areasB);
   var result = {};
 
   for (var i = 0; i < keys.length; i++) {
     var name = keys[i];
-    var arrA = areasA[name], arrB = areasB[name];
-    var sumA = null, sumB = null;
+    var sumA = sumWindow(tsA, lyr, name, T - W,         T);
+    var sumB = sumWindow(tsB, lyr, name, T + lag_h - W, T + lag_h);
+    if (sumA === null && sumB === null) continue;
 
-    if (arrA && start >= 0 && end <= arrA.length) {
-      sumA = 0; for (var k = start; k < end; k++) sumA += (arrA[k] || 0);
-    }
-    if (arrB && startB >= 0 && endB <= arrB.length) {
-      sumB = 0; for (var k = startB; k < endB; k++) sumB += (arrB[k] || 0);
-    }
+    var va    = sumA !== null ? Math.round(sumA * 100) / 100 : null;
+    var vb    = sumB !== null ? Math.round(sumB * 100) / 100 : null;
+    var delta = (va !== null && vb !== null) ? Math.round((va - vb) * 100) / 100 : null;
+    var sig = false, reason = null;
 
-    if (sumA !== null || sumB !== null) {
-      var va    = sumA !== null ? Math.round(sumA * 100) / 100 : null;
-      var vb    = sumB !== null ? Math.round(sumB * 100) / 100 : null;
-      var delta = (va !== null && vb !== null) ? Math.round((va - vb) * 100) / 100 : null;
-      var sig = false, reason = null;
-
-      if (delta !== null && Math.abs(delta) >= floor) {
-        var tlist = rules.thresholds_mm || [10,25,50,100];
-        for (var j = 0; j < tlist.length; j++) {
-          if ((va >= tlist[j] && vb < tlist[j]) || (va < tlist[j] && vb >= tlist[j])) {
-            sig = true; reason = 'threshold'; break;
-          }
-        }
-        if (!sig && vb > 0) {
-          var pc = (rules.relative_change_pct || 20) / 100;
-          if (Math.abs(delta) / vb >= pc) { sig = true; reason = 'relative'; }
+    if (delta !== null && Math.abs(delta) >= floor) {
+      var tlist = rules.thresholds_mm || [10,25,50,100];
+      for (var j = 0; j < tlist.length; j++) {
+        if ((va >= tlist[j] && vb < tlist[j]) || (va < tlist[j] && vb >= tlist[j])) {
+          sig = true; reason = 'threshold'; break;
         }
       }
-      result[name] = { run_a_mm: va, run_b_mm: vb, delta_mm: delta, significant: sig, reason: reason };
+      if (!sig && vb > 0) {
+        var pc = (rules.relative_change_pct || 20) / 100;
+        if (Math.abs(delta) / vb >= pc) { sig = true; reason = 'relative'; }
+      }
     }
+    result[name] = { run_a_mm: va, run_b_mm: vb, delta_mm: delta, significant: sig, reason: reason };
   }
   return result;
 }
 
 function computeSliderData() {
   if (!_tsA || !_tsB || _sliderStep === null) { _currentSliderData = null; return; }
-  var W = WIN_SIZES[_layerKey] ? WIN_SIZES[_layerKey].hours : 6;
-  var startA = _sliderStep - W;
-  var rules  = (_data && _data.significance_rules) || {};
+  var W     = WIN_SIZES[_layerKey] ? WIN_SIZES[_layerKey].hours : 6;
+  var rules = (_data && _data.significance_rules) || {};
   _currentSliderData = {};
   ['catchments', 'regions', 'grid', 'summary'].forEach(function(lyr) {
-    _currentSliderData[lyr] = computeLayerWindow(_tsA, _tsB, startA, _sliderStep, _lagH, lyr, rules);
+    _currentSliderData[lyr] = computeLayerWindow(_tsA, _tsB, _sliderStep, W, _lagH, lyr, rules);
   });
 }
 
 // ── Slider ──────────────────────────────────────────────────────────────
 function buildSliderRange() {
-  var W    = WIN_SIZES[_layerKey] ? WIN_SIZES[_layerKey].hours : 6;
-  var fhA  = getRunForecastHours(_selectedRunLeft);
-  var fhB  = getRunForecastHours(_selectedRunRight);
+  var W   = WIN_SIZES[_layerKey] ? WIN_SIZES[_layerKey].hours : 6;
+  // Effective coverage = how far each run's area-ts data actually reaches (capped, e.g. 54h).
+  var fhA = _maxOffA, fhB = _maxOffB;
 
-  // T = end of window in base run frame
-  // Base needs: T >= W AND T <= fhA
-  // Reference: startB = (T-W)+lagH >= 0 → T >= W-lagH; endB = T+lagH <= fhB → T <= fhB-lagH
-  var tMinRaw = Math.max(W, W - _lagH);
-  var tMaxRaw = Math.min(fhA, fhB - _lagH);
+  // T = end of the accumulation window, expressed in the base (A) forecast frame.
+  // Base window  (T-W, T]      needs  W <= T <= fhA
+  // Ref  window  (T+lag-W, T+lag] needs W <= T+lag <= fhB  →  W-lag <= T <= fhB-lag
+  var tMin = Math.max(W, W - _lagH);
+  var tMax = Math.min(fhA, fhB - _lagH);
 
-  // Snap to W-hour intervals (matching available image steps)
-  var tMin = Math.ceil(tMinRaw / W) * W;
-  var tMax = Math.floor(tMaxRaw / W) * W;
-
+  // Step hourly — accumulation rasters exist at every offset ≥ W, so no need to snap to W.
   _sliderSteps = [];
-  for (var t = tMin; t <= tMax; t += W) _sliderSteps.push(t);
+  for (var t = tMin; t <= tMax; t++) _sliderSteps.push(t);
 
   var slider = document.getElementById('timeSlider');
   if (!slider) return;
@@ -723,14 +734,15 @@ function overlappingRuns() {
   var allRuns = (_meta && _meta.runs) || [];
   if (!_selectedRunLeft) return [];
   var dtLeft = parseRunTs(_selectedRunLeft);
-  // Show only runs with at least 1h of shared valid forecast time.
-  // For 54h forecasts: overlap = fh - |lag_h| >= 1 → |lag_h| <= fh - 1 ≈ 53
-  var fhLeft = getRunForecastHours(_selectedRunLeft);
+  var fhA    = getRunForecastHours(_selectedRunLeft);
+  // Shared valid-time window, measured in the base (A) forecast frame:
+  //   start offset = max(0, -lag),  end offset = min(fhA, fhB - lag),  lag = dtA - dtB.
+  // Keep runs with at least 1h of overlap.
   return allRuns.filter(function(r) {
     if (r.run_ts === _selectedRunLeft) return false;
-    var lag = Math.round((dtLeft - parseRunTs(r.run_ts)) / 3600000);
-    var fhR = getRunForecastHours(r.run_ts);
-    var overlap = Math.min(fhLeft, fhR + lag) - Math.max(0, lag);
+    var lag     = Math.round((dtLeft - parseRunTs(r.run_ts)) / 3600000);
+    var fhB     = getRunForecastHours(r.run_ts);
+    var overlap = Math.min(fhA, fhB - lag) - Math.max(0, -lag);
     return overlap >= 1;
   });
 }
@@ -795,6 +807,15 @@ async function applyComparisonSelection() {
   _tsA  = tsArr[0];
   _tsB  = tsArr[1];
   _lagH = Math.round((parseRunTs(_selectedRunLeft) - parseRunTs(_selectedRunRight)) / 3600000);
+
+  // How far each run's hourly area-ts actually reaches (arrays cap well below forecast_hours).
+  function maxOff(ts, run) {
+    var sh = ts && ts.step_hours;
+    if (sh && sh.length) return sh[sh.length - 1];
+    return getRunForecastHours(run);
+  }
+  _maxOffA = maxOff(_tsA, _selectedRunLeft);
+  _maxOffB = maxOff(_tsB, _selectedRunRight);
 
   _compInfo = {
     run_a_label: getRunLabel(_selectedRunLeft),
@@ -998,8 +1019,9 @@ function updateRaster() {
   if (_viewMode !== 'grid') return;
   if (!_selectedRunLeft || !_selectedRunRight || _sliderStep === null) return;
 
+  // Same valid time: base offset = T, reference offset = T + lag  (lag = dtBase − dtRef).
   var stepL = getMetaStep(_selectedRunLeft,  _sliderStep);
-  var stepR = getMetaStep(_selectedRunRight, _sliderStep - _lagH);
+  var stepR = getMetaStep(_selectedRunRight, _sliderStep + _lagH);
 
   function addRaster(step, rVar, mVar) {
     if (!step || !window[mVar]) return;
