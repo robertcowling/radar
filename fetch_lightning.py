@@ -32,11 +32,11 @@ USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, R2_BUCKET])
 
 LIGHTNING_KEY = "lightning/lightning_latest.json"
 
-# Grid of (lat, lon) tile centres covering UK + Ireland.
-# 1.0° lat (~111 km) × 1.5° lon (~96 km at 55°N) gives continuous coverage
-# with the 50 km query radius.
-GRID_LATS = [50.0 + i for i in range(11)]          # 50 → 60
-GRID_LONS = [-8.0 + i * 1.5 for i in range(7)]     # -8.0 → +1.0
+# Grid of (lat, lon) tile centres covering UK, Ireland, and France.
+# 1.0° lat (~111 km) × 1.5° lon (~100 km at 50°N) gives continuous coverage
+# with the 50 km query radius. Extended south to 43°N and east to +9°E.
+GRID_LATS = [43.0 + i for i in range(19)]                  # 43 → 61
+GRID_LONS = [-8.0 + i * 1.5 for i in range(12)]            # -8.0 → +8.5
 GRID_POINTS = [(lat, lon) for lat in GRID_LATS for lon in GRID_LONS]
 
 
