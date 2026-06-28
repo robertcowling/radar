@@ -947,6 +947,18 @@ def main():
     s3 = get_s3()
     r2 = get_r2()
 
+    existing_meta = json_from_r2(r2, "ukv_meta.json", {"runs": []})
+    existing_runs = existing_meta.get("runs", [])
+
+    print("Checking active runs for missing splat data...")
+    if backfill_missing_splats(s3, r2, existing_meta, None):
+        with open("ukv_meta.json", "w") as f:
+            json.dump(existing_meta, f, indent=2)
+        json_to_r2(r2, "ukv_meta.json", existing_meta)
+        print("  Backfill complete and updated metadata uploaded.")
+    else:
+        print("  Active runs already up to date with splats.")
+
     print("Finding latest UKV run...")
     run_ts = find_latest_run(s3)
     if not run_ts:
@@ -958,25 +970,13 @@ def main():
         print(f"  {run_ts}: run not yet complete on S3 — skipping until next trigger.")
         sys.exit(0)
 
-    existing_meta = json_from_r2(r2, "ukv_meta.json", {"runs": []})
-    existing_runs = existing_meta.get("runs", [])
     force = os.environ.get("FORCE_RERUN", "").lower() in ("1", "true", "yes")
-    # During testing each run supersedes the previous one (KEEP_RUNS=0 / default).
-    # Set KEEP_RUNS=N to retain up to N older runs alongside the new one.
     try:
         keep_runs = int(os.environ.get("KEEP_RUNS", "30"))
     except ValueError:
         keep_runs = 30
     if not force and existing_runs and existing_runs[0].get("run_ts") == run_ts:
-        print(f"  {run_ts} already processed — checking backfill for active runs...")
-        updated = backfill_missing_splats(s3, r2, existing_meta, None)
-        if updated:
-            with open("ukv_meta.json", "w") as f:
-                json.dump(existing_meta, f, indent=2)
-            json_to_r2(r2, "ukv_meta.json", existing_meta)
-            print("  Backfill complete for active runs.")
-        else:
-            print("  All active runs already have complete splat data.")
+        print(f"  {run_ts} already processed — done.")
         sys.exit(0)
 
     print("Discovering forecast steps...")
