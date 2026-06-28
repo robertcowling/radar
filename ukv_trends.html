@@ -62,19 +62,22 @@ body {
   max-width: 95%; text-overflow: ellipsis; white-space: nowrap;
 }
 .hdr-select:hover { background-color: #3b495e; border-color: #64748b; }
+.hdr-role { color: #94a3b8; font-size: 11px; font-weight: 500; flex-shrink: 0; }
 
-/* ── Three-map layout ─────────────────────────────────────────────── */
+/* ── Maps layout (base + reference/difference panels) ─────────────── */
 .maps-row { flex: 1; display: flex; min-height: 0; }
-.map-wrap  { position: relative; flex: 1; overflow: hidden; }
+.map-wrap  { position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; }
 .map-wrap + .map-wrap { border-left: 2px solid #374151; }
 .map-pane  { width: 100%; height: 100%; }
+.map-header-cell { gap: 7px; }
 
 /* ── In-map colour bars ───────────────────────────────────────────── */
 .map-cbar {
   position: absolute; top: 10px; right: 10px; z-index: 500;
   background: rgba(255,255,255,0.93); border-radius: 8px;
   padding: 7px 10px 6px; pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.14); width: 280px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.14);
+  width: 280px; max-width: calc(100% - 16px);
 }
 .map-cbar p { font-size: 11px; font-weight: 600; color: #3c4043; margin: 0 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .map-cbar .bias-arrows { display: flex; justify-content: space-between; font-size: 9px; color: #5f6368; margin-top: 2px; }
@@ -271,43 +274,28 @@ input[type=range]#timeSlider::-moz-range-thumb {
   </div>
 </div>
 
-<!-- Column headers for the three maps -->
-<div class="map-header-row" id="mapHeaderRow" style="display:none;">
-  <div class="map-header-cell" style="gap:8px;">
-    <span style="color:#94a3b8;font-size:11px;font-weight:500;flex-shrink:0;">Base</span>
-    <select id="selectRunLeft" class="hdr-select" onchange="onRunSelectChange('left')"></select>
-  </div>
-  <div class="map-header-cell" style="gap:8px;">
-    <span style="color:#94a3b8;font-size:11px;font-weight:500;flex-shrink:0;">Reference</span>
-    <select id="selectRunRight" class="hdr-select" onchange="onRunSelectChange('right')"></select>
-  </div>
-  <div class="map-header-cell">Difference (base &minus; reference)</div>
-</div>
+<!-- Column headers (base / reference / difference cells, built dynamically) -->
+<div class="map-header-row" id="mapHeaderRow" style="display:none;"></div>
 
 <!-- State messages -->
 <div id="loadingState" class="state-msg">Loading run comparison data&hellip;</div>
 <div id="errorState"   class="state-msg" style="display:none;">Trends not available yet — generated after the next UKV model run.</div>
 
-<!-- Three maps -->
-<div class="maps-row" id="mapsRow" style="display:none;">
-  <div class="map-wrap">
-    <div id="mapLeft"   class="map-pane"></div>
-    <div class="map-cbar" id="legendLeft"></div>
-  </div>
-  <div class="map-wrap">
-    <div id="mapCentre" class="map-pane"></div>
-    <div class="map-cbar" id="legendCentre"></div>
-  </div>
-  <div class="map-wrap">
-    <div id="mapDiff"   class="map-pane"></div>
-    <div class="map-cbar" id="legendDiff"></div>
-  </div>
-</div>
+<!-- Comparison maps (base + reference/difference pairs, built dynamically) -->
+<div class="maps-row" id="mapsRow" style="display:none;"></div>
 
 <!-- Floating control panel -->
 <div class="player-panel surface" id="playerPanel" style="display:none;">
 
   <!-- Row 1: controls -->
+  <div class="control-group">
+    <span class="control-label">Compare against</span>
+    <div class="seg-control">
+      <button id="btnCmp1" class="seg-btn seg-active" onclick="setCompareMode(1)">1 run</button>
+      <button id="btnCmp4" class="seg-btn"            onclick="setCompareMode(4)">4 runs</button>
+    </div>
+  </div>
+
   <div class="control-group">
     <span class="control-label">Period</span>
     <select id="periodSelect" onchange="setLayerKey(this.value)">
@@ -346,9 +334,9 @@ input[type=range]#timeSlider::-moz-range-thumb {
   <div class="control-group">
     <span class="control-label">Colour scale</span>
     <select id="schemeSelect" onchange="setScheme(this.value)">
-      <option value="norm" selected>Normal</option>
+      <option value="norm">Normal</option>
       <option value="high">High events</option>
-      <option value="met">Alternative</option>
+      <option value="met" selected>Alternative</option>
     </select>
   </div>
 
@@ -438,22 +426,20 @@ var SCHEMES = {
 
 // ── State ─────────────────────────────────────────────────────────────
 var _data = null, _meta = null;
-var _geoCache = {}, _tsCache = {};
-var _tsA = null, _tsB = null, _lagH = 0;
-var _maxOffA = 54, _maxOffB = 54;
-var _compInfo = null;
-var _currentSliderData = null;
-var _sliderSteps = [];
-var _layerKey = 'accum_6h', _layer = 'catchments', _scheme = 'norm', _viewMode = 'grid';
-var _sliderStep = null;
-var _selectedRunLeft = null, _selectedRunRight = null;
+var _geoCache = {}, _tsCache = {}, _centroidCache = {};
+var _layerKey = 'accum_6h', _layer = 'catchments', _scheme = 'met', _viewMode = 'grid';
+var _sliderStep = null, _sliderSteps = [];
 var _showAll = false;
-var _mapLeft = null, _mapCentre = null, _mapDiff = null;
-var _polyLeft = null, _polyCentre = null, _polyDiff = null;
-var _rasterLeft = null, _rasterCentre = null;
-var _catchLeft = null, _catchCentre = null, _catchDiff = null;
-var _labelLeft = null, _labelCentre = null, _labelDiff = null;
 var _syncing = false;
+
+// Comparison model: one base run vs N reference runs (N = _compareMode: 1 or 4).
+var _compareMode     = 1;
+var _selectedRunLeft = null;   // base run_ts
+var _refRuns         = [];     // reference run_ts list (length up to _compareMode)
+var _baseTs          = null;   // base run area-ts
+var _baseMaxOff      = 54;     // base non-null data extent (hours)
+var _comps           = [];     // [{ runTs, ts, lagH, maxOff, data }]
+var _panels          = [];     // [{ role:'base'|'ref'|'diff', compIndex, map, poly, label, raster, catch, legendEl }]
 
 // ── Utilities ──────────────────────────────────────────────────────────
 function esc(s) {
@@ -513,13 +499,29 @@ function bucketColor(v, scheme) {
 }
 
 // ── Data access ─────────────────────────────────────────────────────────
-function currentComp() { return _compInfo || {}; }
-function currentRows() { return (_currentSliderData && _currentSliderData[_layer]) || {}; }
-function valueFor(name, mode) {
-  var r = currentRows()[name]; if (!r) return null;
-  if (mode === 'left')   return r.run_a_mm;
-  if (mode === 'centre') return r.run_b_mm;
-  return r.delta_mm;
+// Table / insights summarise the first (most-recent) reference comparison.
+function currentComp() {
+  var c0 = _comps[0];
+  return { run_a_label: getRunLabel(_selectedRunLeft), run_b_label: c0 ? getRunLabel(c0.runTs) : '' };
+}
+function compRows(i) {
+  var c = _comps[i];
+  return (c && c.data && c.data[_layer]) || {};
+}
+function currentRows() { return compRows(0); }
+// Base value is shared across comparisons; read it from whichever comp has it.
+function baseValue(name) {
+  for (var i = 0; i < _comps.length; i++) {
+    var r = compRows(i)[name];
+    if (r && r.run_a_mm != null) return r.run_a_mm;
+  }
+  return null;
+}
+function valueForPanel(name, panel) {
+  if (panel.role === 'base') return baseValue(name);
+  var r = compRows(panel.compIndex)[name];
+  if (!r) return null;
+  return panel.role === 'diff' ? r.delta_mm : r.run_b_mm;
 }
 
 // ── Modal helpers ────────────────────────────────────────────────────────
@@ -625,36 +627,42 @@ function dataExtent(ts) {
   return maxIdx >= 0 ? (sh[maxIdx] || 0) : 0;
 }
 
-function computeSliderData() {
-  if (!_tsA || !_tsB || _sliderStep === null) { _currentSliderData = null; return; }
+function computeCompData() {
   var W     = WIN_SIZES[_layerKey] ? WIN_SIZES[_layerKey].hours : 6;
   var rules = (_data && _data.significance_rules) || {};
-  _currentSliderData = {};
-  ['catchments', 'regions', 'grid', 'summary'].forEach(function(lyr) {
-    _currentSliderData[lyr] = computeLayerWindow(_tsA, _tsB, _sliderStep, W, _lagH, lyr, rules);
+  _comps.forEach(function(c) {
+    c.data = {};
+    if (!_baseTs || !c.ts || _sliderStep === null) return;
+    ['catchments', 'regions', 'grid', 'summary'].forEach(function(lyr) {
+      c.data[lyr] = computeLayerWindow(_baseTs, c.ts, _sliderStep, W, c.lagH, lyr, rules);
+    });
   });
 }
 
 // ── Slider ──────────────────────────────────────────────────────────────
+// The single slider position T (base forecast frame) must yield a valid window for
+// EVERY active comparison, so the range is the intersection across all references.
 function buildSliderRange() {
-  var W   = WIN_SIZES[_layerKey] ? WIN_SIZES[_layerKey].hours : 6;
-  // Effective coverage = how far each run's area-ts data actually reaches (capped, e.g. 54h).
-  var fhA = _maxOffA, fhB = _maxOffB;
+  var W = WIN_SIZES[_layerKey] ? WIN_SIZES[_layerKey].hours : 6;
 
-  // T = end of the accumulation window, expressed in the base (A) forecast frame.
-  // Base window  (T-W, T]      needs  W <= T <= fhA
-  // Ref  window  (T+lag-W, T+lag] needs W <= T+lag <= fhB  →  W-lag <= T <= fhB-lag
-  var tMin = Math.max(W, W - _lagH);
-  var tMax = Math.min(fhA, fhB - _lagH);
+  // Base constrains W <= T <= baseMaxOff; each reference adds W-lag <= T <= maxOff-lag.
+  var tMin = W, tMax = _baseMaxOff;
+  _comps.forEach(function(c) {
+    tMin = Math.max(tMin, W - c.lagH);
+    tMax = Math.min(tMax, c.maxOff - c.lagH);
+  });
 
-  // Step hourly. Only keep a step if BOTH runs have the accumulation product for it
-  // (base at offset t, reference at t+lag = same valid time). Meta/area-ts can desync,
-  // so this guarantees every selectable position yields a real, valid comparison.
+  function rasterAt(runTs, off) { var s = getMetaStep(runTs, off); return !!(s && s[_layerKey]); }
+
+  // Step hourly; keep T only when the base AND every reference have the product at the
+  // matching valid time (base@T, ref_i@T+lag_i). Guarantees a real comparison everywhere.
   _sliderSteps = [];
-  for (var t = tMin; t <= tMax; t++) {
-    var sL = getMetaStep(_selectedRunLeft,  t);
-    var sR = getMetaStep(_selectedRunRight, t + _lagH);
-    if (sL && sL[_layerKey] && sR && sR[_layerKey]) _sliderSteps.push(t);
+  if (_comps.length) {
+    for (var t = tMin; t <= tMax; t++) {
+      if (!rasterAt(_selectedRunLeft, t)) continue;
+      var ok = _comps.every(function(c) { return rasterAt(c.runTs, t + c.lagH); });
+      if (ok) _sliderSteps.push(t);
+    }
   }
 
   var slider = document.getElementById('timeSlider');
@@ -694,7 +702,7 @@ function buildSliderRange() {
 function setSliderStep(idx) {
   _sliderStep = (_sliderSteps[idx] !== undefined) ? _sliderSteps[idx] : null;
   updateSliderLabel();
-  computeSliderData();
+  computeCompData();
   refreshPolyStyles();  // also rebuilds labels
   updateRaster();
   renderLegend();
@@ -773,78 +781,84 @@ function overlappingRuns() {
   });
 }
 
-function renderHeaderSelects() {
-  var sLeft  = document.getElementById('selectRunLeft');
-  var sRight = document.getElementById('selectRunRight');
-  if (!sLeft || !sRight || !_meta) return;
+// Keep references valid against the current base; preserve user picks, fill the rest
+// with the most-recent overlapping (i.e. immediately preceding) runs.
+function reconcileRefs() {
+  var avail    = overlappingRuns();
+  var availSet = avail.map(function(r) { return r.run_ts; });
+  var kept     = _refRuns.filter(function(rt) { return availSet.indexOf(rt) >= 0; });
+  kept = kept.filter(function(rt, i) { return kept.indexOf(rt) === i; });   // dedupe
+  for (var i = 0; i < avail.length && kept.length < _compareMode; i++) {
+    if (kept.indexOf(avail[i].run_ts) < 0) kept.push(avail[i].run_ts);
+  }
+  _refRuns = kept.slice(0, _compareMode);
+}
 
-  var allRuns = _meta.runs || [];
-  var avail   = overlappingRuns();
-
-  sLeft.innerHTML = allRuns.map(function(r) {
+function populateSelects() {
+  var allRuns = (_meta && _meta.runs) || [];
+  var base = document.getElementById('selBase');
+  if (base) base.innerHTML = allRuns.map(function(r) {
     return '<option value="' + esc(r.run_ts) + '"' + (r.run_ts === _selectedRunLeft ? ' selected' : '') + '>' + esc(r.run_label) + '</option>';
   }).join('');
 
+  var avail  = overlappingRuns();
   var dtLeft = _selectedRunLeft ? parseRunTs(_selectedRunLeft) : null;
-  sRight.innerHTML = avail.map(function(r) {
-    var lag    = dtLeft ? Math.round((dtLeft - parseRunTs(r.run_ts)) / 3600000) : 0;
-    var lagStr = (lag > 0 ? '−' : '+') + Math.abs(lag) + 'h';
-    return '<option value="' + esc(r.run_ts) + '"' + (r.run_ts === _selectedRunRight ? ' selected' : '') + '>' + esc(r.run_label) + ' (' + lagStr + ')' + '</option>';
-  }).join('');
-}
-
-function onRunSelectChange(side) {
-  var sLeft  = document.getElementById('selectRunLeft');
-  var sRight = document.getElementById('selectRunRight');
-  if (side === 'left') {
-    _selectedRunLeft  = sLeft && sLeft.value;
-    _selectedRunRight = null;
-  } else {
-    _selectedRunRight = sRight && sRight.value;
+  for (var i = 0; i < _compareMode; i++) {
+    var sel = document.getElementById('selRef' + i);
+    if (!sel) continue;
+    var cur = _refRuns[i];
+    sel.innerHTML = avail.map(function(r) {
+      var lag    = dtLeft ? Math.round((dtLeft - parseRunTs(r.run_ts)) / 3600000) : 0;
+      var lagStr = (lag > 0 ? '−' : '+') + Math.abs(lag) + 'h';
+      return '<option value="' + esc(r.run_ts) + '"' + (r.run_ts === cur ? ' selected' : '') + '>' + esc(r.run_label) + ' (' + lagStr + ')</option>';
+    }).join('');
   }
-  applyComparisonSelection();
 }
 
-async function applyComparisonSelection() {
+function onBaseChange(v) { _selectedRunLeft = v; _refRuns = []; applyAll(); }
+function onRefChange(i, v) { _refRuns[i] = v; applyAll(); }
+
+function setCompareMode(n) {
+  if (_compareMode === n) return;
+  _compareMode = n;
+  document.getElementById('btnCmp1').classList.toggle('seg-active', n === 1);
+  document.getElementById('btnCmp4').classList.toggle('seg-active', n === 4);
+  reconcileRefs();
+  buildMaps();      // rebuild the panel grid for the new column count
+  applyAll();
+}
+
+async function applyAll() {
   _showAll = false;
   var allRuns = (_meta && _meta.runs) || [];
+  if (!_selectedRunLeft) _selectedRunLeft = (_data && _data.latest_run) || (allRuns[0] && allRuns[0].run_ts);
 
-  if (!_selectedRunLeft) {
-    _selectedRunLeft = (_data && _data.latest_run) || (allRuns[0] && allRuns[0].run_ts);
-  }
+  reconcileRefs();
+  populateSelects();
 
-  var avail = overlappingRuns();
-  if (!_selectedRunRight || !avail.find(function(r) { return r.run_ts === _selectedRunRight; })) {
-    // Prefer the "-12h" comparison if available, else first overlapping run
-    var pref = (_data && _data.comparisons || []).find(function(c) {
-      return c.run_a === _selectedRunLeft && avail.find(function(r) { return r.run_ts === c.run_b; });
-    });
-    _selectedRunRight = (pref && pref.run_b) || (avail[0] && avail[0].run_ts) || null;
-  }
-
-  renderHeaderSelects();
-
-  if (!_selectedRunLeft || !_selectedRunRight) {
-    document.getElementById('tableWrap').innerHTML = '<p class="empty-msg">Select both a base and reference run to compare.</p>';
+  if (!_selectedRunLeft || !_refRuns.length) {
+    document.getElementById('tableWrap').innerHTML = '<p class="empty-msg">Select a base and at least one reference run to compare.</p>';
     return;
   }
 
-  var tsArr = await Promise.all([loadRunAreaTs(_selectedRunLeft), loadRunAreaTs(_selectedRunRight)]);
-  _tsA  = tsArr[0];
-  _tsB  = tsArr[1];
-  _lagH = Math.round((parseRunTs(_selectedRunLeft) - parseRunTs(_selectedRunRight)) / 3600000);
+  var tsArr = await Promise.all([loadRunAreaTs(_selectedRunLeft)].concat(_refRuns.map(loadRunAreaTs)));
+  _baseTs     = tsArr[0];
+  _baseMaxOff = dataExtent(_baseTs) || getRunForecastHours(_selectedRunLeft);
+  var dtBase  = parseRunTs(_selectedRunLeft);
 
-  // How far each run actually produced data (non-null), not just what step_hours claims.
-  _maxOffA = dataExtent(_tsA) || getRunForecastHours(_selectedRunLeft);
-  _maxOffB = dataExtent(_tsB) || getRunForecastHours(_selectedRunRight);
-
-  _compInfo = {
-    run_a_label: getRunLabel(_selectedRunLeft),
-    run_b_label: getRunLabel(_selectedRunRight)
-  };
+  _comps = _refRuns.map(function(rt, i) {
+    var ts = tsArr[i + 1];
+    return {
+      runTs:  rt,
+      ts:     ts,
+      lagH:   Math.round((dtBase - parseRunTs(rt)) / 3600000),
+      maxOff: dataExtent(ts) || getRunForecastHours(rt),
+      data:   {}
+    };
+  });
 
   buildSliderRange();
-  computeSliderData();
+  computeCompData();
 
   drawPolys();
   updateCatchOverlay();
@@ -857,7 +871,8 @@ async function applyComparisonSelection() {
 
 // ── Insights & Rules ──────────────────────────────────────────────────────
 function buildInsights() {
-  var rows = (_currentSliderData && _currentSliderData['catchments']) || {};
+  var c0   = _comps[0];
+  var rows = (c0 && c0.data && c0.data['catchments']) || {};
   var sig  = Object.keys(rows).filter(function(k) { return rows[k].significant; });
   if (!sig.length) return ['No significant catchment-level changes detected for this window.'];
   var wetter = sig.filter(function(k) { return rows[k].delta_mm > 0; }).length;
@@ -891,88 +906,141 @@ function renderRules() {
     '</ul>Significant rows are marked: <span style="color:#b91c1c;font-weight:700;">●</span> base wetter, <span style="color:#1565c0;font-weight:700;">●</span> base drier.</div>';
 }
 
-// ── Map ────────────────────────────────────────────────────────────────────
-function initMaps() {
+// ── Map grid construction ───────────────────────────────────────────────────
+// Layout: [ base ] then for each reference: [ reference ][ difference ].
+function panelSpecs() {
+  var specs = [{ role: 'base' }];
+  for (var i = 0; i < _compareMode; i++) {
+    specs.push({ role: 'ref',  compIndex: i });
+    specs.push({ role: 'diff', compIndex: i });
+  }
+  return specs;
+}
+
+function buildMaps() {
+  _panels.forEach(function(p) { try { p.map.remove(); } catch(e) {} });
+  _panels = [];
+
+  var row = document.getElementById('mapsRow');
+  var hdr = document.getElementById('mapHeaderRow');
+  row.innerHTML = ''; hdr.innerHTML = '';
+
   var CENTER   = [54.5, -3.5], ZOOM = 5;
   var TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
   var TILE_OPT = { maxZoom: 12, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>' };
 
-  _mapLeft   = L.map('mapLeft',   { zoomControl: true  }).setView(CENTER, ZOOM);
-  _mapCentre = L.map('mapCentre', { zoomControl: false }).setView(CENTER, ZOOM);
-  _mapDiff   = L.map('mapDiff',   { zoomControl: false }).setView(CENTER, ZOOM);
-  [_mapLeft, _mapCentre, _mapDiff].forEach(function(m) { L.tileLayer(TILE_URL, TILE_OPT).addTo(m); });
+  panelSpecs().forEach(function(spec, idx) {
+    // Header cell
+    var cell = document.createElement('div');
+    cell.className = 'map-header-cell';
+    if (spec.role === 'base') {
+      cell.innerHTML = '<span class="hdr-role">Base</span><select id="selBase" class="hdr-select"></select>';
+    } else if (spec.role === 'ref') {
+      cell.innerHTML = '<span class="hdr-role">Ref ' + (spec.compIndex + 1) + '</span><select id="selRef' + spec.compIndex + '" class="hdr-select"></select>';
+    } else {
+      cell.textContent = 'Difference';
+    }
+    hdr.appendChild(cell);
 
-  function sync(src) {
-    if (_syncing) return; _syncing = true;
-    var c = src.getCenter(), z = src.getZoom();
-    [_mapLeft, _mapCentre, _mapDiff].forEach(function(m) { if (m !== src) m.setView(c, z, { animate: false }); });
-    _syncing = false;
+    // Map wrap
+    var wrap   = document.createElement('div'); wrap.className = 'map-wrap';
+    var pane   = document.createElement('div'); pane.className = 'map-pane'; pane.id = 'map_' + idx;
+    var legend = document.createElement('div'); legend.className = 'map-cbar';
+    wrap.appendChild(pane); wrap.appendChild(legend);
+    row.appendChild(wrap);
+
+    var map = L.map(pane, { zoomControl: idx === 0 }).setView(CENTER, ZOOM);
+    L.tileLayer(TILE_URL, TILE_OPT).addTo(map);
+
+    _panels.push({ role: spec.role, compIndex: spec.compIndex, map: map, legendEl: legend,
+                   poly: null, label: null, raster: null, catch: null });
+  });
+
+  // Wire up selectors
+  var base = document.getElementById('selBase');
+  if (base) base.addEventListener('change', function() { onBaseChange(base.value); });
+  for (var i = 0; i < _compareMode; i++) {
+    (function(ci) {
+      var sel = document.getElementById('selRef' + ci);
+      if (sel) sel.addEventListener('change', function() { onRefChange(ci, sel.value); });
+    })(i);
   }
-  _mapLeft.on('moveend',   function() { sync(_mapLeft); });
-  _mapCentre.on('moveend', function() { sync(_mapCentre); });
-  _mapDiff.on('moveend',   function() { sync(_mapDiff); });
+
+  // Synchronise pan/zoom across all panels
+  _panels.forEach(function(p) {
+    p.map.on('moveend', function() {
+      if (_syncing) return; _syncing = true;
+      var c = p.map.getCenter(), z = p.map.getZoom();
+      _panels.forEach(function(q) { if (q !== p) q.map.setView(c, z, { animate: false }); });
+      _syncing = false;
+    });
+  });
+
+  populateSelects();
+  setTimeout(function() { _panels.forEach(function(p) { p.map.invalidateSize(); }); }, 60);
 }
 
-function styleFeature(feature, mode) {
-  var info  = GEO_FILES[_layer];
-  var name  = feature.properties[info.key];
-  var v     = valueFor(name, mode);
+function styleFeature(feature, panel) {
+  var info   = GEO_FILES[_layer];
+  var name   = feature.properties[info.key];
+  var v      = valueForPanel(name, panel);
+  var isDiff = panel.role === 'diff';
 
-  // In grid view: left and centre maps show rasters — render polys as thin outlines only.
-  // Diff map always shows the polygon comparison.
-  if (_viewMode === 'grid' && mode !== 'diff') {
+  // Grid view: base & reference show rasters → polys are thin outlines only.
+  if (_viewMode === 'grid' && !isDiff) {
     return { color: '#475569', weight: 0.5, fillColor: '#000', fillOpacity: 0 };
   }
-  var color = mode === 'diff' ? biasFillColor(v) : bucketColor(v);
-  if (mode === 'diff' && v != null && !color) {
-    // Near-zero diff (within ±2): use the centre grey from BIAS_COLORS
-    return { color: '#9ca3af', weight: 0.6, fillColor: '#d4d4d4', fillOpacity: 0.6 };
+  var color = isDiff ? biasFillColor(v) : bucketColor(v);
+  if (isDiff && v != null && !color) {
+    return { color: '#9ca3af', weight: 0.6, fillColor: '#d4d4d4', fillOpacity: 0.6 };  // within ±2
   }
   if (!color) {
-    // Has data but below threshold (dry areas) — show light outline so map isn't empty
-    return { color: '#b0b8c1', weight: 0.5, fillColor: '#e8edf2', fillOpacity: 0.45 };
+    return { color: '#b0b8c1', weight: 0.5, fillColor: '#e8edf2', fillOpacity: 0.45 };  // dry but present
   }
   return { color: '#334155', weight: 0.6, fillColor: color, fillOpacity: 0.72 };
 }
 
-function tooltipContent(name) {
-  var r = currentRows()[name];
-  var c = currentComp();
+function tooltipContent(name, compIndex) {
+  var c    = _comps[compIndex];
+  var rows = (c && c.data && c.data[_layer]) || {};
+  var r    = rows[name];
   if (!r) return '<div class="poly-tip"><b>' + esc(name) + '</b><br>No data for this window.</div>';
   var d   = r.delta_mm;
   var cls = d > 0 ? 'pt-pos' : (d < 0 ? 'pt-neg' : '');
   return '<div class="poly-tip"><b>' + esc(name) + '</b><br>' +
-    esc(c.run_a_label||'Base')      + ': ' + fmtMm(r.run_a_mm) + '<br>' +
-    esc(c.run_b_label||'Reference') + ': ' + fmtMm(r.run_b_mm) + '<br>' +
+    esc(getRunLabel(_selectedRunLeft))        + ': ' + fmtMm(r.run_a_mm) + '<br>' +
+    esc(c ? getRunLabel(c.runTs) : 'Reference') + ': ' + fmtMm(r.run_b_mm) + '<br>' +
     'Change: <span class="' + cls + '">' + fmtDelta(d) + '</span>' +
     (r.significant ? ' ●' : '') + '</div>';
 }
 
-function _clearLabels() {
-  [['_labelLeft','_mapLeft'],['_labelCentre','_mapCentre'],['_labelDiff','_mapDiff']].forEach(function(p) {
-    if (window[p[0]] && window[p[1]]) { window[p[1]].removeLayer(window[p[0]]); window[p[0]] = null; }
+// Cache area centroids per layer (computed once) so labelling 9 panels stays cheap.
+function centroidsFor(geo, info) {
+  if (_centroidCache[_layer]) return _centroidCache[_layer];
+  var m = {};
+  geo.features.forEach(function(f) {
+    var name = f.properties[info.key];
+    var b = L.geoJSON(f).getBounds();
+    if (b.isValid()) m[name] = b.getCenter();
   });
+  _centroidCache[_layer] = m;
+  return m;
 }
 
-function _buildLabels(geo, info, maps, lblVars, modes) {
-  _clearLabels();
-  // Diff always shows labels; left/centre only in area view
-  var showLeft   = _viewMode !== 'grid';
-  var showCentre = _viewMode !== 'grid';
-  var showDiff   = true;
-  var shows = [showLeft, showCentre, showDiff];
-
-  lblVars.forEach(function(lv, i) {
-    if (!shows[i] || !maps[i]) return;
-    var group = L.layerGroup();
+function buildAllLabels(geo, info) {
+  var cents = centroidsFor(geo, info);
+  _panels.forEach(function(p) {
+    if (p.label) { p.map.removeLayer(p.label); p.label = null; }
+    var show = (p.role === 'diff') || (_viewMode !== 'grid');   // diff always; base/ref only in area view
+    if (!show) return;
+    var group  = L.layerGroup();
+    var isBias = p.role === 'diff';
     geo.features.forEach(function(f) {
       var name = f.properties[info.key];
-      var v = valueFor(name, modes[i]);
+      var v = valueForPanel(name, p);
       if (v == null) return;
-      var bounds = L.geoJSON(f).getBounds();
-      if (!bounds.isValid()) return;
-      var centroid = bounds.getCenter();
-      var isBias = modes[i] === 'diff';
+      var centroid = cents[name];
+      if (!centroid) return;
       var txt = isBias ? (v >= 0 ? '+' : '') + v.toFixed(1) : v.toFixed(1);
       var cls = 'area-value-label' + (isBias && v > 0.5 ? ' label-pos' : isBias && v < -0.5 ? ' label-neg' : '');
       L.marker(centroid, {
@@ -980,137 +1048,107 @@ function _buildLabels(geo, info, maps, lblVars, modes) {
         interactive: false
       }).addTo(group);
     });
-    window[lv] = group;
-    group.addTo(maps[i]);
+    p.label = group; group.addTo(p.map);
   });
 }
 
 function drawPolys() {
-  if (!_mapLeft || !_mapCentre || !_mapDiff) return;
+  if (!_panels.length) return;
   loadGeo(_layer).then(function(geo) {
-    var maps  = [_mapLeft, _mapCentre, _mapDiff];
-    var vars  = ['_polyLeft', '_polyCentre', '_polyDiff'];
-    var lblVars = ['_labelLeft', '_labelCentre', '_labelDiff'];
-    var modes = ['left', 'centre', 'diff'];
-    vars.forEach(function(v, i) {
-      if (window[v]) { maps[i].removeLayer(window[v]); window[v] = null; }
-    });
     var info = GEO_FILES[_layer];
-    vars.forEach(function(varName, i) {
-      window[varName] = L.geoJSON(geo, {
-        style: function(f) { return styleFeature(f, modes[i]); },
+    _panels.forEach(function(p) {
+      if (p.poly) { p.map.removeLayer(p.poly); p.poly = null; }
+      var ci = p.role === 'base' ? 0 : p.compIndex;
+      p.poly = L.geoJSON(geo, {
+        style: function(f) { return styleFeature(f, p); },
         onEachFeature: function(feature, lyr) {
           var name = feature.properties[info.key];
-          lyr.bindTooltip(function() { return tooltipContent(name); }, { sticky: true, className: 'poly-tooltip' });
+          lyr.bindTooltip(function() { return tooltipContent(name, ci); }, { sticky: true, className: 'poly-tooltip' });
         }
-      }).addTo(maps[i]);
+      }).addTo(p.map);
     });
-    _buildLabels(geo, info, maps, lblVars, modes);
+    buildAllLabels(geo, info);
     try {
-      var b = _polyLeft.getBounds();
-      if (b.isValid()) maps.forEach(function(m) { m.fitBounds(b, { padding:[15,15], maxZoom:8 }); });
+      var b = _panels[0].poly.getBounds();
+      if (b.isValid()) _panels.forEach(function(p) { p.map.fitBounds(b, { padding: [12,12], maxZoom: 8 }); });
     } catch(e) {}
   }).catch(function() {});
 }
 
 function refreshPolyStyles() {
-  var modes = { _polyLeft:'left', _polyCentre:'centre', _polyDiff:'diff' };
-  Object.keys(modes).forEach(function(v) {
-    if (window[v]) {
-      var mode = modes[v];
-      window[v].setStyle(function(f) { return styleFeature(f, mode); });
-    }
+  _panels.forEach(function(p) {
+    if (p.poly) p.poly.setStyle(function(f) { return styleFeature(f, p); });
   });
-  // Rebuild labels to reflect new values/view mode
-  if (!_mapLeft) return;
   var geo = _geoCache[_layer]; if (!geo) return;
-  var info = GEO_FILES[_layer];
-  var maps = [_mapLeft, _mapCentre, _mapDiff];
-  _buildLabels(geo, info, maps, ['_labelLeft','_labelCentre','_labelDiff'], ['left','centre','diff']);
+  buildAllLabels(geo, GEO_FILES[_layer]);
 }
 
 // ── Raster overlays ────────────────────────────────────────────────────────
-// In grid view: left = base run image, centre = reference run at same valid time.
-// Diff map shows polygon comparison regardless of view mode.
+// Grid view: base panel shows the base image; each reference panel shows that run's
+// image at the SAME valid time (offset T + lag). Diff panels stay polygon choropleths.
 function updateRaster() {
-  [['_rasterLeft','_mapLeft'],['_rasterCentre','_mapCentre']].forEach(function(p) {
-    if (window[p[0]] && window[p[1]]) { window[p[1]].removeLayer(window[p[0]]); window[p[0]] = null; }
+  _panels.forEach(function(p) {
+    if (p.raster) { p.map.removeLayer(p.raster); p.raster = null; }
   });
+  if (_viewMode !== 'grid' || _sliderStep === null || !_selectedRunLeft) return;
 
-  if (_viewMode !== 'grid') return;
-  if (!_selectedRunLeft || !_selectedRunRight || _sliderStep === null) return;
-
-  // Same valid time: base offset = T, reference offset = T + lag  (lag = dtBase − dtRef).
-  var stepL = getMetaStep(_selectedRunLeft,  _sliderStep);
-  var stepR = getMetaStep(_selectedRunRight, _sliderStep + _lagH);
-
-  function addRaster(step, rVar, mVar) {
-    if (!step || !window[mVar]) return;
-    var entry = step[_layerKey];
-    if (!entry) return;
-    var url = typeof entry === 'string' ? entry : (entry[_scheme] || entry.norm);
-    if (!url) return;
+  _panels.forEach(function(p) {
+    if (p.role === 'diff') return;
+    var runTs, off;
+    if (p.role === 'base') { runTs = _selectedRunLeft; off = _sliderStep; }
+    else {
+      var c = _comps[p.compIndex]; if (!c) return;
+      runTs = c.runTs; off = _sliderStep + c.lagH;
+    }
+    var step = getMetaStep(runTs, off); if (!step) return;
+    var entry = step[_layerKey]; if (!entry) return;
+    var url = typeof entry === 'string' ? entry : (entry[_scheme] || entry.norm); if (!url) return;
     url = url.replace(R2_BASE, R2_CDN);
-    window[rVar] = L.imageOverlay(url, IMG_BOUNDS, { opacity: 0.85, interactive: false }).addTo(window[mVar]);
-  }
-
-  addRaster(stepL, '_rasterLeft',   '_mapLeft');
-  addRaster(stepR, '_rasterCentre', '_mapCentre');
+    p.raster = L.imageOverlay(url, IMG_BOUNDS, { opacity: 0.85, interactive: false }).addTo(p.map);
+  });
 }
 
 // ── Legend ─────────────────────────────────────────────────────────────────
-function renderLegend() {
-  // Left & centre keys carry no embedded header — the column run selectors and the
-  // panel datetime already say which run / valid time is shown.
-  function accumCbar() {
-    var s = SCHEMES[_scheme];
-    var blocks = s.colors.map(function(c) { return '<div class="cbar-block" style="background:' + c + '"></div>'; }).join('');
-    var n = s.colors.length;
-    var labels = s.bounds.map(function(v, i) {
-      var pct = ((i + 0.5) / n * 100).toFixed(1);
-      var str = v < 1 ? ('.' + String(v).split('.')[1]) : Math.round(v);
-      return '<span class="cbar-label" style="left:' + pct + '%">' + str + '</span>';
-    }).join('');
-    return '<div class="cbar">' + blocks + '</div><div class="cbar-labels">' + labels + '</div>';
-  }
-
-  function diffCbar() {
-    var blocks = BIAS_COLORS.map(function(c) { return '<div class="cbar-block" style="background:' + c + '"></div>'; }).join('');
-    var n = BIAS_COLORS.length;
-    // Position each bound label between the colour blocks it separates
-    var labels = BIAS_BOUNDS.map(function(v, i) {
-      var pct = ((i + 1) / n * 100).toFixed(1);
-      var txt = v === -2 ? '−2' : v === 2 ? '+2' : (v > 0 ? '+' : '') + Math.round(v);
-      return '<span class="cbar-label" style="left:' + pct + '%">' + txt + '</span>';
-    }).join('');
-    return '<p>Difference (base − reference)</p>' +
-      '<div class="cbar">' + blocks + '</div>' +
-      '<div class="cbar-labels">' + labels + '</div>' +
-      '<div class="bias-arrows"><span style="color:#1565c0;font-weight:600;">◄ Base drier</span><span style="color:#b91c1c;font-weight:600;">Base wetter ►</span></div>';
-  }
-
-  var elL = document.getElementById('legendLeft');
-  var elC = document.getElementById('legendCentre');
-  var elD = document.getElementById('legendDiff');
-  if (elL) elL.innerHTML = accumCbar();
-  if (elC) elC.innerHTML = accumCbar();
-  if (elD) elD.innerHTML = diffCbar();
+function accumCbarHtml() {
+  var s = SCHEMES[_scheme];
+  var blocks = s.colors.map(function(c) { return '<div class="cbar-block" style="background:' + c + '"></div>'; }).join('');
+  var n = s.colors.length;
+  var labels = s.bounds.map(function(v, i) {
+    var pct = ((i + 0.5) / n * 100).toFixed(1);
+    var str = v < 1 ? ('.' + String(v).split('.')[1]) : Math.round(v);
+    return '<span class="cbar-label" style="left:' + pct + '%">' + str + '</span>';
+  }).join('');
+  return '<div class="cbar">' + blocks + '</div><div class="cbar-labels">' + labels + '</div>';
 }
 
-// ── Catchment reference overlay (shown on all maps when Grid 20km area layer active) ──
-function updateCatchOverlay() {
-  var maps = [_mapLeft, _mapCentre, _mapDiff];
-  var vars = ['_catchLeft', '_catchCentre', '_catchDiff'];
-  vars.forEach(function(v, i) {
-    if (window[v] && maps[i]) { maps[i].removeLayer(window[v]); window[v] = null; }
+function diffCbarHtml() {
+  var blocks = BIAS_COLORS.map(function(c) { return '<div class="cbar-block" style="background:' + c + '"></div>'; }).join('');
+  var n = BIAS_COLORS.length;
+  var labels = BIAS_BOUNDS.map(function(v, i) {
+    var pct = ((i + 1) / n * 100).toFixed(1);
+    var txt = v === -2 ? '−2' : v === 2 ? '+2' : (v > 0 ? '+' : '') + Math.round(v);
+    return '<span class="cbar-label" style="left:' + pct + '%">' + txt + '</span>';
+  }).join('');
+  return '<p>Difference (base − reference)</p>' +
+    '<div class="cbar">' + blocks + '</div>' +
+    '<div class="cbar-labels">' + labels + '</div>' +
+    '<div class="bias-arrows"><span style="color:#1565c0;font-weight:600;">◄ Base drier</span><span style="color:#b91c1c;font-weight:600;">Base wetter ►</span></div>';
+}
+
+function renderLegend() {
+  _panels.forEach(function(p) {
+    if (!p.legendEl) return;
+    p.legendEl.innerHTML = (p.role === 'diff') ? diffCbarHtml() : accumCbarHtml();
   });
+}
+
+// ── Catchment reference overlay (shown on all panels when the Grid 20km layer is active) ──
+function updateCatchOverlay() {
+  _panels.forEach(function(p) { if (p.catch) { p.map.removeLayer(p.catch); p.catch = null; } });
   if (_layer !== 'grid') return;
   loadGeo('catchments').then(function(geo) {
-    maps.forEach(function(m, i) {
-      if (!m) return;
-      window[vars[i]] = L.geoJSON(geo, {
-        style: { color: '#64748b', weight: 1, fillOpacity: 0, interactive: false }
-      }).addTo(m);
+    _panels.forEach(function(p) {
+      p.catch = L.geoJSON(geo, { style: { color: '#64748b', weight: 1, fillOpacity: 0, interactive: false } }).addTo(p.map);
     });
   }).catch(function() {});
 }
@@ -1119,7 +1157,7 @@ function updateCatchOverlay() {
 function setLayerKey(key) {
   _layerKey = key;
   buildSliderRange();   // also calls updateSliderLabel + renderTimelineTicks
-  computeSliderData();
+  computeCompData();
   refreshPolyStyles();
   updateRaster();
   renderLegend();
@@ -1129,7 +1167,6 @@ function setLayerKey(key) {
 
 function setLayer(lyr) {
   _layer = lyr;
-  _clearLabels();
   drawPolys();
   updateCatchOverlay();
   renderLegend();
@@ -1148,7 +1185,7 @@ function setScheme(s) {
   _scheme = s;
   refreshPolyStyles();
   renderLegend();
-  if (_rasterLeft || _rasterCentre) updateRaster();
+  updateRaster();
 }
 
 // ── Data Table ──────────────────────────────────────────────────────────────
@@ -1220,11 +1257,19 @@ function init(trendsData, metaData) {
     metaEl.textContent = 'Updated ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ' UTC';
   }
 
+  var allRuns = (_meta && _meta.runs) || [];
+  _selectedRunLeft = (_data && _data.latest_run) || (allRuns[0] && allRuns[0].run_ts);
+  reconcileRefs();
+
   showMain();
-  initMaps();
+  buildMaps();
   renderRules();
-  applyComparisonSelection();
+  applyAll();
 }
+
+window.addEventListener('resize', function() {
+  _panels.forEach(function(p) { p.map.invalidateSize(); });
+});
 
 Promise.all([
   fetch('ukv_trends.json?_=' + Date.now()).then(function(r) { return r.json(); }).catch(function() { return {}; }),
