@@ -549,8 +549,11 @@ function buildMasterTimeline() {
   var selectedRun = meta && meta.runs && meta.runs[focusRunIdx];
   if (selectedRun && selectedRun.steps) {
     selectedRun.steps.forEach(function(s) {
-      var ms = stepValidMs(selectedRun, s);
-      if (!isNaN(ms)) msSet.add(ms);
+      // Filter strictly to steps that have data for the active threshold duration
+      if (s.splats && s.splats[activeThreshold]) {
+        var ms = stepValidMs(selectedRun, s);
+        if (!isNaN(ms)) msSet.add(ms);
+      }
     });
   }
 
@@ -714,6 +717,7 @@ function renderLegendList(activeRuns, targetMs) {
 // ── Interactive Handlers ──────────────────────────────────────────────────────
 function setThreshold(val) {
   activeThreshold = val;
+  buildMasterTimeline();
   updateDisplay();
 }
 
