@@ -250,11 +250,22 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    min-width: 160px;
+    min-width: 180px;
     flex-shrink: 0;
   }
   #playerDateLine { font-size: 12px; font-weight: 700; color: #1e293b; }
   #playerOffsetLine { font-size: 11px; font-weight: 500; color: #64748b; }
+  #noDataBadge {
+    display: none;
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
 
   @media (max-width: 768px) {
     .info-panel { width: calc(100vw - 40px); right: 20px; }
@@ -341,11 +352,13 @@
       <div id="playerDateLine">—</div>
       <div id="playerOffsetLine">—</div>
     </div>
+    <div id="noDataBadge">⚠ No splat data for frame</div>
   </div>
 </div>
 
 <script>
 var R2_CDN = 'https://radar.floodforecast.co.uk';
+var BLANK_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
 // Distinct high-contrast color palette for up to 4 successive runs
 var RUN_COLORS = [
@@ -367,9 +380,21 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 // ── Leaflet overlays for up to 4 runs ────────────────────────────────────────
 var runOverlays = [];
 for (var r = 0; r < 4; r++) {
-  var overlay = L.imageOverlay('', imgBounds, { opacity: 0.8, interactive: false }).addTo(map);
+  var overlay = L.imageOverlay(BLANK_PNG, imgBounds, { opacity: 0.8, interactive: false }).addTo(map);
   overlay._expectedRawUrl = '';
   runOverlays.push(overlay);
+}
+
+function setOverlayState(overlay, url, opacity) {
+  if (!url) {
+    overlay._expectedRawUrl = '';
+    overlay.setUrl(BLANK_PNG);
+    if (overlay.getElement()) overlay.getElement().style.display = 'none';
+  } else {
+    overlay.setUrl(url);
+    overlay.setOpacity(opacity);
+    if (overlay.getElement()) overlay.getElement().style.display = 'block';
+  }
 }
 
 // ── Geographic Boundary Layers ────────────────────────────────────────────────
@@ -577,12 +602,13 @@ function updateDisplay() {
   var activeRuns = getActiveRunObjects();
   renderLegendList(activeRuns, targetMs);
 
+  var anySplatActive = false;
+
   // Update map overlays for each of the 4 runs with race condition prevention
   activeRuns.forEach(function(run, slotIdx) {
     var overlay = runOverlays[slotIdx];
     if (!run || !runEnabled[slotIdx]) {
-      overlay._expectedRawUrl = '';
-      overlay.setUrl('');
+      setOverlayState(overlay, '', 0);
       return;
     }
 
@@ -594,11 +620,11 @@ function updateDisplay() {
     });
 
     if (!matchingStep || !matchingStep.splats || !matchingStep.splats[activeThreshold]) {
-      overlay._expectedRawUrl = '';
-      overlay.setUrl('');
+      setOverlayState(overlay, '', 0);
       return;
     }
 
+    anySplatActive = true;
     var rawSplatUrl = matchingStep.splats[activeThreshold];
     overlay._expectedRawUrl = rawSplatUrl;
     var colorHex = RUN_COLORS[slotIdx].hex;
@@ -606,8 +632,7 @@ function updateDisplay() {
     getColorizedSplatUrl(rawSplatUrl, colorHex, function(tintedUrl) {
       // Prevent race condition: verify this overlay still expects this raw URL
       if (overlay._expectedRawUrl === rawSplatUrl) {
-        overlay.setUrl(tintedUrl);
-        overlay.setOpacity(globalOpacity);
+        setOverlayState(overlay, tintedUrl, globalOpacity);
       }
     });
   });
@@ -622,6 +647,8 @@ function updateDisplay() {
   } else {
     document.getElementById('playerOffsetLine').textContent = 'Before focus run start (showing older runs)';
   }
+
+  document.getElementById('noDataBadge').style.display = anySplatActive ? 'none' : 'block';
 }
 
 function renderLegendList(activeRuns, targetMs) {
