@@ -1066,9 +1066,6 @@ def main():
             for n in ACCUM_PERIODS:
                 if total_stk < n:
                     continue
-                # Beyond T+54 on long runs, only 1hr accumulation is reliable
-                if hours > 54 and n > 1:
-                    continue
                 # Walk backwards through the stack, accumulating whole slots until
                 # n hours are covered. If a slot is too large for the remaining
                 # budget, stop — this prevents bridging across a temporal gap
@@ -1241,8 +1238,6 @@ def backfill_missing_splats(s3, r2, meta, mapping):
             accum_renders = []
             for n in ACCUM_PERIODS:
                 if total_stk < n:
-                    continue
-                if hours > 54 and n > 1:
                     continue
                 covered, arrs = 0, []
                 for slot in reversed(accum_stack):

@@ -97,8 +97,6 @@ def main():
             for n in fetch_ukv.ACCUM_PERIODS:
                 if total_stk < n:
                     continue
-                if hours > 54 and n > 1:
-                    continue
                 covered, arrs = 0, []
                 for slot in reversed(accum_stack):
                     if covered >= n:
