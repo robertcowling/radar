@@ -719,6 +719,13 @@
                 </label>
             </div>
 
+            <div class="opacity-control" style="margin-top: 8px;">
+                <label class="custom-checkbox">
+                    <input type="checkbox" id="lightningToggle" checked onchange="toggleLightning(this.checked)">
+                    Lightning
+                </label>
+            </div>
+
             <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Radar Feed</p>
             <div style="margin-bottom: 24px;">
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
@@ -784,10 +791,21 @@
                 <strong>Satellite:</strong> &copy; <a href="https://www.eumetsat.int" target="_blank" style="color:#1a73e8;">EUMETSAT</a> MTG FCI<br>
                 &nbsp;&nbsp;<a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:rgb_geocolour" target="_blank" style="color:#1a73e8;">GeoColour RGB</a> &middot;
                 <a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:vis06_hrfi" target="_blank" style="color:#1a73e8;">HRFI VIS0.6</a> &middot;
-                <a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:ir105_hrfi" target="_blank" style="color:#1a73e8;">HRFI IR10.5</a>
+                <a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:ir105_hrfi" target="_blank" style="color:#1a73e8;">HRFI IR10.5</a><br>
+                <strong>Lightning:</strong> &copy; <a href="https://openweathermap.org" target="_blank" style="color:#1a73e8;">OpenWeather</a> Lightning API
             </p>
         </div>
     </div>
+
+    <!-- OpenWeather lightning attribution badge (shown when lightning layer is on) -->
+    <a id="owBadge" href="https://openweathermap.org" target="_blank" rel="noopener"
+       style="position:fixed;bottom:72px;right:10px;z-index:500;display:flex;align-items:center;gap:6px;
+              background:rgba(235,100,0,0.92);color:#fff;font-size:11px;font-weight:700;
+              padding:5px 9px;border-radius:8px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.25);
+              backdrop-filter:blur(4px);">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        OpenWeather
+    </a>
 
     <!-- Controls Panel -->
     <div class="player-panel surface" id="controlsPanel">
@@ -1553,7 +1571,77 @@
             
             if (regionLayer && map.hasLayer(regionLayer)) safeBringToFront(regionLayer);
             if (countiesLayer && map.hasLayer(countiesLayer)) safeBringToFront(countiesLayer);
+            // Lightning on top of everything so strikes are always visible
+            if (typeof lightningGroup !== 'undefined' && map.hasLayer(lightningGroup)) lightningGroup.bringToFront();
         }
+
+        // ── Lightning Layer ───────────────────────────────────────────────────
+        var LIGHTNING_URL = 'https://radar.floodforecast.co.uk/lightning/lightning_latest.json';
+        var lightningGroup = L.layerGroup().addTo(map);
+        var lightningEnabled = true;
+        var lightningData = null;
+
+        // Returns CircleMarker style for a strike aged `ageMin` minutes, or null to skip.
+        function lightningStyle(ageMin) {
+            if (ageMin <  5)  return { radius: 5.0, color: '#ffffff', fillColor: '#ffffff', fillOpacity: 0.95, weight: 1.5, opacity: 0.95 };
+            if (ageMin < 15)  return { radius: 4.5, color: '#ffffaa', fillColor: '#ffff44', fillOpacity: 0.85, weight: 1.0, opacity: 0.85 };
+            if (ageMin < 30)  return { radius: 4.0, color: '#ffcc00', fillColor: '#ffaa00', fillOpacity: 0.70, weight: 0.8, opacity: 0.70 };
+            if (ageMin < 45)  return { radius: 3.5, color: '#ff8800', fillColor: '#ff6600', fillOpacity: 0.50, weight: 0.8, opacity: 0.50 };
+            if (ageMin < 60)  return { radius: 3.0, color: '#ff4400', fillColor: '#dd3300', fillOpacity: 0.30, weight: 0.5, opacity: 0.30 };
+            if (ageMin < 90)  return { radius: 2.5, color: '#cc2200', fillColor: '#aa1100', fillOpacity: 0.15, weight: 0.5, opacity: 0.15 };
+            return null;
+        }
+
+        function renderLightning() {
+            lightningGroup.clearLayers();
+            if (!lightningEnabled || !lightningData) return;
+            var now = Date.now();
+            var shown = 0;
+            lightningData.strikes.forEach(function(strike) {
+                var ageMin = (now - new Date(strike.datetime).getTime()) / 60000;
+                var s = lightningStyle(ageMin);
+                if (!s) return;
+                L.circleMarker([strike.lat, strike.lon], {
+                    radius:      s.radius,
+                    color:       s.color,
+                    fillColor:   s.fillColor,
+                    fillOpacity: s.fillOpacity,
+                    weight:      s.weight,
+                    opacity:     s.opacity,
+                    interactive: false,
+                }).addTo(lightningGroup);
+                shown++;
+            });
+            if (shown > 0) enforceZOrder();
+        }
+
+        function fetchLightning() {
+            fetch(LIGHTNING_URL + '?_cb=' + Date.now())
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    lightningData = data;
+                    renderLightning();
+                })
+                .catch(function(e) { console.log('Lightning fetch failed:', e); });
+        }
+
+        function toggleLightning(show) {
+            lightningEnabled = show;
+            document.getElementById('owBadge').style.display = show ? 'flex' : 'none';
+            if (show) {
+                if (!map.hasLayer(lightningGroup)) lightningGroup.addTo(map);
+                if (lightningData) renderLightning(); else fetchLightning();
+            } else {
+                lightningGroup.clearLayers();
+                map.removeLayer(lightningGroup);
+            }
+        }
+
+        // Initial fetch + auto-refresh every 5 min
+        fetchLightning();
+        setInterval(fetchLightning, 5 * 60 * 1000);
+        // Re-render every minute so age-based fading updates in real time
+        setInterval(renderLightning, 60 * 1000);
 
         // Load MSLP meta at startup (quietly — no overlay created until checkbox ticked)
         fetchMslpMeta();
