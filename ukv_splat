@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- SEO -->
+<title>UKV Splat Map | Flood Forecast</title>
+<meta name="description" content="Explore Met Office UKV rainfall splat maps. Compare threshold exceedance masks across multiple consecutive forecast model runs to track rainfall persistence and spatial shifts.">
+<meta name="keywords" content="UKV splat map, rainfall threshold, Met Office UKV, flood forecast, heavy rainfall mask, forecast shift, UK weather model">
+<meta name="author" content="Flood Forecast">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://floodforecast.co.uk/ukv_splat.html">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://floodforecast.co.uk/ukv_splat.html">
+<meta property="og:title" content="UKV Splat Map | Flood Forecast">
+<meta property="og:description" content="Interactive UKV threshold exceedance splat map with multi-run model comparison.">
+<meta property="og:image" content="https://floodforecast.co.uk/static/images/og_image.png">
+<meta property="og:site_name" content="Flood Forecast">
+<meta property="og:locale" content="en_GB">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="UKV Splat Map | Flood Forecast">
+<meta name="twitter:description" content="Interactive UKV threshold exceedance splat map with multi-run model comparison.">
+<meta name="twitter:image" content="https://floodforecast.co.uk/static/images/og_image.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="https://floodforecast.co.uk/static/images/avatar.png">
+
+<!-- JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "UKV Splat Map | Flood Forecast",
+  "url": "https://floodforecast.co.uk/ukv_splat.html",
+  "description": "Interactive UKV rainfall threshold exceedance splat map comparing multiple model runs.",
+  "isPartOf": { "@type": "WebSite", "url": "https://floodforecast.co.uk" },
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Flood Forecast", "item": "https://floodforecast.co.uk" },
+      { "@type": "ListItem", "position": 2, "name": "UKV Splat Map", "item": "https://floodforecast.co.uk/ukv_splat.html" }
+    ]
+  }
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+  body { padding: 0; margin: 0; font-family: 'Roboto', sans-serif; background: #f8f9fa; color: #3c4043; overflow: hidden; }
+  #map { width: 100vw; height: 100vh; }
+
+  .surface {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+    transition: box-shadow 0.3s ease;
+  }
+  .surface:hover {
+    box-shadow: 0 12px 32px rgba(0,0,0,0.16), 0 4px 10px rgba(0,0,0,0.1);
+  }
+
+  /* ── Info panel ─────────────────────────────────────────────────────────── */
+  .info-panel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 0 24px 20px;
+    z-index: 1000;
+    width: 360px;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+  }
+
+  .panel-header {
+    background: #1e293b;
+    color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 20px;
+    border-radius: 12px 12px 0 0;
+    margin: 0 -24px 16px -24px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .panel-header-title { font-size: 14px; font-weight: 600; letter-spacing: 0.3px; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #3c4043;
+    margin: 16px 0 6px;
+  }
+  .section-label:first-of-type { margin-top: 4px; }
+
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: #f1f3f4;
+    border: none;
+    padding: 9px 34px 9px 16px;
+    border-radius: 24px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 13px;
+    color: #202124;
+    font-weight: 500;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    outline: none;
+    transition: background 0.2s;
+    width: 100%;
+  }
+  select:hover { background-color: #e8eaed; }
+
+  /* ── Active Runs Legend List ───────────────────────────────────────────── */
+  .run-legend-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .run-legend-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: opacity 0.2s;
+  }
+  .run-legend-card.inactive {
+    opacity: 0.45;
+  }
+  .run-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .run-color-pill {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+  }
+  .run-title-group {
+    display: flex;
+    flex-direction: column;
+  }
+  .run-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+  .run-time-sub {
+    font-size: 10px;
+    color: #64748b;
+  }
+  .run-toggle-check {
+    accent-color: #1a73e8;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+
+  #generatedAt { font-size: 10px; color: #94a3b8; margin: 14px 0 0; }
+  #attribution { font-size: 10px; color: #94a3b8; margin: 6px 0 0; line-height: 1.5; }
+
+  /* ── Player panel ───────────────────────────────────────────────────────── */
+  .player-panel {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 20px;
+    max-width: 95vw;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(8px);
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .control-group select {
+    width: auto;
+    min-width: 140px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .control-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #475569;
+  }
+
+  .play-btn {
+    background: #1e293b;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .play-btn:hover { background: #0f172a; transform: scale(1.05); }
+  .play-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+  .timeline-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 260px;
+  }
+
+  #timeSlider {
+    width: 100%;
+    accent-color: #1e293b;
+    cursor: pointer;
+  }
+
+  #playerDateTime {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 160px;
+    flex-shrink: 0;
+  }
+  #playerDateLine { font-size: 12px; font-weight: 700; color: #1e293b; }
+  #playerOffsetLine { font-size: 11px; font-weight: 500; color: #64748b; }
+
+  @media (max-width: 768px) {
+    .info-panel { width: calc(100vw - 40px); right: 20px; }
+    .player-panel { flex-wrap: wrap; justify-content: center; bottom: 12px; padding: 12px; }
+    .timeline-container { min-width: 100%; order: 3; }
+  }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- Info & Legend Panel -->
+<div class="info-panel surface">
+  <div class="panel-header">
+    <span class="panel-header-title">UKV Splat Map</span>
+  </div>
+
+  <div class="section-label">Rainfall threshold</div>
+  <select id="thresholdSelect" onchange="setThreshold(this.value)">
+    <optgroup label="1-hour accumulation / rate">
+      <option value="1h_1mm">1hr &ge; 1 mm (Light / Test)</option>
+      <option value="1h_2mm">1hr &ge; 2 mm (Test)</option>
+      <option value="1h_5mm">1hr &ge; 5 mm (Moderate / Test)</option>
+      <option value="1h_10mm">1hr &ge; 10 mm (Heavy)</option>
+      <option value="1h_30mm">1hr &ge; 30 mm (Extreme)</option>
+    </optgroup>
+    <optgroup label="3-hour accumulation">
+      <option value="3h_1mm">3hr &ge; 1 mm (Light / Test)</option>
+      <option value="3h_2mm">3hr &ge; 2 mm (Test)</option>
+      <option value="3h_5mm">3hr &ge; 5 mm (Test)</option>
+      <option value="3h_10mm">3hr &ge; 10 mm (Moderate / Test)</option>
+      <option value="3h_20mm">3hr &ge; 20 mm (Heavy)</option>
+      <option value="3h_30mm" selected>3hr &ge; 30 mm (Default)</option>
+      <option value="3h_40mm">3hr &ge; 40 mm (Extreme)</option>
+    </optgroup>
+    <optgroup label="6-hour accumulation">
+      <option value="6h_2mm">6hr &ge; 2 mm (Test)</option>
+      <option value="6h_5mm">6hr &ge; 5 mm (Test)</option>
+      <option value="6h_10mm">6hr &ge; 10 mm (Moderate / Test)</option>
+      <option value="6h_30mm">6hr &ge; 30 mm (Heavy)</option>
+      <option value="6h_50mm">6hr &ge; 50 mm (Extreme)</option>
+    </optgroup>
+  </select>
+
+  <div class="section-label">Active model runs overlay</div>
+  <div id="runLegendList" class="run-legend-list">
+    <!-- Populated by JS -->
+  </div>
+
+  <div class="section-label" style="margin-top:16px;">Splat opacity</div>
+  <div style="display:flex; align-items:center; gap:8px;">
+    <input type="range" id="opacitySlider" min="0" max="100" value="80"
+           style="flex:1; accent-color:#1e293b; cursor:pointer;"
+           oninput="setOpacity(this.value)">
+    <span id="opacityLabel" style="font-size:11px; color:#64748b; width:34px; text-align:right;">80%</span>
+  </div>
+
+  <p id="generatedAt">Loading metadata...</p>
+  <p id="attribution">Met Office data &copy; Crown copyright &mdash; <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" style="color:inherit;">OGL v3</a></p>
+</div>
+
+<!-- Player Panel -->
+<div class="player-panel surface">
+  <button id="playBtn" class="play-btn" onclick="togglePlay()" title="Play / Pause">
+    <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+  </button>
+
+  <div class="control-group">
+    <span class="control-label">Focus model run</span>
+    <select id="focusRunSelect" onchange="setFocusRun(parseInt(this.value))">
+      <option>Loading runs...</option>
+    </select>
+  </div>
+
+  <div class="timeline-container">
+    <input type="range" id="timeSlider" min="0" max="0" step="1" value="0" oninput="onSliderInput(parseInt(this.value))">
+  </div>
+
+  <div id="playerDateTime">
+    <div>
+      <div id="playerDateLine">—</div>
+      <div id="playerOffsetLine">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var R2_CDN = 'https://radar.floodforecast.co.uk';
+
+// Distinct high-contrast color palette for up to 4 successive runs
+var RUN_COLORS = [
+  { name: 'Run 0 (Focus)', hex: '#e63946', rgb: [230, 57, 70] },   // Crimson Red
+  { name: 'Run -1',        hex: '#f77f00', rgb: [247, 127, 0] },   // Bright Orange
+  { name: 'Run -2',        hex: '#2a9d8f', rgb: [42, 157, 143] },  // Teal Green
+  { name: 'Run -3',        hex: '#457b9d', rgb: [69, 123, 157] }   // Steel Blue
+];
+
+var imgBounds = [[43.0, -26.0], [63.0, 17.0]];
+var map = L.map('map', { zoomControl: false }).setView([54.5, -3.5], 6);
+L.control.zoom({ position: 'topleft' }).addTo(map);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 20,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+}).addTo(map);
+
+// ── Leaflet overlays for up to 4 runs ────────────────────────────────────────
+var runOverlays = [];
+for (var r = 0; r < 4; r++) {
+  var overlay = L.imageOverlay('', imgBounds, { opacity: 0.8, interactive: false }).addTo(map);
+  runOverlays.push(overlay);
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var meta            = null;
+var focusRunIdx     = 0;            // Index in meta.runs
+var activeThreshold = '3h_30mm';
+var currentValidIdx = 0;            // Index in masterValidTimes
+var masterValidTimes= [];           // Sorted list of unique valid timestamp strings
+var runEnabled      = [true, true, true, true];
+var globalOpacity   = 0.8;
+var playing         = false;
+var playTimer       = null;
+var canvasCache     = {};           // Cache colorized dataURLs: key -> dataURL
+
+// ── Tinting / Canvas Engine ───────────────────────────────────────────────────
+function getColorizedSplatUrl(rawUrl, colorHex, cb) {
+  var cacheKey = rawUrl + '|' + colorHex;
+  if (canvasCache[cacheKey]) {
+    cb(canvasCache[cacheKey]);
+    return;
+  }
+
+  var img = new Image();
+  img.crossOrigin = 'Anonymous';
+  img.onload = function() {
+    var canvas = document.createElement('canvas');
+    canvas.width = img.width || 1725;
+    canvas.height = img.height || 1800;
+    var ctx = canvas.getContext('2d');
+
+    // Draw solid color, then use destination-in mask
+    ctx.fillStyle = colorHex;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.drawImage(img, 0, 0);
+
+    var dataUrl = canvas.toDataURL('image/png');
+    canvasCache[cacheKey] = dataUrl;
+    cb(dataUrl);
+  };
+  img.onerror = function() {
+    cb('');
+  };
+  img.src = rawUrl;
+}
+
+// ── Main Data Initialization ──────────────────────────────────────────────────
+fetch(R2_CDN + '/ukv_meta.json')
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    meta = data;
+    if (meta.generated_at) {
+      document.getElementById('generatedAt').textContent = 'Updated: ' + new Date(meta.generated_at).toUTCString().replace('GMT', 'UTC');
+    }
+    initRunSelect();
+    buildMasterTimeline();
+    updateDisplay();
+  })
+  .catch(function(err) {
+    document.getElementById('generatedAt').textContent = 'Error loading metadata.';
+    console.error(err);
+  });
+
+function initRunSelect() {
+  var sel = document.getElementById('focusRunSelect');
+  sel.innerHTML = '';
+  (meta.runs || []).forEach(function(r, idx) {
+    var opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = r.run_label || r.run_ts;
+    sel.appendChild(opt);
+  });
+}
+
+function buildMasterTimeline() {
+  var validSet = new Set();
+  var activeRuns = getActiveRunObjects();
+  activeRuns.forEach(function(run) {
+    if (run && run.steps) {
+      run.steps.forEach(function(s) {
+        if (s.valid_label) validSet.add(s.valid_label);
+      });
+    }
+  });
+
+  // Sort chronologically based on valid_label text parsing or original order
+  masterValidTimes = Array.from(validSet);
+  masterValidTimes.sort(function(a, b) {
+    return parseValidDt(a) - parseValidDt(b);
+  });
+
+  var slider = document.getElementById('timeSlider');
+  slider.min = 0;
+  slider.max = Math.max(0, masterValidTimes.length - 1);
+  if (currentValidIdx >= masterValidTimes.length) {
+    currentValidIdx = Math.max(0, masterValidTimes.length - 1);
+  }
+  slider.value = currentValidIdx;
+}
+
+function parseValidDt(lbl) {
+  try {
+    return new Date(lbl.replace('GMT', 'UTC')).getTime();
+  } catch(e) {
+    return 0;
+  }
+}
+
+function getActiveRunObjects() {
+  if (!meta || !meta.runs) return [];
+  var list = [];
+  for (var offset = 0; offset < 4; offset++) {
+    var idx = focusRunIdx + offset;
+    if (idx < meta.runs.length) {
+      list.push(meta.runs[idx]);
+    } else {
+      list.push(null);
+    }
+  }
+  return list;
+}
+
+// ── Display Update ────────────────────────────────────────────────────────────
+function updateDisplay() {
+  if (!meta || !masterValidTimes.length) return;
+
+  var targetValidLabel = masterValidTimes[currentValidIdx];
+  document.getElementById('playerDateLine').textContent = targetValidLabel || '—';
+
+  var activeRuns = getActiveRunObjects();
+  renderLegendList(activeRuns, targetValidLabel);
+
+  // Update map overlays for each of the 4 runs
+  activeRuns.forEach(function(run, slotIdx) {
+    var overlay = runOverlays[slotIdx];
+    if (!run || !runEnabled[slotIdx]) {
+      overlay.setUrl('');
+      return;
+    }
+
+    // Find step matching targetValidLabel
+    var matchingStep = null;
+    (run.steps || []).forEach(function(s) {
+      if (s.valid_label === targetValidLabel) matchingStep = s;
+    });
+
+    if (!matchingStep || !matchingStep.splats || !matchingStep.splats[activeThreshold]) {
+      overlay.setUrl('');
+      return;
+    }
+
+    var rawSplatUrl = matchingStep.splats[activeThreshold];
+    var colorHex = RUN_COLORS[slotIdx].hex;
+
+    getColorizedSplatUrl(rawSplatUrl, colorHex, function(tintedUrl) {
+      overlay.setUrl(tintedUrl);
+      overlay.setOpacity(globalOpacity);
+    });
+  });
+
+  var focusStep = activeRuns[0] ? (activeRuns[0].steps || []).find(function(s){ return s.valid_label === targetValidLabel; }) : null;
+  document.getElementById('playerOffsetLine').textContent = focusStep ? ('Focus run ' + focusStep.offset) : 'Out of focus run range';
+}
+
+function renderLegendList(activeRuns, targetValidLabel) {
+  var container = document.getElementById('runLegendList');
+  container.innerHTML = '';
+
+  activeRuns.forEach(function(run, slotIdx) {
+    var card = document.createElement('div');
+    var isCovered = false;
+    if (run && run.steps) {
+      isCovered = run.steps.some(function(s) { return s.valid_label === targetValidLabel; });
+    }
+
+    card.className = 'run-legend-card' + (!isCovered || !runEnabled[slotIdx] ? ' inactive' : '');
+
+    var colorInfo = RUN_COLORS[slotIdx];
+    var labelText = slotIdx === 0 ? 'Focus: ' + (run ? run.run_label : 'N/A') : (run ? run.run_label : 'No run data');
+    var subText = isCovered ? 'Active at timestamp' : (run ? 'No coverage at timestamp' : 'Run unavailable');
+
+    card.innerHTML =
+      '<div class="run-info">' +
+        '<div class="run-color-pill" style="background:' + colorInfo.hex + '"></div>' +
+        '<div class="run-title-group">' +
+          '<span class="run-name">' + labelText + '</span>' +
+          '<span class="run-time-sub">' + subText + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<input type="checkbox" class="run-toggle-check" ' + (runEnabled[slotIdx] ? 'checked' : '') +
+      ' onchange="toggleRunSlot(' + slotIdx + ', this.checked)">';
+
+    container.appendChild(card);
+  });
+}
+
+// ── Interactive Handlers ──────────────────────────────────────────────────────
+function setThreshold(val) {
+  activeThreshold = val;
+  updateDisplay();
+}
+
+function setFocusRun(idx) {
+  focusRunIdx = idx;
+  buildMasterTimeline();
+  updateDisplay();
+}
+
+function toggleRunSlot(slotIdx, enabled) {
+  runEnabled[slotIdx] = enabled;
+  updateDisplay();
+}
+
+function setOpacity(val) {
+  globalOpacity = parseFloat(val) / 100.0;
+  document.getElementById('opacityLabel').textContent = Math.round(globalOpacity * 100) + '%';
+  runOverlays.forEach(function(ov) {
+    ov.setOpacity(globalOpacity);
+  });
+}
+
+function onSliderInput(val) {
+  currentValidIdx = val;
+  updateDisplay();
+}
+
+function togglePlay() {
+  playing = !playing;
+  var btn = document.getElementById('playBtn');
+  var icon = document.getElementById('playIcon');
+
+  if (playing) {
+    icon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; // Pause icon
+    playTimer = setInterval(function() {
+      currentValidIdx = (currentValidIdx + 1) % masterValidTimes.length;
+      document.getElementById('timeSlider').value = currentValidIdx;
+      updateDisplay();
+    }, 300);
+  } else {
+    icon.innerHTML = '<path d="M8 5v14l11-7z"/>'; // Play icon
+    clearInterval(playTimer);
+  }
+}
+</script>
+</body>
+</html>
