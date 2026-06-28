@@ -98,7 +98,7 @@ body {
   font-size: 12px; font-weight: 500; color: #202124; cursor: pointer;
   background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 9px center;
-  outline: none; max-width: 160px; text-overflow: ellipsis; white-space: nowrap;
+  outline: none; max-width: 185px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
 }
 .panel-select:hover { background-color: #e8eaed; }
 
@@ -364,7 +364,7 @@ input[type=range]#timeSlider::-moz-range-thumb {
     <span class="control-label">Compare against</span>
     <div class="seg-control">
       <button id="btnCmp1" class="seg-btn seg-active" onclick="setCompareMode(1)">1 run</button>
-      <button id="btnCmp4" class="seg-btn"            onclick="setCompareMode(4)">4 runs</button>
+      <button id="btnCmp3" class="seg-btn"            onclick="setCompareMode(3)">3 runs</button>
     </div>
   </div>
 
@@ -809,24 +809,76 @@ function overlappingRuns() {
   });
 }
 
+// Default comparison runs, by lag from the base: previous run, then ~12h before,
+// then ~24h before (picking the closest available overlapping run to each target).
+function pickRunByLag(avail, dtBase, targetLag, used) {
+  var best = null, bestDiff = Infinity;
+  avail.forEach(function(r) {
+    if (used.indexOf(r.run_ts) >= 0) return;
+    var lag  = Math.round((dtBase - parseRunTs(r.run_ts)) / 3600000);
+    var diff = Math.abs(lag - targetLag);
+    if (diff < bestDiff) { bestDiff = diff; best = r.run_ts; }
+  });
+  return best;
+}
+
+function defaultRefs() {
+  var avail = overlappingRuns();
+  if (!_selectedRunLeft || !avail.length) return [];
+  var dtBase = parseRunTs(_selectedRunLeft);
+  var lagOf  = function(ts) { return Math.round((dtBase - parseRunTs(ts)) / 3600000); };
+  var used = [], out = [];
+
+  // 1st comparison = the immediately preceding run (smallest positive lag).
+  var prev = avail.slice().sort(function(a, b) { return lagOf(a.run_ts) - lagOf(b.run_ts); })[0];
+  if (prev) { out.push(prev.run_ts); used.push(prev.run_ts); }
+
+  // Then ~12h and ~24h before the base.
+  [12, 24].forEach(function(target) {
+    if (out.length >= _compareMode) return;
+    var pick = pickRunByLag(avail, dtBase, target, used);
+    if (pick) { out.push(pick); used.push(pick); }
+  });
+
+  // Top up from remaining overlapping runs if more slots are needed.
+  for (var i = 0; i < avail.length && out.length < _compareMode; i++) {
+    if (used.indexOf(avail[i].run_ts) < 0) { out.push(avail[i].run_ts); used.push(avail[i].run_ts); }
+  }
+  return out.slice(0, _compareMode);
+}
+
 // Keep references valid against the current base; preserve user picks, fill the rest
-// with the most-recent overlapping (i.e. immediately preceding) runs.
+// from the lag-based defaults (previous / −12h / −24h).
 function reconcileRefs() {
   var avail    = overlappingRuns();
   var availSet = avail.map(function(r) { return r.run_ts; });
   var kept     = _refRuns.filter(function(rt) { return availSet.indexOf(rt) >= 0; });
   kept = kept.filter(function(rt, i) { return kept.indexOf(rt) === i; });   // dedupe
-  for (var i = 0; i < avail.length && kept.length < _compareMode; i++) {
-    if (kept.indexOf(avail[i].run_ts) < 0) kept.push(avail[i].run_ts);
+  if (kept.length < _compareMode) {
+    var defs = defaultRefs();
+    for (var i = 0; i < defs.length && kept.length < _compareMode; i++) {
+      if (kept.indexOf(defs[i]) < 0) kept.push(defs[i]);
+    }
+    for (var j = 0; j < avail.length && kept.length < _compareMode; j++) {
+      if (kept.indexOf(avail[j].run_ts) < 0) kept.push(avail[j].run_ts);
+    }
   }
   _refRuns = kept.slice(0, _compareMode);
+}
+
+// Compact run label for the in-panel selectors, e.g. "28 Jun 03:00".
+function shortRunLabel(ts) {
+  var m = ts.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})Z$/);
+  if (!m) return getRunLabel(ts);
+  var mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return (+m[3]) + ' ' + mon[+m[2]-1] + ' ' + m[4] + ':' + m[5];
 }
 
 function populateSelects() {
   var allRuns = (_meta && _meta.runs) || [];
   var base = document.getElementById('selBase');
   if (base) base.innerHTML = allRuns.map(function(r) {
-    return '<option value="' + esc(r.run_ts) + '"' + (r.run_ts === _selectedRunLeft ? ' selected' : '') + '>' + esc(r.run_label) + '</option>';
+    return '<option value="' + esc(r.run_ts) + '"' + (r.run_ts === _selectedRunLeft ? ' selected' : '') + '>' + esc(shortRunLabel(r.run_ts)) + '</option>';
   }).join('');
 
   var avail  = overlappingRuns();
@@ -838,7 +890,7 @@ function populateSelects() {
     sel.innerHTML = avail.map(function(r) {
       var lag    = dtLeft ? Math.round((dtLeft - parseRunTs(r.run_ts)) / 3600000) : 0;
       var lagStr = (lag > 0 ? '−' : '+') + Math.abs(lag) + 'h';
-      return '<option value="' + esc(r.run_ts) + '"' + (r.run_ts === cur ? ' selected' : '') + '>' + esc(r.run_label) + ' (' + lagStr + ')</option>';
+      return '<option value="' + esc(r.run_ts) + '"' + (r.run_ts === cur ? ' selected' : '') + '>' + esc(shortRunLabel(r.run_ts)) + ' (' + lagStr + ')</option>';
     }).join('');
   }
 }
@@ -850,7 +902,7 @@ function setCompareMode(n) {
   if (_compareMode === n) return;
   _compareMode = n;
   document.getElementById('btnCmp1').classList.toggle('seg-active', n === 1);
-  document.getElementById('btnCmp4').classList.toggle('seg-active', n === 4);
+  document.getElementById('btnCmp3').classList.toggle('seg-active', n === 3);
   reconcileRefs();
   buildMaps();      // rebuild the panel grid for the new column count
   applyAll();
