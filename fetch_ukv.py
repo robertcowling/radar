@@ -960,6 +960,10 @@ def main():
     else:
         print("  Active runs already up to date with splats.")
 
+    # Apply standard UKV retention cleanup to prune inactive runs on R2
+    active_run_ts = {r["run_ts"] for r in existing_meta.get("runs", []) if "run_ts" in r}
+    cleanup_old_ukv_runs(r2, active_run_ts)
+
     print("Finding latest UKV run...")
     run_ts = find_latest_run(s3)
     if not run_ts:
