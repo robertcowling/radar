@@ -18,7 +18,7 @@ from urllib.error import URLError, HTTPError
 # ── Config ────────────────────────────────────────────────────────────────────
 # Note: the docs show demo.openweathermap.org — if api. doesn't work, switch to demo.
 OW_API_KEY       = os.environ.get("OW_API_KEY", "").strip()
-OW_BASE          = "https://api.openweathermap.org/lightning/1.0/data"
+OW_BASE          = "https://demo.openweathermap.org/lightning/1.0/data"
 RADIUS_KM        = 50
 WINDOW_MINUTES   = 90
 MAX_WORKERS      = 20
@@ -72,9 +72,10 @@ def fetch_tile(lat, lon, start_iso, end_iso):
         with urlopen(url, timeout=TIMEOUT_S) as resp:
             return json.loads(resp.read()).get("lightnings", [])
     except HTTPError as e:
+        body = e.read(200).decode("utf-8", errors="replace")
         if e.code == 404:
             return []   # No strikes in this tile — normal
-        print(f"  HTTP {e.code} at ({lat}, {lon})")
+        print(f"  HTTP {e.code} at ({lat}, {lon}): {body}")
         return []
     except (URLError, Exception) as e:
         print(f"  Error at ({lat}, {lon}): {e}")
@@ -93,6 +94,11 @@ def main():
 
     print(f"Fetching lightning {start_iso} → {end_iso}")
     print(f"Grid: {len(GRID_POINTS)} tiles at {RADIUS_KM} km radius")
+    print(f"Endpoint: {OW_BASE}")
+
+    # Probe one central tile first so we can confirm the API is responding
+    probe = fetch_tile(51.5, -1.0, start_iso, end_iso)
+    print(f"Probe tile (51.5, -1.0): {len(probe)} strikes")
 
     seen_ids = set()
     all_strikes = []
