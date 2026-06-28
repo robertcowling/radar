@@ -1595,10 +1595,13 @@
         function renderLightning() {
             lightningGroup.clearLayers();
             if (!lightningEnabled || !lightningData) return;
-            var now = Date.now();
+            // Use the current radar frame time as reference so strikes animate in sync
+            var refMs = (frames.length > 0)
+                ? parseUTCStr(frames[currentFrameIdx].time).getTime()
+                : Date.now();
             var shown = 0;
             lightningData.strikes.forEach(function(strike) {
-                var ageMin = (now - new Date(strike.datetime).getTime()) / 60000;
+                var ageMin = (refMs - new Date(strike.datetime).getTime()) / 60000;
                 var s = lightningStyle(ageMin);
                 if (!s) return;
                 L.circleMarker([strike.lat, strike.lon], {
@@ -1879,6 +1882,7 @@
             }
 
             updateMslpFrame();
+            renderLightning();
         }
 
         function updateDuration(hours) {
