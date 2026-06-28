@@ -98,6 +98,13 @@ ACCUM_SCHEMES = {
 
 ACCUM_PERIODS = [1, 3, 6, 12, 24, 48]
 
+# Splat map thresholds matching /obs + low test thresholds (mm)
+SPLAT_THRESHOLDS = {
+    "1h": [1.0, 2.0, 5.0, 10.0, 30.0],
+    "3h": [1.0, 2.0, 5.0, 10.0, 20.0, 30.0, 40.0],
+    "6h": [2.0, 5.0, 10.0, 30.0, 50.0],
+}
+
 # ── R2 ───────────────────────────────────────────────────────────────────────────
 R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID", "")
 R2_ACCESS_KEY = os.environ.get("R2_ACCESS_KEY_ID", "")
@@ -410,6 +417,14 @@ def render_png(arr, scheme):
     indices = np.digitize(arr, scheme["bounds"])
     indices[arr <= 0] = 0
     return Image.fromarray(scheme["colors"][indices], "RGBA")
+
+
+def render_splat_png(arr, threshold):
+    """Render binary mask PNG where arr >= threshold is solid white (RGBA 255,255,255,255), else transparent."""
+    mask = arr >= threshold
+    rgba = np.zeros((arr.shape[0], arr.shape[1], 4), dtype=np.uint8)
+    rgba[mask] = [255, 255, 255, 255]
+    return Image.fromarray(rgba, "RGBA")
 
 
 # ── S3 download → temp file ───────────────────────────────────────────────────────
@@ -1075,15 +1090,28 @@ def main():
 
             def _upload_accum(n, arr_n, is_est):
                 urls = upload_schemes(arr_n, ACCUM_SCHEMES, run_ts, offset, f"accum_{n}h")
-                return n, arr_n, urls, is_est
+                splats = {}
+                dur_key = f"{n}h"
+                if dur_key in SPLAT_THRESHOLDS:
+                    for th in SPLAT_THRESHOLDS[dur_key]:
+                        th_str = f"{int(th)}mm" if th == int(th) else f"{th}mm"
+                        splat_img = render_splat_png(arr_n, th)
+                        skey = f"ukv/{run_ts}/{offset}_splat_{dur_key}_{th_str}.png"
+                        png_to_r2(_r2_tl(), skey, splat_img)
+                        splats[f"{dur_key}_{th_str}"] = f"{R2_PUBLIC_URL}/{skey}"
+                return n, arr_n, urls, is_est, splats
 
             if accum_renders:
                 with ThreadPoolExecutor(max_workers=min(len(accum_renders), 6)) as ex:
                     futs = [ex.submit(_upload_accum, n, a, e) for n, a, e in accum_renders]
                     for fut in as_completed(futs):
-                        n, arr_n, urls, is_est = fut.result()
+                        n, arr_n, urls, is_est, splats = fut.result()
                         entry[f"accum_{n}h"] = urls
                         arrays_for_poly[f"accum_{n}h"] = arr_n
+                        if splats:
+                            if "splats" not in entry:
+                                entry["splats"] = {}
+                            entry["splats"].update(splats)
                         if is_est:
                             any_estimated = True
 
