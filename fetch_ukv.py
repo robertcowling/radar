@@ -281,57 +281,61 @@ def discover_steps(s3, run_ts):
 
 
 # ── Coordinate mapping (built once per run) ──────────────────────────────────────
+NETCDF_LOCK = threading.Lock()
+
+
 def build_mapping(nc_path):
     """Return (rows, cols, valid) arrays for remapping UKV grid → output Mercator grid."""
-    with xr.open_dataset(nc_path, engine="netcdf4") as ds:
-        # Find the grid_mapping variable (scalar variable with grid_mapping_name attr)
-        gm_var = None
-        for v in list(ds.data_vars) + list(ds.coords):
-            if "grid_mapping_name" in ds[v].attrs:
-                gm_var = v
-                break
-        if gm_var is None:
-            raise ValueError("No grid_mapping variable found in NetCDF")
+    with NETCDF_LOCK:
+        with xr.open_dataset(nc_path, engine="netcdf4") as ds:
+            # Find the grid_mapping variable (scalar variable with grid_mapping_name attr)
+            gm_var = None
+            for v in list(ds.data_vars) + list(ds.coords):
+                if "grid_mapping_name" in ds[v].attrs:
+                    gm_var = v
+                    break
+            if gm_var is None:
+                raise ValueError("No grid_mapping variable found in NetCDF")
 
-        attrs   = dict(ds[gm_var].attrs)
-        gm_name = attrs.get("grid_mapping_name", "")
-        print(f"    grid_mapping: {gm_name}")
+            attrs   = dict(ds[gm_var].attrs)
+            gm_name = attrs.get("grid_mapping_name", "")
+            print(f"    grid_mapping: {gm_name}")
 
-        if gm_name == "rotated_latitude_longitude":
-            pole_lat = float(attrs["grid_north_pole_latitude"])
-            pole_lon = float(attrs["grid_north_pole_longitude"])
-            print(f"    rotated north pole: lat={pole_lat}, lon={pole_lon}")
-            src_crs = CRS.from_cf({
-                "grid_mapping_name": "rotated_latitude_longitude",
-                "grid_north_pole_latitude":  pole_lat,
-                "grid_north_pole_longitude": pole_lon,
-            })
-            src_lats = src_lons = None
-            for c in ["grid_latitude", "rlat", "latitude"]:
-                if c in ds.coords and ds[c].ndim == 1:
-                    src_lats = ds[c].values
-                    print(f"    src_lats from '{c}': {len(src_lats)} pts [{src_lats[0]:.4f}..{src_lats[-1]:.4f}]")
-                    break
-            for c in ["grid_longitude", "rlon", "longitude"]:
-                if c in ds.coords and ds[c].ndim == 1:
-                    src_lons = ds[c].values
-                    print(f"    src_lons from '{c}': {len(src_lons)} pts [{src_lons[0]:.4f}..{src_lons[-1]:.4f}]")
-                    break
-        elif gm_name in ("transverse_mercator", "lambert_azimuthal_equal_area"):
-            src_crs  = CRS.from_cf(attrs)  # build from file attrs, not EPSG:27700
-            src_lats = src_lons = None
-            for c in ["projection_y_coordinate", "northing", "y"]:
-                if c in ds.coords and ds[c].ndim == 1:
-                    src_lats = ds[c].values
-                    print(f"    src_lats(y) from '{c}': {len(src_lats)} pts [{src_lats[0]:.1f}..{src_lats[-1]:.1f}]")
-                    break
-            for c in ["projection_x_coordinate", "easting", "x"]:
-                if c in ds.coords and ds[c].ndim == 1:
-                    src_lons = ds[c].values
-                    print(f"    src_lons(x) from '{c}': {len(src_lons)} pts [{src_lons[0]:.1f}..{src_lons[-1]:.1f}]")
-                    break
-        else:
-            raise ValueError(f"Unsupported grid_mapping_name: {gm_name!r}")
+            if gm_name == "rotated_latitude_longitude":
+                pole_lat = float(attrs["grid_north_pole_latitude"])
+                pole_lon = float(attrs["grid_north_pole_longitude"])
+                print(f"    rotated north pole: lat={pole_lat}, lon={pole_lon}")
+                src_crs = CRS.from_cf({
+                    "grid_mapping_name": "rotated_latitude_longitude",
+                    "grid_north_pole_latitude":  pole_lat,
+                    "grid_north_pole_longitude": pole_lon,
+                })
+                src_lats = src_lons = None
+                for c in ["grid_latitude", "rlat", "latitude"]:
+                    if c in ds.coords and ds[c].ndim == 1:
+                        src_lats = ds[c].values
+                        print(f"    src_lats from '{c}': {len(src_lats)} pts [{src_lats[0]:.4f}..{src_lats[-1]:.4f}]")
+                        break
+                for c in ["grid_longitude", "rlon", "longitude"]:
+                    if c in ds.coords and ds[c].ndim == 1:
+                        src_lons = ds[c].values
+                        print(f"    src_lons from '{c}': {len(src_lons)} pts [{src_lons[0]:.4f}..{src_lons[-1]:.4f}]")
+                        break
+            elif gm_name in ("transverse_mercator", "lambert_azimuthal_equal_area"):
+                src_crs  = CRS.from_cf(attrs)  # build from file attrs, not EPSG:27700
+                src_lats = src_lons = None
+                for c in ["projection_y_coordinate", "northing", "y"]:
+                    if c in ds.coords and ds[c].ndim == 1:
+                        src_lats = ds[c].values
+                        print(f"    src_lats(y) from '{c}': {len(src_lats)} pts [{src_lats[0]:.1f}..{src_lats[-1]:.1f}]")
+                        break
+                for c in ["projection_x_coordinate", "easting", "x"]:
+                    if c in ds.coords and ds[c].ndim == 1:
+                        src_lons = ds[c].values
+                        print(f"    src_lons(x) from '{c}': {len(src_lons)} pts [{src_lons[0]:.1f}..{src_lons[-1]:.1f}]")
+                        break
+            else:
+                raise ValueError(f"Unsupported grid_mapping_name: {gm_name!r}")
 
     if src_lats is None or src_lons is None:
         raise ValueError("Could not identify source coordinate arrays")
@@ -371,16 +375,17 @@ def build_mapping(nc_path):
 def extract_array(nc_path, mapping):
     """Extract the main data variable, convert units, remap to output grid."""
     rows, cols, valid = mapping
-    with xr.open_dataset(nc_path, engine="netcdf4") as ds:
-        gm_names = {v for v in list(ds.data_vars) + list(ds.coords)
-                    if "grid_mapping_name" in ds[v].attrs}
-        candidates = [v for v in ds.data_vars
-                      if v not in gm_names and ds[v].ndim >= 2]
-        if not candidates:
-            return None
-        da    = ds[candidates[0]]
-        arr2d = da.values.squeeze()
-        units = (da.attrs.get("units", "") or "").lower()
+    with NETCDF_LOCK:
+        with xr.open_dataset(nc_path, engine="netcdf4") as ds:
+            gm_names = {v for v in list(ds.data_vars) + list(ds.coords)
+                        if "grid_mapping_name" in ds[v].attrs}
+            candidates = [v for v in ds.data_vars
+                          if v not in gm_names and ds[v].ndim >= 2]
+            if not candidates:
+                return None
+            da    = ds[candidates[0]]
+            arr2d = da.values.squeeze()
+            units = (da.attrs.get("units", "") or "").lower()
 
     while arr2d.ndim > 2:
         arr2d = arr2d[0]
@@ -401,8 +406,6 @@ def extract_array(nc_path, mapping):
     elif u == "m":
         arr2d *= 1000.0
     # kg m-2 (= mm) and dimensionless: no conversion
-
-    print(f"      units={units!r} pre={pre_max:.8f} post={arr2d.max():.6f} nonzero={np.count_nonzero(arr2d>0)}")
 
     out = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
     out[valid] = arr2d[rows[valid], cols[valid]]
@@ -1207,7 +1210,7 @@ def main():
     older = older[:max(0, keep_runs)]
 
 def backfill_missing_splats(s3, r2, meta, mapping=None):
-    """Backfill missing splats for the top active 5 runs in metadata."""
+    """Backfill missing splats for the top active 5 runs in metadata using parallel multi-threaded execution."""
     runs = meta.get("runs", [])
     target_runs = runs[:5]  # check top 5 active runs
     any_updated = False
@@ -1219,7 +1222,7 @@ def backfill_missing_splats(s3, r2, meta, mapping=None):
         missing = any("splats" not in s or not s["splats"] for s in steps)
         if not missing:
             continue
-        print(f"  Backfilling missing splats for active run {run_ts}...")
+        print(f"  Backfilling missing splats for active run {run_ts} (parallel acceleration)...")
         s3_steps = discover_steps(s3, run_ts)
         if not s3_steps:
             continue
@@ -1237,17 +1240,34 @@ def backfill_missing_splats(s3, r2, meta, mapping=None):
             finally:
                 os.unlink(sample_path)
 
+        # Download and extract array slots in parallel with 8 threads
+        step_slots = {}
+        def _fetch_one_step(idx, step_tuple):
+            hours, offset, valid_ts = step_tuple
+            arr_rate, arr_accum_1h = load_arr_both(s3, run_ts, valid_ts, offset, mapping)
+            if arr_accum_1h is not None:
+                return offset, {"arr": arr_accum_1h, "hours": 1}
+            elif arr_rate is not None:
+                prev_h = s3_steps[idx - 1][0] if idx > 0 else 0
+                step_h = hours - prev_h
+                return offset, {"arr": arr_rate * step_h, "hours": step_h}
+            return offset, None
+
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            futs = [ex.submit(_fetch_one_step, idx, s_tuple) for idx, s_tuple in enumerate(s3_steps)]
+            for fut in as_completed(futs):
+                off, slot = fut.result()
+                if slot:
+                    step_slots[off] = slot
+
+        # Build accum stack and prepare upload tasks in order
         accum_stack = []
-        for i, (hours, offset, valid_ts) in enumerate(s3_steps):
+        upload_tasks = []
+        for idx, (hours, offset, valid_ts) in enumerate(s3_steps):
             meta_step = next((s for s in steps if s.get("offset") == offset), None)
-            if not meta_step:
+            if not meta_step or offset not in step_slots:
                 continue
-            arr, arr_1h = load_arr_both(s3, run_ts, valid_ts, offset, mapping)
-            if arr_1h is not None:
-                accum_stack.append({"arr": arr_1h, "hours": 1})
-            elif arr is not None:
-                step_h = hours - s3_steps[i - 1][0] if i > 0 else hours
-                accum_stack.append({"arr": arr * step_h, "hours": step_h})
+            accum_stack.append(step_slots[offset])
 
             total_stk = sum(s["hours"] for s in accum_stack)
             while total_stk > 48 and accum_stack:
@@ -1276,14 +1296,25 @@ def backfill_missing_splats(s3, r2, meta, mapping=None):
                 if dur_key in SPLAT_THRESHOLDS:
                     for th in SPLAT_THRESHOLDS[dur_key]:
                         th_str = f"{int(th)}mm" if th == int(th) else f"{th}mm"
-                        splat_img = render_splat_png(arr_n, th)
                         skey = f"ukv/{run_ts}/{offset}_splat_{dur_key}_{th_str}.png"
-                        png_to_r2(_r2_tl(), skey, splat_img)
+                        upload_tasks.append((arr_n, th, skey))
                         splat_results[f"{dur_key}_{th_str}"] = f"{R2_PUBLIC_URL}/{skey}"
 
             if splat_results:
                 meta_step["splats"] = splat_results
                 any_updated = True
+
+        # Upload generated splat PNGs to R2 in parallel
+        if upload_tasks:
+            def _upload_splat(task):
+                arr_n, th, skey = task
+                splat_img = render_splat_png(arr_n, th)
+                png_to_r2(_r2_tl(), skey, splat_img)
+
+            with ThreadPoolExecutor(max_workers=8) as ex:
+                list(ex.map(_upload_splat, upload_tasks))
+
+        print(f"    {run_ts}: successfully rendered & uploaded splats for {len(step_slots)} steps.")
 
     return any_updated
 
