@@ -71,6 +71,37 @@ body {
 .map-pane  { width: 100%; height: 100%; }
 .map-header-cell { gap: 7px; }
 
+/* Multi-run mode: base spans the left third (full height); reference column and
+   difference column each stack N rows in the right two-thirds. 2px gaps act as
+   the dark separators (the row background shows through). */
+.maps-row.mode-multi {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2px; background: #374151;
+}
+.maps-row.mode-multi .map-wrap { border: none; }
+
+/* In-panel run selector / role label overlay (top-left of each map) */
+.panel-ctrl {
+  position: absolute; top: 8px; left: 8px; z-index: 600;
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.92); border-radius: 20px;
+  padding: 3px 5px 3px 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.16);
+  max-width: calc(100% - 16px);
+}
+.panel-ctrl .role { font-size: 11px; font-weight: 600; color: #475569; white-space: nowrap; flex-shrink: 0; }
+.panel-ctrl.diff-ctrl { padding: 5px 12px; }
+.panel-select {
+  appearance: none; -webkit-appearance: none;
+  background: #f1f3f4; border: none; border-radius: 16px;
+  padding: 5px 24px 5px 10px; font-family: 'Roboto', sans-serif;
+  font-size: 12px; font-weight: 500; color: #202124; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 9px center;
+  outline: none; max-width: 160px; text-overflow: ellipsis; white-space: nowrap;
+}
+.panel-select:hover { background-color: #e8eaed; }
+
 /* ── In-map colour bars ───────────────────────────────────────────── */
 .map-cbar {
   position: absolute; top: 10px; right: 10px; z-index: 500;
@@ -274,9 +305,6 @@ input[type=range]#timeSlider::-moz-range-thumb {
   </div>
 </div>
 
-<!-- Column headers (base / reference / difference cells, built dynamically) -->
-<div class="map-header-row" id="mapHeaderRow" style="display:none;"></div>
-
 <!-- State messages -->
 <div id="loadingState" class="state-msg">Loading run comparison data&hellip;</div>
 <div id="errorState"   class="state-msg" style="display:none;">Trends not available yet — generated after the next UKV model run.</div>
@@ -288,14 +316,6 @@ input[type=range]#timeSlider::-moz-range-thumb {
 <div class="player-panel surface" id="playerPanel" style="display:none;">
 
   <!-- Row 1: controls -->
-  <div class="control-group">
-    <span class="control-label">Compare against</span>
-    <div class="seg-control">
-      <button id="btnCmp1" class="seg-btn seg-active" onclick="setCompareMode(1)">1 run</button>
-      <button id="btnCmp4" class="seg-btn"            onclick="setCompareMode(4)">4 runs</button>
-    </div>
-  </div>
-
   <div class="control-group">
     <span class="control-label">Period</span>
     <select id="periodSelect" onchange="setLayerKey(this.value)">
@@ -338,6 +358,14 @@ input[type=range]#timeSlider::-moz-range-thumb {
       <option value="high">High events</option>
       <option value="met" selected>Alternative</option>
     </select>
+  </div>
+
+  <div class="control-group" style="margin-left:auto;">
+    <span class="control-label">Compare against</span>
+    <div class="seg-control">
+      <button id="btnCmp1" class="seg-btn seg-active" onclick="setCompareMode(1)">1 run</button>
+      <button id="btnCmp4" class="seg-btn"            onclick="setCompareMode(4)">4 runs</button>
+    </div>
   </div>
 
   <!-- Row 2: full-width timeline -->
@@ -922,34 +950,46 @@ function buildMaps() {
   _panels = [];
 
   var row = document.getElementById('mapsRow');
-  var hdr = document.getElementById('mapHeaderRow');
-  row.innerHTML = ''; hdr.innerHTML = '';
+  row.innerHTML = '';
+
+  var multi = _compareMode > 1;
+  // Single-run: simple flex row [base | ref | diff]. Multi-run: base spans the left
+  // third (all rows); reference column + difference column stack N rows on the right.
+  row.className = 'maps-row' + (multi ? ' mode-multi' : '');
+  row.style.gridTemplateRows = multi ? 'repeat(' + _compareMode + ', 1fr)' : '';
 
   var CENTER   = [54.5, -3.5], ZOOM = 5;
   var TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
   var TILE_OPT = { maxZoom: 12, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>' };
 
   panelSpecs().forEach(function(spec, idx) {
-    // Header cell
-    var cell = document.createElement('div');
-    cell.className = 'map-header-cell';
-    if (spec.role === 'base') {
-      cell.innerHTML = '<span class="hdr-role">Base</span><select id="selBase" class="hdr-select"></select>';
-    } else if (spec.role === 'ref') {
-      cell.innerHTML = '<span class="hdr-role">Ref ' + (spec.compIndex + 1) + '</span><select id="selRef' + spec.compIndex + '" class="hdr-select"></select>';
-    } else {
-      cell.textContent = 'Difference';
-    }
-    hdr.appendChild(cell);
-
-    // Map wrap
     var wrap   = document.createElement('div'); wrap.className = 'map-wrap';
     var pane   = document.createElement('div'); pane.className = 'map-pane'; pane.id = 'map_' + idx;
     var legend = document.createElement('div'); legend.className = 'map-cbar';
-    wrap.appendChild(pane); wrap.appendChild(legend);
+
+    // Grid placement: col1 = base (spans rows), col2 = references, col3 = differences.
+    if (multi) {
+      if (spec.role === 'base')      { wrap.style.gridColumn = '1'; wrap.style.gridRow = '1 / span ' + _compareMode; }
+      else if (spec.role === 'ref')  { wrap.style.gridColumn = '2'; wrap.style.gridRow = (spec.compIndex + 1); }
+      else                           { wrap.style.gridColumn = '3'; wrap.style.gridRow = (spec.compIndex + 1); }
+    }
+
+    // In-panel control overlay (run selector for base/ref, label for diff)
+    var ctrl = document.createElement('div');
+    if (spec.role === 'diff') {
+      ctrl.className = 'panel-ctrl diff-ctrl';
+      ctrl.innerHTML = '<span class="role">Difference</span>';
+    } else {
+      ctrl.className = 'panel-ctrl';
+      var roleTxt = spec.role === 'base' ? 'Base' : 'Ref ' + (spec.compIndex + 1);
+      var selId   = spec.role === 'base' ? 'selBase' : 'selRef' + spec.compIndex;
+      ctrl.innerHTML = '<span class="role">' + roleTxt + '</span><select id="' + selId + '" class="panel-select"></select>';
+    }
+
+    wrap.appendChild(pane); wrap.appendChild(legend); wrap.appendChild(ctrl);
     row.appendChild(wrap);
 
-    var map = L.map(pane, { zoomControl: idx === 0 }).setView(CENTER, ZOOM);
+    var map = L.map(pane, { zoomControl: false }).setView(CENTER, ZOOM);
     L.tileLayer(TILE_URL, TILE_OPT).addTo(map);
 
     _panels.push({ role: spec.role, compIndex: spec.compIndex, map: map, legendEl: legend,
@@ -1136,9 +1176,13 @@ function diffCbarHtml() {
 }
 
 function renderLegend() {
+  // One colour key per column (base, references share the accumulation scale; the
+  // difference column has its own). Show it on the top panel of each column only.
   _panels.forEach(function(p) {
     if (!p.legendEl) return;
-    p.legendEl.innerHTML = (p.role === 'diff') ? diffCbarHtml() : accumCbarHtml();
+    var showKey = (p.role === 'base') || (p.compIndex === 0);
+    p.legendEl.style.display = showKey ? '' : 'none';
+    if (showKey) p.legendEl.innerHTML = (p.role === 'diff') ? diffCbarHtml() : accumCbarHtml();
   });
 }
 
@@ -1240,10 +1284,9 @@ function renderTable() {
 
 // ── Boot ────────────────────────────────────────────────────────────────────
 function showMain() {
-  document.getElementById('loadingState').style.display  = 'none';
-  document.getElementById('mapsRow').style.display       = 'flex';
-  document.getElementById('mapHeaderRow').style.display  = 'flex';
-  document.getElementById('playerPanel').style.display   = 'flex';
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('mapsRow').style.display      = '';   // let the .maps-row class drive flex/grid
+  document.getElementById('playerPanel').style.display  = 'flex';
 }
 
 function init(trendsData, metaData) {
