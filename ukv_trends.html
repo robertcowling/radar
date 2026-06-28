@@ -605,6 +605,26 @@ function computeLayerWindow(tsA, tsB, T, W, lag_h, lyr, rules) {
   return result;
 }
 
+// Largest offset hour for which a run has actually computed data. step_hours may
+// claim 54h while the values are still null past (say) 48h — a dry area reads 0.0,
+// never null, so a null genuinely means "not produced for this timestep".
+function dataExtent(ts) {
+  if (!ts) return 0;
+  var sh = ts.step_hours || [];
+  var maxIdx = -1;
+  ['catchments', 'regions', 'grid', 'summary'].forEach(function(lyr) {
+    var areas = ts[lyr]; if (!areas) return;
+    var names = Object.keys(areas);
+    for (var n = 0; n < names.length; n++) {
+      var arr = areas[names[n]];
+      for (var i = arr.length - 1; i > maxIdx; i--) {
+        if (arr[i] != null) { if (i > maxIdx) maxIdx = i; break; }
+      }
+    }
+  });
+  return maxIdx >= 0 ? (sh[maxIdx] || 0) : 0;
+}
+
 function computeSliderData() {
   if (!_tsA || !_tsB || _sliderStep === null) { _currentSliderData = null; return; }
   var W     = WIN_SIZES[_layerKey] ? WIN_SIZES[_layerKey].hours : 6;
@@ -627,9 +647,15 @@ function buildSliderRange() {
   var tMin = Math.max(W, W - _lagH);
   var tMax = Math.min(fhA, fhB - _lagH);
 
-  // Step hourly — accumulation rasters exist at every offset ≥ W, so no need to snap to W.
+  // Step hourly. Only keep a step if BOTH runs have the accumulation product for it
+  // (base at offset t, reference at t+lag = same valid time). Meta/area-ts can desync,
+  // so this guarantees every selectable position yields a real, valid comparison.
   _sliderSteps = [];
-  for (var t = tMin; t <= tMax; t++) _sliderSteps.push(t);
+  for (var t = tMin; t <= tMax; t++) {
+    var sL = getMetaStep(_selectedRunLeft,  t);
+    var sR = getMetaStep(_selectedRunRight, t + _lagH);
+    if (sL && sL[_layerKey] && sR && sR[_layerKey]) _sliderSteps.push(t);
+  }
 
   var slider = document.getElementById('timeSlider');
   if (!slider) return;
@@ -808,14 +834,9 @@ async function applyComparisonSelection() {
   _tsB  = tsArr[1];
   _lagH = Math.round((parseRunTs(_selectedRunLeft) - parseRunTs(_selectedRunRight)) / 3600000);
 
-  // How far each run's hourly area-ts actually reaches (arrays cap well below forecast_hours).
-  function maxOff(ts, run) {
-    var sh = ts && ts.step_hours;
-    if (sh && sh.length) return sh[sh.length - 1];
-    return getRunForecastHours(run);
-  }
-  _maxOffA = maxOff(_tsA, _selectedRunLeft);
-  _maxOffB = maxOff(_tsB, _selectedRunRight);
+  // How far each run actually produced data (non-null), not just what step_hours claims.
+  _maxOffA = dataExtent(_tsA) || getRunForecastHours(_selectedRunLeft);
+  _maxOffB = dataExtent(_tsB) || getRunForecastHours(_selectedRunRight);
 
   _compInfo = {
     run_a_label: getRunLabel(_selectedRunLeft),
@@ -1039,16 +1060,9 @@ function updateRaster() {
 
 // ── Legend ─────────────────────────────────────────────────────────────────
 function renderLegend() {
-  var winTxt = getWinLabel();
-  var comp   = currentComp();
-
-  var validSuffix = '';
-  if (_sliderStep !== null) {
-    var vt = fmtValidTime(_sliderStep);
-    if (vt) validSuffix = ' ending ' + vt.date + ' ' + vt.time;
-  }
-
-  function accumCbar(runLabel) {
+  // Left & centre keys carry no embedded header — the column run selectors and the
+  // panel datetime already say which run / valid time is shown.
+  function accumCbar() {
     var s = SCHEMES[_scheme];
     var blocks = s.colors.map(function(c) { return '<div class="cbar-block" style="background:' + c + '"></div>'; }).join('');
     var n = s.colors.length;
@@ -1057,7 +1071,7 @@ function renderLegend() {
       var str = v < 1 ? ('.' + String(v).split('.')[1]) : Math.round(v);
       return '<span class="cbar-label" style="left:' + pct + '%">' + str + '</span>';
     }).join('');
-    return '<p>' + esc(runLabel) + ' — ' + esc(winTxt) + esc(validSuffix) + '</p><div class="cbar">' + blocks + '</div><div class="cbar-labels">' + labels + '</div>';
+    return '<div class="cbar">' + blocks + '</div><div class="cbar-labels">' + labels + '</div>';
   }
 
   function diffCbar() {
@@ -1069,7 +1083,7 @@ function renderLegend() {
       var txt = v === -2 ? '−2' : v === 2 ? '+2' : (v > 0 ? '+' : '') + Math.round(v);
       return '<span class="cbar-label" style="left:' + pct + '%">' + txt + '</span>';
     }).join('');
-    return '<p>Difference — base minus reference (mm)' + esc(validSuffix) + '</p>' +
+    return '<p>Difference (base − reference)</p>' +
       '<div class="cbar">' + blocks + '</div>' +
       '<div class="cbar-labels">' + labels + '</div>' +
       '<div class="bias-arrows"><span style="color:#1565c0;font-weight:600;">◄ Base drier</span><span style="color:#b91c1c;font-weight:600;">Base wetter ►</span></div>';
@@ -1078,8 +1092,8 @@ function renderLegend() {
   var elL = document.getElementById('legendLeft');
   var elC = document.getElementById('legendCentre');
   var elD = document.getElementById('legendDiff');
-  if (elL) elL.innerHTML = accumCbar('Base — ' + (comp.run_a_label || ''));
-  if (elC) elC.innerHTML = accumCbar('Reference — ' + (comp.run_b_label || ''));
+  if (elL) elL.innerHTML = accumCbar();
+  if (elC) elC.innerHTML = accumCbar();
   if (elD) elD.innerHTML = diffCbar();
 }
 
