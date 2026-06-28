@@ -337,7 +337,7 @@
   </button>
 
   <div class="control-group">
-    <span class="control-label">Focus model run</span>
+    <span class="control-label">Model run</span>
     <select id="focusRunSelect" onchange="setFocusRun(parseInt(this.value))">
       <option>Loading runs...</option>
     </select>
@@ -362,10 +362,10 @@ var BLANK_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1H
 
 // Distinct high-contrast color palette for up to 4 successive runs
 var RUN_COLORS = [
-  { name: 'Run 0 (Focus)', hex: '#e63946', rgb: [230, 57, 70] },   // Crimson Red
-  { name: 'Run -1',        hex: '#f77f00', rgb: [247, 127, 0] },   // Bright Orange
-  { name: 'Run -2',        hex: '#2a9d8f', rgb: [42, 157, 143] },  // Teal Green
-  { name: 'Run -3',        hex: '#457b9d', rgb: [69, 123, 157] }   // Steel Blue
+  { name: 'Selected Model Run', hex: '#e63946', rgb: [230, 57, 70] },   // Crimson Red
+  { name: 'Run -1',             hex: '#f77f00', rgb: [247, 127, 0] },   // Bright Orange
+  { name: 'Run -2',             hex: '#2a9d8f', rgb: [42, 157, 143] },  // Teal Green
+  { name: 'Run -3',             hex: '#457b9d', rgb: [69, 123, 157] }   // Steel Blue
 ];
 
 var imgBounds = [[43.0, -26.0], [63.0, 17.0]];
@@ -460,10 +460,10 @@ loadBoundary('catchments');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 var meta            = null;
-var focusRunIdx     = 0;            // Index in meta.runs
+var focusRunIdx     = 0;            // Index in meta.runs (Selected model run)
 var activeThreshold = '3h_20mm';
 var currentValidIdx = 0;            // Index in masterValidMsList
-var masterValidMsList = [];         // Sorted list of unique valid UTC ms timestamps
+var masterValidMsList = [];         // Sorted list of unique valid UTC ms timestamps for selected run
 var runEnabled      = [true, true, true, true];
 var globalOpacity   = 0.8;
 var playing         = false;
@@ -546,15 +546,13 @@ function initRunSelect() {
 
 function buildMasterTimeline() {
   var msSet = new Set();
-  var activeRuns = getActiveRunObjects();
-  activeRuns.forEach(function(run) {
-    if (run && run.steps) {
-      run.steps.forEach(function(s) {
-        var ms = stepValidMs(run, s);
-        if (!isNaN(ms)) msSet.add(ms);
-      });
-    }
-  });
+  var selectedRun = meta && meta.runs && meta.runs[focusRunIdx];
+  if (selectedRun && selectedRun.steps) {
+    selectedRun.steps.forEach(function(s) {
+      var ms = stepValidMs(selectedRun, s);
+      if (!isNaN(ms)) msSet.add(ms);
+    });
+  }
 
   masterValidMsList = Array.from(msSet);
   masterValidMsList.sort(function(a, b) { return a - b; });
@@ -563,7 +561,7 @@ function buildMasterTimeline() {
   slider.min = 0;
   slider.max = Math.max(0, masterValidMsList.length - 1);
   if (currentValidIdx >= masterValidMsList.length) {
-    currentValidIdx = Math.max(0, masterValidMsList.length - 1);
+    currentValidIdx = 0;
   }
   slider.value = currentValidIdx;
 }
@@ -643,9 +641,9 @@ function updateDisplay() {
   }) : null;
 
   if (focusStep) {
-    document.getElementById('playerOffsetLine').textContent = 'Focus run ' + focusStep.offset;
+    document.getElementById('playerOffsetLine').textContent = 'Forecast offset ' + focusStep.offset;
   } else {
-    document.getElementById('playerOffsetLine').textContent = 'Before focus run start (showing older runs)';
+    document.getElementById('playerOffsetLine').textContent = 'Outside forecast range';
   }
 
   document.getElementById('noDataBadge').style.display = anySplatActive ? 'none' : 'block';
@@ -673,7 +671,7 @@ function renderLegendList(activeRuns, targetMs) {
     card.className = 'run-legend-card' + (!isActive ? ' inactive' : '');
 
     var colorInfo = RUN_COLORS[slotIdx];
-    var labelText = slotIdx === 0 ? 'Focus: ' + (run ? run.run_label : 'N/A') : (run ? run.run_label : 'No run data');
+    var labelText = slotIdx === 0 ? (run ? run.run_label + ' (Selected)' : 'N/A') : (run ? run.run_label : 'No run data');
     var subText = '';
 
     if (!run) {
