@@ -377,15 +377,17 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
 }).addTo(map);
 
-// ── Leaflet overlays for up to 4 runs ────────────────────────────────────────
-var runOverlays = [];
-for (var r = 0; r < 4; r++) {
-  var overlay = L.imageOverlay(BLANK_PNG, imgBounds, { opacity: 0.8, interactive: false }).addTo(map);
+// ── Leaflet overlays for up to 4 runs (slot 0 = selected/latest run, layered at top) ────
+var runOverlays = [null, null, null, null];
+// Add to map in reverse order (3 down to 0) so selected/latest run (slot 0) is added last and layered at top
+for (var r = 3; r >= 0; r--) {
+  var z = 400 + (3 - r); // r=3 gets 400, r=0 (selected) gets 403 (topmost)
+  var overlay = L.imageOverlay(BLANK_PNG, imgBounds, { opacity: 0.8, interactive: false, zIndex: z }).addTo(map);
   overlay._expectedRawUrl = '';
-  runOverlays.push(overlay);
+  runOverlays[r] = overlay;
 }
 
-function setOverlayState(overlay, url, opacity) {
+function setOverlayState(overlay, url, opacity, slotIdx) {
   if (!url) {
     overlay._expectedRawUrl = '';
     overlay.setUrl(BLANK_PNG);
@@ -393,7 +395,12 @@ function setOverlayState(overlay, url, opacity) {
   } else {
     overlay.setUrl(url);
     overlay.setOpacity(opacity);
-    if (overlay.getElement()) overlay.getElement().style.display = 'block';
+    if (overlay.getElement()) {
+      overlay.getElement().style.display = 'block';
+      if (typeof slotIdx === 'number') {
+        overlay.getElement().style.zIndex = 403 - slotIdx;
+      }
+    }
   }
 }
 
@@ -605,12 +612,13 @@ function updateDisplay() {
 
   var anySplatActive = false;
 
-  // Update map overlays for each of the 4 runs with race condition prevention
-  activeRuns.forEach(function(run, slotIdx) {
+  // Update map overlays for each of the 4 runs in reverse order (slot 3 up to slot 0) so latest (slot 0) is brought to front
+  for (var slotIdx = 3; slotIdx >= 0; slotIdx--) {
+    var run = activeRuns[slotIdx];
     var overlay = runOverlays[slotIdx];
     if (!run || !runEnabled[slotIdx]) {
-      setOverlayState(overlay, '', 0);
-      return;
+      setOverlayState(overlay, '', 0, slotIdx);
+      continue;
     }
 
     // Find step matching exact targetMs (capped strictly at T+54h)
@@ -621,8 +629,8 @@ function updateDisplay() {
     });
 
     if (!matchingStep || !matchingStep.splats || !matchingStep.splats[activeThreshold]) {
-      setOverlayState(overlay, '', 0);
-      return;
+      setOverlayState(overlay, '', 0, slotIdx);
+      continue;
     }
 
     anySplatActive = true;
@@ -630,13 +638,15 @@ function updateDisplay() {
     overlay._expectedRawUrl = rawSplatUrl;
     var colorHex = RUN_COLORS[slotIdx].hex;
 
-    getColorizedSplatUrl(rawSplatUrl, colorHex, function(tintedUrl) {
-      // Prevent race condition: verify this overlay still expects this raw URL
-      if (overlay._expectedRawUrl === rawSplatUrl) {
-        setOverlayState(overlay, tintedUrl, globalOpacity);
-      }
-    });
-  });
+    (function(sIdx, ov, url, hex) {
+      getColorizedSplatUrl(url, hex, function(tintedUrl) {
+        // Prevent race condition: verify this overlay still expects this raw URL
+        if (ov._expectedRawUrl === url) {
+          setOverlayState(ov, tintedUrl, globalOpacity, sIdx);
+        }
+      });
+    })(slotIdx, overlay, rawSplatUrl, colorHex);
+  }
 
   var focusStep = activeRuns[0] ? (activeRuns[0].steps || []).find(function(s){
     var ms = stepValidMs(activeRuns[0], s);
