@@ -99,8 +99,8 @@ body {
 /* ── Player / control panel ───────────────────────────────────────── */
 .player-panel {
   position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-  padding: 12px 18px; z-index: 1000; width: 95%; max-width: 1200px;
-  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 14px 20px 10px; z-index: 1000; width: 95%; max-width: 1200px;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
 }
 .surface {
   background: white; border-radius: 12px;
@@ -125,34 +125,55 @@ select {
 }
 select:hover { background-color: #e8eaed; }
 
-/* ── Timeline slider ──────────────────────────────────────────────── */
-.timeline-group { flex: 1; min-width: 160px; }
-.timeline-container { position: relative; height: 20px; }
+/* ── Datetime display (matches ukv.html) ──────────────────────────── */
+#playerDateTime {
+  flex-shrink: 0; width: 110px; display: flex; flex-direction: column; gap: 1px;
+  padding-left: 14px; border-left: 1px solid #e8eaed; overflow: hidden;
+}
+#playerDateLine   { font-size: 10px; color: #3c4043; font-weight: 500; white-space: nowrap; }
+#playerTimeLine   { font-size: 16px; font-weight: 700; color: #202124; white-space: nowrap; }
+#playerOffsetLine { font-size: 10px; color: #94a3b8; font-weight: 500; white-space: nowrap; }
+
+/* ── Timeline — full-width second row ────────────────────────────── */
+.timeline-row {
+  flex: 1 1 100%;       /* force onto its own row */
+  position: relative;
+  height: 52px;
+  margin: 0 -2px;       /* bleed slightly for thumb edges */
+}
 .timeline-track {
-  position: absolute; left: 0; right: 0; top: 50%;
-  height: 4px; background: #e8eaed; border-radius: 2px;
-  transform: translateY(-50%); pointer-events: none;
+  position: absolute; left: 9px; right: 9px; top: 14px;
+  height: 6px; background: #e8eaed; border-radius: 3px; pointer-events: none;
 }
 input[type=range]#timeSlider {
-  width: 100%; position: relative; z-index: 1;
+  position: absolute; top: 0; left: 0; width: 100%; height: 32px;
   -webkit-appearance: none; appearance: none;
-  background: transparent; cursor: pointer; height: 20px; margin: 0; padding: 0; border: none;
+  background: transparent; cursor: pointer; margin: 0; padding: 0; border: none; z-index: 2;
 }
-input[type=range]#timeSlider::-webkit-slider-runnable-track { background: transparent; height: 4px; }
+input[type=range]#timeSlider:disabled { cursor: default; opacity: 0.4; }
+input[type=range]#timeSlider::-webkit-slider-runnable-track { height: 6px; background: transparent; border-radius: 3px; }
 input[type=range]#timeSlider::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
-  background: #1a73e8; box-shadow: 0 1px 3px rgba(0,0,0,0.3); margin-top: -6px;
+  -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: #202124; border: 2px solid white; cursor: pointer;
+  margin-top: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
-input[type=range]#timeSlider::-moz-range-track { background: #e8eaed; height: 4px; border-radius: 2px; }
+input[type=range]#timeSlider::-moz-range-track { height: 6px; background: transparent; border-radius: 3px; }
 input[type=range]#timeSlider::-moz-range-thumb {
-  width: 16px; height: 16px; border-radius: 50%;
-  background: #1a73e8; border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  width: 18px; height: 18px; border-radius: 50%; background: #202124;
+  border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
-.player-datetime {
-  flex-shrink: 0; text-align: center; min-width: 76px; padding: 0 4px;
+.timeline-ticks {
+  position: absolute; left: 9px; right: 9px; bottom: 2px; height: 18px; pointer-events: none;
 }
-.player-datetime .dt-date { font-size: 12px; font-weight: 600; color: #202124; }
-.player-datetime .dt-time { font-size: 11px; color: #5f6368; }
+.tick-mark {
+  position: absolute; bottom: 0; transform: translateX(-50%);
+  font-size: 10px; color: #9aa0a6; white-space: nowrap; line-height: 1;
+}
+.tick-date { color: #5f6368; font-weight: 600; }
+.no-overlap-msg {
+  position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+  text-align: center; font-size: 12px; color: #9aa0a6; pointer-events: none;
+}
 
 /* ── Modals ───────────────────────────────────────────────────────── */
 .modal-backdrop {
@@ -207,6 +228,8 @@ input[type=range]#timeSlider::-moz-range-thumb {
   .map-header-row { display: none; }
   .map-cbar { width: calc(100% - 20px); max-width: 300px; }
   .player-panel { bottom: 10px; width: 96%; padding: 8px 12px; gap: 8px; }
+  #playerDateTime { width: auto; }
+  #playerTimeLine { font-size: 13px; }
 }
 </style>
 </head>
@@ -269,29 +292,22 @@ input[type=range]#timeSlider::-moz-range-thumb {
 <!-- Floating control panel -->
 <div class="player-panel surface" id="playerPanel" style="display:none;">
 
+  <!-- Row 1: controls -->
   <div class="control-group">
     <span class="control-label">Period</span>
     <select id="periodSelect" onchange="setLayerKey(this.value)">
-      <option value="accum_1h">1 hour</option>
-      <option value="accum_3h">3 hours</option>
-      <option value="accum_6h" selected>6 hours</option>
-      <option value="accum_12h">12 hours</option>
-      <option value="accum_24h">24 hours</option>
+      <option value="accum_1h">1 Hour</option>
+      <option value="accum_3h">3 Hours</option>
+      <option value="accum_6h" selected>6 Hours</option>
+      <option value="accum_12h">12 Hours</option>
+      <option value="accum_24h">24 Hours</option>
     </select>
   </div>
 
-  <div class="control-group timeline-group">
-    <span class="control-label">Forecast window</span>
-    <div class="timeline-container">
-      <div class="timeline-track"></div>
-      <input type="range" id="timeSlider" min="0" max="0" step="1" value="0"
-             oninput="setSliderStep(parseInt(this.value))">
-    </div>
-  </div>
-
-  <div class="player-datetime">
-    <div class="dt-date" id="playerDateLine">—</div>
-    <div class="dt-time" id="playerTimeLine">—</div>
+  <div id="playerDateTime">
+    <div id="playerDateLine">—</div>
+    <div id="playerTimeLine">—</div>
+    <div id="playerOffsetLine">—</div>
   </div>
 
   <div class="control-group">
@@ -319,6 +335,17 @@ input[type=range]#timeSlider::-moz-range-thumb {
       <option value="high">High events</option>
       <option value="met">Alternative</option>
     </select>
+  </div>
+
+  <!-- Row 2: full-width timeline -->
+  <div class="timeline-row">
+    <div class="timeline-track"></div>
+    <input type="range" id="timeSlider" min="0" max="0" step="1" value="0"
+           oninput="setSliderStep(parseInt(this.value))">
+    <div class="timeline-ticks" id="timelineTicks"></div>
+    <div class="no-overlap-msg" id="noOverlapMsg" style="display:none;">
+      No forecast overlap for this accumulation period with the selected runs.
+    </div>
   </div>
 
 </div>
@@ -584,12 +611,20 @@ function buildSliderRange() {
   slider.max  = Math.max(0, _sliderSteps.length - 1);
   slider.step = 1;
 
+  var noMsg = document.getElementById('noOverlapMsg');
+
   if (!_sliderSteps.length) {
-    _sliderStep = null;
-    slider.value = 0;
+    _sliderStep      = null;
+    slider.value     = 0;
+    slider.disabled  = true;
+    if (noMsg) noMsg.style.display = '';
     updateSliderLabel();
+    renderTimelineTicks();
     return;
   }
+
+  slider.disabled  = false;
+  if (noMsg) noMsg.style.display = 'none';
 
   var prevIdx = _sliderSteps.indexOf(_sliderStep);
   if (prevIdx < 0) {
@@ -600,6 +635,7 @@ function buildSliderRange() {
     slider.value = prevIdx;
   }
   updateSliderLabel();
+  renderTimelineTicks();
 }
 
 function setSliderStep(idx) {
@@ -614,14 +650,56 @@ function setSliderStep(idx) {
 }
 
 function updateSliderLabel() {
-  var dateLine = document.getElementById('playerDateLine');
-  var timeLine = document.getElementById('playerTimeLine');
-  if (!dateLine || !timeLine) return;
-  if (_sliderStep === null || !_selectedRunLeft) {
-    dateLine.textContent = '—'; timeLine.textContent = '—'; return;
-  }
+  var dateLine   = document.getElementById('playerDateLine');
+  var timeLine   = document.getElementById('playerTimeLine');
+  var offsetLine = document.getElementById('playerOffsetLine');
+  var empty = function() {
+    if (dateLine)   dateLine.textContent   = '—';
+    if (timeLine)   timeLine.textContent   = '—';
+    if (offsetLine) offsetLine.textContent = '';
+  };
+  if (_sliderStep === null || !_selectedRunLeft) { empty(); return; }
   var vt = fmtValidTime(_sliderStep);
-  if (vt) { dateLine.textContent = vt.date; timeLine.textContent = vt.time; }
+  if (!vt) { empty(); return; }
+  if (dateLine)   dateLine.textContent   = vt.date;
+  if (timeLine)   timeLine.textContent   = vt.time;
+  if (offsetLine) offsetLine.textContent = 'T+' + _sliderStep + 'h';
+}
+
+function renderTimelineTicks() {
+  var container = document.getElementById('timelineTicks');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!_sliderSteps.length || !_selectedRunLeft) return;
+
+  var tMin = _sliderSteps[0];
+  var tMax = _sliderSteps[_sliderSteps.length - 1];
+  var range = tMax - tMin;
+  if (range <= 0) return;
+
+  var baseStart = parseRunTs(_selectedRunLeft);
+  var MONTHS    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var pad       = function(n) { return n < 10 ? '0' + n : '' + n; };
+
+  // Pick a tick interval that gives 4-8 ticks
+  var intervals = [1,2,3,6,12,24,48];
+  var tickStep  = intervals.find(function(iv) { return range / iv <= 8 && range / iv >= 2; }) || 6;
+
+  var firstTick = Math.ceil(tMin / tickStep) * tickStep;
+  for (var h = firstTick; h <= tMax; h += tickStep) {
+    var pct = ((h - tMin) / range * 100).toFixed(2);
+    var dt  = new Date(baseStart.getTime() + h * 3600000);
+    var hh  = dt.getUTCHours();
+    var isMidnight = (hh === 0);
+
+    var el       = document.createElement('span');
+    el.className = 'tick-mark' + (isMidnight ? ' tick-date' : '');
+    el.style.left = pct + '%';
+    el.textContent = isMidnight
+      ? pad(dt.getUTCDate()) + ' ' + MONTHS[dt.getUTCMonth()]
+      : pad(hh) + ':00';
+    container.appendChild(el);
+  }
 }
 
 // ── Run selectors ─────────────────────────────────────────────────────────
@@ -629,12 +707,15 @@ function overlappingRuns() {
   var allRuns = (_meta && _meta.runs) || [];
   if (!_selectedRunLeft) return [];
   var dtLeft = parseRunTs(_selectedRunLeft);
-  // Show only runs with at least 6h of shared valid forecast time.
-  // For 54h forecasts: overlap = 54 - |lag_h|, needs >= 6 → |lag_h| <= 48
+  // Show only runs with at least 1h of shared valid forecast time.
+  // For 54h forecasts: overlap = fh - |lag_h| >= 1 → |lag_h| <= fh - 1 ≈ 53
+  var fhLeft = getRunForecastHours(_selectedRunLeft);
   return allRuns.filter(function(r) {
     if (r.run_ts === _selectedRunLeft) return false;
     var lag = Math.round((dtLeft - parseRunTs(r.run_ts)) / 3600000);
-    return Math.abs(lag) <= 48;
+    var fhR = getRunForecastHours(r.run_ts);
+    var overlap = Math.min(fhLeft, fhR + lag) - Math.max(0, lag);
+    return overlap >= 1;
   });
 }
 
@@ -929,7 +1010,7 @@ function updateCatchOverlay() {
 // ── Control handlers ────────────────────────────────────────────────────────
 function setLayerKey(key) {
   _layerKey = key;
-  buildSliderRange();
+  buildSliderRange();   // also calls updateSliderLabel + renderTimelineTicks
   computeSliderData();
   refreshPolyStyles();
   updateRaster();
