@@ -18,7 +18,7 @@ from urllib.error import URLError, HTTPError
 # ── Config ────────────────────────────────────────────────────────────────────
 # Note: the docs show demo.openweathermap.org — if api. doesn't work, switch to demo.
 OW_API_KEY       = os.environ.get("OW_API_KEY", "").strip()
-OW_BASE          = "https://api.openweathermap.org/lightning/1.0/data"
+OW_BASE          = "https://demo.openweathermap.org/lightning/1.0/data"
 RADIUS_KM        = 50
 WINDOW_MINUTES   = 90
 MAX_WORKERS      = 20
@@ -32,11 +32,11 @@ USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, R2_BUCKET])
 
 LIGHTNING_KEY = "lightning/lightning_latest.json"
 
-# Grid of (lat, lon) tile centres covering UK + Ireland.
-# 1.0° lat (~111 km) × 1.5° lon (~96 km at 55°N) gives continuous coverage
-# with the 50 km query radius.
-GRID_LATS = [50.0 + i for i in range(11)]          # 50 → 60
-GRID_LONS = [-8.0 + i * 1.5 for i in range(7)]     # -8.0 → +1.0
+# Grid of (lat, lon) tile centres covering UK, Ireland, and France.
+# 1.0° lat (~111 km) × 1.5° lon (~100 km at 50°N) gives continuous coverage
+# with the 50 km query radius. Extended south to 43°N and east to +9°E.
+GRID_LATS = [43.0 + i for i in range(19)]                  # 43 → 61
+GRID_LONS = [-8.0 + i * 1.5 for i in range(12)]            # -8.0 → +8.5
 GRID_POINTS = [(lat, lon) for lat in GRID_LATS for lon in GRID_LONS]
 
 
@@ -72,9 +72,10 @@ def fetch_tile(lat, lon, start_iso, end_iso):
         with urlopen(url, timeout=TIMEOUT_S) as resp:
             return json.loads(resp.read()).get("lightnings", [])
     except HTTPError as e:
+        body = e.read(200).decode("utf-8", errors="replace")
         if e.code == 404:
             return []   # No strikes in this tile — normal
-        print(f"  HTTP {e.code} at ({lat}, {lon})")
+        print(f"  HTTP {e.code} at ({lat}, {lon}): {body}")
         return []
     except (URLError, Exception) as e:
         print(f"  Error at ({lat}, {lon}): {e}")
@@ -93,6 +94,11 @@ def main():
 
     print(f"Fetching lightning {start_iso} → {end_iso}")
     print(f"Grid: {len(GRID_POINTS)} tiles at {RADIUS_KM} km radius")
+    print(f"Endpoint: {OW_BASE}")
+
+    # Probe one central tile first so we can confirm the API is responding
+    probe = fetch_tile(51.5, -1.0, start_iso, end_iso)
+    print(f"Probe tile (51.5, -1.0): {len(probe)} strikes")
 
     seen_ids = set()
     all_strikes = []
