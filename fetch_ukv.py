@@ -1206,10 +1206,79 @@ def main():
         older.append(r)
     older = older[:max(0, keep_runs)]
 
+def backfill_missing_splats(s3, r2, meta, mapping):
+    """Backfill missing splats for the top active runs in metadata."""
+    runs = meta.get("runs", [])
+    target_runs = runs[1:6]  # check older active runs in top 6
+    for run in target_runs:
+        run_ts = run.get("run_ts")
+        steps = run.get("steps", [])
+        if not run_ts or not steps:
+            continue
+        missing = any("splats" not in s or not s["splats"] for s in steps)
+        if not missing:
+            continue
+        print(f"  Backfilling missing splats for older active run {run_ts}...")
+        s3_steps = discover_steps(s3, run_ts)
+        if not s3_steps:
+            continue
+        accum_stack = []
+        for i, (hours, offset, valid_ts) in enumerate(s3_steps):
+            meta_step = next((s for s in steps if s.get("offset") == offset), None)
+            if not meta_step:
+                continue
+            arr, arr_1h = load_arr_both(s3, run_ts, valid_ts, offset, mapping)
+            if arr_1h is not None:
+                accum_stack.append({"arr": arr_1h, "hours": 1})
+            elif arr is not None:
+                step_h = hours - s3_steps[i - 1][0] if i > 0 else hours
+                accum_stack.append({"arr": arr * step_h, "hours": step_h})
+
+            total_stk = sum(s["hours"] for s in accum_stack)
+            while total_stk > 48 and accum_stack:
+                total_stk -= accum_stack.pop(0)["hours"]
+
+            accum_renders = []
+            for n in ACCUM_PERIODS:
+                if total_stk < n:
+                    continue
+                if hours > 54 and n > 1:
+                    continue
+                covered, arrs = 0, []
+                for slot in reversed(accum_stack):
+                    if covered >= n:
+                        break
+                    if slot["hours"] <= n - covered:
+                        arrs.append(slot["arr"])
+                        covered += slot["hours"]
+                    else:
+                        break
+                if covered < n:
+                    continue
+                accum_renders.append((n, np.sum(arrs, axis=0).astype(np.float32)))
+
+            splat_results = {}
+            for n, arr_n in accum_renders:
+                dur_key = f"{n}h"
+                if dur_key in SPLAT_THRESHOLDS:
+                    for th in SPLAT_THRESHOLDS[dur_key]:
+                        th_str = f"{int(th)}mm" if th == int(th) else f"{th}mm"
+                        splat_img = render_splat_png(arr_n, th)
+                        skey = f"ukv/{run_ts}/{offset}_splat_{dur_key}_{th_str}.png"
+                        png_to_r2(_r2_tl(), skey, splat_img)
+                        splat_results[f"{dur_key}_{th_str}"] = f"{R2_PUBLIC_URL}/{skey}"
+
+            if splat_results:
+                meta_step["splats"] = splat_results
+
+
     meta = {
         "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:00.000Z"),
         "runs": [new_run] + older,
     }
+
+    print("Checking older active runs for missing splats...")
+    backfill_missing_splats(s3, r2, meta, mapping)
 
     with open("ukv_meta.json", "w") as f:
         json.dump(meta, f, indent=2)

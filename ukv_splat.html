@@ -177,6 +177,8 @@
     cursor: pointer;
   }
 
+  .region-boundary { filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.75)); }
+
   #generatedAt { font-size: 10px; color: #94a3b8; margin: 14px 0 0; }
   #attribution { font-size: 10px; color: #94a3b8; margin: 6px 0 0; line-height: 1.5; }
 
@@ -298,6 +300,15 @@
     </optgroup>
   </select>
 
+  <div class="section-label">Boundary overlay</div>
+  <select id="boundarySelect" onchange="onBoundaryChange(this.value)">
+    <option value="catchments" selected>Catchments</option>
+    <option value="regions">Regions</option>
+    <option value="counties">Counties</option>
+    <option value="grid">Grid (20km)</option>
+    <option value="none">None</option>
+  </select>
+
   <div class="section-label">Active model runs overlay</div>
   <div id="runLegendList" class="run-legend-list">
     <!-- Populated by JS -->
@@ -364,20 +375,93 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 var runOverlays = [];
 for (var r = 0; r < 4; r++) {
   var overlay = L.imageOverlay('', imgBounds, { opacity: 0.8, interactive: false }).addTo(map);
+  overlay._expectedRawUrl = '';
   runOverlays.push(overlay);
 }
+
+// ── Geographic Boundary Layers ────────────────────────────────────────────────
+var regionLayer     = null;
+var countiesLayer   = null;
+var catchmentsLayer = null;
+var gridLayer       = null;
+var currentBoundary = 'catchments';
+
+var BOUNDARY_STYLES = {
+  regions:    { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
+  counties:   { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
+  catchments: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
+  grid:       { color: '#5f6368', weight: 0.7, fillOpacity: 0, className: 'region-boundary' },
+};
+
+function getLayerObj(name) {
+  if (name === 'regions')    return regionLayer;
+  if (name === 'counties')   return countiesLayer;
+  if (name === 'catchments') return catchmentsLayer;
+  if (name === 'grid')       return gridLayer;
+  return null;
+}
+
+function setLayerObj(name, layer) {
+  if (name === 'regions')    regionLayer   = layer;
+  if (name === 'counties')   countiesLayer = layer;
+  if (name === 'catchments') catchmentsLayer = layer;
+  if (name === 'grid')       gridLayer     = layer;
+}
+
+function loadBoundary(val) {
+  var files = {
+    regions:    'uk_regions.geojson',
+    counties:   'uk-counties.geojson',
+    catchments: 'uk_catchments.geojson',
+    grid:       'uk_grid_20km.geojson',
+  };
+  if (!files[val] || getLayerObj(val)) return;
+  fetch(files[val])
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var layer = L.geoJSON(data, { style: BOUNDARY_STYLES[val] });
+      setLayerObj(val, layer);
+      if (currentBoundary === val) layer.addTo(map);
+    })
+    .catch(function(e) { console.log('Could not load boundary ' + val + ':', e); });
+}
+
+function onBoundaryChange(val) {
+  ['regions','counties','catchments','grid'].forEach(function(n) {
+    var l = getLayerObj(n);
+    if (l && map.hasLayer(l)) map.removeLayer(l);
+  });
+  currentBoundary = val;
+  if (val !== 'none') {
+    var l = getLayerObj(val);
+    if (l) { l.setStyle(BOUNDARY_STYLES[val]); l.addTo(map); }
+    else loadBoundary(val);
+  }
+}
+loadBoundary('catchments');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 var meta            = null;
 var focusRunIdx     = 0;            // Index in meta.runs
 var activeThreshold = '3h_30mm';
-var currentValidIdx = 0;            // Index in masterValidTimes
-var masterValidTimes= [];           // Sorted list of unique valid timestamp strings
+var currentValidIdx = 0;            // Index in masterValidMsList
+var masterValidMsList = [];         // Sorted list of unique valid UTC ms timestamps
 var runEnabled      = [true, true, true, true];
 var globalOpacity   = 0.8;
 var playing         = false;
 var playTimer       = null;
 var canvasCache     = {};           // Cache colorized dataURLs: key -> dataURL
+
+// Helper: compute exact step valid UTC milliseconds
+function stepValidMs(run, step) {
+  if (!run || !run.run_ts || !step) return NaN;
+  var ts = run.run_ts;
+  var runMs = Date.UTC(
+    +ts.slice(0, 4), +ts.slice(4, 6) - 1, +ts.slice(6, 8),
+    +ts.slice(9, 11), +ts.slice(11, 13)
+  );
+  return runMs + (step.offset_hours || 0) * 3600 * 1000;
+}
 
 // ── Tinting / Canvas Engine ───────────────────────────────────────────────────
 function getColorizedSplatUrl(rawUrl, colorHex, cb) {
@@ -440,37 +524,36 @@ function initRunSelect() {
 }
 
 function buildMasterTimeline() {
-  var validSet = new Set();
+  var msSet = new Set();
   var activeRuns = getActiveRunObjects();
   activeRuns.forEach(function(run) {
     if (run && run.steps) {
       run.steps.forEach(function(s) {
-        if (s.valid_label) validSet.add(s.valid_label);
+        var ms = stepValidMs(run, s);
+        if (!isNaN(ms)) msSet.add(ms);
       });
     }
   });
 
-  // Sort chronologically based on valid_label text parsing or original order
-  masterValidTimes = Array.from(validSet);
-  masterValidTimes.sort(function(a, b) {
-    return parseValidDt(a) - parseValidDt(b);
-  });
+  masterValidMsList = Array.from(msSet);
+  masterValidMsList.sort(function(a, b) { return a - b; });
 
   var slider = document.getElementById('timeSlider');
   slider.min = 0;
-  slider.max = Math.max(0, masterValidTimes.length - 1);
-  if (currentValidIdx >= masterValidTimes.length) {
-    currentValidIdx = Math.max(0, masterValidTimes.length - 1);
+  slider.max = Math.max(0, masterValidMsList.length - 1);
+  if (currentValidIdx >= masterValidMsList.length) {
+    currentValidIdx = Math.max(0, masterValidMsList.length - 1);
   }
   slider.value = currentValidIdx;
 }
 
-function parseValidDt(lbl) {
-  try {
-    return new Date(lbl.replace('GMT', 'UTC')).getTime();
-  } catch(e) {
-    return 0;
-  }
+function formatValidMs(ms) {
+  if (isNaN(ms)) return '—';
+  var d = new Date(ms);
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var hours = String(d.getUTCHours()).padStart(2, '0');
+  var mins = String(d.getUTCMinutes()).padStart(2, '0');
+  return d.getUTCDate() + ' ' + months[d.getUTCMonth()] + ' ' + d.getUTCFullYear() + ' ' + hours + ':' + mins + ' GMT';
 }
 
 function getActiveRunObjects() {
@@ -489,47 +572,54 @@ function getActiveRunObjects() {
 
 // ── Display Update ────────────────────────────────────────────────────────────
 function updateDisplay() {
-  if (!meta || !masterValidTimes.length) return;
+  if (!meta || !masterValidMsList.length) return;
 
-  var targetValidLabel = masterValidTimes[currentValidIdx];
-  document.getElementById('playerDateLine').textContent = targetValidLabel || '—';
+  var targetMs = masterValidMsList[currentValidIdx];
+  var targetValidLabel = formatValidMs(targetMs);
+  document.getElementById('playerDateLine').textContent = targetValidLabel;
 
   var activeRuns = getActiveRunObjects();
-  renderLegendList(activeRuns, targetValidLabel);
+  renderLegendList(activeRuns, targetMs);
 
-  // Update map overlays for each of the 4 runs
+  // Update map overlays for each of the 4 runs with race condition prevention
   activeRuns.forEach(function(run, slotIdx) {
     var overlay = runOverlays[slotIdx];
     if (!run || !runEnabled[slotIdx]) {
+      overlay._expectedRawUrl = '';
       overlay.setUrl('');
       return;
     }
 
-    // Find step matching targetValidLabel
+    // Find step matching exact targetMs
     var matchingStep = null;
     (run.steps || []).forEach(function(s) {
-      if (s.valid_label === targetValidLabel) matchingStep = s;
+      if (Math.abs(stepValidMs(run, s) - targetMs) < 60000) matchingStep = s;
     });
 
     if (!matchingStep || !matchingStep.splats || !matchingStep.splats[activeThreshold]) {
+      overlay._expectedRawUrl = '';
       overlay.setUrl('');
       return;
     }
 
     var rawSplatUrl = matchingStep.splats[activeThreshold];
+    overlay._expectedRawUrl = rawSplatUrl;
     var colorHex = RUN_COLORS[slotIdx].hex;
 
     getColorizedSplatUrl(rawSplatUrl, colorHex, function(tintedUrl) {
-      overlay.setUrl(tintedUrl);
-      overlay.setOpacity(globalOpacity);
+      // Prevent race condition: verify this overlay still expects this raw URL
+      if (overlay._expectedRawUrl === rawSplatUrl) {
+        overlay.setUrl(tintedUrl);
+        overlay.setOpacity(globalOpacity);
+      }
     });
   });
 
-  var focusStep = activeRuns[0] ? (activeRuns[0].steps || []).find(function(s){ return s.valid_label === targetValidLabel; }) : null;
+  var focusStep = activeRuns[0] ? (activeRuns[0].steps || []).find(function(s){ return Math.abs(stepValidMs(activeRuns[0], s) - targetMs) < 60000; }) : null;
   document.getElementById('playerOffsetLine').textContent = focusStep ? ('Focus run ' + focusStep.offset) : 'Out of focus run range';
 }
 
-function renderLegendList(activeRuns, targetValidLabel) {
+function renderLegendList(activeRuns, targetMs) {
   var container = document.getElementById('runLegendList');
   container.innerHTML = '';
 
@@ -537,7 +627,7 @@ function renderLegendList(activeRuns, targetValidLabel) {
     var card = document.createElement('div');
     var isCovered = false;
     if (run && run.steps) {
-      isCovered = run.steps.some(function(s) { return s.valid_label === targetValidLabel; });
+      isCovered = run.steps.some(function(s) { return Math.abs(stepValidMs(run, s) - targetMs) < 60000; });
     }
 
     card.className = 'run-legend-card' + (!isCovered || !runEnabled[slotIdx] ? ' inactive' : '');
@@ -599,7 +689,7 @@ function togglePlay() {
   if (playing) {
     icon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; // Pause icon
     playTimer = setInterval(function() {
-      currentValidIdx = (currentValidIdx + 1) % masterValidTimes.length;
+      currentValidIdx = (currentValidIdx + 1) % masterValidMsList.length;
       document.getElementById('timeSlider').value = currentValidIdx;
       updateDisplay();
     }, 300);
