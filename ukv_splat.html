@@ -521,13 +521,15 @@ function initRunSelect() {
 
 function buildMasterTimeline() {
   var msSet = new Set();
-  var focusRun = meta && meta.runs && meta.runs[focusRunIdx];
-  if (focusRun && focusRun.steps) {
-    focusRun.steps.forEach(function(s) {
-      var ms = stepValidMs(focusRun, s);
-      if (!isNaN(ms)) msSet.add(ms);
-    });
-  }
+  var activeRuns = getActiveRunObjects();
+  activeRuns.forEach(function(run) {
+    if (run && run.steps) {
+      run.steps.forEach(function(s) {
+        var ms = stepValidMs(run, s);
+        if (!isNaN(ms)) msSet.add(ms);
+      });
+    }
+  });
 
   masterValidMsList = Array.from(msSet);
   masterValidMsList.sort(function(a, b) { return a - b; });
@@ -614,28 +616,60 @@ function updateDisplay() {
     var ms = stepValidMs(activeRuns[0], s);
     return !isNaN(ms) && Math.abs(ms - targetMs) < 60000;
   }) : null;
-  document.getElementById('playerOffsetLine').textContent = focusStep ? ('Focus run ' + focusStep.offset) : 'Out of focus run range';
+
+  if (focusStep) {
+    document.getElementById('playerOffsetLine').textContent = 'Focus run ' + focusStep.offset;
+  } else {
+    document.getElementById('playerOffsetLine').textContent = 'Before focus run start (showing older runs)';
+  }
 }
 
 function renderLegendList(activeRuns, targetMs) {
   var container = document.getElementById('runLegendList');
   container.innerHTML = '';
+  var reqHours = parseInt(activeThreshold.split('h')[0]) || 1;
 
   activeRuns.forEach(function(run, slotIdx) {
     var card = document.createElement('div');
-    var isCovered = false;
+    var matchingStep = null;
     if (run && run.steps) {
-      isCovered = run.steps.some(function(s) {
+      matchingStep = run.steps.find(function(s) {
         var ms = stepValidMs(run, s);
         return !isNaN(ms) && Math.abs(ms - targetMs) < 60000;
       });
     }
 
-    card.className = 'run-legend-card' + (!isCovered || !runEnabled[slotIdx] ? ' inactive' : '');
+    var hasSplat = matchingStep && matchingStep.splats && matchingStep.splats[activeThreshold];
+    var isEnabled = runEnabled[slotIdx];
+    var isActive = hasSplat && isEnabled;
+
+    card.className = 'run-legend-card' + (!isActive ? ' inactive' : '');
 
     var colorInfo = RUN_COLORS[slotIdx];
     var labelText = slotIdx === 0 ? 'Focus: ' + (run ? run.run_label : 'N/A') : (run ? run.run_label : 'No run data');
-    var subText = isCovered ? 'Active at timestamp' : (run ? 'No coverage at timestamp' : 'Run unavailable');
+    var subText = '';
+
+    if (!run) {
+      subText = 'Run unavailable';
+    } else if (!matchingStep) {
+      // Check if targetMs is before the run's start time
+      var firstMs = run.steps && run.steps[0] ? stepValidMs(run, run.steps[0]) : NaN;
+      if (!isNaN(firstMs) && targetMs < firstMs) {
+        subText = 'Before run initialization';
+      } else {
+        subText = 'Outside forecast range';
+      }
+    } else if (hasSplat) {
+      subText = 'Active at timestamp (' + matchingStep.offset + ')';
+    } else {
+      // Step exists, but splat does not exist for this threshold
+      var offsetH = matchingStep.offset_hours || 0;
+      if (offsetH < reqHours) {
+        subText = 'Needs ' + reqHours + 'h lead time (offset ' + matchingStep.offset + ')';
+      } else {
+        subText = 'Threshold exceedance mask empty';
+      }
+    }
 
     card.innerHTML =
       '<div class="run-info">' +
@@ -645,7 +679,7 @@ function renderLegendList(activeRuns, targetMs) {
           '<span class="run-time-sub">' + subText + '</span>' +
         '</div>' +
       '</div>' +
-      '<input type="checkbox" class="run-toggle-check" ' + (runEnabled[slotIdx] ? 'checked' : '') +
+      '<input type="checkbox" class="run-toggle-check" ' + (isEnabled ? 'checked' : '') +
       ' onchange="toggleRunSlot(' + slotIdx + ', this.checked)">';
 
     container.appendChild(card);
