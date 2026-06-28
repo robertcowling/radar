@@ -206,13 +206,15 @@ select:hover { background-color: #e8eaed; }
 
 <!-- Column headers for the three maps -->
 <div class="map-header-row" id="mapHeaderRow" style="display:none;">
-  <div class="map-header-cell">
+  <div class="map-header-cell" style="gap:8px;">
+    <span style="color:#94a3b8;font-size:11px;font-weight:500;flex-shrink:0;">Base</span>
     <select id="selectRunLeft" class="hdr-select" onchange="onRunSelectChange('left')"></select>
   </div>
-  <div class="map-header-cell">
+  <div class="map-header-cell" style="gap:8px;">
+    <span style="color:#94a3b8;font-size:11px;font-weight:500;flex-shrink:0;">Reference</span>
     <select id="selectRunRight" class="hdr-select" onchange="onRunSelectChange('right')"></select>
   </div>
-  <div class="map-header-cell">Difference (left &minus; centre)</div>
+  <div class="map-header-cell">Difference (base &minus; reference)</div>
 </div>
 
 <!-- State messages -->
@@ -241,32 +243,32 @@ select:hover { background-color: #e8eaed; }
   <div class="control-group">
     <span class="control-label">Period</span>
     <select id="periodSelect" onchange="setWinPreset(this.value)">
-      <option value="6h">0–6h</option>
-      <option value="12h">0–12h</option>
+      <option value="6h">Day 1 (0–6h)</option>
+      <option value="12h">Day 1 (0–12h)</option>
       <option value="day1" selected>Day 1 (0–24h)</option>
       <option value="day2">Day 2 (24–48h)</option>
       <option value="day3">Day 3 (48–72h)</option>
-      <option value="48h">0–48h</option>
-      <option value="72h">0–72h</option>
-      <option value="full">Full 120h</option>
+      <option value="48h">Days 1 &amp; 2 (0–48h)</option>
+      <option value="72h">Days 1–3 (0–72h)</option>
+      <option value="full">Full (0–120h)</option>
     </select>
   </div>
 
   <div class="control-group">
     <span class="control-label">View</span>
     <div class="seg-control">
-      <button id="btnGrid" class="seg-btn seg-active" onclick="setViewMode('grid')">Grid</button>
-      <button id="btnArea" class="seg-btn"            onclick="setViewMode('area')">Areas</button>
+      <button id="btnGrid" class="seg-btn"            onclick="setViewMode('grid')">Grid</button>
+      <button id="btnArea" class="seg-btn seg-active" onclick="setViewMode('area')">Areas</button>
     </div>
   </div>
 
-  <div class="control-group" id="boundaryControl" style="opacity:0.5;">
+  <div class="control-group" id="boundaryControl">
     <span class="control-label">Areas</span>
     <div class="seg-control" id="layerSeg">
-      <button class="seg-btn"            data-layer="catchments" onclick="setLayer('catchments')">Catchments</button>
+      <button class="seg-btn seg-active" data-layer="catchments" onclick="setLayer('catchments')">Catchments</button>
       <button class="seg-btn"            data-layer="regions"    onclick="setLayer('regions')">Regions</button>
       <button class="seg-btn"            data-layer="summary"    onclick="setLayer('summary')">Summary</button>
-      <button class="seg-btn seg-active" data-layer="grid"       onclick="setLayer('grid')">Grid 20km</button>
+      <button class="seg-btn"            data-layer="grid"       onclick="setLayer('grid')">Grid 20km</button>
     </div>
   </div>
 
@@ -331,14 +333,14 @@ var R2_CDN  = 'https://radar.floodforecast.co.uk';
 var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
 
 var WIN_PRESETS = {
-  '6h':   { name: '0–6h',        start: 0,  end: 6   },
-  '12h':  { name: '0–12h',       start: 0,  end: 12  },
-  'day1': { name: 'Day 1 (24h)',      start: 0,  end: 24  },
-  'day2': { name: 'Day 2 (24h)',      start: 24, end: 48  },
-  'day3': { name: 'Day 3 (24h)',      start: 48, end: 72  },
-  '48h':  { name: '0–48h',       start: 0,  end: 48  },
-  '72h':  { name: '0–72h',       start: 0,  end: 72  },
-  'full': { name: 'Full (120h)',      start: 0,  end: 120 }
+  '6h':   { name: 'Day 1 (0–6h)',        start: 0,  end: 6   },
+  '12h':  { name: 'Day 1 (0–12h)',       start: 0,  end: 12  },
+  'day1': { name: 'Day 1 (0–24h)',       start: 0,  end: 24  },
+  'day2': { name: 'Day 2 (24–48h)',      start: 24, end: 48  },
+  'day3': { name: 'Day 3 (48–72h)',      start: 48, end: 72  },
+  '48h':  { name: 'Days 1 & 2 (0–48h)', start: 0,  end: 48  },
+  '72h':  { name: 'Days 1–3 (0–72h)',   start: 0,  end: 72  },
+  'full': { name: 'Full (0–120h)',       start: 0,  end: 120 }
 };
 var LAYER_LABEL = { catchments: 'Catchment', regions: 'Region', grid: '20km grid cell', summary: 'Summary area' };
 
@@ -356,12 +358,13 @@ var SCHEMES = {
 var _data = null, _meta = null;
 var _geoCache = {}, _tsCache = {}, _compCache = {};
 var _dynamicComp = null;
-var _winKey = 'day1', _layer = 'grid', _scheme = 'norm', _viewMode = 'grid';
+var _winKey = 'day1', _layer = 'catchments', _scheme = 'norm', _viewMode = 'area';
 var _selectedRunLeft = null, _selectedRunRight = null;
 var _showAll = false;
 var _mapLeft = null, _mapCentre = null, _mapDiff = null;
 var _polyLeft = null, _polyCentre = null, _polyDiff = null;
 var _rasterLeft = null, _rasterCentre = null, _rasterDiff = null;
+var _catchLeft = null, _catchCentre = null, _catchDiff = null;
 var _syncing = false;
 
 // ── Utilities ──────────────────────────────────────────────────────────
@@ -532,12 +535,18 @@ function buildInsights(comp, winKey) {
 // ── Run selectors ─────────────────────────────────────────────────────────
 function overlappingRuns() {
   var allRuns = (_meta && _meta.runs) || [];
-  if (!_selectedRunLeft) return allRuns.filter(function(r) { return r.run_ts !== _selectedRunLeft; });
+  if (!_selectedRunLeft) return [];
   var dtLeft = parseRunTs(_selectedRunLeft);
+  // For the selected window [start, end], run B needs data at [start+lag, end+lag]
+  // which requires: start+lag >= 0 AND end+lag <= 120
+  // → -start <= lag <= 120-end
+  var p      = WIN_PRESETS[_winKey] || { start: 0, end: 24 };
+  var minLag = -p.start;
+  var maxLag = 120 - p.end;
   return allRuns.filter(function(r) {
     if (r.run_ts === _selectedRunLeft) return false;
-    var lag = Math.abs(Math.round((dtLeft - parseRunTs(r.run_ts)) / 3600000));
-    return lag < 120;
+    var lag = Math.round((dtLeft - parseRunTs(r.run_ts)) / 3600000);
+    return lag >= minLag && lag <= maxLag;
   });
 }
 
@@ -607,6 +616,7 @@ async function applyComparisonSelection() {
   renderInsights(buildInsights(comp));
   renderRules();
   drawPolys();
+  updateCatchOverlay();
   renderLegend();
   updateRaster();
   renderTable();
@@ -636,7 +646,7 @@ function renderRules() {
   el.innerHTML = '<div class="rules-note">Areas are compared at the <b>same valid time</b> across runs. A change is flagged as significant when <b>both</b> hold:<ul>' +
     '<li><b>Noise floor cleared</b> — change exceeds <code>' + cf + 'mm</code> for catchments/regions or <code>' + gf + 'mm</code> for grid cells.</li>' +
     '<li><b>Operationally relevant</b> — total crosses a flood threshold (<code>' + th + 'mm</code>/24h), or the prior total shifts by more than <code>' + pc + '%</code>.</li>' +
-    '</ul>Significant rows are marked: <span style="color:#b91c1c;font-weight:700;">●</span> left wetter, <span style="color:#1565c0;font-weight:700;">●</span> left drier.</div>';
+    '</ul>Significant rows are marked: <span style="color:#b91c1c;font-weight:700;">●</span> base wetter, <span style="color:#1565c0;font-weight:700;">●</span> base drier.</div>';
 }
 
 // ── Map ────────────────────────────────────────────────────────────────────
@@ -768,15 +778,33 @@ function renderLegend() {
       return '<span class="cbar-label" style="left:' + pct + '%">' + (v > 0 ? '+' : '') + Math.round(v) + '</span>';
     }).join('');
     return '<p>Difference (mm) — ' + esc(winTxt) + '</p><div class="cbar">' + blocks + '</div><div class="cbar-labels">' + labels + '</div>' +
-      '<div class="bias-arrows"><span style="color:#1565c0;font-weight:600;">◄ Left drier</span><span style="color:#b91c1c;font-weight:600;">Left wetter ►</span></div>';
+      '<div class="bias-arrows"><span style="color:#1565c0;font-weight:600;">◄ Base drier</span><span style="color:#b91c1c;font-weight:600;">Base wetter ►</span></div>';
   }
 
   var elL = document.getElementById('legendLeft');
   var elC = document.getElementById('legendCentre');
   var elD = document.getElementById('legendDiff');
-  if (elL) elL.innerHTML = accumCbar(comp.run_a_label || 'Left run');
-  if (elC) elC.innerHTML = accumCbar(comp.run_b_label || 'Centre run');
+  if (elL) elL.innerHTML = accumCbar('Base — ' + (comp.run_a_label || ''));
+  if (elC) elC.innerHTML = accumCbar('Reference — ' + (comp.run_b_label || ''));
   if (elD) elD.innerHTML = diffCbar();
+}
+
+// ── Catchment reference overlay (shown on all maps when grid 20km layer active) ──
+function updateCatchOverlay() {
+  var maps = [_mapLeft, _mapCentre, _mapDiff];
+  var vars = ['_catchLeft', '_catchCentre', '_catchDiff'];
+  vars.forEach(function(v, i) {
+    if (window[v] && maps[i]) { maps[i].removeLayer(window[v]); window[v] = null; }
+  });
+  if (_layer !== 'grid') return;
+  loadGeo('catchments').then(function(geo) {
+    maps.forEach(function(m, i) {
+      if (!m) return;
+      window[vars[i]] = L.geoJSON(geo, {
+        style: { color: '#64748b', weight: 1, fillOpacity: 0, interactive: false }
+      }).addTo(m);
+    });
+  }).catch(function() {});
 }
 
 // ── Control handlers ────────────────────────────────────────────────────────
@@ -784,11 +812,21 @@ function setWinPreset(key) {
   _winKey = key;
   var sel = document.getElementById('periodSelect');
   if (sel && sel.value !== key) sel.value = key;
+  // Re-filter right dropdown for new period's valid lag range
+  var prevRight = _selectedRunRight;
+  renderHeaderSelects();
+  if (_selectedRunRight !== prevRight) {
+    // Selection was reset; need full recompute
+    applyComparisonSelection();
+    return;
+  }
   var comp = currentComp();
-  if (comp.windows) renderInsights(buildInsights(comp));
-  refreshPolyStyles();
-  renderLegend();
-  renderTable();
+  if (comp && comp.windows) {
+    renderInsights(buildInsights(comp));
+    refreshPolyStyles();
+    renderLegend();
+    renderTable();
+  }
 }
 
 function setLayer(lyr) {
@@ -797,6 +835,7 @@ function setLayer(lyr) {
     b.classList.toggle('seg-active', b.dataset.layer === lyr);
   });
   drawPolys();
+  updateCatchOverlay();
   renderLegend();
   renderTable();
 }
@@ -805,8 +844,6 @@ function setViewMode(mode) {
   _viewMode = mode;
   document.getElementById('btnGrid').classList.toggle('seg-active', mode === 'grid');
   document.getElementById('btnArea').classList.toggle('seg-active', mode === 'area');
-  var bc = document.getElementById('boundaryControl');
-  if (bc) bc.style.opacity = mode === 'grid' ? '0.5' : '1';
   refreshPolyStyles();
   updateRaster();
 }
