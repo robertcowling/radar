@@ -99,7 +99,7 @@ body {
 /* ── Player / control panel ───────────────────────────────────────── */
 .player-panel {
   position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-  padding: 12px 18px; z-index: 1000; width: 95%; max-width: 1150px;
+  padding: 12px 18px; z-index: 1000; width: 95%; max-width: 1200px;
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
 }
 .surface {
@@ -124,6 +124,35 @@ select {
   background-repeat: no-repeat; background-position: right 14px center; outline: none; transition: background 0.2s;
 }
 select:hover { background-color: #e8eaed; }
+
+/* ── Timeline slider ──────────────────────────────────────────────── */
+.timeline-group { flex: 1; min-width: 160px; }
+.timeline-container { position: relative; height: 20px; }
+.timeline-track {
+  position: absolute; left: 0; right: 0; top: 50%;
+  height: 4px; background: #e8eaed; border-radius: 2px;
+  transform: translateY(-50%); pointer-events: none;
+}
+input[type=range]#timeSlider {
+  width: 100%; position: relative; z-index: 1;
+  -webkit-appearance: none; appearance: none;
+  background: transparent; cursor: pointer; height: 20px; margin: 0; padding: 0; border: none;
+}
+input[type=range]#timeSlider::-webkit-slider-runnable-track { background: transparent; height: 4px; }
+input[type=range]#timeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: #1a73e8; box-shadow: 0 1px 3px rgba(0,0,0,0.3); margin-top: -6px;
+}
+input[type=range]#timeSlider::-moz-range-track { background: #e8eaed; height: 4px; border-radius: 2px; }
+input[type=range]#timeSlider::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #1a73e8; border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.player-datetime {
+  flex-shrink: 0; text-align: center; min-width: 76px; padding: 0 4px;
+}
+.player-datetime .dt-date { font-size: 12px; font-weight: 600; color: #202124; }
+.player-datetime .dt-time { font-size: 11px; color: #5f6368; }
 
 /* ── Modals ───────────────────────────────────────────────────────── */
 .modal-backdrop {
@@ -242,34 +271,45 @@ select:hover { background-color: #e8eaed; }
 
   <div class="control-group">
     <span class="control-label">Period</span>
-    <select id="periodSelect" onchange="setWinPreset(this.value)">
-      <option value="6h">Day 1 (0–6h)</option>
-      <option value="12h">Day 1 (0–12h)</option>
-      <option value="day1" selected>Day 1 (0–24h)</option>
-      <option value="day2">Day 2 (24–48h)</option>
-      <option value="day3">Day 3 (48–72h)</option>
-      <option value="48h">Days 1 &amp; 2 (0–48h)</option>
-      <option value="72h">Days 1–3 (0–72h)</option>
-      <option value="full">Full (0–120h)</option>
+    <select id="periodSelect" onchange="setLayerKey(this.value)">
+      <option value="accum_1h">1 hour</option>
+      <option value="accum_3h">3 hours</option>
+      <option value="accum_6h" selected>6 hours</option>
+      <option value="accum_12h">12 hours</option>
+      <option value="accum_24h">24 hours</option>
     </select>
+  </div>
+
+  <div class="control-group timeline-group">
+    <span class="control-label">Forecast window</span>
+    <div class="timeline-container">
+      <div class="timeline-track"></div>
+      <input type="range" id="timeSlider" min="0" max="0" step="1" value="0"
+             oninput="setSliderStep(parseInt(this.value))">
+    </div>
+  </div>
+
+  <div class="player-datetime">
+    <div class="dt-date" id="playerDateLine">—</div>
+    <div class="dt-time" id="playerTimeLine">—</div>
   </div>
 
   <div class="control-group">
     <span class="control-label">View</span>
     <div class="seg-control">
-      <button id="btnGrid" class="seg-btn"            onclick="setViewMode('grid')">Grid</button>
-      <button id="btnArea" class="seg-btn seg-active" onclick="setViewMode('area')">Areas</button>
+      <button id="btnGrid" class="seg-btn seg-active" onclick="setViewMode('grid')">Grid</button>
+      <button id="btnArea" class="seg-btn"            onclick="setViewMode('area')">Areas</button>
     </div>
   </div>
 
-  <div class="control-group" id="boundaryControl">
+  <div class="control-group">
     <span class="control-label">Areas</span>
-    <div class="seg-control" id="layerSeg">
-      <button class="seg-btn seg-active" data-layer="catchments" onclick="setLayer('catchments')">Catchments</button>
-      <button class="seg-btn"            data-layer="regions"    onclick="setLayer('regions')">Regions</button>
-      <button class="seg-btn"            data-layer="summary"    onclick="setLayer('summary')">Summary</button>
-      <button class="seg-btn"            data-layer="grid"       onclick="setLayer('grid')">Grid 20km</button>
-    </div>
+    <select id="layerSelect" onchange="setLayer(this.value)">
+      <option value="catchments" selected>Catchments</option>
+      <option value="regions">Regions</option>
+      <option value="summary">Summary</option>
+      <option value="grid">Grid 20km</option>
+    </select>
   </div>
 
   <div class="control-group">
@@ -314,7 +354,7 @@ select:hover { background-color: #e8eaed; }
     </div>
     <div class="modal-body">
       <p style="font-size:12.5px;color:#64748b;margin:0 0 14px;">
-        Showing <b id="tblWinLabel">Day 1</b> totals for <b id="tblLayerLabel">Grid 20km</b>.
+        Showing <b id="tblWinLabel">6 hours</b> totals for <b id="tblLayerLabel">Catchments</b>.
       </p>
       <div id="tableWrap"></div>
     </div>
@@ -331,18 +371,18 @@ var GEO_FILES = {
 };
 var R2_CDN  = 'https://radar.floodforecast.co.uk';
 var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
+var IMG_BOUNDS = [[43.0,-26.0],[63.0,17.0]];
 
-var WIN_PRESETS = {
-  '6h':   { name: 'Day 1 (0–6h)',        start: 0,  end: 6   },
-  '12h':  { name: 'Day 1 (0–12h)',       start: 0,  end: 12  },
-  'day1': { name: 'Day 1 (0–24h)',       start: 0,  end: 24  },
-  'day2': { name: 'Day 2 (24–48h)',      start: 24, end: 48  },
-  'day3': { name: 'Day 3 (48–72h)',      start: 48, end: 72  },
-  '48h':  { name: 'Days 1 & 2 (0–48h)', start: 0,  end: 48  },
-  '72h':  { name: 'Days 1–3 (0–72h)',   start: 0,  end: 72  },
-  'full': { name: 'Full (0–120h)',       start: 0,  end: 120 }
+// Accumulation window sizes: key matches ukv_meta.json step keys
+var WIN_SIZES = {
+  'accum_1h':  { name: '1 hour',   hours: 1  },
+  'accum_3h':  { name: '3 hours',  hours: 3  },
+  'accum_6h':  { name: '6 hours',  hours: 6  },
+  'accum_12h': { name: '12 hours', hours: 12 },
+  'accum_24h': { name: '24 hours', hours: 24 }
 };
-var LAYER_LABEL = { catchments: 'Catchment', regions: 'Region', grid: '20km grid cell', summary: 'Summary area' };
+
+var LAYER_LABEL = { catchments: 'Catchments', regions: 'Regions', grid: '20km grid cells', summary: 'Summary areas' };
 
 var BIAS_BOUNDS = [-200,-100,-50,-25,-10,10,25,50,100,200];
 var BIAS_COLORS = ['#053061','#2166ac','#4393c3','#92c5de','#d1e5f0','#f7f7f7','#fddbc7','#f4a582','#d6604d','#b2182b','#67001f'];
@@ -356,14 +396,18 @@ var SCHEMES = {
 
 // ── State ─────────────────────────────────────────────────────────────
 var _data = null, _meta = null;
-var _geoCache = {}, _tsCache = {}, _compCache = {};
-var _dynamicComp = null;
-var _winKey = 'day1', _layer = 'catchments', _scheme = 'norm', _viewMode = 'area';
+var _geoCache = {}, _tsCache = {};
+var _tsA = null, _tsB = null, _lagH = 0;
+var _compInfo = null;
+var _currentSliderData = null;
+var _sliderSteps = [];
+var _layerKey = 'accum_6h', _layer = 'catchments', _scheme = 'norm', _viewMode = 'grid';
+var _sliderStep = null;
 var _selectedRunLeft = null, _selectedRunRight = null;
 var _showAll = false;
 var _mapLeft = null, _mapCentre = null, _mapDiff = null;
 var _polyLeft = null, _polyCentre = null, _polyDiff = null;
-var _rasterLeft = null, _rasterCentre = null, _rasterDiff = null;
+var _rasterLeft = null, _rasterCentre = null;
 var _catchLeft = null, _catchCentre = null, _catchDiff = null;
 var _syncing = false;
 
@@ -386,7 +430,29 @@ function getRunLabel(ts) {
   }
   return ts;
 }
-function getWinLabel() { var p = WIN_PRESETS[_winKey]; return p ? p.name : _winKey; }
+function getWinLabel() {
+  var ws = WIN_SIZES[_layerKey];
+  return ws ? ws.name : _layerKey;
+}
+function getRunForecastHours(run_ts) {
+  if (!_meta || !_meta.runs) return 54;
+  var r = _meta.runs.find(function(x) { return x.run_ts === run_ts; });
+  return (r && r.forecast_hours) || 54;
+}
+function getMetaStep(run_ts, offset_hours) {
+  if (!_meta || !_meta.runs) return null;
+  var r = _meta.runs.find(function(x) { return x.run_ts === run_ts; });
+  if (!r) return null;
+  return (r.steps || []).find(function(s) { return s.offset_hours === offset_hours; });
+}
+function fmtValidTime(offsetHours) {
+  if (!_selectedRunLeft) return null;
+  var dt = parseRunTs(_selectedRunLeft);
+  dt = new Date(dt.getTime() + offsetHours * 3600000);
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var p = function(n) { return n < 10 ? '0'+n : ''+n; };
+  return { date: p(dt.getUTCDate()) + ' ' + months[dt.getUTCMonth()], time: p(dt.getUTCHours()) + ':00 UTC' };
+}
 
 // ── Colour ─────────────────────────────────────────────────────────────
 function biasFillColor(mm) {
@@ -403,11 +469,8 @@ function bucketColor(v, scheme) {
 }
 
 // ── Data access ─────────────────────────────────────────────────────────
-function currentComp() { return _dynamicComp || {}; }
-function currentRows() {
-  var c = currentComp();
-  return ((c.windows && c.windows[_winKey]) || {})[_layer] || {};
-}
+function currentComp() { return _compInfo || {}; }
+function currentRows() { return (_currentSliderData && _currentSliderData[_layer]) || {}; }
 function valueFor(name, mode) {
   var r = currentRows()[name]; if (!r) return null;
   if (mode === 'left')   return r.run_a_mm;
@@ -484,52 +547,81 @@ function computeLayerWindow(tsA, tsB, start, end, lag_h, lyr, rules) {
   return result;
 }
 
-async function buildDynamicComp(runA, runB) {
-  var cacheKey = runA + '|' + runB;
-  if (_compCache[cacheKey]) return _compCache[cacheKey];
-
-  var tsArr = await Promise.all([loadRunAreaTs(runA), loadRunAreaTs(runB)]);
-  var tsA = tsArr[0], tsB = tsArr[1];
-
-  var dtA = parseRunTs(runA), dtB = parseRunTs(runB);
-  var lag_h = Math.round((dtA - dtB) / 3600000);
-  var rules = (_data && _data.significance_rules) || {};
-  var layers = ['catchments', 'regions', 'grid'];
-
-  // Carry across pre-computed raster URLs if available
-  var existing = (_data.comparisons || []).find(function(c) { return c.run_a === runA && c.run_b === runB; });
-
-  var comp = {
-    run_a: runA, run_a_label: getRunLabel(runA),
-    run_b: runB, run_b_label: getRunLabel(runB),
-    lag_h: lag_h,
-    image_bounds:    (existing && existing.image_bounds)    || (_data && _data.image_bounds) || null,
-    raw_image_a_url: (existing && existing.raw_image_a_url) || null,
-    raw_image_b_url: (existing && existing.raw_image_b_url) || null,
-    diff_image_url:  (existing && existing.diff_image_url)  || null,
-    windows: {}
-  };
-
-  // Compute all 8 window presets at once so switching is instant
-  Object.keys(WIN_PRESETS).forEach(function(key) {
-    var p = WIN_PRESETS[key];
-    comp.windows[key] = {};
-    layers.forEach(function(lyr) {
-      comp.windows[key][lyr] = computeLayerWindow(tsA, tsB, p.start, p.end, lag_h, lyr, rules);
-    });
+function computeSliderData() {
+  if (!_tsA || !_tsB || _sliderStep === null) { _currentSliderData = null; return; }
+  var W = WIN_SIZES[_layerKey] ? WIN_SIZES[_layerKey].hours : 6;
+  var startA = _sliderStep - W;
+  var rules  = (_data && _data.significance_rules) || {};
+  _currentSliderData = {};
+  ['catchments', 'regions', 'grid', 'summary'].forEach(function(lyr) {
+    _currentSliderData[lyr] = computeLayerWindow(_tsA, _tsB, startA, _sliderStep, _lagH, lyr, rules);
   });
-
-  _compCache[cacheKey] = comp;
-  return comp;
 }
 
-function buildInsights(comp, winKey) {
-  var rows = ((comp.windows && comp.windows[winKey || _winKey]) || {})['catchments'] || {};
-  var sig  = Object.keys(rows).filter(function(k) { return rows[k].significant; });
-  if (!sig.length) return ['No significant catchment-level changes detected for this window.'];
-  var wetter = sig.filter(function(k) { return rows[k].delta_mm > 0; }).length;
-  var drier  = sig.filter(function(k) { return rows[k].delta_mm < 0; }).length;
-  return [sig.length + ' catchments show significant changes — ' + wetter + ' wetter, ' + drier + ' drier.'];
+// ── Slider ──────────────────────────────────────────────────────────────
+function buildSliderRange() {
+  var W    = WIN_SIZES[_layerKey] ? WIN_SIZES[_layerKey].hours : 6;
+  var fhA  = getRunForecastHours(_selectedRunLeft);
+  var fhB  = getRunForecastHours(_selectedRunRight);
+
+  // T = end of window in base run frame
+  // Base needs: T >= W AND T <= fhA
+  // Reference needs: (T - _lagH) >= W AND (T - _lagH) <= fhB
+  var tMinRaw = Math.max(W, W + _lagH);
+  var tMaxRaw = Math.min(fhA, fhB + _lagH);
+
+  // Snap to W-hour intervals (matching available image steps)
+  var tMin = Math.ceil(tMinRaw / W) * W;
+  var tMax = Math.floor(tMaxRaw / W) * W;
+
+  _sliderSteps = [];
+  for (var t = tMin; t <= tMax; t += W) _sliderSteps.push(t);
+
+  var slider = document.getElementById('timeSlider');
+  if (!slider) return;
+
+  slider.min  = 0;
+  slider.max  = Math.max(0, _sliderSteps.length - 1);
+  slider.step = 1;
+
+  if (!_sliderSteps.length) {
+    _sliderStep = null;
+    slider.value = 0;
+    updateSliderLabel();
+    return;
+  }
+
+  var prevIdx = _sliderSteps.indexOf(_sliderStep);
+  if (prevIdx < 0) {
+    var midIdx = Math.floor(_sliderSteps.length / 2);
+    _sliderStep  = _sliderSteps[midIdx];
+    slider.value = midIdx;
+  } else {
+    slider.value = prevIdx;
+  }
+  updateSliderLabel();
+}
+
+function setSliderStep(idx) {
+  _sliderStep = (_sliderSteps[idx] !== undefined) ? _sliderSteps[idx] : null;
+  updateSliderLabel();
+  computeSliderData();
+  refreshPolyStyles();
+  updateRaster();
+  renderLegend();
+  renderTable();
+  renderInsights(buildInsights());
+}
+
+function updateSliderLabel() {
+  var dateLine = document.getElementById('playerDateLine');
+  var timeLine = document.getElementById('playerTimeLine');
+  if (!dateLine || !timeLine) return;
+  if (_sliderStep === null || !_selectedRunLeft) {
+    dateLine.textContent = '—'; timeLine.textContent = '—'; return;
+  }
+  var vt = fmtValidTime(_sliderStep);
+  if (vt) { dateLine.textContent = vt.date; timeLine.textContent = vt.time; }
 }
 
 // ── Run selectors ─────────────────────────────────────────────────────────
@@ -537,16 +629,12 @@ function overlappingRuns() {
   var allRuns = (_meta && _meta.runs) || [];
   if (!_selectedRunLeft) return [];
   var dtLeft = parseRunTs(_selectedRunLeft);
-  // For the selected window [start, end], run B needs data at [start+lag, end+lag]
-  // which requires: start+lag >= 0 AND end+lag <= 120
-  // → -start <= lag <= 120-end
-  var p      = WIN_PRESETS[_winKey] || { start: 0, end: 24 };
-  var minLag = -p.start;
-  var maxLag = 120 - p.end;
+  // Show only runs with at least 6h of shared valid forecast time.
+  // For 54h forecasts: overlap = 54 - |lag_h|, needs >= 6 → |lag_h| <= 48
   return allRuns.filter(function(r) {
     if (r.run_ts === _selectedRunLeft) return false;
     var lag = Math.round((dtLeft - parseRunTs(r.run_ts)) / 3600000);
-    return lag >= minLag && lag <= maxLag;
+    return Math.abs(lag) <= 48;
   });
 }
 
@@ -556,24 +644,7 @@ function renderHeaderSelects() {
   if (!sLeft || !sRight || !_meta) return;
 
   var allRuns = _meta.runs || [];
-  if (!_selectedRunLeft) {
-    _selectedRunLeft = (_data && _data.latest_run) || (allRuns[0] && allRuns[0].run_ts);
-  }
-
-  var avail = overlappingRuns();
-
-  // If current right run is no longer in the filtered list, pick a default
-  if (!_selectedRunRight || !avail.find(function(r) { return r.run_ts === _selectedRunRight; })) {
-    var pref = (_data.comparisons || []).find(function(c) {
-      return c.run_a === _selectedRunLeft && c.label === '-12h run';
-    });
-    if (!pref) pref = (_data.comparisons || [])[0];
-    if (pref && avail.find(function(r) { return r.run_ts === pref.run_b; })) {
-      _selectedRunRight = pref.run_b;
-    } else {
-      _selectedRunRight = avail[0] ? avail[0].run_ts : null;
-    }
-  }
+  var avail   = overlappingRuns();
 
   sLeft.innerHTML = allRuns.map(function(r) {
     return '<option value="' + esc(r.run_ts) + '"' + (r.run_ts === _selectedRunLeft ? ' selected' : '') + '>' + esc(r.run_label) + '</option>';
@@ -582,7 +653,7 @@ function renderHeaderSelects() {
   var dtLeft = _selectedRunLeft ? parseRunTs(_selectedRunLeft) : null;
   sRight.innerHTML = avail.map(function(r) {
     var lag    = dtLeft ? Math.round((dtLeft - parseRunTs(r.run_ts)) / 3600000) : 0;
-    var lagStr = (lag >= 0 ? '−' : '+') + Math.abs(lag) + 'h';
+    var lagStr = (lag > 0 ? '−' : '+') + Math.abs(lag) + 'h';
     return '<option value="' + esc(r.run_ts) + '"' + (r.run_ts === _selectedRunRight ? ' selected' : '') + '>' + esc(r.run_label) + ' (' + lagStr + ')' + '</option>';
   }).join('');
 }
@@ -590,39 +661,71 @@ function renderHeaderSelects() {
 function onRunSelectChange(side) {
   var sLeft  = document.getElementById('selectRunLeft');
   var sRight = document.getElementById('selectRunRight');
-  if (!sLeft || !sRight) return;
   if (side === 'left') {
-    _selectedRunLeft = sLeft.value;
-    _selectedRunRight = null; // force re-pick after filtering
+    _selectedRunLeft  = sLeft && sLeft.value;
+    _selectedRunRight = null;
   } else {
-    _selectedRunRight = sRight.value;
+    _selectedRunRight = sRight && sRight.value;
   }
   applyComparisonSelection();
 }
 
 async function applyComparisonSelection() {
   _showAll = false;
-  renderHeaderSelects();
-  if (!_selectedRunLeft || !_selectedRunRight) return;
+  var allRuns = (_meta && _meta.runs) || [];
 
-  document.getElementById('tableWrap').innerHTML = '<p class="empty-msg">Computing…</p>';
-  var comp = await buildDynamicComp(_selectedRunLeft, _selectedRunRight);
-  if (!comp) {
-    document.getElementById('tableWrap').innerHTML = '<p class="empty-msg">Could not load data for these runs.</p>';
+  if (!_selectedRunLeft) {
+    _selectedRunLeft = (_data && _data.latest_run) || (allRuns[0] && allRuns[0].run_ts);
+  }
+
+  var avail = overlappingRuns();
+  if (!_selectedRunRight || !avail.find(function(r) { return r.run_ts === _selectedRunRight; })) {
+    // Prefer the "-12h" comparison if available, else first overlapping run
+    var pref = (_data && _data.comparisons || []).find(function(c) {
+      return c.run_a === _selectedRunLeft && avail.find(function(r) { return r.run_ts === c.run_b; });
+    });
+    _selectedRunRight = (pref && pref.run_b) || (avail[0] && avail[0].run_ts) || null;
+  }
+
+  renderHeaderSelects();
+
+  if (!_selectedRunLeft || !_selectedRunRight) {
+    document.getElementById('tableWrap').innerHTML = '<p class="empty-msg">Select both a base and reference run to compare.</p>';
     return;
   }
-  _dynamicComp = comp;
 
-  renderInsights(buildInsights(comp));
-  renderRules();
+  var tsArr = await Promise.all([loadRunAreaTs(_selectedRunLeft), loadRunAreaTs(_selectedRunRight)]);
+  _tsA  = tsArr[0];
+  _tsB  = tsArr[1];
+  _lagH = Math.round((parseRunTs(_selectedRunLeft) - parseRunTs(_selectedRunRight)) / 3600000);
+
+  _compInfo = {
+    run_a_label: getRunLabel(_selectedRunLeft),
+    run_b_label: getRunLabel(_selectedRunRight)
+  };
+
+  buildSliderRange();
+  computeSliderData();
+
   drawPolys();
   updateCatchOverlay();
   renderLegend();
   updateRaster();
   renderTable();
+  renderRules();
+  renderInsights(buildInsights());
 }
 
 // ── Insights & Rules ──────────────────────────────────────────────────────
+function buildInsights() {
+  var rows = (_currentSliderData && _currentSliderData['catchments']) || {};
+  var sig  = Object.keys(rows).filter(function(k) { return rows[k].significant; });
+  if (!sig.length) return ['No significant catchment-level changes detected for this window.'];
+  var wetter = sig.filter(function(k) { return rows[k].delta_mm > 0; }).length;
+  var drier  = sig.filter(function(k) { return rows[k].delta_mm < 0; }).length;
+  return [sig.length + ' catchments show significant changes — ' + wetter + ' wetter, ' + drier + ' drier.'];
+}
+
 function renderInsights(insights) {
   var el = document.getElementById('insightsBody');
   if (!el) return;
@@ -645,7 +748,7 @@ function renderRules() {
   if (!el) return;
   el.innerHTML = '<div class="rules-note">Areas are compared at the <b>same valid time</b> across runs. A change is flagged as significant when <b>both</b> hold:<ul>' +
     '<li><b>Noise floor cleared</b> — change exceeds <code>' + cf + 'mm</code> for catchments/regions or <code>' + gf + 'mm</code> for grid cells.</li>' +
-    '<li><b>Operationally relevant</b> — total crosses a flood threshold (<code>' + th + 'mm</code>/24h), or the prior total shifts by more than <code>' + pc + '%</code>.</li>' +
+    '<li><b>Operationally relevant</b> — total crosses a flood threshold (<code>' + th + 'mm</code>), or the prior total shifts by more than <code>' + pc + '%</code>.</li>' +
     '</ul>Significant rows are marked: <span style="color:#b91c1c;font-weight:700;">●</span> base wetter, <span style="color:#1565c0;font-weight:700;">●</span> base drier.</div>';
 }
 
@@ -675,7 +778,10 @@ function styleFeature(feature, mode) {
   var info  = GEO_FILES[_layer];
   var name  = feature.properties[info.key];
   var v     = valueFor(name, mode);
-  if (_viewMode === 'grid') {
+
+  // In grid view: left and centre maps show rasters — render polys as thin outlines only.
+  // Diff map always shows the polygon comparison.
+  if (_viewMode === 'grid' && mode !== 'diff') {
     return { color: '#475569', weight: 0.5, fillColor: '#000', fillOpacity: 0 };
   }
   var color = mode === 'diff' ? biasFillColor(v) : bucketColor(v);
@@ -690,8 +796,8 @@ function tooltipContent(name) {
   var d   = r.delta_mm;
   var cls = d > 0 ? 'pt-pos' : (d < 0 ? 'pt-neg' : '');
   return '<div class="poly-tip"><b>' + esc(name) + '</b><br>' +
-    esc(c.run_a_label||'Left')   + ': ' + fmtMm(r.run_a_mm) + '<br>' +
-    esc(c.run_b_label||'Centre') + ': ' + fmtMm(r.run_b_mm) + '<br>' +
+    esc(c.run_a_label||'Base')      + ': ' + fmtMm(r.run_a_mm) + '<br>' +
+    esc(c.run_b_label||'Reference') + ': ' + fmtMm(r.run_b_mm) + '<br>' +
     'Change: <span class="' + cls + '">' + fmtDelta(d) + '</span>' +
     (r.significant ? ' ●' : '') + '</div>';
 }
@@ -733,30 +839,43 @@ function refreshPolyStyles() {
 }
 
 // ── Raster overlays ────────────────────────────────────────────────────────
+// In grid view: left = base run image, centre = reference run at same valid time.
+// Diff map shows polygon comparison regardless of view mode.
 function updateRaster() {
-  var pairs = [['_rasterLeft','_mapLeft'],['_rasterCentre','_mapCentre'],['_rasterDiff','_mapDiff']];
-  pairs.forEach(function(p) {
+  [['_rasterLeft','_mapLeft'],['_rasterCentre','_mapCentre']].forEach(function(p) {
     if (window[p[0]] && window[p[1]]) { window[p[1]].removeLayer(window[p[0]]); window[p[0]] = null; }
   });
-  if (_viewMode !== 'grid') return;
-  var comp   = currentComp();
-  var bounds = comp.image_bounds;
-  if (!bounds) return;
 
-  function addRaster(url, rVar, mVar) {
-    if (!url || !window[mVar]) return;
+  if (_viewMode !== 'grid') return;
+  if (!_selectedRunLeft || !_selectedRunRight || _sliderStep === null) return;
+
+  var stepL = getMetaStep(_selectedRunLeft,  _sliderStep);
+  var stepR = getMetaStep(_selectedRunRight, _sliderStep - _lagH);
+
+  function addRaster(step, rVar, mVar) {
+    if (!step || !window[mVar]) return;
+    var entry = step[_layerKey];
+    if (!entry) return;
+    var url = typeof entry === 'string' ? entry : (entry[_scheme] || entry.norm);
+    if (!url) return;
     url = url.replace(R2_BASE, R2_CDN);
-    window[rVar] = L.imageOverlay(url, bounds, { opacity: 0.8, interactive: false }).addTo(window[mVar]);
+    window[rVar] = L.imageOverlay(url, IMG_BOUNDS, { opacity: 0.85, interactive: false }).addTo(window[mVar]);
   }
-  addRaster(comp.raw_image_a_url, '_rasterLeft',   '_mapLeft');
-  addRaster(comp.raw_image_b_url, '_rasterCentre', '_mapCentre');
-  addRaster(comp.diff_image_url,  '_rasterDiff',   '_mapDiff');
+
+  addRaster(stepL, '_rasterLeft',   '_mapLeft');
+  addRaster(stepR, '_rasterCentre', '_mapCentre');
 }
 
 // ── Legend ─────────────────────────────────────────────────────────────────
 function renderLegend() {
   var winTxt = getWinLabel();
   var comp   = currentComp();
+
+  var validSuffix = '';
+  if (_sliderStep !== null) {
+    var vt = fmtValidTime(_sliderStep);
+    if (vt) validSuffix = ' ending ' + vt.date + ' ' + vt.time;
+  }
 
   function accumCbar(runLabel) {
     var s = SCHEMES[_scheme];
@@ -767,7 +886,7 @@ function renderLegend() {
       var str = v < 1 ? ('.' + String(v).split('.')[1]) : Math.round(v);
       return '<span class="cbar-label" style="left:' + pct + '%">' + str + '</span>';
     }).join('');
-    return '<p>' + esc(runLabel) + ' — ' + esc(winTxt) + '</p><div class="cbar">' + blocks + '</div><div class="cbar-labels">' + labels + '</div>';
+    return '<p>' + esc(runLabel) + ' — ' + esc(winTxt) + esc(validSuffix) + '</p><div class="cbar">' + blocks + '</div><div class="cbar-labels">' + labels + '</div>';
   }
 
   function diffCbar() {
@@ -777,7 +896,7 @@ function renderLegend() {
       var pct = ((i < 5 ? i + 0.5 : i + 1.5) / n * 100).toFixed(1);
       return '<span class="cbar-label" style="left:' + pct + '%">' + (v > 0 ? '+' : '') + Math.round(v) + '</span>';
     }).join('');
-    return '<p>Difference (mm) — ' + esc(winTxt) + '</p><div class="cbar">' + blocks + '</div><div class="cbar-labels">' + labels + '</div>' +
+    return '<p>Difference (mm) — ' + esc(winTxt) + esc(validSuffix) + '</p><div class="cbar">' + blocks + '</div><div class="cbar-labels">' + labels + '</div>' +
       '<div class="bias-arrows"><span style="color:#1565c0;font-weight:600;">◄ Base drier</span><span style="color:#b91c1c;font-weight:600;">Base wetter ►</span></div>';
   }
 
@@ -789,7 +908,7 @@ function renderLegend() {
   if (elD) elD.innerHTML = diffCbar();
 }
 
-// ── Catchment reference overlay (shown on all maps when grid 20km layer active) ──
+// ── Catchment reference overlay (shown on all maps when Grid 20km area layer active) ──
 function updateCatchOverlay() {
   var maps = [_mapLeft, _mapCentre, _mapDiff];
   var vars = ['_catchLeft', '_catchCentre', '_catchDiff'];
@@ -808,32 +927,19 @@ function updateCatchOverlay() {
 }
 
 // ── Control handlers ────────────────────────────────────────────────────────
-function setWinPreset(key) {
-  _winKey = key;
-  var sel = document.getElementById('periodSelect');
-  if (sel && sel.value !== key) sel.value = key;
-  // Re-filter right dropdown for new period's valid lag range
-  var prevRight = _selectedRunRight;
-  renderHeaderSelects();
-  if (_selectedRunRight !== prevRight) {
-    // Selection was reset; need full recompute
-    applyComparisonSelection();
-    return;
-  }
-  var comp = currentComp();
-  if (comp && comp.windows) {
-    renderInsights(buildInsights(comp));
-    refreshPolyStyles();
-    renderLegend();
-    renderTable();
-  }
+function setLayerKey(key) {
+  _layerKey = key;
+  buildSliderRange();
+  computeSliderData();
+  refreshPolyStyles();
+  updateRaster();
+  renderLegend();
+  renderTable();
+  renderInsights(buildInsights());
 }
 
 function setLayer(lyr) {
   _layer = lyr;
-  document.querySelectorAll('#layerSeg .seg-btn').forEach(function(b) {
-    b.classList.toggle('seg-active', b.dataset.layer === lyr);
-  });
   drawPolys();
   updateCatchOverlay();
   renderLegend();
@@ -852,6 +958,7 @@ function setScheme(s) {
   _scheme = s;
   refreshPolyStyles();
   renderLegend();
+  if (_rasterLeft || _rasterCentre) updateRaster();
 }
 
 // ── Data Table ──────────────────────────────────────────────────────────────
@@ -863,7 +970,7 @@ function renderTable() {
   var wLbl = document.getElementById('tblWinLabel');
   var lLbl = document.getElementById('tblLayerLabel');
   if (wLbl) wLbl.textContent = getWinLabel();
-  if (lLbl) lLbl.textContent = LAYER_LABEL[_layer];
+  if (lLbl) lLbl.textContent = LAYER_LABEL[_layer] || _layer;
 
   keys.sort(function(a, b) {
     var sa = rows[a].significant ? 1 : 0, sb = rows[b].significant ? 1 : 0;
@@ -883,8 +990,8 @@ function renderTable() {
   }
 
   var html = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr>' +
-    '<th>Area</th><th>' + esc(comp.run_a_label||'Left') + '</th>' +
-    '<th>' + esc(comp.run_b_label||'Centre') + '</th>' +
+    '<th>Area</th><th>' + esc(comp.run_a_label||'Base') + '</th>' +
+    '<th>' + esc(comp.run_b_label||'Reference') + '</th>' +
     '<th>Change</th><th>Flagged</th><th></th></tr></thead><tbody>';
 
   display.forEach(function(k) {
@@ -917,7 +1024,7 @@ function init(trendsData, metaData) {
   _meta = metaData;
 
   var metaEl = document.getElementById('headerMeta');
-  if (trendsData.generated_at) {
+  if (trendsData && trendsData.generated_at) {
     var d = new Date(trendsData.generated_at);
     var p = function(n) { return n < 10 ? '0' + n : '' + n; };
     metaEl.textContent = 'Updated ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ' UTC';
@@ -926,14 +1033,18 @@ function init(trendsData, metaData) {
   showMain();
   initMaps();
   renderRules();
-  renderHeaderSelects();
   applyComparisonSelection();
 }
 
 Promise.all([
-  fetch('ukv_trends.json?_=' + Date.now()).then(function(r) { return r.json(); }),
+  fetch('ukv_trends.json?_=' + Date.now()).then(function(r) { return r.json(); }).catch(function() { return {}; }),
   fetch('ukv_meta.json?_='   + Date.now()).then(function(r) { return r.json(); }).catch(function() { return null; })
 ]).then(function(res) {
+  if (!res[1] || !res[1].runs || !res[1].runs.length) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorState').style.display   = '';
+    return;
+  }
   init(res[0], res[1]);
 }).catch(function() {
   document.getElementById('loadingState').style.display = 'none';
