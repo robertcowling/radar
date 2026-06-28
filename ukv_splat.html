@@ -490,7 +490,7 @@ function getColorizedSplatUrl(rawUrl, colorHex, cb) {
 }
 
 // ── Main Data Initialization ──────────────────────────────────────────────────
-fetch(R2_CDN + '/ukv_meta.json')
+fetch(R2_CDN + '/ukv_meta.json?v=' + Date.now())
   .then(function(res) { return res.json(); })
   .then(function(data) {
     meta = data;

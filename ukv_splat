@@ -390,7 +390,7 @@ function getLayerObj(name) {
   if (name === 'regions')    return regionLayer;
   if (name === 'counties')   return countiesLayer;
   if (name === 'catchments') return catchmentsLayer;
-  if (name === 'grid')       return gridLayer;
+  if (name === 'grid')       gridLayer     = layer;
   return null;
 }
 
@@ -490,7 +490,7 @@ function getColorizedSplatUrl(rawUrl, colorHex, cb) {
 }
 
 // ── Main Data Initialization ──────────────────────────────────────────────────
-fetch(R2_CDN + '/ukv_meta.json')
+fetch(R2_CDN + '/ukv_meta.json?v=' + Date.now())
   .then(function(res) { return res.json(); })
   .then(function(data) {
     meta = data;
