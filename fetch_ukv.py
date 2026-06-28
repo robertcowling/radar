@@ -942,6 +942,116 @@ def compute_run_trends(r2, meta, ukv_masks):
     print(f"  Trends: {len(comparisons)} comparison(s). {insights[0][:80]}")
 
 
+def backfill_missing_splats(s3, r2, meta, mapping=None):
+    """Backfill missing splats for the top active 5 runs in metadata using parallel multi-threaded execution."""
+    runs = meta.get("runs", [])
+    target_runs = runs[:5]  # check top 5 active runs
+    any_updated = False
+    for run in target_runs:
+        run_ts = run.get("run_ts")
+        steps = run.get("steps", [])
+        if not run_ts or not steps:
+            continue
+        missing = any("splats" not in s or not s["splats"] for s in steps)
+        if not missing:
+            continue
+        print(f"  Backfilling missing splats for active run {run_ts} (parallel acceleration)...")
+        s3_steps = discover_steps(s3, run_ts)
+        if not s3_steps:
+            continue
+
+        if mapping is None:
+            first_hours, first_offset, first_valid = s3_steps[0]
+            nc_bytes = download_nc(s3, run_ts, first_valid, first_offset, "rainfall_rate")
+            if nc_bytes is None:
+                continue
+            with tempfile.NamedTemporaryFile(suffix=".nc", delete=False) as tmp:
+                tmp.write(nc_bytes)
+                sample_path = tmp.name
+            try:
+                mapping = build_mapping(sample_path)
+            finally:
+                os.unlink(sample_path)
+
+        # Download and extract array slots in parallel with 8 threads
+        step_slots = {}
+        def _fetch_one_step(idx, step_tuple):
+            hours, offset, valid_ts = step_tuple
+            arr_rate, arr_accum_1h = load_arr_both(s3, run_ts, valid_ts, offset, mapping)
+            if arr_accum_1h is not None:
+                return offset, {"arr": arr_accum_1h, "hours": 1}
+            elif arr_rate is not None:
+                prev_h = s3_steps[idx - 1][0] if idx > 0 else 0
+                step_h = hours - prev_h
+                return offset, {"arr": arr_rate * step_h, "hours": step_h}
+            return offset, None
+
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            futs = [ex.submit(_fetch_one_step, idx, s_tuple) for idx, s_tuple in enumerate(s3_steps)]
+            for fut in as_completed(futs):
+                off, slot = fut.result()
+                if slot:
+                    step_slots[off] = slot
+
+        # Build accum stack and prepare upload tasks in order
+        accum_stack = []
+        upload_tasks = []
+        for idx, (hours, offset, valid_ts) in enumerate(s3_steps):
+            meta_step = next((s for s in steps if s.get("offset") == offset), None)
+            if not meta_step or offset not in step_slots:
+                continue
+            accum_stack.append(step_slots[offset])
+
+            total_stk = sum(s["hours"] for s in accum_stack)
+            while total_stk > 48 and accum_stack:
+                total_stk -= accum_stack.pop(0)["hours"]
+
+            accum_renders = []
+            for n in ACCUM_PERIODS:
+                if total_stk < n:
+                    continue
+                covered, arrs = 0, []
+                for slot in reversed(accum_stack):
+                    if covered >= n:
+                        break
+                    if slot["hours"] <= n - covered:
+                        arrs.append(slot["arr"])
+                        covered += slot["hours"]
+                    else:
+                        break
+                if covered < n:
+                    continue
+                accum_renders.append((n, np.sum(arrs, axis=0).astype(np.float32)))
+
+            splat_results = {}
+            for n, arr_n in accum_renders:
+                dur_key = f"{n}h"
+                if dur_key in SPLAT_THRESHOLDS:
+                    for th in SPLAT_THRESHOLDS[dur_key]:
+                        th_str = f"{int(th)}mm" if th == int(th) else f"{th}mm"
+                        skey = f"ukv/{run_ts}/{offset}_splat_{dur_key}_{th_str}.png"
+                        upload_tasks.append((arr_n, th, skey))
+                        splat_results[f"{dur_key}_{th_str}"] = f"{R2_PUBLIC_URL}/{skey}"
+
+            if splat_results:
+                meta_step["splats"] = splat_results
+                any_updated = True
+
+        # Upload generated splat PNGs to R2 in parallel
+        if upload_tasks:
+            def _upload_splat(task):
+                arr_n, th, skey = task
+                splat_img = render_splat_png(arr_n, th)
+                png_to_r2(_r2_tl(), skey, splat_img)
+
+            with ThreadPoolExecutor(max_workers=8) as ex:
+                list(ex.map(_upload_splat, upload_tasks))
+
+        print(f"    {run_ts}: successfully rendered & uploaded splats for {len(step_slots)} steps.")
+
+    return any_updated
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────────
 def main():
     if not USE_R2:
@@ -1203,116 +1313,6 @@ def main():
         seen.add(rt)
         older.append(r)
     older = older[:max(0, keep_runs)]
-
-def backfill_missing_splats(s3, r2, meta, mapping=None):
-    """Backfill missing splats for the top active 5 runs in metadata using parallel multi-threaded execution."""
-    runs = meta.get("runs", [])
-    target_runs = runs[:5]  # check top 5 active runs
-    any_updated = False
-    for run in target_runs:
-        run_ts = run.get("run_ts")
-        steps = run.get("steps", [])
-        if not run_ts or not steps:
-            continue
-        missing = any("splats" not in s or not s["splats"] for s in steps)
-        if not missing:
-            continue
-        print(f"  Backfilling missing splats for active run {run_ts} (parallel acceleration)...")
-        s3_steps = discover_steps(s3, run_ts)
-        if not s3_steps:
-            continue
-
-        if mapping is None:
-            first_hours, first_offset, first_valid = s3_steps[0]
-            nc_bytes = download_nc(s3, run_ts, first_valid, first_offset, "rainfall_rate")
-            if nc_bytes is None:
-                continue
-            with tempfile.NamedTemporaryFile(suffix=".nc", delete=False) as tmp:
-                tmp.write(nc_bytes)
-                sample_path = tmp.name
-            try:
-                mapping = build_mapping(sample_path)
-            finally:
-                os.unlink(sample_path)
-
-        # Download and extract array slots in parallel with 8 threads
-        step_slots = {}
-        def _fetch_one_step(idx, step_tuple):
-            hours, offset, valid_ts = step_tuple
-            arr_rate, arr_accum_1h = load_arr_both(s3, run_ts, valid_ts, offset, mapping)
-            if arr_accum_1h is not None:
-                return offset, {"arr": arr_accum_1h, "hours": 1}
-            elif arr_rate is not None:
-                prev_h = s3_steps[idx - 1][0] if idx > 0 else 0
-                step_h = hours - prev_h
-                return offset, {"arr": arr_rate * step_h, "hours": step_h}
-            return offset, None
-
-        with ThreadPoolExecutor(max_workers=8) as ex:
-            futs = [ex.submit(_fetch_one_step, idx, s_tuple) for idx, s_tuple in enumerate(s3_steps)]
-            for fut in as_completed(futs):
-                off, slot = fut.result()
-                if slot:
-                    step_slots[off] = slot
-
-        # Build accum stack and prepare upload tasks in order
-        accum_stack = []
-        upload_tasks = []
-        for idx, (hours, offset, valid_ts) in enumerate(s3_steps):
-            meta_step = next((s for s in steps if s.get("offset") == offset), None)
-            if not meta_step or offset not in step_slots:
-                continue
-            accum_stack.append(step_slots[offset])
-
-            total_stk = sum(s["hours"] for s in accum_stack)
-            while total_stk > 48 and accum_stack:
-                total_stk -= accum_stack.pop(0)["hours"]
-
-            accum_renders = []
-            for n in ACCUM_PERIODS:
-                if total_stk < n:
-                    continue
-                covered, arrs = 0, []
-                for slot in reversed(accum_stack):
-                    if covered >= n:
-                        break
-                    if slot["hours"] <= n - covered:
-                        arrs.append(slot["arr"])
-                        covered += slot["hours"]
-                    else:
-                        break
-                if covered < n:
-                    continue
-                accum_renders.append((n, np.sum(arrs, axis=0).astype(np.float32)))
-
-            splat_results = {}
-            for n, arr_n in accum_renders:
-                dur_key = f"{n}h"
-                if dur_key in SPLAT_THRESHOLDS:
-                    for th in SPLAT_THRESHOLDS[dur_key]:
-                        th_str = f"{int(th)}mm" if th == int(th) else f"{th}mm"
-                        skey = f"ukv/{run_ts}/{offset}_splat_{dur_key}_{th_str}.png"
-                        upload_tasks.append((arr_n, th, skey))
-                        splat_results[f"{dur_key}_{th_str}"] = f"{R2_PUBLIC_URL}/{skey}"
-
-            if splat_results:
-                meta_step["splats"] = splat_results
-                any_updated = True
-
-        # Upload generated splat PNGs to R2 in parallel
-        if upload_tasks:
-            def _upload_splat(task):
-                arr_n, th, skey = task
-                splat_img = render_splat_png(arr_n, th)
-                png_to_r2(_r2_tl(), skey, splat_img)
-
-            with ThreadPoolExecutor(max_workers=8) as ex:
-                list(ex.map(_upload_splat, upload_tasks))
-
-        print(f"    {run_ts}: successfully rendered & uploaded splats for {len(step_slots)} steps.")
-
-    return any_updated
-
 
     meta = {
         "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:00.000Z"),
