@@ -222,6 +222,21 @@ input[type=range]#timeSlider::-moz-range-thumb {
 
 .state-msg { text-align: center; padding: 48px 20px; font-size: 14px; color: #94a3b8; }
 
+.area-value-label {
+  background: transparent; border: none;
+  color: #1e293b; font-size: 10px; font-weight: 700;
+  text-align: center; white-space: nowrap;
+  text-shadow:
+    -1px -1px 0 rgba(255,255,255,0.9),
+     1px -1px 0 rgba(255,255,255,0.9),
+    -1px  1px 0 rgba(255,255,255,0.9),
+     1px  1px 0 rgba(255,255,255,0.9),
+     0px 0px 3px rgba(255,255,255,0.9);
+  pointer-events: none;
+}
+.area-value-label.label-pos { color: #b91c1c; }
+.area-value-label.label-neg { color: #1565c0; }
+
 @media (max-width: 900px) {
   .maps-row { flex-direction: column; }
   .map-wrap + .map-wrap { border-left: none; border-top: 2px solid #374151; }
@@ -411,8 +426,8 @@ var WIN_SIZES = {
 
 var LAYER_LABEL = { catchments: 'Catchments', regions: 'Regions', grid: '20km grid cells', summary: 'Summary areas' };
 
-var BIAS_BOUNDS = [-200,-100,-50,-25,-10,10,25,50,100,200];
-var BIAS_COLORS = ['#053061','#2166ac','#4393c3','#92c5de','#d1e5f0','#f7f7f7','#fddbc7','#f4a582','#d6604d','#b2182b','#67001f'];
+var BIAS_BOUNDS = [-30,-15,-10,-5,-2,2,5,10,15,30];
+var BIAS_COLORS = ['#67001f','#a50026','#d73027','#fdae61','#fdd9a0','#d4d4d4','#c6e2f0','#abd9e9','#74add1','#2166ac','#023858'];
 
 var SCHEMES = {
   norm: { bounds:[0.5,1,2,5,10,20,40,80,160],   colors:['#e0f3ff','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'] },
@@ -436,6 +451,7 @@ var _mapLeft = null, _mapCentre = null, _mapDiff = null;
 var _polyLeft = null, _polyCentre = null, _polyDiff = null;
 var _rasterLeft = null, _rasterCentre = null;
 var _catchLeft = null, _catchCentre = null, _catchDiff = null;
+var _labelLeft = null, _labelCentre = null, _labelDiff = null;
 var _syncing = false;
 
 // ── Utilities ──────────────────────────────────────────────────────────
@@ -593,9 +609,9 @@ function buildSliderRange() {
 
   // T = end of window in base run frame
   // Base needs: T >= W AND T <= fhA
-  // Reference needs: (T - _lagH) >= W AND (T - _lagH) <= fhB
-  var tMinRaw = Math.max(W, W + _lagH);
-  var tMaxRaw = Math.min(fhA, fhB + _lagH);
+  // Reference: startB = (T-W)+lagH >= 0 → T >= W-lagH; endB = T+lagH <= fhB → T <= fhB-lagH
+  var tMinRaw = Math.max(W, W - _lagH);
+  var tMaxRaw = Math.min(fhA, fhB - _lagH);
 
   // Snap to W-hour intervals (matching available image steps)
   var tMin = Math.ceil(tMinRaw / W) * W;
@@ -642,7 +658,7 @@ function setSliderStep(idx) {
   _sliderStep = (_sliderSteps[idx] !== undefined) ? _sliderSteps[idx] : null;
   updateSliderLabel();
   computeSliderData();
-  refreshPolyStyles();
+  refreshPolyStyles();  // also rebuilds labels
   updateRaster();
   renderLegend();
   renderTable();
@@ -866,7 +882,14 @@ function styleFeature(feature, mode) {
     return { color: '#475569', weight: 0.5, fillColor: '#000', fillOpacity: 0 };
   }
   var color = mode === 'diff' ? biasFillColor(v) : bucketColor(v);
-  if (!color) return { color: '#94a3b8', weight: 0.5, fillColor: '#cbd5e1', fillOpacity: 0.05 };
+  if (mode === 'diff' && v != null && !color) {
+    // Near-zero diff (within ±2): use the centre grey from BIAS_COLORS
+    return { color: '#9ca3af', weight: 0.6, fillColor: '#d4d4d4', fillOpacity: 0.6 };
+  }
+  if (!color) {
+    // Has data but below threshold (dry areas) — show light outline so map isn't empty
+    return { color: '#b0b8c1', weight: 0.5, fillColor: '#e8edf2', fillOpacity: 0.45 };
+  }
   return { color: '#334155', weight: 0.6, fillColor: color, fillOpacity: 0.72 };
 }
 
@@ -883,11 +906,49 @@ function tooltipContent(name) {
     (r.significant ? ' ●' : '') + '</div>';
 }
 
+function _clearLabels() {
+  [['_labelLeft','_mapLeft'],['_labelCentre','_mapCentre'],['_labelDiff','_mapDiff']].forEach(function(p) {
+    if (window[p[0]] && window[p[1]]) { window[p[1]].removeLayer(window[p[0]]); window[p[0]] = null; }
+  });
+}
+
+function _buildLabels(geo, info, maps, lblVars, modes) {
+  _clearLabels();
+  // Diff always shows labels; left/centre only in area view
+  var showLeft   = _viewMode !== 'grid';
+  var showCentre = _viewMode !== 'grid';
+  var showDiff   = true;
+  var shows = [showLeft, showCentre, showDiff];
+
+  lblVars.forEach(function(lv, i) {
+    if (!shows[i] || !maps[i]) return;
+    var group = L.layerGroup();
+    geo.features.forEach(function(f) {
+      var name = f.properties[info.key];
+      var v = valueFor(name, modes[i]);
+      if (v == null) return;
+      var bounds = L.geoJSON(f).getBounds();
+      if (!bounds.isValid()) return;
+      var centroid = bounds.getCenter();
+      var isBias = modes[i] === 'diff';
+      var txt = isBias ? (v >= 0 ? '+' : '') + v.toFixed(1) : v.toFixed(1);
+      var cls = 'area-value-label' + (isBias && v > 0.5 ? ' label-pos' : isBias && v < -0.5 ? ' label-neg' : '');
+      L.marker(centroid, {
+        icon: L.divIcon({ className: cls, html: txt, iconSize: [44, 18], iconAnchor: [22, 9] }),
+        interactive: false
+      }).addTo(group);
+    });
+    window[lv] = group;
+    group.addTo(maps[i]);
+  });
+}
+
 function drawPolys() {
   if (!_mapLeft || !_mapCentre || !_mapDiff) return;
   loadGeo(_layer).then(function(geo) {
     var maps  = [_mapLeft, _mapCentre, _mapDiff];
     var vars  = ['_polyLeft', '_polyCentre', '_polyDiff'];
+    var lblVars = ['_labelLeft', '_labelCentre', '_labelDiff'];
     var modes = ['left', 'centre', 'diff'];
     vars.forEach(function(v, i) {
       if (window[v]) { maps[i].removeLayer(window[v]); window[v] = null; }
@@ -902,6 +963,7 @@ function drawPolys() {
         }
       }).addTo(maps[i]);
     });
+    _buildLabels(geo, info, maps, lblVars, modes);
     try {
       var b = _polyLeft.getBounds();
       if (b.isValid()) maps.forEach(function(m) { m.fitBounds(b, { padding:[15,15], maxZoom:8 }); });
@@ -917,6 +979,12 @@ function refreshPolyStyles() {
       window[v].setStyle(function(f) { return styleFeature(f, mode); });
     }
   });
+  // Rebuild labels to reflect new values/view mode
+  if (!_mapLeft) return;
+  var geo = _geoCache[_layer]; if (!geo) return;
+  var info = GEO_FILES[_layer];
+  var maps = [_mapLeft, _mapCentre, _mapDiff];
+  _buildLabels(geo, info, maps, ['_labelLeft','_labelCentre','_labelDiff'], ['left','centre','diff']);
 }
 
 // ── Raster overlays ────────────────────────────────────────────────────────
@@ -973,11 +1041,15 @@ function renderLegend() {
   function diffCbar() {
     var blocks = BIAS_COLORS.map(function(c) { return '<div class="cbar-block" style="background:' + c + '"></div>'; }).join('');
     var n = BIAS_COLORS.length;
+    // Position each bound label between the colour blocks it separates
     var labels = BIAS_BOUNDS.map(function(v, i) {
-      var pct = ((i < 5 ? i + 0.5 : i + 1.5) / n * 100).toFixed(1);
-      return '<span class="cbar-label" style="left:' + pct + '%">' + (v > 0 ? '+' : '') + Math.round(v) + '</span>';
+      var pct = ((i + 1) / n * 100).toFixed(1);
+      var txt = v === -2 ? '−2' : v === 2 ? '+2' : (v > 0 ? '+' : '') + Math.round(v);
+      return '<span class="cbar-label" style="left:' + pct + '%">' + txt + '</span>';
     }).join('');
-    return '<p>Difference (mm) — ' + esc(winTxt) + esc(validSuffix) + '</p><div class="cbar">' + blocks + '</div><div class="cbar-labels">' + labels + '</div>' +
+    return '<p>Difference — base minus reference (mm)' + esc(validSuffix) + '</p>' +
+      '<div class="cbar">' + blocks + '</div>' +
+      '<div class="cbar-labels">' + labels + '</div>' +
       '<div class="bias-arrows"><span style="color:#1565c0;font-weight:600;">◄ Base drier</span><span style="color:#b91c1c;font-weight:600;">Base wetter ►</span></div>';
   }
 
@@ -1021,6 +1093,7 @@ function setLayerKey(key) {
 
 function setLayer(lyr) {
   _layer = lyr;
+  _clearLabels();
   drawPolys();
   updateCatchOverlay();
   renderLegend();
@@ -1031,7 +1104,7 @@ function setViewMode(mode) {
   _viewMode = mode;
   document.getElementById('btnGrid').classList.toggle('seg-active', mode === 'grid');
   document.getElementById('btnArea').classList.toggle('seg-active', mode === 'area');
-  refreshPolyStyles();
+  refreshPolyStyles();  // also rebuilds labels
   updateRaster();
 }
 
