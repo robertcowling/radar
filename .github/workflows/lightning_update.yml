@@ -25,6 +25,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install boto3
 
+    - name: Check OW account limits
+      env:
+        OW_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+      run: |
+        echo "=== OW Lightning API response headers ==="
+        curl -si "https://demo.openweathermap.org/lightning/1.0/data?lat=51.5&lon=-1.0&radius=50&start_date=2026-06-28T18:00:00Z&end_date=2026-06-28T19:00:00Z&apikey=$OW_API_KEY" \
+          | head -40
+        echo "=== OW account/subscription info ==="
+        curl -s "https://api.openweathermap.org/data/2.5/weather?q=London&appid=$OW_API_KEY" \
+          | python3 -c "import sys,json; d=json.load(sys.stdin); print(json.dumps(d, indent=2))" 2>/dev/null | head -10 || true
+
     - name: Fetch lightning data
       env:
         OW_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
