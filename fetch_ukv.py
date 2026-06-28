@@ -968,7 +968,15 @@ def main():
     except ValueError:
         keep_runs = 30
     if not force and existing_runs and existing_runs[0].get("run_ts") == run_ts:
-        print(f"  {run_ts} already processed — done.")
+        print(f"  {run_ts} already processed — checking backfill for active runs...")
+        updated = backfill_missing_splats(s3, r2, existing_meta, None)
+        if updated:
+            with open("ukv_meta.json", "w") as f:
+                json.dump(existing_meta, f, indent=2)
+            json_to_r2(r2, "ukv_meta.json", existing_meta)
+            print("  Backfill complete for active runs.")
+        else:
+            print("  All active runs already have complete splat data.")
         sys.exit(0)
 
     print("Discovering forecast steps...")
@@ -1193,10 +1201,11 @@ def main():
         older.append(r)
     older = older[:max(0, keep_runs)]
 
-def backfill_missing_splats(s3, r2, meta, mapping):
-    """Backfill missing splats for the top active 4 runs in metadata."""
+def backfill_missing_splats(s3, r2, meta, mapping=None):
+    """Backfill missing splats for the top active 5 runs in metadata."""
     runs = meta.get("runs", [])
-    target_runs = runs[1:4]  # check older active runs in top 4
+    target_runs = runs[:5]  # check top 5 active runs
+    any_updated = False
     for run in target_runs:
         run_ts = run.get("run_ts")
         steps = run.get("steps", [])
@@ -1205,10 +1214,24 @@ def backfill_missing_splats(s3, r2, meta, mapping):
         missing = any("splats" not in s or not s["splats"] for s in steps)
         if not missing:
             continue
-        print(f"  Backfilling missing splats for older active run {run_ts}...")
+        print(f"  Backfilling missing splats for active run {run_ts}...")
         s3_steps = discover_steps(s3, run_ts)
         if not s3_steps:
             continue
+
+        if mapping is None:
+            first_hours, first_offset, first_valid = s3_steps[0]
+            nc_bytes = download_nc(s3, run_ts, first_valid, first_offset, "rainfall_rate")
+            if nc_bytes is None:
+                continue
+            with tempfile.NamedTemporaryFile(suffix=".nc", delete=False) as tmp:
+                tmp.write(nc_bytes)
+                sample_path = tmp.name
+            try:
+                mapping = build_mapping(sample_path)
+            finally:
+                os.unlink(sample_path)
+
         accum_stack = []
         for i, (hours, offset, valid_ts) in enumerate(s3_steps):
             meta_step = next((s for s in steps if s.get("offset") == offset), None)
@@ -1255,6 +1278,9 @@ def backfill_missing_splats(s3, r2, meta, mapping):
 
             if splat_results:
                 meta_step["splats"] = splat_results
+                any_updated = True
+
+    return any_updated
 
 
     meta = {
@@ -1262,7 +1288,7 @@ def backfill_missing_splats(s3, r2, meta, mapping):
         "runs": [new_run] + older,
     }
 
-    print("Checking older active runs for missing splats...")
+    print("Checking active runs for missing splats...")
     backfill_missing_splats(s3, r2, meta, mapping)
 
     with open("ukv_meta.json", "w") as f:
