@@ -239,17 +239,17 @@ select:hover { background-color: #e8eaed; }
 <div class="player-panel surface" id="playerPanel" style="display:none;">
 
   <div class="control-group">
-    <span class="control-label">Window</span>
-    <div class="seg-control" id="winSeg">
-      <button class="seg-btn"           data-win="6h"   onclick="setWinPreset('6h')">6h</button>
-      <button class="seg-btn"           data-win="12h"  onclick="setWinPreset('12h')">12h</button>
-      <button class="seg-btn seg-active" data-win="day1" onclick="setWinPreset('day1')">Day 1</button>
-      <button class="seg-btn"           data-win="day2" onclick="setWinPreset('day2')">Day 2</button>
-      <button class="seg-btn"           data-win="day3" onclick="setWinPreset('day3')">Day 3</button>
-      <button class="seg-btn"           data-win="48h"  onclick="setWinPreset('48h')">48h</button>
-      <button class="seg-btn"           data-win="72h"  onclick="setWinPreset('72h')">72h</button>
-      <button class="seg-btn"           data-win="full" onclick="setWinPreset('full')">Full 120h</button>
-    </div>
+    <span class="control-label">Period</span>
+    <select id="periodSelect" onchange="setWinPreset(this.value)">
+      <option value="6h">0–6h</option>
+      <option value="12h">0–12h</option>
+      <option value="day1" selected>Day 1 (0–24h)</option>
+      <option value="day2">Day 2 (24–48h)</option>
+      <option value="day3">Day 3 (48–72h)</option>
+      <option value="48h">0–48h</option>
+      <option value="72h">0–72h</option>
+      <option value="full">Full 120h</option>
+    </select>
   </div>
 
   <div class="control-group">
@@ -265,6 +265,7 @@ select:hover { background-color: #e8eaed; }
     <div class="seg-control" id="layerSeg">
       <button class="seg-btn"            data-layer="catchments" onclick="setLayer('catchments')">Catchments</button>
       <button class="seg-btn"            data-layer="regions"    onclick="setLayer('regions')">Regions</button>
+      <button class="seg-btn"            data-layer="summary"    onclick="setLayer('summary')">Summary</button>
       <button class="seg-btn seg-active" data-layer="grid"       onclick="setLayer('grid')">Grid 20km</button>
     </div>
   </div>
@@ -321,9 +322,10 @@ select:hover { background-color: #e8eaed; }
 <script>
 // ── Config ────────────────────────────────────────────────────────────
 var GEO_FILES = {
-  catchments: { file: 'ukv_catchments.geojson', key: 'name' },
-  regions:    { file: 'ukv_regions.geojson',    key: 'name' },
-  grid:       { file: 'ukv_grid_20km.geojson',  key: 'id'   }
+  catchments: { file: 'uk_catchments.geojson',          key: 'HA_NAME' },
+  regions:    { file: 'uk_regions.geojson',              key: 'rgn19nm' },
+  grid:       { file: 'uk_grid_20km.geojson',            key: 'name'    },
+  summary:    { file: 'rainfallsummarypolygons.geojson', key: 'NAME'    }
 };
 var R2_CDN  = 'https://radar.floodforecast.co.uk';
 var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
@@ -338,7 +340,7 @@ var WIN_PRESETS = {
   '72h':  { name: '0–72h',       start: 0,  end: 72  },
   'full': { name: 'Full (120h)',      start: 0,  end: 120 }
 };
-var LAYER_LABEL = { catchments: 'Catchment', regions: 'Region', grid: '20km grid cell' };
+var LAYER_LABEL = { catchments: 'Catchment', regions: 'Region', grid: '20km grid cell', summary: 'Summary area' };
 
 var BIAS_BOUNDS = [-200,-100,-50,-25,-10,10,25,50,100,200];
 var BIAS_COLORS = ['#053061','#2166ac','#4393c3','#92c5de','#d1e5f0','#f7f7f7','#fddbc7','#f4a582','#d6604d','#b2182b','#67001f'];
@@ -437,7 +439,7 @@ function loadGeo(layer) {
 
 // ── Computation ──────────────────────────────────────────────────────────
 function computeLayerWindow(tsA, tsB, start, end, lag_h, lyr, rules) {
-  var floor = lyr === 'grid' ? (rules.grid_floor_mm || 5) : (rules.catchment_floor_mm || 2);
+  var floor = (lyr === 'grid') ? (rules.grid_floor_mm || 5) : (rules.catchment_floor_mm || 2);
   var startB = start + lag_h, endB = end + lag_h;
   var areasA = (tsA && tsA[lyr]) || {}, areasB = (tsB && tsB[lyr]) || {};
   var keys = Object.keys(areasA).length ? Object.keys(areasA) : Object.keys(areasB);
@@ -780,9 +782,8 @@ function renderLegend() {
 // ── Control handlers ────────────────────────────────────────────────────────
 function setWinPreset(key) {
   _winKey = key;
-  document.querySelectorAll('#winSeg .seg-btn').forEach(function(b) {
-    b.classList.toggle('seg-active', b.dataset.win === key);
-  });
+  var sel = document.getElementById('periodSelect');
+  if (sel && sel.value !== key) sel.value = key;
   var comp = currentComp();
   if (comp.windows) renderInsights(buildInsights(comp));
   refreshPolyStyles();
