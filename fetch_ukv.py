@@ -98,11 +98,12 @@ ACCUM_SCHEMES = {
 
 ACCUM_PERIODS = [1, 3, 6, 12, 24, 48]
 
-# Splat map thresholds matching /obs + low test thresholds (mm)
+# Splat map thresholds matching /obs + 12h test threshold (mm)
 SPLAT_THRESHOLDS = {
-    "1h": [1.0, 2.0, 5.0, 10.0, 30.0],
-    "3h": [1.0, 2.0, 5.0, 10.0, 20.0, 30.0, 40.0],
-    "6h": [2.0, 5.0, 10.0, 30.0, 50.0],
+    "1h": [10.0, 30.0],
+    "3h": [20.0, 30.0, 40.0],
+    "6h": [30.0, 50.0],
+    "12h": [1.0],
 }
 
 # ── R2 ───────────────────────────────────────────────────────────────────────────

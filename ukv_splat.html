@@ -275,28 +275,21 @@
 
   <div class="section-label">Rainfall threshold</div>
   <select id="thresholdSelect" onchange="setThreshold(this.value)">
-    <optgroup label="1-hour accumulation / rate">
-      <option value="1h_1mm">1hr &ge; 1 mm (Light / Test)</option>
-      <option value="1h_2mm">1hr &ge; 2 mm (Test)</option>
-      <option value="1h_5mm">1hr &ge; 5 mm (Moderate / Test)</option>
+    <optgroup label="1-hour accumulation">
       <option value="1h_10mm">1hr &ge; 10 mm (Heavy)</option>
       <option value="1h_30mm">1hr &ge; 30 mm (Extreme)</option>
     </optgroup>
     <optgroup label="3-hour accumulation">
-      <option value="3h_1mm">3hr &ge; 1 mm (Light / Test)</option>
-      <option value="3h_2mm">3hr &ge; 2 mm (Test)</option>
-      <option value="3h_5mm">3hr &ge; 5 mm (Test)</option>
-      <option value="3h_10mm">3hr &ge; 10 mm (Moderate / Test)</option>
-      <option value="3h_20mm">3hr &ge; 20 mm (Heavy)</option>
-      <option value="3h_30mm" selected>3hr &ge; 30 mm (Default)</option>
-      <option value="3h_40mm">3hr &ge; 40 mm (Extreme)</option>
+      <option value="3h_20mm" selected>3hr &ge; 20 mm (Heavy)</option>
+      <option value="3h_30mm">3hr &ge; 30 mm (Extreme)</option>
+      <option value="3h_40mm">3hr &ge; 40 mm (Severe)</option>
     </optgroup>
     <optgroup label="6-hour accumulation">
-      <option value="6h_2mm">6hr &ge; 2 mm (Test)</option>
-      <option value="6h_5mm">6hr &ge; 5 mm (Test)</option>
-      <option value="6h_10mm">6hr &ge; 10 mm (Moderate / Test)</option>
       <option value="6h_30mm">6hr &ge; 30 mm (Heavy)</option>
       <option value="6h_50mm">6hr &ge; 50 mm (Extreme)</option>
+    </optgroup>
+    <optgroup label="12-hour accumulation">
+      <option value="12h_1mm">12hr &ge; 1 mm (Test)</option>
     </optgroup>
   </select>
 
@@ -443,7 +436,7 @@ loadBoundary('catchments');
 // ── State ─────────────────────────────────────────────────────────────────────
 var meta            = null;
 var focusRunIdx     = 0;            // Index in meta.runs
-var activeThreshold = '3h_30mm';
+var activeThreshold = '3h_20mm';
 var currentValidIdx = 0;            // Index in masterValidMsList
 var masterValidMsList = [];         // Sorted list of unique valid UTC ms timestamps
 var runEnabled      = [true, true, true, true];
@@ -452,9 +445,10 @@ var playing         = false;
 var playTimer       = null;
 var canvasCache     = {};           // Cache colorized dataURLs: key -> dataURL
 
-// Helper: compute exact step valid UTC milliseconds
+// Helper: compute exact step valid UTC milliseconds, capped strictly at T+54h
 function stepValidMs(run, step) {
   if (!run || !run.run_ts || !step) return NaN;
+  if (step.offset_hours && step.offset_hours > 54) return NaN;
   var ts = run.run_ts;
   var runMs = Date.UTC(
     +ts.slice(0, 4), +ts.slice(4, 6) - 1, +ts.slice(6, 8),
@@ -516,6 +510,8 @@ function initRunSelect() {
   var sel = document.getElementById('focusRunSelect');
   sel.innerHTML = '';
   (meta.runs || []).forEach(function(r, idx) {
+    // Only include the top 5 backcalculated active runs
+    if (idx >= 5) return;
     var opt = document.createElement('option');
     opt.value = idx;
     opt.textContent = r.run_label || r.run_ts;
@@ -559,7 +555,7 @@ function getActiveRunObjects() {
   var list = [];
   for (var offset = 0; offset < 4; offset++) {
     var idx = focusRunIdx + offset;
-    if (idx < meta.runs.length) {
+    if (idx < meta.runs.length && idx < 5) {
       list.push(meta.runs[idx]);
     } else {
       list.push(null);
@@ -588,10 +584,11 @@ function updateDisplay() {
       return;
     }
 
-    // Find step matching exact targetMs
+    // Find step matching exact targetMs (capped strictly at T+54h)
     var matchingStep = null;
     (run.steps || []).forEach(function(s) {
-      if (Math.abs(stepValidMs(run, s) - targetMs) < 60000) matchingStep = s;
+      var ms = stepValidMs(run, s);
+      if (!isNaN(ms) && Math.abs(ms - targetMs) < 60000) matchingStep = s;
     });
 
     if (!matchingStep || !matchingStep.splats || !matchingStep.splats[activeThreshold]) {
@@ -613,7 +610,10 @@ function updateDisplay() {
     });
   });
 
-  var focusStep = activeRuns[0] ? (activeRuns[0].steps || []).find(function(s){ return Math.abs(stepValidMs(activeRuns[0], s) - targetMs) < 60000; }) : null;
+  var focusStep = activeRuns[0] ? (activeRuns[0].steps || []).find(function(s){
+    var ms = stepValidMs(activeRuns[0], s);
+    return !isNaN(ms) && Math.abs(ms - targetMs) < 60000;
+  }) : null;
   document.getElementById('playerOffsetLine').textContent = focusStep ? ('Focus run ' + focusStep.offset) : 'Out of focus run range';
 }
 
@@ -625,7 +625,10 @@ function renderLegendList(activeRuns, targetMs) {
     var card = document.createElement('div');
     var isCovered = false;
     if (run && run.steps) {
-      isCovered = run.steps.some(function(s) { return Math.abs(stepValidMs(run, s) - targetMs) < 60000; });
+      isCovered = run.steps.some(function(s) {
+        var ms = stepValidMs(run, s);
+        return !isNaN(ms) && Math.abs(ms - targetMs) < 60000;
+      });
     }
 
     card.className = 'run-legend-card' + (!isCovered || !runEnabled[slotIdx] ? ' inactive' : '');
