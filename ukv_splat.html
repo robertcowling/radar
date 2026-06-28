@@ -525,15 +525,13 @@ function initRunSelect() {
 
 function buildMasterTimeline() {
   var msSet = new Set();
-  var activeRuns = getActiveRunObjects();
-  activeRuns.forEach(function(run) {
-    if (run && run.steps) {
-      run.steps.forEach(function(s) {
-        var ms = stepValidMs(run, s);
-        if (!isNaN(ms)) msSet.add(ms);
-      });
-    }
-  });
+  var focusRun = meta && meta.runs && meta.runs[focusRunIdx];
+  if (focusRun && focusRun.steps) {
+    focusRun.steps.forEach(function(s) {
+      var ms = stepValidMs(focusRun, s);
+      if (!isNaN(ms)) msSet.add(ms);
+    });
+  }
 
   masterValidMsList = Array.from(msSet);
   masterValidMsList.sort(function(a, b) { return a - b; });
