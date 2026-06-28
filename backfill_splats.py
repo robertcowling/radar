@@ -30,8 +30,8 @@ def main():
     runs = meta.get("runs", [])
     print(f"Total runs in meta: {len(runs)}")
 
-    # We backfill the top 6 runs so that all 4 active overlay runs + alternatives have complete splats
-    target_runs = runs[:6]
+    # We backfill the top 4 active runs required for multi-run overlay display
+    target_runs = runs[:4]
 
     mapping = None
 
