@@ -161,7 +161,6 @@ def png_to_r2(r2, key, img):
 
 # ── Run discovery ─────────────────────────────────────────────────────────────────
 _STANDARD_HOURS = {0, 3, 6, 9, 12, 15, 18, 21}
-_MEDIUM_HOURS   = {3, 15}   # 03Z and 15Z extend to T+120h
 
 def _is_standard_run(run_ts):
     """True if the run is at a standard 3-hourly init time (00/03/06/09/12/15/18/21Z)."""
@@ -206,13 +205,9 @@ def find_latest_run(s3):
 
 
 def is_run_complete(s3, run_ts):
-    """Return True only when the run's final expected forecast step is on S3.
-
-    Medium runs (03Z, 15Z) must reach T+120h; all others T+54h.
-    We check for the rainfall_rate file at that offset, which arrives last.
-    """
+    """Return True only when the run's final expected forecast step (T+54h) is on S3."""
     run_dt      = parse_run_dt(run_ts)
-    final_hours = 120 if run_dt.hour in _MEDIUM_HOURS else 54
+    final_hours = 54
     final_off   = f"PT{final_hours:04d}H00M"
     valid_ts    = (run_dt + timedelta(hours=final_hours)).strftime("%Y%m%dT%H%MZ")
     prefix      = f"{UKV_PREFIX}{run_ts}/{valid_ts}-{final_off}-rainfall_rate.nc"
@@ -999,8 +994,7 @@ def main():
     print("  Mapping ready.")
 
     rlabel = run_label_str(run_ts)
-    is_long = parse_run_dt(run_ts).hour in _MEDIUM_HOURS
-    print(f"  Run: {rlabel} ({'Long' if is_long else 'Short'})")
+    print(f"  Run: {rlabel}")
 
     print("Loading polygon masks...")
     ukv_masks = load_or_build_ukv_masks(r2)
@@ -1179,13 +1173,9 @@ def main():
         "steps":          step_entries,
     }
 
-    # Keep at most KEEP_RUNS older runs.
-    # Medium runs (03Z, 15Z — T+120h) are retained 6 days; all others 72h (3 days).
+    # Keep at most KEEP_RUNS older runs (retained up to 72h / 3 days).
     def _retention_hours(rt):
-        try:
-            return 144 if parse_run_dt(rt).hour in _MEDIUM_HOURS else 72
-        except Exception:
-            return 72
+        return 72
 
     now  = datetime.utcnow()
     seen = {run_ts}
@@ -1204,9 +1194,9 @@ def main():
     older = older[:max(0, keep_runs)]
 
 def backfill_missing_splats(s3, r2, meta, mapping):
-    """Backfill missing splats for the top active runs in metadata."""
+    """Backfill missing splats for the top active 4 runs in metadata."""
     runs = meta.get("runs", [])
-    target_runs = runs[1:6]  # check older active runs in top 6
+    target_runs = runs[1:4]  # check older active runs in top 4
     for run in target_runs:
         run_ts = run.get("run_ts")
         steps = run.get("steps", [])
