@@ -28,14 +28,28 @@ except ImportError:
 UK_LON_MIN, UK_LON_MAX = -13.0, 4.5
 UK_LAT_MIN, UK_LAT_MAX = 48.0, 60.5
 
+# Wide Atlantic domain — default MSLP view, shows storm tracks approaching from W.
+WIDE_LON_MIN, WIDE_LON_MAX = -35.0, 10.0
+WIDE_LAT_MIN, WIDE_LAT_MAX = 44.0, 65.0
+WIDE_ZOOM = 6
+
 OUT_W, OUT_H = 812, 1000
 ZOOM = 8
 TILE_SIZE = 256
 EARTH_RADIUS = 6378137.0
 
+# Compute WIDE_OUT_H from Mercator aspect ratio so the image is not distorted.
+_wide_y_max = EARTH_RADIUS * math.log(math.tan(math.pi / 4 + math.radians(WIDE_LAT_MAX) / 2))
+_wide_y_min = EARTH_RADIUS * math.log(math.tan(math.pi / 4 + math.radians(WIDE_LAT_MIN) / 2))
+WIDE_OUT_W = OUT_W
+WIDE_OUT_H = int(round(OUT_W * (_wide_y_max - _wide_y_min) /
+                        (EARTH_RADIUS * math.radians(WIDE_LON_MAX - WIDE_LON_MIN))))
+
 TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
 BASEMAP_CACHE = "static/dashboard_basemap_uk_z8.png"
 BASEMAP_META  = "static/dashboard_basemap_uk_z8.meta"  # stores bounds so stale cache is detected
+WIDE_BASEMAP_CACHE = "static/dashboard_basemap_wide_z6.png"
+WIDE_BASEMAP_META  = "static/dashboard_basemap_wide_z6.meta"
 
 # R2-hosted GeoJSON files downloaded on first run and cached locally.
 # Not committed to git; persisted via GitHub Actions cache.
@@ -157,6 +171,72 @@ def _iter_rings(features, crop_left, crop_top, crop_w, crop_h):
                     yield pts + [pts[0]]
 
 
+def draw_boundary_layers_for(img_rgb, lon_min, lon_max, lat_min, lat_max, zoom):
+    """Draw boundary layers for an arbitrary domain onto img_rgb (sized to match)."""
+    out_w, out_h = img_rgb.size
+
+    mx_min, my_min = ll_to_merc(lon_min, lat_min)
+    mx_max, my_max = ll_to_merc(lon_max, lat_max)
+    left,   top    = merc_to_world_px(mx_min, my_max, zoom)
+    right,  bottom = merc_to_world_px(mx_max, my_min, zoom)
+    c_left, c_top  = left, top
+    c_w, c_h       = right - left, bottom - top
+
+    def ll_to_px(lon, lat):
+        mx, my = ll_to_merc(lon, lat)
+        wpx, wpy = merc_to_world_px(mx, my, zoom)
+        return (
+            int((wpx - c_left) / c_w * out_w),
+            int((wpy - c_top)  / c_h * out_h),
+        )
+
+    def iter_rings_for(features):
+        for feature in features:
+            geom = feature.get("geometry", {})
+            gtype = geom.get("type")
+            coords = geom.get("coordinates", [])
+            if gtype == "Polygon":
+                polys = [coords]
+            elif gtype == "MultiPolygon":
+                polys = coords
+            else:
+                continue
+            for poly in polys:
+                for ring in poly:
+                    pts = [ll_to_px(c[0], c[1]) for c in ring]
+                    if len(pts) >= 2:
+                        yield pts + [pts[0]]
+
+    for filepath, line_color, line_width, halo_opacity in BOUNDARY_LAYERS:
+        if not os.path.exists(filepath):
+            continue
+        features = _load_geojson(filepath)
+        if not features:
+            continue
+        rings = list(iter_rings_for(features))
+        if not rings:
+            continue
+
+        if halo_opacity > 0:
+            halo_w = line_width + 3
+            glow = Image.new("L", img_rgb.size, 0)
+            gd = ImageDraw.Draw(glow)
+            for pts in rings:
+                gd.line(pts, fill=255, width=halo_w)
+            glow = glow.filter(ImageFilter.GaussianBlur(radius=1.5))
+            white_layer = Image.new("RGBA", img_rgb.size, (255, 255, 255, 0))
+            white_layer.putalpha(glow.point(lambda x: int(x * halo_opacity)))
+            img_rgba = img_rgb.convert("RGBA")
+            img_rgba = Image.alpha_composite(img_rgba, white_layer)
+            img_rgb.paste(img_rgba.convert("RGB"))
+
+        draw = ImageDraw.Draw(img_rgb)
+        for pts in rings:
+            draw.line(pts, fill=line_color, width=line_width)
+
+    return img_rgb
+
+
 def draw_boundary_layers(img_rgb):
     """Draw all BOUNDARY_LAYERS with a per-layer white halo for night-sat contrast."""
     crop_left, crop_top, crop_w, crop_h = _crop_extents()
@@ -250,28 +330,81 @@ def get_basemap():
     return bm
 
 
+def build_wide_basemap():
+    tx_min = lon_to_tx(WIDE_LON_MIN, WIDE_ZOOM)
+    tx_max = lon_to_tx(WIDE_LON_MAX, WIDE_ZOOM)
+    ty_min = lat_to_ty(WIDE_LAT_MAX, WIDE_ZOOM)
+    ty_max = lat_to_ty(WIDE_LAT_MIN, WIDE_ZOOM)
+
+    nx = tx_max - tx_min + 1
+    ny = ty_max - ty_min + 1
+    print(f"Fetching {nx}×{ny} wide basemap tiles at zoom {WIDE_ZOOM}…")
+
+    stitched = Image.new("RGBA", (nx * TILE_SIZE, ny * TILE_SIZE))
+    for iy, ty in enumerate(range(ty_min, ty_max + 1)):
+        for ix, tx in enumerate(range(tx_min, tx_max + 1)):
+            stitched.paste(fetch_tile(WIDE_ZOOM, tx, ty), (ix * TILE_SIZE, iy * TILE_SIZE))
+
+    w_mx_min, w_my_min = ll_to_merc(WIDE_LON_MIN, WIDE_LAT_MIN)
+    w_mx_max, w_my_max = ll_to_merc(WIDE_LON_MAX, WIDE_LAT_MAX)
+    ox = tx_min * TILE_SIZE
+    oy = ty_min * TILE_SIZE
+    left,  top    = merc_to_world_px(w_mx_min, w_my_max, WIDE_ZOOM)
+    right, bottom = merc_to_world_px(w_mx_max, w_my_min, WIDE_ZOOM)
+    box = (
+        int(max(0, left  - ox)), int(max(0, top   - oy)),
+        int(min(stitched.width,  right  - ox)),
+        int(min(stitched.height, bottom - oy)),
+    )
+    return stitched.crop(box).resize((WIDE_OUT_W, WIDE_OUT_H), Image.LANCZOS)
+
+
+def get_wide_basemap():
+    expected_meta = f"{WIDE_LON_MIN},{WIDE_LON_MAX},{WIDE_LAT_MIN},{WIDE_LAT_MAX},{WIDE_ZOOM}"
+    cache_valid = False
+    if os.path.exists(WIDE_BASEMAP_CACHE) and os.path.exists(WIDE_BASEMAP_META):
+        with open(WIDE_BASEMAP_META) as f:
+            cache_valid = f.read().strip() == expected_meta
+    if cache_valid:
+        print("Using cached wide basemap.")
+        return Image.open(WIDE_BASEMAP_CACHE).convert("RGBA")
+    os.makedirs(os.path.dirname(WIDE_BASEMAP_CACHE), exist_ok=True)
+    bm = build_wide_basemap()
+    bm.save(WIDE_BASEMAP_CACHE, "PNG")
+    with open(WIDE_BASEMAP_META, "w") as f:
+        f.write(expected_meta)
+    print(f"Wide basemap cached: {WIDE_BASEMAP_CACHE}")
+    return bm
+
+
 # ── Overlay compositing ───────────────────────────────────────────────────────
 
-def crop_overlay_to_uk(img_rgba, ov_lon_min, ov_lon_max, ov_lat_min, ov_lat_max):
+def crop_overlay_to_bounds(img_rgba, ov_lon_min, ov_lon_max, ov_lat_min, ov_lat_max,
+                            tgt_lon_min, tgt_lon_max, tgt_lat_min, tgt_lat_max):
     ov_mx_min, ov_my_min = ll_to_merc(ov_lon_min, ov_lat_min)
     ov_mx_max, ov_my_max = ll_to_merc(ov_lon_max, ov_lat_max)
-    uk_mx_min, uk_my_min = ll_to_merc(UK_LON_MIN, UK_LAT_MIN)
-    uk_mx_max, uk_my_max = ll_to_merc(UK_LON_MAX, UK_LAT_MAX)
+    t_mx_min, t_my_min   = ll_to_merc(tgt_lon_min, tgt_lat_min)
+    t_mx_max, t_my_max   = ll_to_merc(tgt_lon_max, tgt_lat_max)
 
     ov_w, ov_h = img_rgba.size
     span_x = ov_mx_max - ov_mx_min
     span_y = ov_my_max - ov_my_min
 
-    left   = (uk_mx_min - ov_mx_min) / span_x * ov_w
-    right  = (uk_mx_max - ov_mx_min) / span_x * ov_w
-    top    = (ov_my_max - uk_my_max) / span_y * ov_h
-    bottom = (ov_my_max - uk_my_min) / span_y * ov_h
+    left   = (t_mx_min - ov_mx_min) / span_x * ov_w
+    right  = (t_mx_max - ov_mx_min) / span_x * ov_w
+    top    = (ov_my_max - t_my_max) / span_y * ov_h
+    bottom = (ov_my_max - t_my_min) / span_y * ov_h
 
     box = (
         int(max(0, left)), int(max(0, top)),
         int(min(ov_w, right)), int(min(ov_h, bottom)),
     )
     return img_rgba.crop(box)
+
+
+def crop_overlay_to_uk(img_rgba, ov_lon_min, ov_lon_max, ov_lat_min, ov_lat_max):
+    return crop_overlay_to_bounds(img_rgba, ov_lon_min, ov_lon_max, ov_lat_min, ov_lat_max,
+                                   UK_LON_MIN, UK_LON_MAX, UK_LAT_MIN, UK_LAT_MAX)
 
 
 def download_image(url):
@@ -382,17 +515,21 @@ def ts_from_url(url):
 
 
 
-def make_mslp_composite(basemap_rgba, mslp_svg_url, sat_url=None):
-    """Basemap + sat background + MSLP isobar SVG overlay + boundary layers."""
+def _fetch_svg_bytes(url):
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (radar-dashboard-bot)'})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return resp.read()
+
+
+def make_mslp_composite(basemap_rgba, mslp_svg_url, sat_url=None, svg_bytes_cache=None):
+    """Basemap + sat background + MSLP isobar SVG overlay + boundary layers (UK crop)."""
     result = basemap_rgba.copy()
 
     if sat_url:
         sat = _overlay(sat_url, SAT_LON_MIN, SAT_LON_MAX, SAT_LAT_MIN, SAT_LAT_MAX)
         result.paste(sat, (0, 0), sat)
 
-    req = urllib.request.Request(mslp_svg_url, headers={'User-Agent': 'Mozilla/5.0 (radar-dashboard-bot)'})
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        svg_bytes = resp.read()
+    svg_bytes = svg_bytes_cache if svg_bytes_cache is not None else _fetch_svg_bytes(mslp_svg_url)
     png_bytes = cairosvg.svg2png(bytestring=svg_bytes, output_width=1800)
     mslp_raw = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
     mslp_uk  = crop_overlay_to_uk(mslp_raw, SAT_LON_MIN, SAT_LON_MAX, SAT_LAT_MIN, SAT_LAT_MAX)
@@ -406,13 +543,34 @@ def make_mslp_composite(basemap_rgba, mslp_svg_url, sat_url=None):
     return img_rgb
 
 
-def needs_build(path):
+def make_mslp_composite_wide(wide_basemap_rgba, mslp_svg_url, svg_bytes_cache=None):
+    """Basemap + MSLP isobar SVG overlay, wide Atlantic crop (WIDE_* domain)."""
+    result = wide_basemap_rgba.copy()
+
+    svg_bytes = svg_bytes_cache if svg_bytes_cache is not None else _fetch_svg_bytes(mslp_svg_url)
+    png_bytes = cairosvg.svg2png(bytestring=svg_bytes, output_width=1800)
+    mslp_raw  = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
+    mslp_wide = crop_overlay_to_bounds(
+        mslp_raw,
+        SAT_LON_MIN, SAT_LON_MAX, SAT_LAT_MIN, SAT_LAT_MAX,
+        WIDE_LON_MIN, WIDE_LON_MAX, WIDE_LAT_MIN, WIDE_LAT_MAX,
+    )
+    mslp_wide = mslp_wide.resize((WIDE_OUT_W, WIDE_OUT_H), Image.LANCZOS)
+    result.paste(mslp_wide, (0, 0), mslp_wide)
+
+    img_rgb = result.convert("RGB")
+    draw_boundary_layers_for(img_rgb, WIDE_LON_MIN, WIDE_LON_MAX, WIDE_LAT_MIN, WIDE_LAT_MAX, WIDE_ZOOM)
+    return img_rgb
+
+
+def needs_build(path, expected_size=None):
     """True if the composite is missing or was built at different dimensions."""
     if not os.path.exists(path):
         return True
     try:
         with Image.open(path) as im:
-            return im.size != (OUT_W, OUT_H)
+            size = expected_size or (OUT_W, OUT_H)
+            return im.size != size
     except Exception:
         return True
 
@@ -598,30 +756,63 @@ def main():
                          if ts_from_url(mf.get("url", "")) and ts_from_url(mf["url"]) <= now_ts]
         mslp_recent = mslp_analysis[-MSLP_HISTORY:]
 
+        wide_basemap = get_wide_basemap()
+
         mslp_out = []
         for mf in mslp_recent:
             mslp_ts = ts_from_url(mf["url"])
             if not mslp_ts:
                 continue
-            mslp_local = os.path.join(COMPOSITE_DIR, f"dashboard_mslp_{mslp_ts}.webp")
-            mslp_r2_key = f"composites/dashboard_mslp_{mslp_ts}.webp"
+
+            mslp_local     = os.path.join(COMPOSITE_DIR, f"dashboard_mslp_{mslp_ts}.webp")
+            mslp_r2_key    = f"composites/dashboard_mslp_{mslp_ts}.webp"
+            wide_local     = os.path.join(COMPOSITE_DIR, f"dashboard_mslp_wide_{mslp_ts}.webp")
+            wide_r2_key    = f"composites/dashboard_mslp_wide_{mslp_ts}.webp"
+
             keep_local.add(mslp_local)
+            keep_local.add(wide_local)
             if r2:
                 keep_r2_keys.add(mslp_r2_key)
-            if needs_build(mslp_local):
-                print(f"Generating MSLP composite {mslp_ts}…")
+                keep_r2_keys.add(wide_r2_key)
+
+            # Fetch SVG once, reuse for both composites to halve download count.
+            need_close = needs_build(mslp_local)
+            need_wide  = needs_build(wide_local, expected_size=(WIDE_OUT_W, WIDE_OUT_H))
+            cached_svg = None
+            if need_close or need_wide:
                 try:
-                    comp = make_mslp_composite(basemap, mf["url"])
+                    cached_svg = _fetch_svg_bytes(mf["url"])
+                except Exception as e:
+                    print(f"  MSLP SVG download failed for {mslp_ts}: {e}")
+                    continue
+
+            if need_close:
+                print(f"Generating MSLP close composite {mslp_ts}…")
+                try:
+                    comp = make_mslp_composite(basemap, mf["url"], svg_bytes_cache=cached_svg)
                     comp.save(mslp_local, "WEBP", quality=90)
                     if r2:
                         r2_upload_file(r2, mslp_local, mslp_r2_key)
                 except Exception as e:
-                    print(f"  MSLP failed for {mslp_ts}: {e}")
+                    print(f"  MSLP close failed for {mslp_ts}: {e}")
                     continue
+
+            if need_wide:
+                print(f"Generating MSLP wide composite {mslp_ts}…")
+                try:
+                    comp = make_mslp_composite_wide(wide_basemap, mf["url"], svg_bytes_cache=cached_svg)
+                    comp.save(wide_local, "WEBP", quality=90)
+                    if r2:
+                        r2_upload_file(r2, wide_local, wide_r2_key)
+                except Exception as e:
+                    print(f"  MSLP wide failed for {mslp_ts}: {e}")
+
             mslp_out.append({
-                "time": mf["valid_time"],
-                "mslp": (f"{R2_PUBLIC_URL}/{mslp_r2_key}" if r2
-                         else f"composites/dashboard_mslp_{mslp_ts}.webp"),
+                "time":      mf["valid_time"],
+                "mslp":      (f"{R2_PUBLIC_URL}/{mslp_r2_key}" if r2
+                              else f"composites/dashboard_mslp_{mslp_ts}.webp"),
+                "mslp_wide": (f"{R2_PUBLIC_URL}/{wide_r2_key}" if r2
+                              else f"composites/dashboard_mslp_wide_{mslp_ts}.webp"),
             })
 
         with open("frames_mslp.json", "w") as f:
