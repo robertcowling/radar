@@ -253,5 +253,10 @@
     "lat": 51.77728,
     "lon": -1.33846,
     "name": "Wytham Woods"
+  },
+  "CAMBO": {
+    "lat": 50.218284,
+    "lon": -5.326004,
+    "name": "Cambourne"
   }
 }
