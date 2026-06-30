@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EA Flood Warnings | Flood Forecast</title>
+<meta name="description" content="Live Environment Agency flood warnings and alerts for England on an interactive map, with in-force history and catchment, county and regional overlays.">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+html { height: 100%; }
+body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8f9fa;
+  color: #3c4043; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f3f4; }
+::-webkit-scrollbar-thumb { background: #bdc1c6; border-radius: 3px; }
+
+.topbar { background: #1e293b; color: #f1f5f9; height: 50px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 16px; padding: 0 18px; }
+.topbar h1 { font-size: 15px; font-weight: 700; margin: 0; letter-spacing: 0.3px; }
+.topbar .nav { margin-left: auto; display: flex; gap: 14px; font-size: 13px; }
+.topbar .nav a { color: #93c5fd; text-decoration: none; }
+.topbar .nav a:hover { text-decoration: underline; }
+
+.body-row { flex: 1; display: flex; min-height: 0; }
+.map-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+#map { flex: 1; background: #e8eaed; }
+
+/* chart panel */
+.chart-panel { flex-shrink: 0; background: white; border-top: 2px solid #dde1e7;
+  transition: height 0.2s; height: 190px; display: flex; flex-direction: column; }
+.chart-panel.collapsed { height: 34px; }
+.chart-head { height: 34px; flex-shrink: 0; display: flex; align-items: center; gap: 12px;
+  padding: 0 14px; cursor: pointer; user-select: none; font-size: 12px; font-weight: 600; color: #475569; }
+.chart-head .legend { display: flex; gap: 12px; margin-left: 8px; font-weight: 500; }
+.chart-head .legend span { display: flex; align-items: center; gap: 5px; }
+.chart-head .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.chart-head .toggle { margin-left: auto; color: #94a3b8; }
+#chartCanvasWrap { flex: 1; min-height: 0; padding: 4px 10px 8px; }
+#chartCanvas { width: 100%; height: 100%; display: block; }
+
+/* sidebar */
+.side { width: 380px; flex: none; border-left: 2px solid #dde1e7; background: white;
+  display: flex; flex-direction: column; overflow: hidden; }
+.side-head { background: #1e293b; color: #f1f5f9; height: 48px; flex-shrink: 0;
+  display: flex; align-items: center; padding: 0 16px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
+.summary { display: flex; gap: 8px; padding: 12px; flex-shrink: 0; border-bottom: 1px solid #eef1f4; }
+.stat { flex: 1; border-radius: 8px; padding: 10px 8px; text-align: center; color: white; }
+.stat .n { font-size: 22px; font-weight: 700; line-height: 1; }
+.stat .l { font-size: 10px; font-weight: 600; margin-top: 4px; opacity: 0.95; }
+.controls { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid #eef1f4; flex-shrink: 0; }
+.ctl-row { display: flex; gap: 8px; }
+.ctl { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.ctl label { font-size: 10px; font-weight: 700; color: #5f6368; letter-spacing: 0.4px; padding-left: 4px; }
+select.sel { appearance: none; -webkit-appearance: none; background: #f1f3f4; border: none;
+  padding: 8px 30px 8px 12px; border-radius: 20px; font-family: inherit; font-size: 12.5px;
+  color: #202124; font-weight: 500; cursor: pointer; outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; }
+.list { flex: 1; overflow-y: auto; }
+.empty { padding: 30px 18px; text-align: center; color: #94a3b8; font-size: 13px; }
+.wcard { padding: 11px 14px; border-bottom: 1px solid #f1f3f4; cursor: pointer; border-left: 4px solid transparent; }
+.wcard:hover { background: #f8fafc; }
+.wcard .wt { font-size: 13px; font-weight: 600; color: #1f2937; }
+.wcard .wm { font-size: 11.5px; color: #6b7280; margin-top: 2px; }
+.wcard .pill { display: inline-block; font-size: 10px; font-weight: 700; color: white;
+  padding: 1px 7px; border-radius: 10px; margin-top: 5px; }
+.foot { font-size: 10.5px; color: #94a3b8; padding: 8px 14px; flex-shrink: 0; border-top: 1px solid #eef1f4; }
+.foot a { color: #60a5fa; }
+.leaflet-popup-content { font-family: 'Roboto', sans-serif; font-size: 12.5px; }
+.leaflet-popup-content b { font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>Environment Agency Flood Warnings</h1>
+  <div class="nav">
+    <a href="floodareas.html">All flood areas</a>
+    <a href="menu.html">Menu</a>
+  </div>
+</div>
+
+<div class="body-row">
+  <div class="map-col">
+    <div id="map"></div>
+    <div class="chart-panel" id="chartPanel">
+      <div class="chart-head" onclick="toggleChart()">
+        <span>Warnings in force over time</span>
+        <div class="legend">
+          <span><i class="dot" style="background:#6d0019"></i>Severe</span>
+          <span><i class="dot" style="background:#d93025"></i>Warning</span>
+          <span><i class="dot" style="background:#f9ab00"></i>Alert</span>
+        </div>
+        <span class="toggle" id="chartToggle">▾</span>
+      </div>
+      <div id="chartCanvasWrap"><canvas id="chartCanvas"></canvas></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="side-head">Active warnings</div>
+    <div class="summary">
+      <div class="stat" style="background:#6d0019"><div class="n" id="nSevere">0</div><div class="l">Severe</div></div>
+      <div class="stat" style="background:#d93025"><div class="n" id="nWarning">0</div><div class="l">Warning</div></div>
+      <div class="stat" style="background:#f9ab00"><div class="n" id="nAlert">0</div><div class="l">Alert</div></div>
+    </div>
+    <div class="controls">
+      <div class="ctl-row">
+        <div class="ctl">
+          <label>Display</label>
+          <select class="sel" id="modeSel" onchange="render()">
+            <option value="icons">Icons (centroids)</option>
+            <option value="polygons">Polygons</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label>Min severity</label>
+          <select class="sel" id="sevSel" onchange="render()">
+            <option value="3">Alert and above</option>
+            <option value="2">Warning and above</option>
+            <option value="1">Severe only</option>
+          </select>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>Boundary overlay</label>
+        <select class="sel" id="boundSel" onchange="onBoundary(this.value)">
+          <option value="none">None</option>
+          <option value="catchments">Catchments</option>
+          <option value="counties">Counties</option>
+          <option value="regions">Regions</option>
+        </select>
+      </div>
+    </div>
+    <div class="list" id="list"><div class="empty">Loading…</div></div>
+    <div class="foot">Uses Environment Agency flood data from the real-time data API (Beta), Open Government Licence. <a href="https://www.gov.uk/check-flooding" target="_blank">Official service →</a></div>
+  </div>
+</div>
+
+<script>
+const R2 = 'https://radar.floodforecast.co.uk';
+const SEV = {
+  1: {name:'Severe Flood Warning', color:'#6d0019', short:'Severe'},
+  2: {name:'Flood Warning',        color:'#d93025', short:'Warning'},
+  3: {name:'Flood Alert',          color:'#f9ab00', short:'Alert'},
+  4: {name:'Warning no longer in force', color:'#9aa0a6', short:'Stood down'},
+};
+
+const map = L.map('map', {zoomControl:true}).setView([52.8, -1.5], 6);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18, subdomains:'abcd'
+}).addTo(map);
+
+function fetchJson(url){ return fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }); }
+
+let warnings = [];
+const polyCache = {};
+let markerLayer = L.layerGroup().addTo(map);
+let polyLayer = L.layerGroup().addTo(map);
+
+function loadCurrent() {
+  fetchJson(R2 + '/ea/floods/current.json?t=' + Date.now())
+    .catch(() => fetchJson('ea/floods/current.json'))
+    .then(d => {
+      warnings = (d.warnings || []).filter(w => w.severityLevel >= 1 && w.severityLevel <= 3);
+      const c = d.counts || {};
+      document.getElementById('nSevere').textContent = c.severe || 0;
+      document.getElementById('nWarning').textContent = c.warning || 0;
+      document.getElementById('nAlert').textContent = c.alert || 0;
+      render();
+    })
+    .catch(e => { document.getElementById('list').innerHTML = '<div class="empty">Could not load warnings.</div>'; });
+}
+
+function visible() {
+  const minSev = parseInt(document.getElementById('sevSel').value, 10);
+  return warnings.filter(w => w.severityLevel <= minSev).sort((a,b)=>a.severityLevel-b.severityLevel);
+}
+
+function render() {
+  const mode = document.getElementById('modeSel').value;
+  markerLayer.clearLayers(); polyLayer.clearLayers();
+  const ws = visible();
+  // list
+  const list = document.getElementById('list');
+  if (!ws.length) { list.innerHTML = '<div class="empty">No active flood warnings for the selected severity.</div>'; }
+  else {
+    list.innerHTML = '';
+    ws.forEach(w => {
+      const s = SEV[w.severityLevel];
+      const el = document.createElement('div');
+      el.className = 'wcard'; el.style.borderLeftColor = s.color;
+      el.innerHTML = `<div class="wt">${esc(w.label)}</div>`
+        + `<div class="wm">${esc(w.county||'')}${w.river? ' · '+esc(w.river):''}</div>`
+        + `<span class="pill" style="background:${s.color}">${s.name}</span>`;
+      el.onclick = () => focusWarning(w);
+      list.appendChild(el);
+    });
+  }
+  // map
+  if (mode === 'icons') {
+    ws.forEach(w => {
+      if (w.lat == null || w.long == null) return;
+      const s = SEV[w.severityLevel];
+      L.circleMarker([w.lat, w.long], {radius:8, color:'#fff', weight:2,
+        fillColor:s.color, fillOpacity:0.95})
+        .bindPopup(popupHtml(w)).addTo(markerLayer);
+    });
+  } else {
+    ws.forEach(w => loadPoly(w));
+  }
+}
+
+function loadPoly(w) {
+  const s = SEV[w.severityLevel];
+  const draw = (feat) => {
+    const gj = L.geoJSON(feat, {style:{color:s.color, weight:1.5, fillColor:s.color,
+      fillOpacity:0.35}}).bindPopup(popupHtml(w));
+    gj.addTo(polyLayer);
+  };
+  if (polyCache[w.code]) { draw(polyCache[w.code]); return; }
+  fetch(R2 + '/ea/floodareas/polygons/' + w.code + '.json')
+    .then(r => r.json()).then(f => { polyCache[w.code] = f; draw(f); })
+    .catch(() => { // fall back to a marker if no polygon
+      if (w.lat != null) L.circleMarker([w.lat, w.long], {radius:8, color:'#fff',
+        weight:2, fillColor:s.color, fillOpacity:0.95}).bindPopup(popupHtml(w)).addTo(polyLayer);
+    });
+}
+
+function popupHtml(w) {
+  const s = SEV[w.severityLevel];
+  let h = `<b>${esc(w.label)}</b><br><span style="color:${s.color};font-weight:600">${s.name}</span>`;
+  if (w.river) h += `<br>River/sea: ${esc(w.river)}`;
+  if (w.county) h += `<br>County: ${esc(w.county)}`;
+  if (w.timeSeverityChanged) h += `<br><small>Severity since ${fmt(w.timeSeverityChanged)}</small>`;
+  if (w.message) h += `<hr style="border:none;border-top:1px solid #eee;margin:6px 0"><div style="max-height:140px;overflow:auto;font-size:11.5px;color:#555">${esc(w.message)}</div>`;
+  return h;
+}
+
+function focusWarning(w) {
+  if (document.getElementById('modeSel').value === 'polygons' && polyCache[w.code]) {
+    const b = L.geoJSON(polyCache[w.code]).getBounds();
+    if (b.isValid()) { map.fitBounds(b, {maxZoom:11, padding:[30,30]}); return; }
+  }
+  if (w.lat != null) { map.setView([w.lat, w.long], 10); }
+}
+
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmt(iso){ try { return new Date(iso).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e){ return iso; } }
+
+/* ── Boundary overlays (same pattern as the other viewers) ── */
+const BFILES = {catchments:'uk_catchments.geojson', counties:'uk-counties.geojson', regions:'uk_regions.geojson'};
+const boundaryLayers = {}; let currentBoundary = 'none';
+function onBoundary(val) {
+  if (currentBoundary !== 'none' && boundaryLayers[currentBoundary]) map.removeLayer(boundaryLayers[currentBoundary]);
+  currentBoundary = val;
+  if (val === 'none' || !BFILES[val]) return;
+  if (boundaryLayers[val]) { map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); return; }
+  fetch(BFILES[val]).then(r=>{if(!r.ok)throw 0;return r.json();})
+    .catch(()=>fetch(R2+'/'+BFILES[val]).then(r=>r.json()))
+    .then(d => { boundaryLayers[val] = L.geoJSON(d, {style:{color:'#5f6368',weight:1,fillOpacity:0},interactive:false});
+      if (currentBoundary===val){ map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); } })
+    .catch(e=>console.error('boundary load failed', e));
+}
+
+/* ── In-force chart ── */
+let seriesPts = [];
+function loadSeries() {
+  fetchJson(R2 + '/ea/counts/series.json?t=' + Date.now())
+    .catch(()=>fetchJson('ea/counts/series.json'))
+    .then(d=>{ seriesPts = d.points || []; drawChart(); })
+    .catch(()=>{});
+}
+function toggleChart() {
+  const p = document.getElementById('chartPanel');
+  p.classList.toggle('collapsed');
+  document.getElementById('chartToggle').textContent = p.classList.contains('collapsed') ? '▴' : '▾';
+  if (!p.classList.contains('collapsed')) setTimeout(drawChart, 210);
+}
+function drawChart() {
+  const cv = document.getElementById('chartCanvas');
+  const wrap = document.getElementById('chartCanvasWrap');
+  if (!cv || !wrap.clientHeight) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  cv.width = W*dpr; cv.height = H*dpr; const ctx = cv.getContext('2d'); ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+  if (seriesPts.length < 2) { ctx.fillStyle='#94a3b8'; ctx.font='12px Roboto'; ctx.fillText('Collecting history…', 10, 20); return; }
+  const padL=28, padR=8, padT=8, padB=18;
+  const xs = seriesPts.map(p => new Date(p.t).getTime());
+  const t0 = xs[0], t1 = xs[xs.length-1] || t0+1;
+  const maxY = Math.max(3, ...seriesPts.map(p => (p.severe||0)+(p.warning||0)+(p.alert||0)),
+                        ...seriesPts.map(p=>Math.max(p.severe||0,p.warning||0,p.alert||0)));
+  const X = t => padL + (W-padL-padR) * ((t-t0)/((t1-t0)||1));
+  const Y = v => (H-padB) - (H-padT-padB) * (v/maxY);
+  // axes
+  ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL,padT); ctx.lineTo(padL,H-padB); ctx.lineTo(W-padR,H-padB); ctx.stroke();
+  ctx.fillStyle='#94a3b8'; ctx.font='10px Roboto';
+  for (let g=0; g<=2; g++){ const v=Math.round(maxY*g/2); const y=Y(v); ctx.fillText(v, 4, y+3);
+    ctx.strokeStyle='#f1f3f4'; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke(); }
+  const series = [['alert','#f9ab00'],['warning','#d93025'],['severe','#6d0019']];
+  series.forEach(([k,c]) => {
+    ctx.strokeStyle=c; ctx.lineWidth=1.6; ctx.beginPath();
+    seriesPts.forEach((p,i)=>{ const x=X(xs[i]), y=Y(p[k]||0); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    ctx.stroke();
+  });
+  // time labels
+  ctx.fillStyle='#94a3b8';
+  ctx.fillText(new Date(t0).toLocaleDateString('en-GB',{day:'numeric',month:'short'}), padL, H-5);
+  const lab = new Date(t1).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  ctx.fillText(lab, W-padR-ctx.measureText(lab).width, H-5);
+}
+window.addEventListener('resize', () => { drawChart(); });
+
+loadCurrent();
+loadSeries();
+setInterval(loadCurrent, 5*60*1000);
+</script>
+</body>
+</html>

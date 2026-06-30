@@ -22,3 +22,9 @@ status/history.json
 europe_geo.json
 uk_regions_r2.geojson
 radarmicro/composites/*.webp
+
+# EA flood warnings: large/derived files live on R2, not git
+ea/floodareas/polygons/
+ea/floodareas/polygons_all.min.geojson
+ea/counts/
+ea/timeline/
