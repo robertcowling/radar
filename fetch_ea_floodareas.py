@@ -40,9 +40,12 @@ CENTROIDS_KEY = f"{PFX}/centroids.geojson"
 POLY_PFX      = f"{PFX}/polygons"
 COMBINED_KEY  = f"{PFX}/polygons_all.min.geojson"
 
-# Simplified-overview quantisation: round coords to this many decimal places
-# (~11 m at 4 dp, ~110 m at 3 dp). 3 dp keeps the whole-country overview small.
-OVERVIEW_DP   = 3
+# Simplified-overview geometry: Douglas-Peucker tolerance in degrees (~0.0015 ≈
+# 150 m) to cut vertex *count*, then round coords to OVERVIEW_DP places. Rings
+# whose bounding box is smaller than OVERVIEW_MIN_RING are dropped from the overview.
+OVERVIEW_TOL     = 0.0015
+OVERVIEW_DP      = 4
+OVERVIEW_MIN_RING = 0.0008
 
 UA = {"User-Agent": "floodforecast-radar/1.0 (+https://floodforecast.co.uk)"}
 
@@ -103,34 +106,77 @@ def http_get_json(url, timeout=60, retries=3):
 
 
 # ── Geometry simplification (pure stdlib) ────────────────────────────────────
-def quantise_ring(ring, dp):
-    """Round coords and drop consecutive duplicates; keep ring closed."""
-    out = []
-    last = None
-    for pt in ring:
+def _rdp(points, tol):
+    """Ramer-Douglas-Peucker on a polyline of [x, y] points (iterative)."""
+    n = len(points)
+    if n < 3:
+        return points[:]
+    keep = [False] * n
+    keep[0] = keep[-1] = True
+    stack = [(0, n - 1)]
+    tol2 = tol * tol
+    while stack:
+        s, e = stack.pop()
+        ax, ay = points[s]
+        bx, by = points[e]
+        dx, dy = bx - ax, by - ay
+        seg2 = dx * dx + dy * dy
+        dmax, idx = -1.0, -1
+        for i in range(s + 1, e):
+            px, py = points[i]
+            if seg2 == 0:
+                ddx, ddy = px - ax, py - ay
+                d2 = ddx * ddx + ddy * ddy
+            else:
+                t = ((px - ax) * dx + (py - ay) * dy) / seg2
+                t = 0.0 if t < 0 else (1.0 if t > 1 else t)
+                cx, cy = ax + t * dx, ay + t * dy
+                ddx, ddy = px - cx, py - cy
+                d2 = ddx * ddx + ddy * ddy
+            if d2 > dmax:
+                dmax, idx = d2, i
+        if dmax > tol2 and idx != -1:
+            keep[idx] = True
+            stack.append((s, idx))
+            stack.append((idx, e))
+    return [points[i] for i in range(n) if keep[i]]
+
+
+def _ring_bbox_span(ring):
+    xs = [p[0] for p in ring]
+    ys = [p[1] for p in ring]
+    return max(max(xs) - min(xs), max(ys) - min(ys))
+
+
+def simplify_ring(ring, tol, dp):
+    """RDP-simplify, round, and drop consecutive duplicates; keep ring closed."""
+    if _ring_bbox_span(ring) < OVERVIEW_MIN_RING:
+        return None
+    simp = _rdp(ring, tol)
+    out, last = [], None
+    for pt in simp:
         q = [round(pt[0], dp), round(pt[1], dp)]
         if q != last:
             out.append(q)
             last = q
-    # ensure closed
     if len(out) >= 1 and out[0] != out[-1]:
         out.append(out[0][:])
     return out if len(out) >= 4 else None
 
 
-def simplify_geometry(geom, dp):
-    """Quantise a (Multi)Polygon for the lightweight overview layer."""
+def simplify_geometry(geom, tol=OVERVIEW_TOL, dp=OVERVIEW_DP):
+    """Simplify a (Multi)Polygon for the lightweight overview layer."""
     if not geom:
         return None
     gtype = geom.get("type")
     coords = geom.get("coordinates")
     if gtype == "Polygon":
-        rings = [r for r in (quantise_ring(ring, dp) for ring in coords) if r]
+        rings = [r for r in (simplify_ring(ring, tol, dp) for ring in coords) if r]
         return {"type": "Polygon", "coordinates": rings} if rings else None
     if gtype == "MultiPolygon":
         polys = []
         for poly in coords:
-            rings = [r for r in (quantise_ring(ring, dp) for ring in poly) if r]
+            rings = [r for r in (simplify_ring(ring, tol, dp) for ring in poly) if r]
             if rings:
                 polys.append(rings)
         return {"type": "MultiPolygon", "coordinates": polys} if polys else None
@@ -243,7 +289,7 @@ def main():
                 geom = None
 
         if geom:
-            sgeom = simplify_geometry(geom, OVERVIEW_DP)
+            sgeom = simplify_geometry(geom)
             if sgeom:
                 combined_features.append({
                     "type": "Feature",
