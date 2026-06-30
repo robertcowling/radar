@@ -99,10 +99,11 @@ const map = L.map('map').setView([52.8, -1.5], 6);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   {attribution:'&copy; OpenStreetMap &copy; CARTO', maxZoom:18, subdomains:'abcd'}).addTo(map);
 
-let allFeatures = [];          // simplified overview features
+let allFeatures = [];          // simplified overview features (polygons) or centroids
 let layer = null;              // current geojson layer
 const fullCache = {};          // code -> full-res feature
 let selected = null;
+let pointMode = false;         // true when only centroids are available
 
 function style(f){ return {color: COL[f.properties.type]||'#5f6368', weight:1,
   fillColor: COL[f.properties.type]||'#5f6368', fillOpacity:0.18}; }
@@ -110,9 +111,24 @@ function style(f){ return {color: COL[f.properties.type]||'#5f6368', weight:1,
 function fetchJson(url){ return fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }); }
 
 function load() {
+  // Preferred: the simplified combined polygon overview.
   fetchJson(R2 + '/ea/floodareas/polygons_all.min.geojson')
     .catch(()=>fetchJson('ea/floodareas/polygons_all.min.geojson'))
-    .then(d => { allFeatures = d.features || []; applyFilters(); })
+    .then(d => { pointMode = false; allFeatures = d.features || []; applyFilters(); })
+    .catch(loadCentroids);
+}
+
+function loadCentroids() {
+  // Fallback: centroids are written early in a reference build, so show points
+  // (with exact polygons on click) until the heavier combined file lands.
+  fetchJson(R2 + '/ea/floodareas/centroids.geojson')
+    .catch(()=>fetchJson('ea/floodareas/centroids.geojson'))
+    .then(d => {
+      pointMode = true; allFeatures = d.features || []; applyFilters();
+      const n = document.createElement('div'); n.className = 'foot'; n.style.color = '#b45309';
+      n.textContent = 'Showing centroids — the full polygon overview is still building; click any area for its exact boundary.';
+      document.querySelector('.controls').appendChild(n);
+    })
     .catch(()=>{ document.getElementById('list').innerHTML='<div class="empty">Could not load flood areas. Has fetch_ea_floodareas.py been run?</div>'; });
 }
 
@@ -133,7 +149,10 @@ function applyFilters() {
   document.getElementById('cnt').textContent = fs.length + ' / ' + allFeatures.length;
   if (layer) map.removeLayer(layer);
   layer = L.geoJSON({type:'FeatureCollection', features:fs}, {
-    style, onEachFeature: (f, lyr) => {
+    style,
+    pointToLayer: (f, latlng) => L.circleMarker(latlng, {radius:5, weight:1.5,
+      color:'#fff', fillColor: COL[f.properties.type]||'#5f6368', fillOpacity:0.9}),
+    onEachFeature: (f, lyr) => {
       lyr.on('click', () => selectArea(f, lyr));
       lyr.bindTooltip(f.properties.label, {sticky:true});
     }
