@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EA Flood Areas | Flood Forecast</title>
+<meta name="description" content="Explore every Environment Agency flood warning area and flood alert area for England on an interactive map.">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+html { height: 100%; }
+body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8f9fa;
+  color: #3c4043; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f3f4; }
+::-webkit-scrollbar-thumb { background: #bdc1c6; border-radius: 3px; }
+.topbar { background: #1e293b; color: #f1f5f9; height: 50px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 16px; padding: 0 18px; }
+.topbar h1 { font-size: 15px; font-weight: 700; margin: 0; letter-spacing: 0.3px; }
+.topbar .nav { margin-left: auto; display: flex; gap: 14px; font-size: 13px; }
+.topbar .nav a { color: #93c5fd; text-decoration: none; }
+.topbar .nav a:hover { text-decoration: underline; }
+.body-row { flex: 1; display: flex; min-height: 0; }
+#map { flex: 1; background: #e8eaed; }
+.side { width: 360px; flex: none; border-left: 2px solid #dde1e7; background: white;
+  display: flex; flex-direction: column; overflow: hidden; }
+.side-head { background: #1e293b; color: #f1f5f9; height: 48px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
+.side-head .cnt { font-weight: 500; color: #93c5fd; }
+.controls { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid #eef1f4; flex-shrink: 0; }
+.controls input, select.sel { appearance: none; -webkit-appearance: none; background: #f1f3f4; border: none;
+  padding: 8px 12px; border-radius: 20px; font-family: inherit; font-size: 12.5px; color: #202124; font-weight: 500; outline: none; }
+select.sel { padding-right: 30px; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; }
+.ctl-row { display: flex; gap: 8px; }
+.ctl-row > * { flex: 1; }
+.legend { display: flex; gap: 14px; font-size: 11px; color: #5f6368; padding: 2px 4px; }
+.legend span { display: flex; align-items: center; gap: 5px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.list { flex: 1; overflow-y: auto; }
+.acard { padding: 9px 14px; border-bottom: 1px solid #f1f3f4; cursor: pointer; border-left: 4px solid transparent; }
+.acard:hover { background: #f8fafc; }
+.acard .at { font-size: 12.5px; font-weight: 600; color: #1f2937; }
+.acard .am { font-size: 11px; color: #6b7280; margin-top: 2px; }
+.empty { padding: 30px 18px; text-align: center; color: #94a3b8; font-size: 13px; }
+.foot { font-size: 10.5px; color: #94a3b8; padding: 8px 14px; flex-shrink: 0; border-top: 1px solid #eef1f4; }
+.foot a { color: #60a5fa; }
+.leaflet-popup-content { font-family: 'Roboto', sans-serif; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>Environment Agency Flood Areas</h1>
+  <div class="nav">
+    <a href="floods.html">Active warnings</a>
+    <a href="menu.html">Menu</a>
+  </div>
+</div>
+
+<div class="body-row">
+  <div id="map"></div>
+  <div class="side">
+    <div class="side-head"><span>Flood areas</span><span class="cnt" id="cnt">…</span></div>
+    <div class="controls">
+      <input id="search" type="text" placeholder="Search name, river or county…" oninput="applyFilters()">
+      <div class="ctl-row">
+        <select class="sel" id="typeSel" onchange="applyFilters()">
+          <option value="all">All areas</option>
+          <option value="warning">Warning areas</option>
+          <option value="alert">Alert areas</option>
+        </select>
+        <select class="sel" id="boundSel" onchange="onBoundary(this.value)">
+          <option value="none">No overlay</option>
+          <option value="catchments">Catchments</option>
+          <option value="counties">Counties</option>
+          <option value="regions">Regions</option>
+        </select>
+      </div>
+      <div class="legend">
+        <span><i style="background:#d93025"></i>Warning area</span>
+        <span><i style="background:#f9ab00"></i>Alert area</span>
+      </div>
+    </div>
+    <div class="list" id="list"><div class="empty">Loading flood areas…</div></div>
+    <div class="foot">Uses Environment Agency flood data from the real-time data API (Beta), Open Government Licence.</div>
+  </div>
+</div>
+
+<script>
+const R2 = 'https://radar.floodforecast.co.uk';
+const COL = {warning:'#d93025', alert:'#f9ab00'};
+const map = L.map('map').setView([52.8, -1.5], 6);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  {attribution:'&copy; OpenStreetMap &copy; CARTO', maxZoom:18, subdomains:'abcd'}).addTo(map);
+
+let allFeatures = [];          // simplified overview features
+let layer = null;              // current geojson layer
+const fullCache = {};          // code -> full-res feature
+let selected = null;
+
+function style(f){ return {color: COL[f.properties.type]||'#5f6368', weight:1,
+  fillColor: COL[f.properties.type]||'#5f6368', fillOpacity:0.18}; }
+
+function fetchJson(url){ return fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }); }
+
+function load() {
+  fetchJson(R2 + '/ea/floodareas/polygons_all.min.geojson')
+    .catch(()=>fetchJson('ea/floodareas/polygons_all.min.geojson'))
+    .then(d => { allFeatures = d.features || []; applyFilters(); })
+    .catch(()=>{ document.getElementById('list').innerHTML='<div class="empty">Could not load flood areas. Has fetch_ea_floodareas.py been run?</div>'; });
+}
+
+function filtered() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const t = document.getElementById('typeSel').value;
+  return allFeatures.filter(f => {
+    const p = f.properties;
+    if (t !== 'all' && p.type !== t) return false;
+    if (q) { const hay = (p.label+' '+(p.river||'')+' '+(p.county||'')).toLowerCase();
+      if (!hay.includes(q)) return false; }
+    return true;
+  });
+}
+
+function applyFilters() {
+  const fs = filtered();
+  document.getElementById('cnt').textContent = fs.length + ' / ' + allFeatures.length;
+  if (layer) map.removeLayer(layer);
+  layer = L.geoJSON({type:'FeatureCollection', features:fs}, {
+    style, onEachFeature: (f, lyr) => {
+      lyr.on('click', () => selectArea(f, lyr));
+      lyr.bindTooltip(f.properties.label, {sticky:true});
+    }
+  }).addTo(map);
+  // list (cap rendered rows for performance)
+  const list = document.getElementById('list');
+  if (!fs.length) { list.innerHTML = '<div class="empty">No matching flood areas.</div>'; return; }
+  const frag = document.createDocumentFragment();
+  fs.slice(0, 400).forEach(f => {
+    const p = f.properties;
+    const el = document.createElement('div');
+    el.className = 'acard'; el.style.borderLeftColor = COL[p.type]||'#5f6368';
+    el.innerHTML = `<div class="at">${esc(p.label)}</div>`
+      + `<div class="am">${p.type==='warning'?'Warning area':'Alert area'}`
+      + `${p.county? ' · '+esc(p.county):''}${p.river? ' · '+esc(p.river):''}</div>`;
+    el.onclick = () => selectArea(f, null, true);
+    frag.appendChild(el);
+  });
+  if (fs.length > 400) { const m=document.createElement('div'); m.className='empty';
+    m.textContent = '+'+(fs.length-400)+' more — refine your search'; frag.appendChild(m); }
+  list.innerHTML=''; list.appendChild(frag);
+}
+
+function selectArea(f, lyr, zoom) {
+  const code = f.properties.code;
+  // load full-res polygon for an exact boundary on selection
+  const showFull = (full) => {
+    if (selected) map.removeLayer(selected);
+    selected = L.geoJSON(full, {style:{color:COL[f.properties.type]||'#5f6368',
+      weight:2.5, fillColor:COL[f.properties.type]||'#5f6368', fillOpacity:0.4}}).addTo(map);
+    selected.bindPopup(popupHtml(f.properties)).openPopup();
+    if (zoom) { const b = selected.getBounds(); if (b.isValid()) map.fitBounds(b,{maxZoom:12,padding:[30,30]}); }
+  };
+  if (fullCache[code]) { showFull(fullCache[code]); return; }
+  fetch(R2 + '/ea/floodareas/polygons/' + code + '.json')
+    .then(r=>r.json()).then(full => { fullCache[code]=full; showFull(full); })
+    .catch(() => { showFull(f); }); // fall back to simplified
+}
+
+function popupHtml(p) {
+  let h = `<b>${esc(p.label)}</b><br><span style="color:${COL[p.type]};font-weight:600">`
+    + `${p.type==='warning'?'Flood warning area':'Flood alert area'}</span>`;
+  if (p.river) h += `<br>River/sea: ${esc(p.river)}`;
+  if (p.county) h += `<br>County: ${esc(p.county)}`;
+  h += `<br><small style="color:#94a3b8">${esc(p.code)}</small>`;
+  return h;
+}
+
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* boundaries */
+const BFILES = {catchments:'uk_catchments.geojson', counties:'uk-counties.geojson', regions:'uk_regions.geojson'};
+const boundaryLayers = {}; let currentBoundary='none';
+function onBoundary(val) {
+  if (currentBoundary!=='none' && boundaryLayers[currentBoundary]) map.removeLayer(boundaryLayers[currentBoundary]);
+  currentBoundary = val;
+  if (val==='none'||!BFILES[val]) return;
+  if (boundaryLayers[val]) { map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); return; }
+  fetch(BFILES[val]).then(r=>{if(!r.ok)throw 0;return r.json();})
+    .catch(()=>fetch(R2+'/'+BFILES[val]).then(r=>r.json()))
+    .then(d=>{ boundaryLayers[val]=L.geoJSON(d,{style:{color:'#5f6368',weight:1,fillOpacity:0},interactive:false});
+      if(currentBoundary===val){map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack();} })
+    .catch(e=>console.error(e));
+}
+
+load();
+</script>
+</body>
+</html>
