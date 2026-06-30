@@ -29,8 +29,10 @@ UK_LON_MIN, UK_LON_MAX = -13.0, 4.5
 UK_LAT_MIN, UK_LAT_MAX = 48.0, 60.5
 
 # Wide Atlantic domain — default MSLP view, shows storm tracks approaching from W.
+# Taller (more portrait) framing: a little more north and a lot more south.
+# Southern limit is bounded by the isobar SVG extent (SAT_LAT_MIN = 37.75°N).
 WIDE_LON_MIN, WIDE_LON_MAX = -35.0, 10.0
-WIDE_LAT_MIN, WIDE_LAT_MAX = 44.0, 65.0
+WIDE_LAT_MIN, WIDE_LAT_MAX = 38.0, 67.0
 WIDE_ZOOM = 6
 
 OUT_W, OUT_H = 812, 1000
