@@ -1,15 +1,24 @@
 """
 Remove a named gauge from results.json, log.json, and all run archives.
 Usage: python remove_gauge.py "Great Gidding"
+Requires R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME in the environment.
 """
-import boto3, json, sys, re
+import boto3, json, os, sys, re
+
+R2_ACCOUNT_ID    = os.environ.get("R2_ACCOUNT_ID", "")
+R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID", "")
+R2_SECRET_KEY    = os.environ.get("R2_SECRET_ACCESS_KEY", "")
+BUCKET           = os.environ.get("R2_BUCKET_NAME", "")
+
+if not all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, BUCKET]):
+    sys.exit("Missing R2 credentials — set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, "
+              "R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME in the environment.")
 
 r2 = boto3.client("s3",
-    endpoint_url="https://495181df96d1d46ade158238a67fd89b.r2.cloudflarestorage.com",
-    aws_access_key_id="e5a76e234c48aa43eac06611ef788ac8",
-    aws_secret_access_key="90928614a301b79d5e6a229fa2e6306c9516fae45c85cf0d9b3b90f0c45b989a",
+    endpoint_url=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
+    aws_access_key_id=R2_ACCESS_KEY_ID,
+    aws_secret_access_key=R2_SECRET_KEY,
     region_name="auto")
-BUCKET = "radarrainfall"
 
 name_pat = sys.argv[1] if len(sys.argv) > 1 else "Great Gidding"
 print(f"Removing gauge matching: '{name_pat}'")
