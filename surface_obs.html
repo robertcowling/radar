@@ -120,9 +120,11 @@
 
         <p class="section-label">Coverage note</p>
         <p style="font-size: 11px; line-height: 1.5;">
-            In the current live feed, MSLP and dew point are frequently unpopulated at source (most stations report
-            temperature + humidity, not a directly-measured dew point or sea-level-reduced pressure) — both are
-            simply omitted from a station's plot when absent, rather than shown as zero.
+            The Met Office ASDI feed doesn't currently publish dew point or sea-level pressure directly (confirmed
+            empty at source, not a QC artefact) — both are derived here instead (Magnus formula from temp + RH for
+            dew point; barometric reduction using station-level pressure and a cached DEM altitude for MSLP) and
+            marked "derived" in each station's tooltip. MSLP is only derivable where a station reports station-level
+            pressure, so its coverage is lower than dew point's.
         </p>
 
         <p style="font-size: 11px; margin-top: 14px; line-height: 1.5;">
@@ -420,16 +422,20 @@
 
         function tooltipHtml(props) {
             var rows = [];
-            function row(label, val, unit) {
+            var qc = props.qc || {};
+            function derivedTag(key) {
+                return qc[key] === 'Derived' ? ' <span style="color:#80868b; font-style:italic;">(derived)</span>' : '';
+            }
+            function row(label, val, unit, key) {
                 if (val == null) return;
-                rows.push('<div><strong>' + label + ':</strong> ' + val + (unit || '') + '</div>');
+                rows.push('<div><strong>' + label + ':</strong> ' + val + (unit || '') + (key ? derivedTag(key) : '') + '</div>');
             }
             rows.push('<div style="font-weight:700; margin-bottom:4px;">' + (props.name || props.sid) + '</div>');
             row('Obs time', props.obs_time);
             if (props.stale) rows.push('<div style="color:#c62828;">Stale (&gt;2h old)</div>');
             row('Temp', props.temp_c, '°C');
-            row('Dew point', props.dewpoint_c, '°C');
-            row('MSLP', props.mslp_hpa, ' hPa');
+            row('Dew point', props.dewpoint_c, '°C', 'dewpoint_c');
+            row('MSLP', props.mslp_hpa, ' hPa', 'mslp_hpa');
             row('Station pressure', props.pressure_station_hpa, ' hPa (not sea-level corrected)');
             row('Wind', props.wind_kt != null ? (props.wind_kt + ' kt (' + Math.round(props.wind_kt * 1.15078) + ' mph) from ' + props.wind_dir_deg + '°') : null);
             row('Cloud cover', props.cloud_oktas, ' oktas');

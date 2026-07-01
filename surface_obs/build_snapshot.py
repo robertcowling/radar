@@ -12,9 +12,34 @@ Both are uploaded to R2 alongside the radar tiles (surface_obs/ prefix),
 plus an hourly archive snapshot (surface_obs/history/{hour}.geojson) — cheap
 insurance per the spec's non-goals note, in case a historical archive is
 wanted later without having to have started collecting it from day one.
+
+MSLP: confirmed empty at source (see parse_obs.py docstring — same 8-hour/
+8-day sample as dew point). Where a station has a QC-passing station-level
+pressure reading (pressure_station_hpa) and a known altitude (from the
+one-off DEM cache in station_altitude.json — see build_station_altitude.py;
+the bucket itself carries no station elevation), MSLP is derived here via
+the standard barometric reduction and tagged qc="derived":
+
+    p0 = p_stn * exp(g*h / (R * (T + 273.15 + L*h/2)))
+
+CAVEAT on what this simplification does and doesn't account for: this is
+the dry, standard-atmosphere form — g=9.80665 m/s^2, R=287.05 J/(kg*K) for
+dry air, L=0.0065 K/m (ISA lapse rate), and it approximates the mean
+temperature of the notional air column below the station as T + L*h/2
+(station temp plus half the adiabatic warming it would see at sea level).
+It does NOT apply a virtual-temperature/humidity correction (which would
+use the derived dew point to inflate T slightly for moist air) — omitted
+per the spec's explicit allowance to "use derived Td ... or just the
+simple form", since at UK station elevations (max ~1165 m in this network)
+and UK humidity levels the moisture correction is a fraction of a hPa,
+well under the ~1 hPa precision already lost to the DEM's own vertical
+uncertainty (ASTER 30m, roughly +-10-30m depending on terrain, which by
+itself shifts the reduction by roughly +-0.1-0.3 hPa). Treat derived MSLP
+as good to within ~1 hPa, not survey-grade.
 """
 import argparse
 import json
+import math
 import os
 import sys
 from datetime import datetime, timezone
@@ -24,6 +49,28 @@ from params import PARAMS
 from parse_obs import load_raw_frames, build_latest
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "out")
+ALTITUDE_PATH = os.path.join(os.path.dirname(__file__), "station_altitude.json")
+
+G, R_DRY, LAPSE = 9.80665, 287.05, 0.0065
+
+
+def mslp_reduce(p_stn_hpa, temp_c, altitude_m):
+    """Reduce station-level pressure to mean sea level. See module docstring
+    for the caveat on what this simplified form does and doesn't correct for."""
+    if altitude_m is None or p_stn_hpa is None or temp_c is None:
+        return None
+    mean_temp_k = temp_c + 273.15 + LAPSE * altitude_m / 2
+    return p_stn_hpa * math.exp(G * altitude_m / (R_DRY * mean_temp_k))
+
+
+def load_altitudes():
+    try:
+        with open(ALTITUDE_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        print(f"  Warning: {ALTITUDE_PATH} not found — MSLP will not be derived. "
+              f"Run build_station_altitude.py to build it.")
+        return {}
 
 R2_ACCOUNT_ID    = os.environ.get("R2_ACCOUNT_ID", "")
 R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID", "")
@@ -104,6 +151,27 @@ def station_to_properties(sid, station):
     return props
 
 
+def derive_mslp(stations, altitudes):
+    derived_count = 0
+    for sid, station in stations.items():
+        if "mslp_hpa" in station["params"]:
+            continue
+        p_entry = station["params"].get("pressure_station_hpa")
+        t_entry = station["params"].get("temp_c")
+        altitude = altitudes.get(sid)
+        if not (p_entry and t_entry and altitude is not None):
+            continue
+        p0 = mslp_reduce(p_entry["value"], t_entry["value"], altitude)
+        if p0 is None:
+            continue
+        derived_ts = min(p_entry["obs_time"], t_entry["obs_time"])
+        station["params"]["mslp_hpa"] = {"value": p0, "obs_time": derived_ts, "qc": "derived"}
+        if derived_ts > station["obs_time"]:
+            station["obs_time"] = derived_ts
+        derived_count += 1
+    return derived_count
+
+
 def build_geojson(stations):
     features = []
     for sid, station in stations.items():
@@ -165,6 +233,10 @@ def main():
     if not stations:
         print("No stations with QC-passing data — nothing to write. Not an error (e.g. between ingest cycles).")
         return
+
+    altitudes = load_altitudes()
+    derived_mslp = derive_mslp(stations, altitudes)
+    print(f"  Derived MSLP for {derived_mslp} station(s) ({len(altitudes)} altitude(s) cached)")
 
     geojson = build_geojson(stations)
     min_json = build_min_json(geojson)
