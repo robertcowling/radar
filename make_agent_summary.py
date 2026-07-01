@@ -483,7 +483,8 @@ _NON_EW_REGIONS = {"scotland", "northern ireland", "ni"}
 _GRID_TOP_N = 30
 
 _grid_centroid_cache = None
-_station_list_cache  = None
+_boundary_feature_cache = {}
+_grid_admin_cache = {}
 
 
 def _grid_centroids():
@@ -508,46 +509,74 @@ def _grid_centroids():
     return out
 
 
-def _station_list():
-    """Named rain-gauge station coordinates — reused as a lightweight UK gazetteer
-    for snapping a grid-cell centroid to a human-readable place name."""
-    global _station_list_cache
-    if _station_list_cache is not None:
-        return _station_list_cache
-    stations = load_json("rain/stations.json", {}).get("stations", {})
-    out = [
-        (info.get("name", "").strip(), info.get("lat", 0.0), info.get("lon", 0.0))
-        for info in stations.values() if info.get("name")
-    ]
-    _station_list_cache = out
-    return out
+def _point_in_ring(lon, lat, ring):
+    """Ray-casting point-in-polygon test against a single [[lon, lat], ...] ring."""
+    inside = False
+    n = len(ring)
+    j = n - 1
+    for i in range(n):
+        xi, yi = ring[i][0], ring[i][1]
+        xj, yj = ring[j][0], ring[j][1]
+        if (yi > lat) != (yj > lat):
+            x_at_lat = (xj - xi) * (lat - yi) / (yj - yi) + xi
+            if lon < x_at_lat:
+                inside = not inside
+        j = i
+    return inside
 
 
-# Beyond this, "near <station>" stops being a fair description of a grid-cell
-# centroid — mainly catches offshore/coastal cells snapping to a distant gauge.
-_MAX_PLACE_SNAP_KM = 15.0
-_KM_PER_DEG_LAT = 111.0
+def _point_in_polygon_coords(lon, lat, coords):
+    """coords: GeoJSON Polygon 'coordinates' — first ring exterior, rest are holes."""
+    if not coords or not _point_in_ring(lon, lat, coords[0]):
+        return False
+    return not any(_point_in_ring(lon, lat, hole) for hole in coords[1:])
 
 
-def _nearest_place(lat, lon):
-    """Nearest named station to (lat, lon), or None if none within
-    _MAX_PLACE_SNAP_KM. Planar approx, fine at UK scale over ~20km cells."""
-    km_per_deg_lon = _KM_PER_DEG_LAT * abs(math.cos(math.radians(lat)))
-    best_name, best_d = None, None
-    for name, slat, slon in _station_list():
-        dy = (slat - lat) * _KM_PER_DEG_LAT
-        dx = (slon - lon) * km_per_deg_lon
-        d = dy * dy + dx * dx
-        if best_d is None or d < best_d:
-            best_name, best_d = name, d
-    if best_d is None or best_d ** 0.5 > _MAX_PLACE_SNAP_KM:
-        return None
-    return best_name
+def _point_in_geometry(lon, lat, geometry):
+    gtype = (geometry or {}).get("type")
+    coords = geometry.get("coordinates", [])
+    if gtype == "Polygon":
+        return _point_in_polygon_coords(lon, lat, coords)
+    if gtype == "MultiPolygon":
+        return any(_point_in_polygon_coords(lon, lat, poly) for poly in coords)
+    return False
+
+
+def _boundary_features(geojson_path, name_key):
+    key = (geojson_path, name_key)
+    if key not in _boundary_feature_cache:
+        data = load_json(geojson_path, {})
+        _boundary_feature_cache[key] = [
+            (f["properties"].get(name_key), f["geometry"])
+            for f in data.get("features", [])
+            if f.get("properties", {}).get(name_key) and f.get("geometry")
+        ]
+    return _boundary_feature_cache[key]
+
+
+def _containing_name(lat, lon, geojson_path, name_key):
+    for name, geom in _boundary_features(geojson_path, name_key):
+        if _point_in_geometry(lon, lat, geom):
+            return name
+    return None
+
+
+def _grid_cell_admin_units(cell_name, lat, lon):
+    """Resolve which river catchment and county/unitary area a grid-cell centroid
+    falls in — these are the spatial units flood/emergency planning readers think
+    in, unlike a single village name. Cached per cell since only ~30-60 distinct
+    cells get looked up per run."""
+    if cell_name not in _grid_admin_cache:
+        catchment = _containing_name(lat, lon, "uk_catchments.geojson", "HA_NAME")
+        county = _containing_name(lat, lon, "uk-counties.geojson", "name")
+        _grid_admin_cache[cell_name] = (catchment, county)
+    return _grid_admin_cache[cell_name]
 
 
 def _top_grid_cells(poly_data, accum_key, limit=_GRID_TOP_N):
-    """Return [(place_label, region, mm), ...] for the highest-intensity 20km grid
-    cells in England & Wales for the given accumulation window."""
+    """Return [(label, region, mm), ...] for the highest-intensity 20km grid cells
+    in England & Wales for the given accumulation window, labeled by the
+    catchment/county they sit in (not a specific village/hamlet)."""
     cells = _top_polys((poly_data or {}).get("grid"), accum_key, limit * 2)
     centroids = _grid_centroids()
     out = []
@@ -556,13 +585,15 @@ def _top_grid_cells(poly_data, accum_key, limit=_GRID_TOP_N):
         if not latlon:
             continue
         lat, lon = latlon
-        region = assign_region(lat, lon)
-        if region == "Scotland":
+        catchment, county = _grid_cell_admin_units(cell_name, lat, lon)
+        # uk-counties.geojson covers England & Wales only, so a missing county
+        # match reliably means the cell is offshore, Scottish, or Northern
+        # Irish (the crude lat/lon region heuristic can't tell those apart
+        # from e.g. NW England) — safest to drop it rather than mislabel it.
+        if not county:
             continue
-        place = _nearest_place(lat, lon)
-        if not place:
-            continue
-        out.append((place, region, mm))
+        label = f"{catchment} catchment, {county}" if catchment else county
+        out.append((label, assign_region(lat, lon), mm))
         if len(out) >= limit:
             break
     return out
@@ -700,13 +731,14 @@ def load_ukv_poly_text():
             grid_top = _top_grid_cells(poly_data, accum_key)
             if grid_top:
                 lines.append(
-                    f"\n  {label} — highest-intensity 20km grid cells (local peak "
-                    f"pockets; these can run well above the region/county MEAN above "
-                    f"when rainfall is patchy or convective — cite as \"near <place>\", "
-                    f"never as 'grid cell' or coordinates):"
+                    f"\n  {label} — highest-intensity 20km grid cells, labeled by "
+                    f"the catchment/county they fall in (local peak pockets; these "
+                    f"can run well above the region/county MEAN above when rainfall "
+                    f"is patchy or convective — describe by catchment/county/region, "
+                    f"never as 'grid cell', a specific village/hamlet, or coordinates):"
                 )
-                for place, region, mm in grid_top:
-                    lines.append(f"    near {place} ({region}): {mm:.1f} mm")
+                for admin_label, region, mm in grid_top:
+                    lines.append(f"    {admin_label}: {mm:.1f} mm")
 
     # Run-to-run trend for the wettest day-1 region: same 24h-ending-valid-time
     # window across the latest few runs shows whether the model is firming up.
@@ -838,11 +870,11 @@ All map images share the same geographic basemap with boundary lines — geoloca
   • (If present) UKV catchment diff — blue=drier, red=wetter vs prior run. Use only if the UKV trends section shows significant changes.
 
 Respond with a JSON object inside <json> tags:
-- "headline": One sentence, max 12 words. The region/county UKV figures are area-MEANS and can look deceptively light even when a locally heavy pocket is forecast — if the grid-cell peak list (below) shows a notably heavier local pocket than its surrounding region/county mean, lead the headline with that named location rather than a generic "quiet"/"light rain" descriptor for the whole country.
+- "headline": One sentence, max 12 words. The region/county UKV figures are area-MEANS and can look deceptively light even when a locally heavy pocket is forecast — if the grid-cell peak list (below) shows a notably heavier local pocket than its surrounding region/county mean, lead the headline with the affected catchment/county or sub-regional area (e.g. "heavier pockets over southern Cumbria and the Eden catchment") rather than a generic "quiet"/"light rain" descriptor for the whole country. Describe the general pattern and the broad area affected — do not name individual villages, hamlets, or specific grid points.
 - "summary": Three paragraphs separated by \\n\\n. Two sentences each — be direct and concise. MANDATORY structure, never merge:
     Para 1 — Synoptic scene: describe what the MSLP charts show and how the pattern has changed; name the feature driving the weather (front, low, ridge etc).
     Para 2 — Recent observations: where the heaviest rain fell in the last 24h with gauge point-totals and region names; note antecedent context from the daily accumulation maps and any active Met Office warnings (naming any storm).
-    Para 3 — Outlook: UKV day-1 and day-2 area-mean totals for the wettest regions and catchments, cited as "UKV (run ddd D/HHMM BST/GMT)" with natural valid-time phrases like "up to early Friday morning (Fri 25/0300 BST)". Then check the "highest-intensity 20km grid cells" list for each window: it holds local peak forecast values, not administrative means, and can surface a heavier pocket the region/county mean smooths away — where a cell there is meaningfully above its region/county mean (roughly 1.5x or more, or simply crosses the heavy/extreme thresholds below), name it explicitly, e.g. "a locally heavier pocket is possible near Rochdale (18mm)". Always phrase these as "near <place>" — never say "grid cell", "grid square", or give coordinates. Close with a brief flood-risk conclusion referencing FGS levels (block caps: VERY LOW, LOW, MEDIUM, HIGH) only if relevant.
+    Para 3 — Outlook: UKV day-1 and day-2 area-mean totals for the wettest regions and catchments, cited as "UKV (run ddd D/HHMM BST/GMT)" with natural valid-time phrases like "up to early Friday morning (Fri 25/0300 BST)". Then check the "highest-intensity 20km grid cells" list for each window: it holds local peak forecast values, not administrative means, and can surface a heavier pocket the region/county mean smooths away — where a cell there is meaningfully above its region/county mean (roughly 1.5x or more, or simply crosses the heavy/extreme thresholds below), name the catchment and/or county it falls in, e.g. "a locally heavier pocket is possible across the Eden catchment in Cumbria (up to 28mm)". If several grid-cell entries cluster in the same county, you may add a compass qualifier (e.g. "southern Cumbria", "western North Yorkshire") to describe roughly where within it. Never name a specific village, hamlet, or grid reference/coordinates — describe the general rainfall pattern by catchment, county, or sub-regional area only. Close with a brief flood-risk conclusion referencing FGS levels (block caps: VERY LOW, LOW, MEDIUM, HIGH) only if relevant.
 
 Rainfall thresholds: 10mm/1h heavy; 30mm/1h extreme; 100mm/24h exceptional. For the 24h-window grid-cell peaks, treat individual cells at or above roughly 15-20mm/24h as locally heavy even when the wider region/county mean sits well below that.
 
