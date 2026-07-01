@@ -1,0 +1,59 @@
+name: Fetch Surface Observations (Met Office)
+
+on:
+  # Triggered every 30 min by Google Apps Script (same mechanism as
+  # rain_update.yml / radar_update.yml) — add this workflow's file name
+  # (surface_obs_update.yml) to the Apps Script's dispatch list, offset a
+  # few minutes past the half-hour so it doesn't collide with the other jobs.
+  workflow_dispatch:
+
+# No git writes — output goes straight to R2 (latest snapshot + hourly archive).
+# Note: the fetch manifest (surface_obs/manifest.json) is NOT persisted across
+# runs (fresh checkout each time, gitignored, no cache configured) — each run
+# simply re-lists/re-fetches whatever full-hour directories fall inside the
+# default 3h lookback window. That's a few hundred small CSVs at most (well
+# under a minute), so it's cheap enough not to need cross-run state for a
+# 30-min cron; parse/build is always recomputed fresh from whatever raw files
+# exist in that run's workspace, so this doesn't affect correctness.
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Fetch Met Office surface obs
+      run: python surface_obs/fetch_obs.py --hours 3
+
+    - name: Parse, QC, and build + upload snapshot
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+      run: python surface_obs/build_snapshot.py
+
+    - name: Report Job Status
+      if: always()
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        JOB_NAME: "Surface Obs"
+        JOB_STATUS: ${{ job.status }}
+      run: python report_job_status.py

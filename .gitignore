@@ -28,3 +28,9 @@ ea/floodareas/polygons/
 ea/floodareas/polygons_all.min.geojson
 ea/counts/
 ea/timeline/
+
+# Surface obs: raw downloads / local build output / manifest live on R2 or
+# ephemeral CI workspace, not git
+surface_obs/raw/
+surface_obs/out/
+surface_obs/manifest.json

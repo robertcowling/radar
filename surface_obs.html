@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>UK Surface Observations — Met Office</title>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        body { padding: 0; margin: 0; font-family: 'Roboto', sans-serif; background: #f8f9fa; color: #3c4043; }
+        #map { width: 100vw; height: 100vh; }
+
+        .surface {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+            transition: box-shadow 0.3s ease;
+        }
+        .surface:hover { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.1); }
+
+        .info-panel {
+            position: absolute; top: 20px; right: 20px; padding: 22px; z-index: 1000;
+            width: 290px; max-height: calc(100vh - 40px); overflow-y: auto;
+        }
+
+        h3 { margin: 0 0 6px 0; font-size: 18px; color: #202124; font-weight: 500; letter-spacing: 0.2px; }
+        p { margin: 0 0 6px 0; font-size: 13px; color: #5f6368; }
+
+        .time-box {
+            background: #f8f9fa; border-left: 4px solid #1a73e8; padding: 10px 14px;
+            margin: 14px 0; border-radius: 8px; text-align: left;
+        }
+        .time-box .stat-value { font-size: 16px; font-weight: 700; color: #202124; }
+        .time-box .stat-label { font-size: 10px; text-transform: uppercase; font-weight: 700; color: #1a73e8; letter-spacing: 0.5px; }
+
+        .section-label { margin: 16px 0 8px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.5px; }
+
+        .custom-checkbox, .custom-radio {
+            display: flex; align-items: center; cursor: pointer; font-size: 13px;
+            font-weight: 500; color: #3c4043; margin-bottom: 6px;
+        }
+        .custom-checkbox input, .custom-radio input {
+            cursor: pointer; width: 15px; height: 15px; margin-right: 9px; accent-color: #1a73e8; flex-shrink: 0;
+        }
+
+        .qc-note {
+            font-size: 11px; color: #80868b; font-style: italic; margin-top: 4px; line-height: 1.4;
+        }
+        a { color: #1a73e8; }
+
+        .stale-badge {
+            display: inline-block; font-size: 10px; font-weight: 700; color: #80868b;
+            background: #f1f3f4; padding: 2px 6px; border-radius: 8px; margin-left: 6px; text-transform: uppercase;
+        }
+
+        /* Single-param value labels */
+        .val-label {
+            font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 12px;
+            text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff, 0 0 4px #fff;
+            white-space: nowrap; pointer-events: none;
+        }
+        .val-label.stale { opacity: 0.35; }
+
+        .leaflet-tooltip.obs-tip {
+            font-family: 'Roboto', sans-serif; font-size: 12px; border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18); border: none; padding: 10px 12px; line-height: 1.5;
+        }
+
+        #attribution {
+            position: fixed; bottom: 10px; left: 10px; z-index: 500; font-size: 11px;
+            background: rgba(255,255,255,0.9); padding: 5px 10px; border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.15); color: #5f6368;
+        }
+
+        @media (max-width: 768px) {
+            .info-panel { top: 10px; right: 10px; left: 10px; width: auto; box-sizing: border-box; max-height: calc(100vh - 20px); }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <div class="info-panel surface" id="infoPanel">
+        <h3>Surface Observations</h3>
+        <p>Met Office UK land surface network — 1-minute observations, hourly ingest.</p>
+
+        <div class="time-box">
+            <p class="stat-label" style="margin-bottom: 2px;">Obs valid to</p>
+            <div class="stat-value" id="validTime">Loading…</div>
+        </div>
+        <p class="qc-note" title="The Met Office publishes this feed with a delay while quality control runs — figures on the map can lag the current time by roughly 1-2 hours, and slightly more for a station that's individually behind.">
+            ⓘ Data typically arrives 1–2h after observation time (Met Office QC delay). Stations older than 2h are shown greyed out.
+        </p>
+
+        <p class="section-label">Render mode</p>
+        <label class="custom-radio">
+            <input type="radio" name="renderMode" value="station_plot" checked onchange="setRenderMode(this.value)">
+            Station plots (WMO)
+        </label>
+        <label class="custom-radio">
+            <input type="radio" name="renderMode" value="single_param" onchange="setRenderMode(this.value)">
+            Single parameter
+        </label>
+
+        <div id="singleParamPicker" style="display:none; margin: 8px 0 4px 22px;"></div>
+
+        <p class="section-label">Station plot legend</p>
+        <p style="font-size: 11px; line-height: 1.6;">
+            <span style="color:#c62828; font-weight:700;">Red</span> = temperature (°C) &middot;
+            <span style="color:#2e7d32; font-weight:700;">Green</span> = dew point (°C)<br>
+            Circle fill = total cloud cover (oktas) &middot; barb = wind (knots, half=5, full=10, pennant=50)<br>
+            Symbol left of circle = present weather &middot; top-right = MSLP short form
+        </p>
+
+        <p class="section-label">Coverage note</p>
+        <p style="font-size: 11px; line-height: 1.5;">
+            In the current live feed, MSLP and dew point are frequently unpopulated at source (most stations report
+            temperature + humidity, not a directly-measured dew point or sea-level-reduced pressure) — both are
+            simply omitted from a station's plot when absent, rather than shown as zero.
+        </p>
+
+        <p style="font-size: 11px; margin-top: 14px; line-height: 1.5;">
+            <strong>Source:</strong> Contains Met Office data © Crown copyright, licence
+            <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank">CC BY-SA 4.0</a>.<br>
+            <a href="index.html">&larr; Back to radar</a>
+        </p>
+    </div>
+
+    <div id="attribution">Contains Met Office data © Crown copyright, licence <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank">CC BY-SA 4.0</a></div>
+
+    <script>
+        var map = L.map('map', { zoomControl: false }).setView([54.5, -3.5], 6);
+        L.control.zoom({ position: 'topleft' }).addTo(map);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        }).addTo(map);
+
+        fetch('uk_regions.geojson').then(r => r.json()).then(data => {
+            L.geoJSON(data, { style: { color: '#5f6368', weight: 1.2, fillOpacity: 0 }, interactive: false }).addTo(map);
+        }).catch(function() {});
+
+        // ── Data sources ─────────────────────────────────────────────────────────
+        var OBS_URL = 'https://radar.floodforecast.co.uk/surface_obs/latest_obs.geojson';
+        var WX_SYMBOLS_URL = 'surface_obs/wx_symbols.json';   // git-tracked, served by Pages
+
+        var obsLayer = L.layerGroup().addTo(map);
+        var obsData = null;
+        var wxSymbols = null;
+        var renderMode = 'station_plot';
+        var singleParam = 'temp_c';
+
+        // ── Single-param layer registry (mirrors surface_obs/params.py) ────────────
+        var SINGLE_PARAM_LAYERS = [
+            { key: 'temp_c',            label: 'Air temperature',   unit: '°C',   decimals: 1, ramp: 'temp' },
+            { key: 'dewpoint_c',        label: 'Dew point',         unit: '°C',   decimals: 1, ramp: 'temp' },
+            { key: 'wind_kt',           label: 'Wind speed',        unit: 'kt',   decimals: 0, ramp: 'wind' },
+            { key: 'rh_pct',            label: 'Relative humidity', unit: '%',    decimals: 0, ramp: 'rh' },
+            { key: 'mslp_hpa',          label: 'MSLP',              unit: 'hPa',  decimals: 1, ramp: 'neutral' },
+            { key: 'precip_rate_mmhr',  label: 'Precip rate (60min)', unit: 'mm/h', decimals: 1, ramp: 'rain' },
+            { key: 'snow_cm',           label: 'Snow depth',        unit: 'cm',   decimals: 1, ramp: 'snow' },
+            { key: 'grass_temp_c',      label: 'Grass surface temp',unit: '°C',   decimals: 1, ramp: 'temp' },
+            { key: 'concrete_temp_c',   label: 'Concrete surface temp', unit: '°C', decimals: 1, ramp: 'temp' },
+            { key: 'global_radiation_kwm2', label: 'Global radiation', unit: 'kW/m²', decimals: 2, ramp: 'neutral' },
+        ];
+
+        var RAMPS = {
+            temp:  [[-5,'#2166ac'],[0,'#4393c3'],[5,'#92c5de'],[10,'#d1e5f0'],[15,'#fddbc7'],[20,'#f4a582'],[25,'#d6604d'],[30,'#b2182b']],
+            wind:  [[0,'#2166ac'],[10,'#67a9cf'],[20,'#d1e5f0'],[30,'#fddbc7'],[40,'#ef8a62'],[50,'#b2182b']],
+            rh:    [[40,'#b2182b'],[55,'#ef8a62'],[70,'#fddbc7'],[80,'#d1e5f0'],[90,'#67a9cf'],[100,'#2166ac']],
+            rain:  [[0,'#f7fbff'],[0.5,'#c6dbef'],[2,'#6baed6'],[8,'#3182bd'],[16,'#08519c'],[32,'#08306b']],
+            snow:  [[0,'#f7fbff'],[1,'#deebf7'],[3,'#9ecae1'],[8,'#4292c6'],[15,'#08519c']],
+            neutral: [[0,'#616161']],
+        };
+
+        function rampColor(rampName, val) {
+            var stops = RAMPS[rampName] || RAMPS.neutral;
+            var color = stops[0][1];
+            for (var i = 0; i < stops.length; i++) {
+                if (val >= stops[i][0]) color = stops[i][1]; else break;
+            }
+            return color;
+        }
+
+        // ── WMO helpers ──────────────────────────────────────────────────────────
+        function mslpShortForm(hpa) {
+            // Last 3 digits of tenths-of-hPa, e.g. 1013.2 -> "132", 998.7 -> "987".
+            var tenths = Math.round(hpa * 10);
+            var mod = ((tenths % 1000) + 1000) % 1000;
+            return String(mod).padStart(3, '0');
+        }
+
+        function windBarbSVG(dirDeg, kt, cx, cy) {
+            // Barb points INTO the wind: the shaft extends toward the direction the
+            // wind is coming FROM, feathers near the outer end. Calm (<3kt) = double
+            // concentric circle, no shaft.
+            if (kt == null) return '';
+            if (kt < 3) {
+                // Outer ring at a distinctly larger radius than the station circle
+                // (r=9) so calm reads as a genuine concentric double circle, not an
+                // indistinguishable overdraw of the same outline.
+                return '<circle cx="' + cx + '" cy="' + cy + '" r="14" fill="none" stroke="#202124" stroke-width="1.2"/>';
+            }
+            var rounded5 = Math.round(kt / 5) * 5;
+            var pennants = Math.floor(rounded5 / 50);
+            var rem = rounded5 % 50;
+            var fullBarbs = Math.floor(rem / 10);
+            var halfBarb = (rem % 10) >= 5 ? 1 : 0;
+
+            var shaftLen = 26;
+            var rad = (dirDeg) * Math.PI / 180;   // 0deg = from N; shaft points toward source direction
+            var dx = Math.sin(rad), dy = -Math.cos(rad);
+            var x2 = cx + dx * shaftLen, y2 = cy + dy * shaftLen;
+            var svg = '<line x1="' + cx + '" y1="' + cy + '" x2="' + x2 + '" y2="' + y2 + '" stroke="#202124" stroke-width="1.4"/>';
+
+            // perpendicular direction for feathers
+            var px = -dy, py = dx;
+            var pos = shaftLen;   // start feathers at outer end, walk back toward circle
+            var step = 4.5;
+            for (var p = 0; p < pennants; p++) {
+                var bx = cx + dx * pos, by = cy + dy * pos;
+                var bx2 = cx + dx * (pos - step), by2 = cy + dy * (pos - step);
+                svg += '<polygon points="' + bx + ',' + by + ' ' + bx2 + ',' + by2 + ' ' + (bx + px * 7) + ',' + (by + py * 7) + '" fill="#202124"/>';
+                pos -= step;
+            }
+            for (var f = 0; f < fullBarbs; f++) {
+                var fx = cx + dx * pos, fy = cy + dy * pos;
+                svg += '<line x1="' + fx + '" y1="' + fy + '" x2="' + (fx + px * 8) + '" y2="' + (fy + py * 8) + '" stroke="#202124" stroke-width="1.4"/>';
+                pos -= step;
+            }
+            if (halfBarb) {
+                var hx = cx + dx * pos, hy = cy + dy * pos;
+                svg += '<line x1="' + hx + '" y1="' + hy + '" x2="' + (hx + px * 4) + '" y2="' + (hy + py * 4) + '" stroke="#202124" stroke-width="1.4"/>';
+            }
+            return svg;
+        }
+
+        function cloudFillSVG(oktas, cx, cy, r) {
+            if (oktas == null) {
+                return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="white" stroke="#202124" stroke-width="1.3"/>';
+            }
+            if (oktas >= 9) {
+                // obscured / missing convention: circle with an X through it
+                var o = r * 0.7;
+                return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="white" stroke="#202124" stroke-width="1.3"/>' +
+                    '<line x1="' + (cx-o) + '" y1="' + (cy-o) + '" x2="' + (cx+o) + '" y2="' + (cy+o) + '" stroke="#202124" stroke-width="1.2"/>' +
+                    '<line x1="' + (cx-o) + '" y1="' + (cy+o) + '" x2="' + (cx+o) + '" y2="' + (cy-o) + '" stroke="#202124" stroke-width="1.2"/>';
+            }
+            var frac = Math.max(0, Math.min(8, oktas)) / 8;
+            if (frac === 0) {
+                return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="white" stroke="#202124" stroke-width="1.3"/>';
+            }
+            if (frac === 1) {
+                return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#202124" stroke="#202124" stroke-width="1.3"/>';
+            }
+            // Proportional pie fill (simplified stand-in for the traditional
+            // discrete WMO okta glyph set) — filled wedge from 12 o'clock, area
+            // proportion approximated by sweep angle.
+            var angle = frac * 360;
+            var rad = (angle - 90) * Math.PI / 180;
+            var x = cx + r * Math.cos(rad), y = cy + r * Math.sin(rad);
+            var largeArc = angle > 180 ? 1 : 0;
+            var path = 'M' + cx + ',' + (cy - r) + ' A' + r + ',' + r + ' 0 ' + largeArc + ' 1 ' + x + ',' + y + ' L' + cx + ',' + cy + ' Z';
+            return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="white" stroke="#202124" stroke-width="1.3"/>' +
+                   '<path d="' + path + '" fill="#202124"/>' +
+                   '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#202124" stroke-width="1.3"/>';
+        }
+
+        // ── Present weather symbol lookup + simplified glyph set ───────────────────
+        function resolveWxEntry(code) {
+            if (!code) return null;
+            if (wxSymbols[code]) return wxSymbols[code];
+            var stripped = code.replace(/^RE/, '');
+            if (wxSymbols[stripped]) return wxSymbols[stripped];
+            if (/^[+-]?SH/.test(code)) {
+                if (/SN/.test(code)) return wxSymbols['SHSN'];
+                return wxSymbols['SHRA'];
+            }
+            if (/^[+-]?TS/.test(code)) return wxSymbols['TSRA'] || wxSymbols['TS'];
+            if (/GR/.test(code)) return wxSymbols['GR'];
+            if (/GS/.test(code)) return wxSymbols['GS'];
+            if (/FZ/.test(code) && /FG/.test(code)) return wxSymbols['FZFG'];
+            if (/FG/.test(code)) return wxSymbols['FG'];
+            return wxSymbols['UP'] || null;
+        }
+
+        function wxGlyphSVG(symbolId, cx, cy) {
+            var s = 3.2;   // dot radius
+            var g = '';
+            function dot(x, y) { return '<circle cx="' + x + '" cy="' + y + '" r="' + s + '" fill="#1a73e8"/>'; }
+            function comma(x, y) { return '<circle cx="' + x + '" cy="' + y + '" r="' + (s*0.8) + '" fill="#2e7d32"/>'; }
+            function star(x, y) {
+                return '<text x="' + x + '" y="' + (y+4) + '" font-size="13" text-anchor="middle" fill="#5f6368">*</text>';
+            }
+            switch (symbolId) {
+                case 'none': return '';
+                case 'drizzle_light':  return comma(cx, cy-4);
+                case 'drizzle_mod':    return comma(cx, cy-5) + comma(cx, cy+4);
+                case 'drizzle_heavy':
+                case 'fz_drizzle':     return comma(cx-3, cy-5) + comma(cx+3, cy-5) + comma(cx, cy+4);
+                case 'rain_light':     return dot(cx, cy-4);
+                case 'rain_mod':       return dot(cx, cy-6) + dot(cx, cy+4);
+                case 'rain_heavy':
+                case 'fz_rain':        return dot(cx-4, cy-6) + dot(cx+4, cy-6) + dot(cx, cy+4);
+                case 'snow_light':     return star(cx, cy-2);
+                case 'snow_mod':       return star(cx-4, cy-2) + star(cx+4, cy-2);
+                case 'snow_heavy':     return star(cx-5, cy-6) + star(cx+5, cy-6) + star(cx, cy+3);
+                case 'rasn_light':     return dot(cx-3, cy-2) + star(cx+4, cy-2);
+                case 'rasn_mod':
+                case 'rasn_heavy':     return dot(cx-4, cy-6) + star(cx+4, cy-6) + dot(cx, cy+4);
+                case 'shower_light':
+                case 'shower_mod':
+                case 'shower_heavy':
+                    return '<path d="M' + (cx-5) + ',' + (cy+3) + ' L' + cx + ',' + (cy-7) + ' L' + (cx+5) + ',' + (cy+3) + ' Z" fill="none" stroke="#1a73e8" stroke-width="1.3"/>' + dot(cx, cy+7);
+                case 'shower_snow':
+                    return '<path d="M' + (cx-5) + ',' + (cy+3) + ' L' + cx + ',' + (cy-7) + ' L' + (cx+5) + ',' + (cy+3) + ' Z" fill="none" stroke="#1a73e8" stroke-width="1.3"/>' + star(cx, cy+7);
+                case 'ts':
+                case 'ts_rain':
+                case 'ts_rain_heavy':
+                case 'ts_hail':
+                    return '<path d="M' + (cx-3) + ',' + (cy-8) + ' L' + (cx+3) + ',' + (cy-8) + ' L' + (cx-2) + ',' + cy + ' L' + (cx+4) + ',' + cy + ' L' + (cx-4) + ',' + (cy+9) + ' L' + (cx-1) + ',' + (cy+1) + ' L' + (cx-6) + ',' + (cy+1) + ' Z" fill="#f9a825" stroke="#e65100" stroke-width="0.6"/>';
+                case 'hail':
+                    return dot(cx-4, cy) + dot(cx+4, cy) + dot(cx, cy+6);
+                case 'small_hail':
+                    return '<circle cx="' + cx + '" cy="' + cy + '" r="2.4" fill="#90a4ae"/>';
+                case 'mist':
+                case 'patchy_fog':
+                    return '<line x1="' + (cx-8) + '" y1="' + (cy-3) + '" x2="' + (cx+8) + '" y2="' + (cy-3) + '" stroke="#5f6368" stroke-width="1.2"/>' +
+                           '<line x1="' + (cx-8) + '" y1="' + (cy+3) + '" x2="' + (cx+8) + '" y2="' + (cy+3) + '" stroke="#5f6368" stroke-width="1.2"/>';
+                case 'fog':
+                case 'fz_fog':
+                    return '<line x1="' + (cx-8) + '" y1="' + (cy-5) + '" x2="' + (cx+8) + '" y2="' + (cy-5) + '" stroke="#5f6368" stroke-width="1.2"/>' +
+                           '<line x1="' + (cx-8) + '" y1="' + cy + '" x2="' + (cx+8) + '" y2="' + cy + '" stroke="#5f6368" stroke-width="1.2"/>' +
+                           '<line x1="' + (cx-8) + '" y1="' + (cy+5) + '" x2="' + (cx+8) + '" y2="' + (cy+5) + '" stroke="#5f6368" stroke-width="1.2"/>';
+                case 'unknown_precip':
+                default:
+                    return '<text x="' + cx + '" y="' + (cy+4) + '" font-size="11" text-anchor="middle" fill="#5f6368">?</text>';
+            }
+        }
+
+        // ── Station plot marker ─────────────────────────────────────────────────
+        function stationPlotIcon(props) {
+            var W = 90, H = 60, cx = 45, cy = 30, r = 9;
+            var stale = !!props.stale;
+            var opacity = stale ? 0.4 : 1;
+
+            var svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="overflow:visible; opacity:' + opacity + '">';
+
+            // Wind barb (drawn first, under the circle)
+            if (props.wind_kt != null && props.wind_dir_deg != null) {
+                svg += windBarbSVG(props.wind_dir_deg, props.wind_kt, cx, cy);
+            }
+            // Cloud-filled station circle
+            svg += cloudFillSVG(props.cloud_oktas, cx, cy, r);
+
+            // Temperature (upper-left, red)
+            if (props.temp_c != null) {
+                svg += '<text x="' + (cx-14) + '" y="' + (cy-8) + '" font-size="13" font-weight="700" text-anchor="end" fill="#c62828" font-family="Roboto,sans-serif">' + Math.round(props.temp_c) + '</text>';
+            }
+            // Dew point (lower-left, green) — omitted entirely when absent (not zero)
+            if (props.dewpoint_c != null) {
+                svg += '<text x="' + (cx-14) + '" y="' + (cy+16) + '" font-size="12" font-weight="700" text-anchor="end" fill="#2e7d32" font-family="Roboto,sans-serif">' + Math.round(props.dewpoint_c) + '</text>';
+            }
+            // MSLP short form (upper-right) — omitted when absent
+            if (props.mslp_hpa != null) {
+                svg += '<text x="' + (cx+14) + '" y="' + (cy-8) + '" font-size="12" font-weight="600" text-anchor="start" fill="#202124" font-family="Roboto,sans-serif">' + mslpShortForm(props.mslp_hpa) + '</text>';
+            }
+            // Present weather symbol (left of circle)
+            if (props.present_wx && wxSymbols) {
+                var entry = resolveWxEntry(props.present_wx);
+                if (entry && entry.symbol !== 'none') {
+                    svg += wxGlyphSVG(entry.symbol, cx-26, cy);
+                }
+            }
+            if (stale) {
+                svg += '<text x="' + cx + '" y="' + (H-3) + '" font-size="8" text-anchor="middle" fill="#80868b" font-family="Roboto,sans-serif">STALE</text>';
+            }
+            svg += '</svg>';
+
+            return L.divIcon({ className: '', html: svg, iconSize: [W, H], iconAnchor: [cx, cy] });
+        }
+
+        // ── Single-param marker ──────────────────────────────────────────────────
+        function singleParamIcon(props, layer) {
+            var val = props[layer.key];
+            var stale = !!props.stale;
+            if (val == null) {
+                return L.divIcon({ className: '', html: '<div style="width:6px;height:6px;border-radius:50%;background:#bdc1c6;opacity:0.5;"></div>', iconSize: [6,6], iconAnchor: [3,3] });
+            }
+            var color = rampColor(layer.ramp, val);
+            var text = val.toFixed(layer.decimals);
+            if (layer.key === 'wind_kt' && props.wind_dir_deg != null) {
+                var svg = '<svg width="40" height="40" viewBox="0 0 40 40" style="overflow:visible; opacity:' + (stale?0.4:1) + '">' +
+                    windBarbSVG(props.wind_dir_deg, props.wind_kt, 20, 20) +
+                    '<text x="20" y="34" font-size="11" font-weight="700" text-anchor="middle" fill="' + color + '" class="val-label">' + text + '</text></svg>';
+                return L.divIcon({ className: '', html: svg, iconSize: [40, 40], iconAnchor: [20, 20] });
+            }
+            var html = '<div class="val-label' + (stale ? ' stale' : '') + '" style="color:' + color + ';">' + text + '</div>';
+            return L.divIcon({ className: '', html: html, iconSize: [40, 16], iconAnchor: [20, 8] });
+        }
+
+        // ── Declutter: simple deterministic stride by zoom (stand-in for a full
+        // priority-grid — good enough to keep low zooms readable). ─────────────────
+        function hashStr(s) {
+            var h = 0;
+            for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
+            return Math.abs(h);
+        }
+        function shouldShowAtZoom(sid, zoom) {
+            if (zoom >= 7) return true;
+            var stride = zoom <= 5 ? 4 : 2;
+            return (hashStr(sid) % stride) === 0;
+        }
+
+        function tooltipHtml(props) {
+            var rows = [];
+            function row(label, val, unit) {
+                if (val == null) return;
+                rows.push('<div><strong>' + label + ':</strong> ' + val + (unit || '') + '</div>');
+            }
+            rows.push('<div style="font-weight:700; margin-bottom:4px;">' + (props.name || props.sid) + '</div>');
+            row('Obs time', props.obs_time);
+            if (props.stale) rows.push('<div style="color:#c62828;">Stale (&gt;2h old)</div>');
+            row('Temp', props.temp_c, '°C');
+            row('Dew point', props.dewpoint_c, '°C');
+            row('MSLP', props.mslp_hpa, ' hPa');
+            row('Station pressure', props.pressure_station_hpa, ' hPa (not sea-level corrected)');
+            row('Wind', props.wind_kt != null ? (props.wind_kt + ' kt (' + Math.round(props.wind_kt * 1.15078) + ' mph) from ' + props.wind_dir_deg + '°') : null);
+            row('Cloud cover', props.cloud_oktas, ' oktas');
+            row('Present weather', props.present_wx);
+            row('Visibility', props.vis_m, ' m');
+            row('Relative humidity', props.rh_pct, '%');
+            row('Precip (1min)', props.precip_1min_mm, ' mm');
+            row('Precip rate (60min)', props.precip_rate_mmhr, ' mm/h');
+            row('Snow depth', props.snow_cm, ' cm');
+            row('Grass temp', props.grass_temp_c, '°C');
+            row('Concrete temp', props.concrete_temp_c, '°C');
+            row('Global radiation', props.global_radiation_kwm2, ' kW/m²');
+            row('Cloud base', props.cloud_base_ft, ' ft');
+            return rows.join('');
+        }
+
+        function render() {
+            obsLayer.clearLayers();
+            if (!obsData) return;
+            var zoom = map.getZoom();
+            var layer = SINGLE_PARAM_LAYERS.find(function(l) { return l.key === singleParam; });
+            obsData.features.forEach(function(f) {
+                var props = f.properties;
+                if (!shouldShowAtZoom(props.sid, zoom)) return;
+                var latlon = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
+                var icon = renderMode === 'station_plot' ? stationPlotIcon(props) : singleParamIcon(props, layer);
+                var m = L.marker(latlon, { icon: icon });
+                m.bindTooltip(tooltipHtml(props), { className: 'obs-tip surface', direction: 'top', offset: [0, -20] });
+                obsLayer.addLayer(m);
+            });
+        }
+
+        map.on('zoomend', render);
+
+        function setRenderMode(mode) {
+            renderMode = mode;
+            document.getElementById('singleParamPicker').style.display = mode === 'single_param' ? 'block' : 'none';
+            try { localStorage.setItem('obs_render_mode', mode); } catch (e) {}
+            render();
+        }
+
+        function buildSingleParamPicker() {
+            var el = document.getElementById('singleParamPicker');
+            el.innerHTML = SINGLE_PARAM_LAYERS.map(function(l) {
+                var checked = l.key === singleParam ? 'checked' : '';
+                return '<label class="custom-radio"><input type="radio" name="singleParam" value="' + l.key + '" ' + checked +
+                    ' onchange="setSingleParam(this.value)">' + l.label + ' <span style="color:#80868b; font-size:11px; margin-left:4px;">(' + l.unit + ')</span></label>';
+            }).join('');
+        }
+
+        function setSingleParam(key) {
+            singleParam = key;
+            try { localStorage.setItem('obs_single_param', key); } catch (e) {}
+            render();
+        }
+
+        function updateValidTime() {
+            if (!obsData || !obsData.features.length) { document.getElementById('validTime').textContent = 'No data'; return; }
+            var times = obsData.features.map(function(f) { return f.properties.obs_time; }).sort();
+            var newest = times[times.length - 1];
+            var d = new Date(newest);
+            document.getElementById('validTime').textContent = d.toUTCString().replace(':00 GMT', '') + ' UTC';
+        }
+
+        function fetchObs() {
+            fetch(OBS_URL + '?_cb=' + Date.now())
+                .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .then(function(data) {
+                    obsData = data;
+                    updateValidTime();
+                    render();
+                })
+                .catch(function(e) {
+                    console.log('Surface obs fetch failed:', e);
+                    document.getElementById('validTime').textContent = 'Fetch failed — see console';
+                });
+        }
+
+        // Restore persisted render-mode / single-param selection.
+        try {
+            var savedMode = localStorage.getItem('obs_render_mode');
+            if (savedMode) {
+                renderMode = savedMode;
+                var radio = document.querySelector('input[name="renderMode"][value="' + savedMode + '"]');
+                if (radio) radio.checked = true;
+                document.getElementById('singleParamPicker').style.display = savedMode === 'single_param' ? 'block' : 'none';
+            }
+            var savedParam = localStorage.getItem('obs_single_param');
+            if (savedParam) singleParam = savedParam;
+        } catch (e) {}
+
+        buildSingleParamPicker();
+
+        fetch(WX_SYMBOLS_URL).then(function(r) { return r.json(); }).then(function(data) {
+            wxSymbols = data;
+            fetchObs();
+        }).catch(function(e) {
+            console.log('wx symbols fetch failed, station-plot weather symbols will be blank:', e);
+            wxSymbols = {};
+            fetchObs();
+        });
+
+        setInterval(fetchObs, 15 * 60 * 1000);
+    </script>
+</body>
+
+</html>
