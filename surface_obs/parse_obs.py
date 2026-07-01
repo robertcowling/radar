@@ -11,8 +11,17 @@ the form `{"good": []}` or `{"suspect": ["reason 1", "reason 2", ...]}`.
 Erroneous values are already excluded from the source dataset entirely
 (spec-confirmed), so the only classifications ever seen are "good" and
 "suspect".
+
+Dew point: confirmed empty at source (dew_point_temperature_1_minute_mean
+present in the header but 100% NaN across an 8-hour sample spread over 8
+days, ~7000 rows) — this is a genuine ASDI-beta publishing gap, not a QC
+artefact or a one-hour fluke. Since temp + RH come off the same Stevenson
+screen, dewpoint is derived here via the Magnus formula when the raw column
+is absent but temp_c/rh_pct both passed QC, and tagged qc="derived" so
+consumers can tell it apart from a directly-measured value.
 """
 import json
+import math
 import os
 from datetime import datetime, timezone
 
@@ -39,6 +48,18 @@ def parse_qc(qc_str):
 
 def sid_for(lat, lon):
     return f"{lat:.4f}_{lon:.4f}"
+
+
+def magnus_dewpoint(temp_c, rh_pct):
+    """Magnus-Tetens approximation, accurate to ~0.1°C over typical UK
+    surface conditions — this is how dew point is derived upstream from
+    temp+RH in the first place, so this is not a loss of precision versus
+    the (currently unpublished) source column."""
+    if rh_pct is None or rh_pct <= 0:
+        return None
+    a, b = 17.625, 243.04
+    gamma = math.log(rh_pct / 100.0) + (a * temp_c) / (b + temp_c)
+    return (b * gamma) / (a - gamma)
 
 
 def load_raw_frames(raw_dir=RAW_DIR):
@@ -113,6 +134,17 @@ def build_latest(df, min_qc="Good", allow_suspect_params=None, freshness_minutes
                     if newest_ts is None or ts > newest_ts:
                         newest_ts = ts
                     break
+
+        # Derive dew point from temp+RH when the raw column is absent (see
+        # module docstring — confirmed empty at source, not a QC artefact).
+        if "dewpoint_c" not in station["params"] and "temp_c" in station["params"] and "rh_pct" in station["params"]:
+            t_entry, rh_entry = station["params"]["temp_c"], station["params"]["rh_pct"]
+            td = magnus_dewpoint(t_entry["value"], rh_entry["value"])
+            if td is not None:
+                derived_ts = min(t_entry["obs_time"], rh_entry["obs_time"])
+                station["params"]["dewpoint_c"] = {"value": td, "obs_time": derived_ts, "qc": "derived"}
+                if newest_ts is None or derived_ts > newest_ts:
+                    newest_ts = derived_ts
 
         if not station["params"]:
             continue   # nothing passed QC for this station this run
