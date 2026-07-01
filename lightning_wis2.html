@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>UK Lightning — Met Office ATDnet</title>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            background: #f8f9fa;
+            color: #3c4043;
+        }
+
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .surface {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .surface:hover {
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 24px;
+            z-index: 1000;
+            width: 280px;
+        }
+
+        h3 {
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            color: #202124;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+        }
+
+        p {
+            margin: 0 0 6px 0;
+            font-size: 13px;
+            color: #5f6368;
+        }
+
+        .time-box {
+            background: #f8f9fa;
+            border-left: 4px solid #1a73e8;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #202124;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #1a73e8;
+            letter-spacing: 0.5px;
+        }
+
+        .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+
+        .legend-label {
+            font-size: 12px;
+            color: #3c4043;
+        }
+
+        .section-label {
+            margin: 16px 0 8px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #3c4043;
+            letter-spacing: 0.5px;
+        }
+
+        .custom-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #3c4043;
+        }
+
+        .custom-checkbox input {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            accent-color: #1a73e8;
+        }
+
+        .empty-note {
+            font-size: 12px;
+            color: #80868b;
+            font-style: italic;
+            margin-top: 4px;
+        }
+
+        a {
+            color: #1a73e8;
+        }
+
+        #ukvBadge {
+            position: fixed;
+            bottom: 16px;
+            right: 10px;
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(26, 34, 51, 0.9);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 9px;
+            border-radius: 8px;
+            text-decoration: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        }
+
+        @media (max-width: 768px) {
+            .info-panel {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                width: auto;
+                box-sizing: border-box;
+                max-height: calc(100vh - 40px);
+                overflow-y: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <div class="info-panel surface" id="infoPanel">
+        <h3>UK Lightning</h3>
+        <p style="margin-bottom: 14px;">Met Office ATDnet flash-location network, via the WMO WIS2 Global Cache.</p>
+
+        <div class="time-box">
+            <div class="stat-row">
+                <div>
+                    <p class="stat-label" style="margin-bottom: 4px;">Strikes shown</p>
+                    <div class="stat-value" id="strikeCount">–</div>
+                </div>
+                <div style="text-align: right;">
+                    <p class="stat-label" style="margin-bottom: 4px;">Window</p>
+                    <div class="stat-value" id="windowMinutes" style="font-size: 16px;">–</div>
+                </div>
+            </div>
+        </div>
+        <p id="lastUpdated" style="margin-bottom: 4px;">Last updated: –</p>
+        <p id="emptyNote" class="empty-note" style="display: none;">No strikes reported in this window — quiet conditions.</p>
+
+        <p class="section-label">Strike age</p>
+        <div id="ageLegend"></div>
+
+        <p class="section-label">Boundaries</p>
+        <div style="margin-bottom: 4px;">
+            <label class="custom-checkbox">
+                <input type="checkbox" id="boundaryToggle" checked onchange="toggleBoundary(this.checked)">
+                UK regions
+            </label>
+        </div>
+
+        <p style="font-size: 11px; margin-top: 16px; line-height: 1.5;">
+            <strong>Source:</strong> &copy; <a href="https://www.metoffice.gov.uk/services/data/external-data-channels" target="_blank">Met Office</a>
+            ATDnet, distributed via the <a href="https://wis2.wmo.int/" target="_blank">WMO WIS2 Global Cache</a>
+            (WMO Unified Data Policy — free and unrestricted use, attribution requested).<br>
+            <a href="index.html">&larr; Back to radar</a>
+        </p>
+    </div>
+
+    <a id="wisBadge" href="https://wis2.wmo.int/" target="_blank" rel="noopener" style="position:fixed;bottom:16px;right:10px;z-index:500;display:flex;align-items:center;gap:6px;
+              background:rgba(26,115,232,0.92);color:#fff;font-size:11px;font-weight:700;
+              padding:5px 9px;border-radius:8px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.25);">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        WMO WIS2 / Met Office
+    </a>
+
+    <script>
+        var map = L.map('map', { zoomControl: false }).setView([54.5, -3.5], 6);
+        L.control.zoom({ position: 'topleft' }).addTo(map);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        }).addTo(map);
+
+        var regionLayer = null;
+        fetch('uk_regions.geojson')
+            .then(res => res.json())
+            .then(data => {
+                regionLayer = L.geoJSON(data, {
+                    style: { color: '#5f6368', weight: 1.5, fillOpacity: 0 },
+                    interactive: false
+                });
+                if (document.getElementById('boundaryToggle').checked) regionLayer.addTo(map);
+            })
+            .catch(err => console.log('Could not load regions:', err));
+
+        function toggleBoundary(show) {
+            if (!regionLayer) return;
+            if (show) { if (!map.hasLayer(regionLayer)) regionLayer.addTo(map); }
+            else { map.removeLayer(regionLayer); }
+        }
+
+        // ── Strike age → style buckets. The first six match the live radar
+        // page's OpenWeather lightning layer exactly (visual drop-in
+        // comparison); this source retains a full 24h rather than 90 min, so
+        // the fade continues further out at low opacity/small radius instead
+        // of hard-cutting at 90 min. ─────────────────────────────────────────
+        var AGE_BUCKETS = [
+            { max: 5,    label: '0–5 min',   color: '#ffffff', fillColor: '#ffffff', fillOpacity: 0.95, radius: 5.5, weight: 1.5, opacity: 0.95 },
+            { max: 15,   label: '5–15 min',  color: '#ffffaa', fillColor: '#ffff44', fillOpacity: 0.85, radius: 5.0, weight: 1.0, opacity: 0.85 },
+            { max: 30,   label: '15–30 min', color: '#ffcc00', fillColor: '#ffaa00', fillOpacity: 0.70, radius: 4.5, weight: 0.8, opacity: 0.70 },
+            { max: 45,   label: '30–45 min', color: '#ff8800', fillColor: '#ff6600', fillOpacity: 0.50, radius: 4.0, weight: 0.8, opacity: 0.50 },
+            { max: 60,   label: '45–60 min', color: '#ff4400', fillColor: '#dd3300', fillOpacity: 0.30, radius: 3.5, weight: 0.5, opacity: 0.30 },
+            { max: 90,   label: '60–90 min', color: '#cc2200', fillColor: '#aa1100', fillOpacity: 0.15, radius: 3.0, weight: 0.5, opacity: 0.15 },
+            { max: 360,  label: '1.5–6 hr',  color: '#993377', fillColor: '#772266', fillOpacity: 0.10, radius: 2.5, weight: 0.4, opacity: 0.35 },
+            { max: 1440, label: '6–24 hr',   color: '#5f6368', fillColor: '#3c4043', fillOpacity: 0.08, radius: 2.0, weight: 0.4, opacity: 0.25 },
+        ];
+
+        function lightningStyle(ageMin) {
+            for (var i = 0; i < AGE_BUCKETS.length; i++) {
+                if (ageMin < AGE_BUCKETS[i].max) return AGE_BUCKETS[i];
+            }
+            return null;
+        }
+
+        var ageLegendEl = document.getElementById('ageLegend');
+        AGE_BUCKETS.forEach(function(b) {
+            var row = document.createElement('div');
+            row.className = 'legend-row';
+            row.innerHTML = '<span class="legend-dot" style="background:' + b.fillColor +
+                '; border: 1.5px solid ' + b.color + ';"></span><span class="legend-label">' + b.label + '</span>';
+            ageLegendEl.appendChild(row);
+        });
+
+        var LIGHTNING_URL = 'lightning_wis2/lightning_latest.json';
+        var strikeGroup = L.layerGroup().addTo(map);
+        var lightningData = null;
+
+        function fmtTime(iso) {
+            var d = new Date(iso);
+            return d.toUTCString().replace(' GMT', ' UTC');
+        }
+
+        function renderStrikes() {
+            strikeGroup.clearLayers();
+            if (!lightningData) return;
+            var refMs = Date.now();
+            var shown = 0;
+            lightningData.strikes.forEach(function(strike) {
+                var ageMin = (refMs - new Date(strike.datetime).getTime()) / 60000;
+                var s = lightningStyle(ageMin);
+                if (!s) return;
+                L.circleMarker([strike.lat, strike.lon], {
+                    radius:      s.radius,
+                    color:       s.color,
+                    fillColor:   s.fillColor,
+                    fillOpacity: s.fillOpacity,
+                    weight:      s.weight,
+                    opacity:     s.opacity,
+                }).bindPopup(
+                    '<div style="font-family:\'Roboto\',sans-serif; font-size:12px; line-height:1.5;">' +
+                    '<strong>' + fmtTime(strike.datetime) + '</strong><br>' +
+                    strike.lat.toFixed(3) + ', ' + strike.lon.toFixed(3) + '<br>' +
+                    'Quality: ' + strike.quality + ' &middot; Error: ' + strike.error.toFixed(1) + ' km' +
+                    '</div>'
+                ).addTo(strikeGroup);
+                shown++;
+            });
+            document.getElementById('strikeCount').textContent = shown;
+            document.getElementById('emptyNote').style.display = shown === 0 ? 'block' : 'none';
+        }
+
+        function fetchStrikes() {
+            fetch(LIGHTNING_URL + '?_cb=' + Date.now())
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    lightningData = data;
+                    document.getElementById('windowMinutes').textContent = data.window_minutes + ' min';
+                    document.getElementById('lastUpdated').textContent = 'Last updated: ' + fmtTime(data.fetched_at);
+                    renderStrikes();
+                })
+                .catch(function(e) {
+                    console.log('Lightning fetch failed:', e);
+                    document.getElementById('lastUpdated').textContent = 'Fetch failed — see console';
+                });
+        }
+
+        fetchStrikes();
+        setInterval(fetchStrikes, 5 * 60 * 1000);
+        setInterval(renderStrikes, 60 * 1000);
+    </script>
+</body>
+
+</html>
