@@ -20,6 +20,7 @@ Data sources (all from local git repo or public R2):
 """
 
 import json
+import math
 import os
 import re
 import urllib.request
@@ -475,6 +476,97 @@ def parse_frame_time(time_str):
 # Government regions outside England & Wales — excluded from the E&W-focused tables.
 _NON_EW_REGIONS = {"scotland", "northern ireland", "ni"}
 
+# Number of highest-intensity 20km grid cells to surface per window — the region/
+# county/catchment tables are all spatial *means*, so a locally intense pocket
+# (e.g. an orographic or convective cell) can sit well above its containing
+# polygon's mean and never show up there. This list exists to catch that.
+_GRID_TOP_N = 30
+
+_grid_centroid_cache = None
+_station_list_cache  = None
+
+
+def _grid_centroids():
+    """Map 20km grid-cell name (e.g. 'E020N0480', BNG easting/northing in km,
+    lower-left corner) to a (lat, lon) centroid, via uk_grid_20km.geojson."""
+    global _grid_centroid_cache
+    if _grid_centroid_cache is not None:
+        return _grid_centroid_cache
+    from pyproj import Transformer
+    bng_to_ll = Transformer.from_crs("EPSG:27700", "EPSG:4326", always_xy=True)
+    data = load_json("uk_grid_20km.geojson", {})
+    out = {}
+    for feat in data.get("features", []):
+        props = feat.get("properties", {}) or {}
+        name = props.get("name")
+        e_km, n_km = props.get("e_km"), props.get("n_km")
+        if name is None or e_km is None or n_km is None:
+            continue
+        lon, lat = bng_to_ll.transform(e_km * 1000 + 10000, n_km * 1000 + 10000)
+        out[name] = (lat, lon)
+    _grid_centroid_cache = out
+    return out
+
+
+def _station_list():
+    """Named rain-gauge station coordinates — reused as a lightweight UK gazetteer
+    for snapping a grid-cell centroid to a human-readable place name."""
+    global _station_list_cache
+    if _station_list_cache is not None:
+        return _station_list_cache
+    stations = load_json("rain/stations.json", {}).get("stations", {})
+    out = [
+        (info.get("name", "").strip(), info.get("lat", 0.0), info.get("lon", 0.0))
+        for info in stations.values() if info.get("name")
+    ]
+    _station_list_cache = out
+    return out
+
+
+# Beyond this, "near <station>" stops being a fair description of a grid-cell
+# centroid — mainly catches offshore/coastal cells snapping to a distant gauge.
+_MAX_PLACE_SNAP_KM = 15.0
+_KM_PER_DEG_LAT = 111.0
+
+
+def _nearest_place(lat, lon):
+    """Nearest named station to (lat, lon), or None if none within
+    _MAX_PLACE_SNAP_KM. Planar approx, fine at UK scale over ~20km cells."""
+    km_per_deg_lon = _KM_PER_DEG_LAT * abs(math.cos(math.radians(lat)))
+    best_name, best_d = None, None
+    for name, slat, slon in _station_list():
+        dy = (slat - lat) * _KM_PER_DEG_LAT
+        dx = (slon - lon) * km_per_deg_lon
+        d = dy * dy + dx * dx
+        if best_d is None or d < best_d:
+            best_name, best_d = name, d
+    if best_d is None or best_d ** 0.5 > _MAX_PLACE_SNAP_KM:
+        return None
+    return best_name
+
+
+def _top_grid_cells(poly_data, accum_key, limit=_GRID_TOP_N):
+    """Return [(place_label, region, mm), ...] for the highest-intensity 20km grid
+    cells in England & Wales for the given accumulation window."""
+    cells = _top_polys((poly_data or {}).get("grid"), accum_key, limit * 2)
+    centroids = _grid_centroids()
+    out = []
+    for cell_name, mm in cells:
+        latlon = centroids.get(cell_name)
+        if not latlon:
+            continue
+        lat, lon = latlon
+        region = assign_region(lat, lon)
+        if region == "Scotland":
+            continue
+        place = _nearest_place(lat, lon)
+        if not place:
+            continue
+        out.append((place, region, mm))
+        if len(out) >= limit:
+            break
+    return out
+
 
 def _fmt_ddhhmm(label):
     """Convert a UKV time label to 'ddd D/HHMM GMT/BST' form.
@@ -604,6 +696,17 @@ def load_ukv_poly_text():
                 lines.append(f"\n  {label} — wettest counties / unitary areas:")
                 for name, mm in counties:
                     lines.append(f"    {name}: {mm:.1f} mm")
+
+            grid_top = _top_grid_cells(poly_data, accum_key)
+            if grid_top:
+                lines.append(
+                    f"\n  {label} — highest-intensity 20km grid cells (local peak "
+                    f"pockets; these can run well above the region/county MEAN above "
+                    f"when rainfall is patchy or convective — cite as \"near <place>\", "
+                    f"never as 'grid cell' or coordinates):"
+                )
+                for place, region, mm in grid_top:
+                    lines.append(f"    near {place} ({region}): {mm:.1f} mm")
 
     # Run-to-run trend for the wettest day-1 region: same 24h-ending-valid-time
     # window across the latest few runs shows whether the model is firming up.
@@ -735,13 +838,13 @@ All map images share the same geographic basemap with boundary lines — geoloca
   • (If present) UKV catchment diff — blue=drier, red=wetter vs prior run. Use only if the UKV trends section shows significant changes.
 
 Respond with a JSON object inside <json> tags:
-- "headline": One sentence, max 12 words.
+- "headline": One sentence, max 12 words. The region/county UKV figures are area-MEANS and can look deceptively light even when a locally heavy pocket is forecast — if the grid-cell peak list (below) shows a notably heavier local pocket than its surrounding region/county mean, lead the headline with that named location rather than a generic "quiet"/"light rain" descriptor for the whole country.
 - "summary": Three paragraphs separated by \\n\\n. Two sentences each — be direct and concise. MANDATORY structure, never merge:
     Para 1 — Synoptic scene: describe what the MSLP charts show and how the pattern has changed; name the feature driving the weather (front, low, ridge etc).
     Para 2 — Recent observations: where the heaviest rain fell in the last 24h with gauge point-totals and region names; note antecedent context from the daily accumulation maps and any active Met Office warnings (naming any storm).
-    Para 3 — Outlook: UKV day-1 and day-2 area-mean totals for the wettest regions and catchments, cited as "UKV (run ddd D/HHMM BST/GMT)" with natural valid-time phrases like "up to early Friday morning (Fri 25/0300 BST)"; close with a brief flood-risk conclusion referencing FGS levels (block caps: VERY LOW, LOW, MEDIUM, HIGH) only if relevant.
+    Para 3 — Outlook: UKV day-1 and day-2 area-mean totals for the wettest regions and catchments, cited as "UKV (run ddd D/HHMM BST/GMT)" with natural valid-time phrases like "up to early Friday morning (Fri 25/0300 BST)". Then check the "highest-intensity 20km grid cells" list for each window: it holds local peak forecast values, not administrative means, and can surface a heavier pocket the region/county mean smooths away — where a cell there is meaningfully above its region/county mean (roughly 1.5x or more, or simply crosses the heavy/extreme thresholds below), name it explicitly, e.g. "a locally heavier pocket is possible near Rochdale (18mm)". Always phrase these as "near <place>" — never say "grid cell", "grid square", or give coordinates. Close with a brief flood-risk conclusion referencing FGS levels (block caps: VERY LOW, LOW, MEDIUM, HIGH) only if relevant.
 
-Rainfall thresholds: 10mm/1h heavy; 30mm/1h extreme; 100mm/24h exceptional.
+Rainfall thresholds: 10mm/1h heavy; 30mm/1h extreme; 100mm/24h exceptional. For the 24h-window grid-cell peaks, treat individual cells at or above roughly 15-20mm/24h as locally heavy even when the wider region/county mean sits well below that.
 
 Style: professional third-person prose; no bullet points; specific place names and mm values. Gauge values are single-site point totals; UKV values are spatial area-means — keep these distinct. All times in GMT or BST — never UTC. Use natural time phrases where possible (e.g. "compared with yesterday morning", "up to early Friday"); you may bracket the precise time for verifiability. Only mention meteorological mechanisms (orographic enhancement, frontal lifting, convective instability, etc.) where the radar imagery, gauge distribution, or MSLP charts specifically support it — do not assert mechanisms without evidence. Say flood risk once, proportionately, at the end. In quiet conditions say so plainly."""
 
