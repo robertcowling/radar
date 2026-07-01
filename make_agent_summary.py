@@ -677,7 +677,8 @@ def load_ukv_poly_text():
         f"UKV model — run {run_ddhhmm} (issued {run_label}). Values are forecast "
         f"rainfall accumulated over the stated window, mm, area-mean per polygon. "
         f"In prose, attribute forecasts as 'UKV (run {run_ddhhmm})' and give valid "
-        f"times as DD/HHMM GMT."
+        f"times as DD/HHMM BST/GMT (whichever is in effect — see the run/valid "
+        f"labels above, already converted to local UK time)."
     ]
     # (label, accum_key, step_offset_h, window_desc). Day 2 uses the rolling
     # accum_24h at T+48 — i.e. the T+24→T+48 window — since steps carry no
