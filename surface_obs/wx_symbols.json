@@ -1,0 +1,53 @@
+{
+  "_comment": "Present-weather code -> symbol id + description, covering the spec's minimum set (RA/DZ/SN/RASN x intensity, SH*, TS*, FG/FZFG/BCFG/BR, GR/GS, FZRA/FZDZ, NSW=no symbol). Codes not listed exactly are resolved at render time by stripping a leading RE (recent) then matching on descriptor+phenomena; see wxSymbolFor() in lightning_wis2-style station plot JS. Glyphs are simplified WMO-ww-style SVG shapes (dot/star/bolt clusters), not a traced WMO4677 font, since no font asset is available in this environment.",
+  "NSW": { "symbol": "none", "desc": "No significant weather" },
+
+  "-DZ":  { "symbol": "drizzle_light",  "desc": "Light drizzle" },
+  "DZ":   { "symbol": "drizzle_mod",    "desc": "Moderate drizzle" },
+  "+DZ":  { "symbol": "drizzle_heavy",  "desc": "Heavy drizzle" },
+  "FZDZ": { "symbol": "fz_drizzle",     "desc": "Freezing drizzle" },
+
+  "-RA":  { "symbol": "rain_light",  "desc": "Light rain" },
+  "RA":   { "symbol": "rain_mod",    "desc": "Moderate rain" },
+  "+RA":  { "symbol": "rain_heavy",  "desc": "Heavy rain" },
+  "FZRA": { "symbol": "fz_rain",     "desc": "Freezing rain" },
+
+  "-SN":  { "symbol": "snow_light",  "desc": "Light snow" },
+  "SN":   { "symbol": "snow_mod",    "desc": "Moderate snow" },
+  "+SN":  { "symbol": "snow_heavy",  "desc": "Heavy snow" },
+
+  "-RASN": { "symbol": "rasn_light", "desc": "Light rain and snow" },
+  "RASN":  { "symbol": "rasn_mod",   "desc": "Moderate rain and snow" },
+  "+RASN": { "symbol": "rasn_heavy", "desc": "Heavy rain and snow" },
+
+  "-SHRA": { "symbol": "shower_light",  "desc": "Light rain showers" },
+  "SHRA":  { "symbol": "shower_mod",    "desc": "Moderate/heavy rain showers" },
+  "+SHRA": { "symbol": "shower_heavy",  "desc": "Violent rain showers" },
+  "SHSN":  { "symbol": "shower_snow",   "desc": "Snow showers" },
+  "-SHSN": { "symbol": "shower_snow",   "desc": "Light snow showers" },
+  "+SHSN": { "symbol": "shower_snow",   "desc": "Heavy snow showers" },
+
+  "TS":    { "symbol": "ts",       "desc": "Thunderstorm" },
+  "TSRA":  { "symbol": "ts_rain",  "desc": "Thunderstorm with rain" },
+  "-TSRA": { "symbol": "ts_rain",  "desc": "Thunderstorm with light rain" },
+  "+TSRA": { "symbol": "ts_rain_heavy", "desc": "Thunderstorm with heavy rain" },
+  "TSGR":  { "symbol": "ts_hail",  "desc": "Thunderstorm with hail" },
+
+  "GR": { "symbol": "hail",      "desc": "Hail" },
+  "GS": { "symbol": "small_hail","desc": "Small hail / snow pellets" },
+
+  "BR":   { "symbol": "mist", "desc": "Mist" },
+  "FG":   { "symbol": "fog",  "desc": "Fog" },
+  "FZFG": { "symbol": "fz_fog", "desc": "Freezing fog" },
+  "BCFG": { "symbol": "patchy_fog", "desc": "Patches of fog" },
+
+  "UP":   { "symbol": "unknown_precip", "desc": "Unidentified precipitation" },
+
+  "REDZ": { "symbol": "drizzle_mod", "desc": "Recent drizzle" },
+  "RERA": { "symbol": "rain_mod",    "desc": "Recent rain" },
+  "RESN": { "symbol": "snow_mod",    "desc": "Recent snow" },
+  "RETS": { "symbol": "ts",          "desc": "Recent thunderstorm" },
+
+  "-RADZ": { "symbol": "rain_light", "desc": "Light rain and drizzle" },
+  "RADZ":  { "symbol": "rain_mod",   "desc": "Rain and drizzle" }
+}
