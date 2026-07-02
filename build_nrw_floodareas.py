@@ -10,17 +10,23 @@ on DataMapWales (https://datamap.gov.wales/), catalogue record:
 
 So this is a manual/occasional script, not a scheduled cron job: run it
 whenever you download a fresh export (a WFS GetFeature response saved as
-GeoJSON) from DataMapWales, pointing --input at that file.
+GeoJSON) from DataMapWales. By default it reads both source files from
+nrw_source/ (gitignored — see that directory for how to (re)populate it):
+  nrw_source/flood_warning_areas.json  — DataMapWales "flood warning areas" layer
+  nrw_source/flood_alert_areas.json    — DataMapWales "flood watch areas" layer
+                                          (NRW's internal GIS name for what the
+                                          live API calls "Flood Alert" areas)
+Pass --input to override with one or more specific file paths instead.
 
-Source file facts (confirmed by inspecting a real export, not assumed):
-  - Single FeatureCollection, id prefix "NRW_FLOOD_WARNING" — this dataset is
-    FLOOD *WARNING* areas only. NRW does not appear to publish a separate
-    flood *alert* area polygon layer alongside this one (unlike EA, which has
-    both). The live warnings API's "Flood Alert" severity entries will
-    therefore have no matching polygon here — they still get a marker via
-    the live API's own lat/lon (see fetch_nrw_warnings.py), just no shape.
-  - CRS: EPSG:27700 (British National Grid) — reprojected to WGS84 here.
-  - Geometry: MultiPolygon for every feature.
+Source file facts (confirmed by inspecting real exports, not assumed):
+  - Each is a single FeatureCollection. Warning-area features are id-prefixed
+    "NRW_FLOOD_WARNING"; alert-area features are id-prefixed
+    "NRW_FLOOD_WATCH_AREAS" — that prefix is used here to auto-detect which
+    type a given input file contains, no separate flag needed.
+  - CRS: EPSG:27700 (British National Grid) — reprojected to WGS84 here
+    (spot-checked against known Wales locations, e.g. Conwy Valley resolves
+    to ~53.09N -3.80W).
+  - Geometry: MultiPolygon for every feature in both files.
   - Key properties: fwd_tacode (join key vs the live API's FWACODE), fwa_name,
     descrip, river_sea, area (NRW region: Northern/Southern etc.), region
     ("Wales" for all rows in the sample).
@@ -197,68 +203,98 @@ def simplify_geometry(geom, tol=OVERVIEW_TOL, dp=OVERVIEW_DP):
     return geom
 
 
+DEFAULT_INPUTS = [
+    os.path.join("nrw_source", "flood_warning_areas.json"),
+    os.path.join("nrw_source", "flood_alert_areas.json"),
+]
+
+
+def detect_type(src_features):
+    """Auto-detect warning vs alert from the id prefix, per the module docstring."""
+    for feat in src_features:
+        fid = feat.get("id", "")
+        if fid.startswith("NRW_FLOOD_WARNING"):
+            return "warning"
+        if fid.startswith("NRW_FLOOD_WATCH_AREAS"):
+            return "alert"
+    return "warning"   # fallback; shouldn't happen with real DataMapWales exports
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--input", default="features.json",
-                     help="Path to the DataMapWales WFS GeoJSON export (default: features.json)")
+    ap.add_argument("--input", nargs="+", default=None,
+                     help="Path(s) to DataMapWales WFS GeoJSON export(s). "
+                          f"Default: {', '.join(DEFAULT_INPUTS)}")
     args = ap.parse_args()
+    inputs = args.input or DEFAULT_INPUTS
 
     now = datetime.now(timezone.utc)
     r2 = get_r2_client()
     print("Connected to Cloudflare R2." if r2 else "R2 not configured — local dry run.")
 
-    print(f"Loading {args.input}...")
-    with open(args.input, encoding="utf-8") as f:
-        src = json.load(f)
-    src_features = src.get("features", [])
-    print(f"  {len(src_features)} source feature(s), CRS: {src.get('crs')}")
-
     index = []
     centroid_features = []
     combined_features = []
-    for feat in src_features:
-        props = feat.get("properties", {})
-        code = props.get("fwd_tacode") or props.get("fwis_code")
-        if not code or not feat.get("geometry"):
+    seen_codes = set()
+
+    for input_path in inputs:
+        if not os.path.exists(input_path):
+            print(f"  Skipping {input_path} (not found).")
             continue
+        print(f"Loading {input_path}...")
+        with open(input_path, encoding="utf-8") as f:
+            src = json.load(f)
+        src_features = src.get("features", [])
+        area_type = detect_type(src_features)
+        print(f"  {len(src_features)} source feature(s), type={area_type}, CRS: {src.get('crs')}")
 
-        geom = reproject_geometry(feat["geometry"])
-        lat, lon = centroid_of(geom)
+        for feat in src_features:
+            props = feat.get("properties", {})
+            code = props.get("fwd_tacode") or props.get("fwis_code")
+            if not code or not feat.get("geometry"):
+                continue
+            if code in seen_codes:
+                print(f"    ! duplicate code {code} across input files — keeping first occurrence")
+                continue
+            seen_codes.add(code)
 
-        rec = {
-            "code": code,
-            "label": props.get("fwa_name", ""),
-            "description": props.get("descrip", ""),
-            "river": props.get("river_sea", ""),
-            "area": props.get("area", ""),        # NRW region, e.g. "NRW Northern"
-            "region": props.get("region", "Wales"),
-            "lat": round(lat, 5),
-            "long": round(lon, 5),
-            "type": "warning",   # this source only contains flood WARNING areas — see module docstring
-        }
-        index.append(rec)
+            geom = reproject_geometry(feat["geometry"])
+            lat, lon = centroid_of(geom)
 
-        centroid_features.append({
-            "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [rec["long"], rec["lat"]]},
-            "properties": {"code": code, "label": rec["label"], "river": rec["river"],
-                            "area": rec["area"], "type": rec["type"]},
-        })
+            rec = {
+                "code": code,
+                "label": props.get("fwa_name", ""),
+                "description": props.get("descrip", ""),
+                "river": props.get("river_sea", ""),
+                "area": props.get("area", ""),        # NRW region, e.g. "NRW Northern"
+                "region": props.get("region", "Wales"),
+                "lat": round(lat, 5),
+                "long": round(lon, 5),
+                "type": area_type,
+            }
+            index.append(rec)
 
-        if r2:
-            r2_put_json(r2, f"{POLY_PFX}/{code}.json", {
-                "type": "Feature", "geometry": geom,
-                "properties": {"code": code, "label": rec["label"], "type": rec["type"]},
-            })
-
-        sgeom = simplify_geometry(geom)
-        if sgeom:
-            combined_features.append({
-                "type": "Feature", "geometry": sgeom,
+            centroid_features.append({
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [rec["long"], rec["lat"]]},
                 "properties": {"code": code, "label": rec["label"], "river": rec["river"],
                                 "area": rec["area"], "type": rec["type"]},
             })
+
+            if r2:
+                r2_put_json(r2, f"{POLY_PFX}/{code}.json", {
+                    "type": "Feature", "geometry": geom,
+                    "properties": {"code": code, "label": rec["label"], "type": rec["type"]},
+                })
+
+            sgeom = simplify_geometry(geom)
+            if sgeom:
+                combined_features.append({
+                    "type": "Feature", "geometry": sgeom,
+                    "properties": {"code": code, "label": rec["label"], "river": rec["river"],
+                                    "area": rec["area"], "type": rec["type"]},
+                })
 
     index_obj = {"generated_at": now.isoformat(), "count": len(index), "areas": index}
     centroids_obj = {"type": "FeatureCollection", "features": centroid_features}
