@@ -30,6 +30,8 @@ import urllib.request
 import time
 from datetime import datetime, timezone
 
+from geo_membership import classify_category
+
 # ── Cloudflare R2 config ──────────────────────────────────────────────────────
 R2_ACCOUNT_ID    = os.environ.get("R2_ACCOUNT_ID", "")
 R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID", "")
@@ -137,16 +139,25 @@ def main():
             continue
         lvl = it.get("severityLevel")
         ref = centroids.get(code, {})
+        label = ref.get("label") or it.get("description", "")
+        description = it.get("description", "")
+        river = fa.get("riverOrSea") or ref.get("river", "")
+        is_tidal = it.get("isTidal")
         w = {
             "code": code,
-            "label": ref.get("label") or it.get("description", ""),
-            "description": it.get("description", ""),
+            "label": label,
+            "description": description,
             "county": fa.get("county") or ref.get("county", ""),
-            "river": fa.get("riverOrSea") or ref.get("river", ""),
+            "counties": ref.get("counties") or ([fa["county"]] if fa.get("county") else []),
+            "rainfallZones": ref.get("rainfallZones", []),
+            "river": river,
             "eaArea": it.get("eaAreaName") or ref.get("eaArea", ""),
             "severityLevel": lvl,
             "severity": it.get("severity") or SEV_NAME.get(lvl, ""),
-            "isTidal": it.get("isTidal"),
+            "isTidal": is_tidal,
+            # Live isTidal is authoritative when present — takes priority over
+            # the static reference's text-based heuristic (see geo_membership.py).
+            "category": classify_category(label, description, river, is_tidal=is_tidal),
             "message": it.get("message", ""),
             "timeRaised": it.get("timeRaised"),
             "timeMessageChanged": it.get("timeMessageChanged"),

@@ -39,6 +39,8 @@ import urllib.request
 import time
 from datetime import datetime, timezone
 
+from geo_membership import classify_category
+
 # ── Cloudflare R2 config ──────────────────────────────────────────────────────
 R2_ACCOUNT_ID    = os.environ.get("R2_ACCOUNT_ID", "")
 R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID", "")
@@ -174,14 +176,27 @@ def main():
         lat = coords[1] if coords else ref.get("lat")
         lon = coords[0] if coords else ref.get("long")
 
+        label = props.get("DESCRIPTION") or ref.get("label", "")
+        river = ref.get("river", "")
+        # NRW's docs specify TIDAL as a string ("True"/"False"), not a real
+        # boolean — coerce explicitly rather than relying on truthiness
+        # (a literal string "False" is truthy in Python).
+        tidal_raw = props.get("TIDAL")
+        if isinstance(tidal_raw, str):
+            is_tidal = tidal_raw.strip().lower() == "true"
+        else:
+            is_tidal = bool(tidal_raw) if tidal_raw is not None else None
         w = {
             "code": code,
-            "label": props.get("DESCRIPTION") or ref.get("label", ""),
+            "label": label,
             "area": props.get("AREA") or ref.get("area", ""),
-            "river": ref.get("river", ""),
+            "river": river,
+            "counties": ref.get("counties", []),
+            "rainfallZones": ref.get("rainfallZones", []),
             "severityLevel": lvl,
             "severity": props.get("SEVERITY") or SEV_NAME.get(lvl, ""),
-            "isTidal": props.get("TIDAL"),
+            "isTidal": is_tidal,
+            "category": classify_category(label, ref.get("description", ""), river, is_tidal=is_tidal),
             "message": props.get("RIM_ENGLISH", ""),
             "timeRaised": props.get("TIMERAISED"),
             "timeMessageChanged": props.get("RIM_CHANGED"),

@@ -47,6 +47,8 @@ import json
 import os
 from datetime import datetime, timezone
 
+from geo_membership import MembershipIndex, classify_category
+
 from pyproj import Transformer
 
 # ── Cloudflare R2 config (same convention as the other fetch_*.py scripts) ────
@@ -233,6 +235,10 @@ def main():
     r2 = get_r2_client()
     print("Connected to Cloudflare R2." if r2 else "R2 not configured — local dry run.")
 
+    print("Loading county / rainfall-zone reference layers...")
+    counties_idx = MembershipIndex("uk-counties.geojson", "name")
+    rainzones_idx = MembershipIndex("rainfall_summary_areas.geojson", "short_name")
+
     index = []
     centroid_features = []
     combined_features = []
@@ -261,6 +267,11 @@ def main():
 
             geom = reproject_geometry(feat["geometry"])
             lat, lon = centroid_of(geom)
+            counties = counties_idx.overlaps(geom)
+            rain_zones = rainzones_idx.overlaps(geom)
+            category = classify_category(
+                props.get("fwa_name", ""), props.get("descrip", ""), props.get("river_sea", ""),
+            )
 
             rec = {
                 "code": code,
@@ -272,6 +283,9 @@ def main():
                 "lat": round(lat, 5),
                 "long": round(lon, 5),
                 "type": area_type,
+                "category": category,           # first-pass heuristic — see geo_membership.py
+                "counties": counties,            # may be several — the area can straddle boundaries
+                "rainfallZones": rain_zones,
             }
             index.append(rec)
 
@@ -279,7 +293,8 @@ def main():
                 "type": "Feature",
                 "geometry": {"type": "Point", "coordinates": [rec["long"], rec["lat"]]},
                 "properties": {"code": code, "label": rec["label"], "river": rec["river"],
-                                "area": rec["area"], "type": rec["type"]},
+                                "area": rec["area"], "type": rec["type"], "category": category,
+                                "counties": counties, "rainfallZones": rain_zones},
             })
 
             if r2:
@@ -293,7 +308,8 @@ def main():
                 combined_features.append({
                     "type": "Feature", "geometry": sgeom,
                     "properties": {"code": code, "label": rec["label"], "river": rec["river"],
-                                    "area": rec["area"], "type": rec["type"]},
+                                    "area": rec["area"], "type": rec["type"], "category": category,
+                                    "counties": counties, "rainfallZones": rain_zones},
                 })
 
     index_obj = {"generated_at": now.isoformat(), "count": len(index), "areas": index}
