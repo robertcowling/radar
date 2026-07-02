@@ -225,8 +225,32 @@ def parse_run_dt(run_ts):
     raise ValueError(f"Cannot parse run timestamp: {run_ts}")
 
 
+def _uk_local(dt_utc):
+    """Return (local_dt, tz_name) for UK time (BST or GMT), no external deps.
+    Mirrors make_agent_summary.py's helper of the same name — kept as a
+    separate copy per this repo's convention of independent single-file
+    scripts rather than a shared util module."""
+    import calendar
+    year = dt_utc.year
+    def last_sunday(y, month):
+        last_day = calendar.monthrange(y, month)[1]
+        d = datetime(y, month, last_day, 1, 0, tzinfo=timezone.utc)
+        while d.weekday() != 6:
+            d -= timedelta(days=1)
+        return d
+    bst_start = last_sunday(year, 3)
+    bst_end   = last_sunday(year, 10)
+    if bst_start <= dt_utc < bst_end:
+        return dt_utc + timedelta(hours=1), "BST"
+    return dt_utc, "GMT"
+
+
 def run_label_str(run_ts):
-    return parse_run_dt(run_ts).strftime("%-d %b %Y %H:%M GMT")
+    # parse_run_dt returns a naive UTC datetime — localize to UK time (BST/GMT)
+    # before formatting, rather than always stamping the raw UTC clock value
+    # with a hardcoded "GMT" suffix (which was wrong for half the year).
+    local, tz = _uk_local(parse_run_dt(run_ts).replace(tzinfo=timezone.utc))
+    return f"{local.day} " + local.strftime("%b %Y %H:%M") + f" {tz}"
 
 
 
@@ -559,7 +583,8 @@ def load_or_build_ukv_masks(r2):
 
 # ── Valid time label ──────────────────────────────────────────────────────────────
 def valid_label_str(valid_ts):
-    return parse_run_dt(valid_ts).strftime("%-d %b %Y %H:%M GMT")
+    local, tz = _uk_local(parse_run_dt(valid_ts).replace(tzinfo=timezone.utc))
+    return f"{local.day} " + local.strftime("%b %Y %H:%M") + f" {tz}"
 
 
 def cleanup_old_ukv_runs(r2, active_run_ts):
@@ -714,10 +739,18 @@ def _render_diff_png(ukv_masks, layer_name, area_deltas):
 
 
 def _label_to_ddhhmm(label):
-    """Convert run_label_str output like '25 Jun 2026 06:00 GMT' → 'Mon 25/0600 GMT'."""
+    """Convert run_label_str output like '25 Jun 2026 06:00 GMT'/'2 Jul 2026 00:00 BST'
+    to 'Mon 25/0600 GMT'/'Wed 2/0000 BST'. The input is already the correctly
+    localized UK wall-clock time (from run_label_str/valid_label_str) — this
+    only reformats it, it must NOT re-interpret it as UTC or overwrite its
+    BST/GMT suffix with a hardcoded one."""
     try:
-        dt = datetime.strptime(label.strip(), "%d %b %Y %H:%M GMT").replace(tzinfo=timezone.utc)
-        return dt.strftime("%a %-d/%H%M GMT")
+        s = label.strip()
+        for tz in ("BST", "GMT"):
+            if s.endswith(tz):
+                dt = datetime.strptime(s[:-len(tz)].strip(), "%d %b %Y %H:%M")
+                return dt.strftime("%a") + f" {dt.day}" + dt.strftime("/%H%M") + f" {tz}"
+        return label
     except (ValueError, AttributeError):
         return label
 

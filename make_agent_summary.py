@@ -144,7 +144,7 @@ def _fmt_uk_time(iso_str):
     try:
         dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00")).astimezone(timezone.utc)
         local, tz = _uk_local(dt)
-        return local.strftime(f"%a %-d %b at %H:%M {tz}")
+        return f"{local.strftime('%a')} {local.day} {local.strftime('%b at %H:%M')} {tz}"
     except Exception:
         return iso_str[:16]
 
@@ -602,19 +602,30 @@ def _top_grid_cells(poly_data, accum_key, limit=_GRID_TOP_N):
 def _fmt_ddhhmm(label):
     """Convert a UKV time label to 'ddd D/HHMM GMT/BST' form.
 
-    Accepts human labels ('24 Jun 2026 03:00 GMT') or run_ts ('20260624T0300Z').
+    Accepts a run_ts ('20260624T0300Z' — genuinely UTC, converted to UK
+    local time here) or an already-localized human label from
+    fetch_ukv.py's run_label_str/valid_label_str ('2 Jul 2026 01:00 BST' /
+    '15 Jan 2026 00:00 GMT' — already the correct UK wall-clock value and
+    tag; reformatted here, NOT re-converted, since re-treating it as UTC
+    would double-shift BST-era labels by an extra hour).
     Falls back to the original string if it cannot be parsed.
     """
     if not label:
         return label
     s = label.strip()
-    for fmt in ("%d %b %Y %H:%M GMT", "%d %b %Y %H:%M UTC", "%Y%m%dT%H%MZ"):
-        try:
-            dt = datetime.strptime(s, fmt).replace(tzinfo=timezone.utc)
-            local, tz = _uk_local(dt)
-            return local.strftime(f"%a %-d/%H%M {tz}")
-        except ValueError:
-            continue
+    try:
+        dt = datetime.strptime(s, "%Y%m%dT%H%MZ").replace(tzinfo=timezone.utc)
+        local, tz = _uk_local(dt)
+        return f"{local.strftime('%a')} {local.day}/{local.strftime('%H%M')} {tz}"
+    except ValueError:
+        pass
+    for tz in ("BST", "GMT", "UTC"):
+        if s.endswith(tz):
+            try:
+                dt = datetime.strptime(s[:-len(tz)].strip(), "%d %b %Y %H:%M")
+                return f"{dt.strftime('%a')} {dt.day}/{dt.strftime('%H%M')} {tz}"
+            except ValueError:
+                continue
     return label
 
 
