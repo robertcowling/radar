@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EA Flood Warnings | Flood Forecast</title>
-<meta name="description" content="Live Environment Agency flood warnings and alerts for England on an interactive map, with in-force history and catchment, county and regional overlays.">
+<title>UK Flood Warnings | Flood Forecast</title>
+<meta name="description" content="Live Environment Agency (England) and Natural Resources Wales flood warnings and alerts on an interactive map, with in-force history and catchment, county and regional overlays.">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -78,7 +78,7 @@ select.sel { appearance: none; -webkit-appearance: none; background: #f1f3f4; bo
 </head>
 <body>
 <div class="topbar">
-  <h1>Environment Agency Flood Warnings</h1>
+  <h1>UK Flood Warnings</h1>
   <div class="nav">
     <a href="floodareas.html">All flood areas</a>
     <a href="menu.html">Menu</a>
@@ -127,6 +127,16 @@ select.sel { appearance: none; -webkit-appearance: none; background: #f1f3f4; bo
           </select>
         </div>
       </div>
+      <div class="ctl-row">
+        <div class="ctl">
+          <label>Source</label>
+          <select class="sel" id="sourceSel" onchange="render()">
+            <option value="all">England &amp; Wales</option>
+            <option value="EA">England (EA)</option>
+            <option value="NRW">Wales (NRW)</option>
+          </select>
+        </div>
+      </div>
       <div class="ctl">
         <label>Boundary overlay</label>
         <select class="sel" id="boundSel" onchange="onBoundary(this.value)">
@@ -138,7 +148,8 @@ select.sel { appearance: none; -webkit-appearance: none; background: #f1f3f4; bo
       </div>
     </div>
     <div class="list" id="list"><div class="empty">Loading…</div></div>
-    <div class="foot">Uses Environment Agency flood data from the real-time data API (Beta), Open Government Licence. <a href="https://www.gov.uk/check-flooding" target="_blank">Official service →</a></div>
+    <div class="foot">England: Environment Agency flood data from the real-time data API (Beta), Open Government Licence. <a href="https://www.gov.uk/check-flooding" target="_blank">Official service →</a><br>
+      Wales: Contains Natural Resources Wales information &copy; Natural Resources Wales and Database Right. All rights Reserved. Open Government Licence for Public Sector Information.</div>
   </div>
 </div>
 
@@ -149,6 +160,11 @@ const SEV = {
   2: {name:'Flood Warning',        color:'#d93025', short:'Warning'},
   3: {name:'Flood Alert',          color:'#f9ab00', short:'Alert'},
   4: {name:'Warning no longer in force', color:'#9aa0a6', short:'Stood down'},
+};
+// Per-agency reference: R2 prefixes for the live snapshot + polygon lookups.
+const SOURCES = {
+  EA:  { floods: 'ea/floods/current.json',  areas: 'ea/floodareas' },
+  NRW: { floods: 'nrw/floods/current.json', areas: 'nrw/floodareas' },
 };
 
 const map = L.map('map', {zoomControl:true}).setView([52.8, -1.5], 6);
@@ -164,22 +180,34 @@ let markerLayer = L.layerGroup().addTo(map);
 let polyLayer = L.layerGroup().addTo(map);
 
 function loadCurrent() {
-  fetchJson(R2 + '/ea/floods/current.json?t=' + Date.now())
-    .catch(() => fetchJson('ea/floods/current.json'))
-    .then(d => {
-      warnings = (d.warnings || []).filter(w => w.severityLevel >= 1 && w.severityLevel <= 3);
-      const c = d.counts || {};
-      document.getElementById('nSevere').textContent = c.severe || 0;
-      document.getElementById('nWarning').textContent = c.warning || 0;
-      document.getElementById('nAlert').textContent = c.alert || 0;
-      render();
-    })
-    .catch(e => { document.getElementById('list').innerHTML = '<div class="empty">Could not load warnings.</div>'; });
+  const counts = {severe:0, warning:0, alert:0};
+  Promise.all(Object.entries(SOURCES).map(([source, cfg]) =>
+    fetchJson(R2 + '/' + cfg.floods + '?t=' + Date.now())
+      .catch(() => fetchJson(cfg.floods))
+      .then(d => {
+        const c = d.counts || {};
+        counts.severe += c.severe || 0; counts.warning += c.warning || 0; counts.alert += c.alert || 0;
+        return (d.warnings || [])
+          .filter(w => w.severityLevel >= 1 && w.severityLevel <= 3)
+          .map(w => ({...w, source: w.source || source}));
+      })
+      .catch(() => { console.warn(source + ': no live warnings available'); return []; })
+  )).then(results => {
+    warnings = results.flat();
+    document.getElementById('nSevere').textContent = counts.severe;
+    document.getElementById('nWarning').textContent = counts.warning;
+    document.getElementById('nAlert').textContent = counts.alert;
+    render();
+    if (!warnings.length) document.getElementById('list').innerHTML = '<div class="empty">No active flood warnings.</div>';
+  });
 }
 
 function visible() {
   const minSev = parseInt(document.getElementById('sevSel').value, 10);
-  return warnings.filter(w => w.severityLevel <= minSev).sort((a,b)=>a.severityLevel-b.severityLevel);
+  const src = document.getElementById('sourceSel').value;
+  return warnings
+    .filter(w => w.severityLevel <= minSev && (src === 'all' || w.source === src))
+    .sort((a,b)=>a.severityLevel-b.severityLevel);
 }
 
 function render() {
@@ -195,8 +223,8 @@ function render() {
       const s = SEV[w.severityLevel];
       const el = document.createElement('div');
       el.className = 'wcard'; el.style.borderLeftColor = s.color;
-      el.innerHTML = `<div class="wt">${esc(w.label)}</div>`
-        + `<div class="wm">${esc(w.county||'')}${w.river? ' · '+esc(w.river):''}</div>`
+      el.innerHTML = `<div class="wt">${esc(w.label)} <span style="font-size:10px;font-weight:700;color:${w.source==='NRW'?'#c026d3':'#0369a1'}">${w.source}</span></div>`
+        + `<div class="wm">${esc(w.county||w.area||'')}${w.river? ' · '+esc(w.river):''}</div>`
         + `<span class="pill" style="background:${s.color}">${s.name}</span>`;
       el.onclick = () => focusWarning(w);
       list.appendChild(el);
@@ -218,14 +246,15 @@ function render() {
 
 function loadPoly(w) {
   const s = SEV[w.severityLevel];
+  const cacheKey = w.source + ':' + w.code;
   const draw = (feat) => {
     const gj = L.geoJSON(feat, {style:{color:s.color, weight:1.5, fillColor:s.color,
       fillOpacity:0.35}}).bindPopup(popupHtml(w));
     gj.addTo(polyLayer);
   };
-  if (polyCache[w.code]) { draw(polyCache[w.code]); return; }
-  fetch(R2 + '/ea/floodareas/polygons/' + w.code + '.json')
-    .then(r => r.json()).then(f => { polyCache[w.code] = f; draw(f); })
+  if (polyCache[cacheKey]) { draw(polyCache[cacheKey]); return; }
+  fetch(R2 + '/' + SOURCES[w.source].areas + '/polygons/' + w.code + '.json')
+    .then(r => r.json()).then(f => { polyCache[cacheKey] = f; draw(f); })
     .catch(() => { // fall back to a marker if no polygon
       if (w.lat != null) L.circleMarker([w.lat, w.long], {radius:8, color:'#fff',
         weight:2, fillColor:s.color, fillOpacity:0.95}).bindPopup(popupHtml(w)).addTo(polyLayer);
@@ -234,9 +263,11 @@ function loadPoly(w) {
 
 function popupHtml(w) {
   const s = SEV[w.severityLevel];
-  let h = `<b>${esc(w.label)}</b><br><span style="color:${s.color};font-weight:600">${s.name}</span>`;
+  let h = `<b>${esc(w.label)}</b> <span style="font-size:10px;font-weight:700;color:${w.source==='NRW'?'#c026d3':'#0369a1'}">${w.source}</span>`
+    + `<br><span style="color:${s.color};font-weight:600">${s.name}</span>`;
   if (w.river) h += `<br>River/sea: ${esc(w.river)}`;
   if (w.county) h += `<br>County: ${esc(w.county)}`;
+  if (w.area) h += `<br>Area: ${esc(w.area)}`;
   if (w.timeSeverityChanged) h += `<br><small>Severity since ${fmt(w.timeSeverityChanged)}</small>`;
   if (w.message) h += `<hr style="border:none;border-top:1px solid #eee;margin:6px 0"><div style="max-height:140px;overflow:auto;font-size:11.5px;color:#555">${esc(w.message)}</div>`;
   return h;

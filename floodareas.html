@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EA Flood Areas | Flood Forecast</title>
-<meta name="description" content="Explore every Environment Agency flood warning area and flood alert area for England on an interactive map.">
+<title>UK Flood Areas | Flood Forecast</title>
+<meta name="description" content="Explore every Environment Agency (England) and Natural Resources Wales flood warning area and flood alert area on an interactive map.">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -56,7 +56,7 @@ select.sel { padding-right: 30px; cursor: pointer;
 </head>
 <body>
 <div class="topbar">
-  <h1>Environment Agency Flood Areas</h1>
+  <h1>UK Flood Areas</h1>
   <div class="nav">
     <a href="floods.html">Active warnings</a>
     <a href="menu.html">Menu</a>
@@ -75,6 +75,13 @@ select.sel { padding-right: 30px; cursor: pointer;
           <option value="warning">Warning areas</option>
           <option value="alert">Alert areas</option>
         </select>
+        <select class="sel" id="sourceSel" onchange="applyFilters()">
+          <option value="all">England &amp; Wales</option>
+          <option value="EA">England (EA)</option>
+          <option value="NRW">Wales (NRW)</option>
+        </select>
+      </div>
+      <div class="ctl-row">
         <select class="sel" id="boundSel" onchange="onBoundary(this.value)">
           <option value="none">No overlay</option>
           <option value="catchments">Catchments</option>
@@ -88,7 +95,8 @@ select.sel { padding-right: 30px; cursor: pointer;
       </div>
     </div>
     <div class="list" id="list"><div class="empty">Loading flood areas…</div></div>
-    <div class="foot">Uses Environment Agency flood data from the real-time data API (Beta), Open Government Licence.</div>
+    <div class="foot">England: Environment Agency flood data from the real-time data API (Beta), Open Government Licence.
+      Wales: Contains Natural Resources Wales information &copy; Natural Resources Wales and Database Right. All rights Reserved. Open Government Licence for Public Sector Information.</div>
   </div>
 </div>
 
@@ -99,11 +107,17 @@ const map = L.map('map').setView([52.8, -1.5], 6);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   {attribution:'&copy; OpenStreetMap &copy; CARTO', maxZoom:18, subdomains:'abcd'}).addTo(map);
 
-let allFeatures = [];          // simplified overview features (polygons) or centroids
+let allFeatures = [];          // simplified overview features (polygons) or centroids, from all sources
 let layer = null;              // current geojson layer
-const fullCache = {};          // code -> full-res feature
+const fullCache = {};          // "SOURCE:code" -> full-res feature
 let selected = null;
-let pointMode = false;         // true when only centroids are available
+const pointModeBySource = {};  // source -> true when only centroids are available for it
+
+// Per-agency reference: R2 prefix for polygons/{code}.json lookups + human label.
+const SOURCES = {
+  EA:  { prefix: 'ea/floodareas',  label: 'Environment Agency (England)' },
+  NRW: { prefix: 'nrw/floodareas', label: 'Natural Resources Wales' },
+};
 
 function style(f){ return {color: COL[f.properties.type]||'#5f6368', weight:1,
   fillColor: COL[f.properties.type]||'#5f6368', fillOpacity:0.18}; }
@@ -111,34 +125,51 @@ function style(f){ return {color: COL[f.properties.type]||'#5f6368', weight:1,
 function fetchJson(url){ return fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }); }
 
 function load() {
-  // Preferred: the simplified combined polygon overview.
-  fetchJson(R2 + '/ea/floodareas/polygons_all.min.geojson')
-    .catch(()=>fetchJson('ea/floodareas/polygons_all.min.geojson'))
-    .then(d => { pointMode = false; allFeatures = d.features || []; applyFilters(); })
-    .catch(loadCentroids);
+  Promise.all(Object.keys(SOURCES).map(loadSource)).then(results => {
+    allFeatures = results.flat();
+    applyFilters();
+    if (!allFeatures.length) {
+      document.getElementById('list').innerHTML = '<div class="empty">Could not load any flood areas. Have fetch_ea_floodareas.py / build_nrw_floodareas.py been run?</div>';
+    }
+  });
 }
 
-function loadCentroids() {
+function loadSource(source) {
+  const pfx = SOURCES[source].prefix;
+  const tag = (d) => (d.features || []).forEach(f => { f.properties.source = source; });
+  // Preferred: the simplified combined polygon overview.
+  return fetchJson(R2 + '/' + pfx + '/polygons_all.min.geojson')
+    .catch(() => fetchJson(pfx + '/polygons_all.min.geojson'))
+    .then(d => { pointModeBySource[source] = false; tag(d); return d.features || []; })
+    .catch(() => loadCentroids(source));
+}
+
+function loadCentroids(source) {
   // Fallback: centroids are written early in a reference build, so show points
   // (with exact polygons on click) until the heavier combined file lands.
-  fetchJson(R2 + '/ea/floodareas/centroids.geojson')
-    .catch(()=>fetchJson('ea/floodareas/centroids.geojson'))
+  const pfx = SOURCES[source].prefix;
+  return fetchJson(R2 + '/' + pfx + '/centroids.geojson')
+    .catch(() => fetchJson(pfx + '/centroids.geojson'))
     .then(d => {
-      pointMode = true; allFeatures = d.features || []; applyFilters();
+      pointModeBySource[source] = true;
+      (d.features || []).forEach(f => { f.properties.source = source; });
       const n = document.createElement('div'); n.className = 'foot'; n.style.color = '#b45309';
-      n.textContent = 'Showing centroids — the full polygon overview is still building; click any area for its exact boundary.';
+      n.textContent = SOURCES[source].label + ': showing centroids — the full polygon overview is still building; click any area for its exact boundary.';
       document.querySelector('.controls').appendChild(n);
+      return d.features || [];
     })
-    .catch(()=>{ document.getElementById('list').innerHTML='<div class="empty">Could not load flood areas. Has fetch_ea_floodareas.py been run?</div>'; });
+    .catch(() => { console.warn(source + ': no flood-area data available'); return []; });
 }
 
 function filtered() {
   const q = document.getElementById('search').value.trim().toLowerCase();
   const t = document.getElementById('typeSel').value;
+  const src = document.getElementById('sourceSel').value;
   return allFeatures.filter(f => {
     const p = f.properties;
     if (t !== 'all' && p.type !== t) return false;
-    if (q) { const hay = (p.label+' '+(p.river||'')+' '+(p.county||'')).toLowerCase();
+    if (src !== 'all' && p.source !== src) return false;
+    if (q) { const hay = (p.label+' '+(p.river||'')+' '+(p.county||'')+' '+(p.area||'')).toLowerCase();
       if (!hay.includes(q)) return false; }
     return true;
   });
@@ -165,9 +196,9 @@ function applyFilters() {
     const p = f.properties;
     const el = document.createElement('div');
     el.className = 'acard'; el.style.borderLeftColor = COL[p.type]||'#5f6368';
-    el.innerHTML = `<div class="at">${esc(p.label)}</div>`
+    el.innerHTML = `<div class="at">${esc(p.label)} <span style="font-size:10px;font-weight:700;color:${p.source==='NRW'?'#c026d3':'#0369a1'}">${p.source}</span></div>`
       + `<div class="am">${p.type==='warning'?'Warning area':'Alert area'}`
-      + `${p.county? ' · '+esc(p.county):''}${p.river? ' · '+esc(p.river):''}</div>`;
+      + `${p.county? ' · '+esc(p.county):''}${p.area? ' · '+esc(p.area):''}${p.river? ' · '+esc(p.river):''}</div>`;
     el.onclick = () => selectArea(f, null, true);
     frag.appendChild(el);
   });
@@ -178,6 +209,8 @@ function applyFilters() {
 
 function selectArea(f, lyr, zoom) {
   const code = f.properties.code;
+  const source = f.properties.source;
+  const cacheKey = source + ':' + code;
   // load full-res polygon for an exact boundary on selection
   const showFull = (full) => {
     if (selected) map.removeLayer(selected);
@@ -186,17 +219,19 @@ function selectArea(f, lyr, zoom) {
     selected.bindPopup(popupHtml(f.properties)).openPopup();
     if (zoom) { const b = selected.getBounds(); if (b.isValid()) map.fitBounds(b,{maxZoom:12,padding:[30,30]}); }
   };
-  if (fullCache[code]) { showFull(fullCache[code]); return; }
-  fetch(R2 + '/ea/floodareas/polygons/' + code + '.json')
-    .then(r=>r.json()).then(full => { fullCache[code]=full; showFull(full); })
+  if (fullCache[cacheKey]) { showFull(fullCache[cacheKey]); return; }
+  fetch(R2 + '/' + SOURCES[source].prefix + '/polygons/' + code + '.json')
+    .then(r=>r.json()).then(full => { fullCache[cacheKey]=full; showFull(full); })
     .catch(() => { showFull(f); }); // fall back to simplified
 }
 
 function popupHtml(p) {
-  let h = `<b>${esc(p.label)}</b><br><span style="color:${COL[p.type]};font-weight:600">`
+  let h = `<b>${esc(p.label)}</b> <span style="font-size:10px;font-weight:700;color:${p.source==='NRW'?'#c026d3':'#0369a1'}">${p.source}</span>`
+    + `<br><span style="color:${COL[p.type]};font-weight:600">`
     + `${p.type==='warning'?'Flood warning area':'Flood alert area'}</span>`;
   if (p.river) h += `<br>River/sea: ${esc(p.river)}`;
   if (p.county) h += `<br>County: ${esc(p.county)}`;
+  if (p.area) h += `<br>Area: ${esc(p.area)}`;
   h += `<br><small style="color:#94a3b8">${esc(p.code)}</small>`;
   return h;
 }
