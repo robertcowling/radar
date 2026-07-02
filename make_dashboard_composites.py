@@ -472,15 +472,17 @@ def r2_put_json(r2, data, r2_key):
     print(f"  Uploaded to R2: {r2_key} ({len(body):,} bytes)")
 
 
-def r2_upload_file(r2, local_path, r2_key):
+def r2_upload_file(r2, local_path, r2_key, force=False):
     # Skip if already in R2 — composites are content-addressed by timestamp
     # so if the key exists the content is identical. head_object is Class B
     # (cheap), avoiding a Class A PUT for every frame on every ephemeral run.
-    try:
-        r2.head_object(Bucket=R2_BUCKET, Key=r2_key)
-        return  # already exists
-    except Exception:
-        pass  # not found — fall through to upload
+    # Pass force=True for composites whose rendering depends on code (e.g. MSLP).
+    if not force:
+        try:
+            r2.head_object(Bucket=R2_BUCKET, Key=r2_key)
+            return  # already exists
+        except Exception:
+            pass  # not found — fall through to upload
     with open(local_path, 'rb') as f:
         data = f.read()
     r2.put_object(
@@ -794,7 +796,7 @@ def main():
                     comp = make_mslp_composite(basemap, mf["url"], svg_bytes_cache=cached_svg)
                     comp.save(mslp_local, "WEBP", quality=90)
                     if r2:
-                        r2_upload_file(r2, mslp_local, mslp_r2_key)
+                        r2_upload_file(r2, mslp_local, mslp_r2_key, force=True)
                 except Exception as e:
                     print(f"  MSLP close failed for {mslp_ts}: {e}")
                     continue
@@ -805,7 +807,7 @@ def main():
                     comp = make_mslp_composite_wide(wide_basemap, mf["url"], svg_bytes_cache=cached_svg)
                     comp.save(wide_local, "WEBP", quality=90)
                     if r2:
-                        r2_upload_file(r2, wide_local, wide_r2_key)
+                        r2_upload_file(r2, wide_local, wide_r2_key, force=True)
                 except Exception as e:
                     print(f"  MSLP wide failed for {mslp_ts}: {e}")
 
