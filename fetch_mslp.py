@@ -409,9 +409,9 @@ def render_mslp_png(lat_1d, lon_1d, msl_2d, out_path, detail=False):
     highs, lows = find_pressure_centers(lat_1d, lon_1d, msl_2d)
     yoff = -0.10 * (MERC_YMAX - MERC_YMIN) / (OUT_HEIGHT / DPI)
     
-    letter_fontsize = 5 if detail else 9
-    pres_fontsize = 3.5 if detail else 6
-    marker_stroke_width = 1.0 if detail else 1.5
+    letter_fontsize = 5 if detail else 18
+    pres_fontsize = 3.5 if detail else 12
+    marker_stroke_width = 1.0 if detail else 3.0
     
     stroke = [pe.withStroke(linewidth=marker_stroke_width, foreground='white')]
     for colour, letter, centres in [('#8c3232', 'H', highs), ('#2b5285', 'L', lows)]:
