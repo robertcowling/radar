@@ -82,10 +82,16 @@ select.sel { padding-right: 30px; cursor: pointer;
         </select>
       </div>
       <div class="ctl-row">
+        <select class="sel" id="categorySel" onchange="applyFilters()">
+          <option value="all">Any water type</option>
+          <option value="river">River</option>
+          <option value="coastal">Coastal &amp; tidal</option>
+          <option value="groundwater">Groundwater</option>
+        </select>
         <select class="sel" id="boundSel" onchange="onBoundary(this.value)">
           <option value="none">No overlay</option>
           <option value="catchments">Catchments</option>
-          <option value="counties">Counties</option>
+          <option value="counties" selected>Counties</option>
           <option value="regions">Regions</option>
         </select>
       </div>
@@ -93,6 +99,10 @@ select.sel { padding-right: 30px; cursor: pointer;
         <span><i style="background:#d93025"></i>Warning area</span>
         <span><i style="background:#f9ab00"></i>Alert area</span>
       </div>
+      <p style="font-size:10.5px;color:#94a3b8;margin:2px 4px 0;line-height:1.4;">
+        Water type is a best-effort classification inferred from area names/descriptions
+        (and the live isTidal/TIDAL flag where available) — not an official field from either agency.
+      </p>
     </div>
     <div class="list" id="list"><div class="empty">Loading flood areas…</div></div>
     <div class="foot">England: Environment Agency flood data from the real-time data API (Beta), Open Government Licence.
@@ -165,11 +175,14 @@ function filtered() {
   const q = document.getElementById('search').value.trim().toLowerCase();
   const t = document.getElementById('typeSel').value;
   const src = document.getElementById('sourceSel').value;
+  const cat = document.getElementById('categorySel').value;
   return allFeatures.filter(f => {
     const p = f.properties;
     if (t !== 'all' && p.type !== t) return false;
     if (src !== 'all' && p.source !== src) return false;
-    if (q) { const hay = (p.label+' '+(p.river||'')+' '+(p.county||'')+' '+(p.area||'')).toLowerCase();
+    if (cat !== 'all' && p.category !== cat) return false;
+    if (q) { const hay = (p.label+' '+(p.river||'')+' '+(p.county||'')+' '+(p.area||'')+' '+
+      (p.counties||[]).join(' ')+' '+(p.rainfallZones||[]).join(' ')).toLowerCase();
       if (!hay.includes(q)) return false; }
     return true;
   });
@@ -196,9 +209,10 @@ function applyFilters() {
     const p = f.properties;
     const el = document.createElement('div');
     el.className = 'acard'; el.style.borderLeftColor = COL[p.type]||'#5f6368';
+    const counties = (p.counties && p.counties.length) ? p.counties.join(', ') : (p.county || '');
     el.innerHTML = `<div class="at">${esc(p.label)} <span style="font-size:10px;font-weight:700;color:${p.source==='NRW'?'#c026d3':'#0369a1'}">${p.source}</span></div>`
-      + `<div class="am">${p.type==='warning'?'Warning area':'Alert area'}`
-      + `${p.county? ' · '+esc(p.county):''}${p.area? ' · '+esc(p.area):''}${p.river? ' · '+esc(p.river):''}</div>`;
+      + `<div class="am">${p.type==='warning'?'Warning area':'Alert area'}${p.category? ' · '+esc(catLabel(p.category)):''}`
+      + `${counties? ' · '+esc(counties):''}${p.area? ' · '+esc(p.area):''}${p.river? ' · '+esc(p.river):''}</div>`;
     el.onclick = () => selectArea(f, null, true);
     frag.appendChild(el);
   });
@@ -225,12 +239,19 @@ function selectArea(f, lyr, zoom) {
     .catch(() => { showFull(f); }); // fall back to simplified
 }
 
+function catLabel(cat) {
+  return {river:'River', coastal:'Coastal & tidal', groundwater:'Groundwater'}[cat] || cat;
+}
+
 function popupHtml(p) {
+  const counties = (p.counties && p.counties.length) ? p.counties.join(', ') : (p.county || '');
   let h = `<b>${esc(p.label)}</b> <span style="font-size:10px;font-weight:700;color:${p.source==='NRW'?'#c026d3':'#0369a1'}">${p.source}</span>`
     + `<br><span style="color:${COL[p.type]};font-weight:600">`
     + `${p.type==='warning'?'Flood warning area':'Flood alert area'}</span>`;
+  if (p.category) h += `<br>Water type: ${esc(catLabel(p.category))} <small style="color:#94a3b8">(inferred)</small>`;
   if (p.river) h += `<br>River/sea: ${esc(p.river)}`;
-  if (p.county) h += `<br>County: ${esc(p.county)}`;
+  if (counties) h += `<br>Count${p.counties && p.counties.length>1 ? 'ies':'y'}: ${esc(counties)}`;
+  if (p.rainfallZones && p.rainfallZones.length) h += `<br>Rainfall zone${p.rainfallZones.length>1?'s':''}: ${esc(p.rainfallZones.join(', '))}`;
   if (p.area) h += `<br>Area: ${esc(p.area)}`;
   h += `<br><small style="color:#94a3b8">${esc(p.code)}</small>`;
   return h;
@@ -254,6 +275,7 @@ function onBoundary(val) {
 }
 
 load();
+onBoundary('counties');   // on by default, matching the <select> default above
 </script>
 </body>
 </html>

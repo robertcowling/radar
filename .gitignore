@@ -39,6 +39,10 @@ nrw/timeline/
 # data, re-downloaded occasionally, not a repo asset.
 /nrw_source/
 
+# Raw BNG source for reproject_rainfall_summary.py — superseded by the
+# committed WGS84 output (rainfall_summary_areas.geojson).
+/rainfallsummarypolygon.json
+
 # Surface obs: raw downloads / local build output / manifest live on R2 or
 # ephemeral CI workspace, not git
 surface_obs/raw/

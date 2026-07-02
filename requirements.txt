@@ -8,3 +8,4 @@ h5py>=3.11.0
 pyproj>=3.6.0
 openai>=1.0.0
 pandas>=2.2.0
+shapely>=2.0.0
