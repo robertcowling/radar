@@ -84,7 +84,7 @@ USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, R2_BUCKET, R2_PUBL
 
 HOURS_BACK    = 48          # cover last 48 hours (hourly)
 HOURS_FORWARD = 6           # pre-render N hours ahead using GFS forecast steps
-RERENDER_HOURS = 12         # re-render recent N hours to pick up shorter-lead GFS runs
+RERENDER_HOURS = 48         # re-render recent N hours to pick up shorter-lead GFS runs
 GFS_RUN_HOURS = [0, 6, 12, 18]  # GFS runs per day
 
 
