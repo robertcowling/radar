@@ -29,6 +29,16 @@ ea/floodareas/polygons_all.min.geojson
 ea/counts/
 ea/timeline/
 
+# NRW flood warnings: same pattern as EA above
+nrw/floodareas/polygons/
+nrw/floodareas/polygons_all.min.geojson
+nrw/counts/
+nrw/timeline/
+
+# Raw DataMapWales source export for build_nrw_floodareas.py — 7MB+ input
+# data, re-downloaded occasionally, not a repo asset.
+/features.json
+
 # Surface obs: raw downloads / local build output / manifest live on R2 or
 # ephemeral CI workspace, not git
 surface_obs/raw/
