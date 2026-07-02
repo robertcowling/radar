@@ -1,33 +1,5 @@
 [
   {
-    "time": "Wed 01 Jul 2026 08:30 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607010830_OPERA_comp_5m.png"
-  },
-  {
-    "time": "Wed 01 Jul 2026 08:35 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607010835_OPERA_comp_5m.png"
-  },
-  {
-    "time": "Wed 01 Jul 2026 08:40 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607010840_OPERA_comp_5m.png"
-  },
-  {
-    "time": "Wed 01 Jul 2026 08:45 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607010845_OPERA_comp_5m.png"
-  },
-  {
-    "time": "Wed 01 Jul 2026 08:50 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607010850_OPERA_comp_5m.png"
-  },
-  {
-    "time": "Wed 01 Jul 2026 08:55 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607010855_OPERA_comp_5m.png"
-  },
-  {
-    "time": "Wed 01 Jul 2026 09:00 UTC",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607010900_OPERA_comp_5m.png"
-  },
-  {
     "time": "Wed 01 Jul 2026 09:05 UTC",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607010905_OPERA_comp_5m.png"
   },
@@ -1138,5 +1110,33 @@
   {
     "time": "Thu 02 Jul 2026 08:10 UTC",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607020810_OPERA_comp_5m.png"
+  },
+  {
+    "time": "Thu 02 Jul 2026 08:15 UTC",
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607020815_OPERA_comp_5m.png"
+  },
+  {
+    "time": "Thu 02 Jul 2026 08:20 UTC",
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607020820_OPERA_comp_5m.png"
+  },
+  {
+    "time": "Thu 02 Jul 2026 08:25 UTC",
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607020825_OPERA_comp_5m.png"
+  },
+  {
+    "time": "Thu 02 Jul 2026 08:30 UTC",
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607020830_OPERA_comp_5m.png"
+  },
+  {
+    "time": "Thu 02 Jul 2026 08:35 UTC",
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607020835_OPERA_comp_5m.png"
+  },
+  {
+    "time": "Thu 02 Jul 2026 08:40 UTC",
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607020840_OPERA_comp_5m.png"
+  },
+  {
+    "time": "Thu 02 Jul 2026 08:45 UTC",
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar5/202607020845_OPERA_comp_5m.png"
   }
 ]
