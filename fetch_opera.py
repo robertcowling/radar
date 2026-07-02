@@ -43,6 +43,35 @@ if USE_R2:
 else:
     PNG_DIR = "static/radar5"
 
+# MeteoGate API Config
+METEOGATE_API_KEY = os.environ.get("METEOGATE_API_KEY", "").strip()
+
+
+def make_meteogate_request(url, timeout=30):
+    """
+    Perform a GET request to the MeteoGate API.
+    Injects the apikey header if present, and implements a retry loop
+    with exponential backoff on HTTP 429 (Too Many Requests).
+    """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+    if METEOGATE_API_KEY:
+        headers['apikey'] = METEOGATE_API_KEY
+
+    backoff = 2.0
+    for attempt in range(5):
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            return urllib.request.urlopen(req, timeout=timeout)
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < 4:
+                print(f"MeteoGate request to {url} rate limited (429). Retrying in {backoff}s...")
+                time.sleep(backoff)
+                backoff *= 2.0
+                continue
+            raise
+
 
 def get_mapping(h5_sample):
     """Generate EPSG:3857 to OPERA radar laea mapping."""
@@ -186,16 +215,17 @@ def fetch_meteogate_list():
     url = "https://api.meteogate.eu/eu-eumetnet-weather-radar/collections/observations/locations/0-20010-0-OPERA"
     print(f"Fetching metadata from {url}...")
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=30) as response:
+        with make_meteogate_request(url, timeout=30) as response:
             data = json.loads(response.read().decode('utf-8'))
             coverages = data.get("coverages", [])
             if not coverages:
                 return []
             
-            links = coverages[0].get("links", [])
-            # Extract only DBZH.h5 links
-            h5_links = [l for l in links if l.get("href", "").endswith("DBZH.h5")]
+            h5_links = []
+            for coverage in coverages:
+                links = coverage.get("links", [])
+                h5_links.extend([l for l in links if l.get("href", "").endswith("DBZH.h5")])
+            
             print(f"Found {len(h5_links)} DBZH.h5 file links in API response.")
             return h5_links
     except Exception as e:
@@ -253,8 +283,7 @@ def main():
                 if not os.path.exists(h5_path):
                     print(f"Downloading {h5_name}...")
                     try:
-                        req = urllib.request.Request(file_url, headers={'User-Agent': 'Mozilla/5.0'})
-                        with urllib.request.urlopen(req, timeout=60) as response, open(h5_path, 'wb') as out_file:
+                        with make_meteogate_request(file_url, timeout=60) as response, open(h5_path, 'wb') as out_file:
                             out_file.write(response.read())
                     except Exception as e:
                         print(f"Failed to download {file_url}: {e}")
