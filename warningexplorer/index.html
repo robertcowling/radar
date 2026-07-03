@@ -157,6 +157,24 @@ select.premium-select:hover { background-color: #e8eaed; }
   white-space: nowrap; cursor: pointer; padding: 8px 10px; border-radius: 20px; background: #f1f3f4; flex-shrink: 0; }
 .check-pill input[type=checkbox] { accent-color: var(--brand-500); width: 15px; height: 15px; cursor: pointer; margin: 0; }
 
+/* Show dropdown (property counts + rivers) */
+.show-group { position: relative; }
+.show-btn { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #202124; font-weight: 500;
+  cursor: pointer; padding: 8px 26px 8px 12px; border-radius: 20px; background: #f1f3f4; border: none;
+  font-family: inherit; white-space: nowrap; outline: none; width: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center; }
+.show-btn:hover { background-color: #e8eaed; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+.show-menu { display: none; position: absolute; bottom: calc(100% + 6px); left: 0; background: white;
+  border-radius: 12px; box-shadow: var(--shadow-panel); z-index: 1020; min-width: 170px;
+  padding: 6px 0; overflow: hidden; }
+.show-menu.open { display: block; }
+.show-menu-item { display: flex; align-items: center; gap: 8px; padding: 9px 14px;
+  font-size: 12.5px; color: #374151; cursor: pointer; }
+.show-menu-item:hover { background: #f8fafc; }
+.show-menu-item input[type=checkbox] { accent-color: var(--brand-500); width: 15px; height: 15px; cursor: pointer; margin: 0; flex-shrink: 0; }
+.show-menu-item label { cursor: pointer; user-select: none; font-weight: 500; }
+
 /* risk (properties-at-risk) choropleth legend, shown only when the toggle is on */
 .risk-legend { position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%);
   z-index: 999; background: white; border-radius: 16px; box-shadow: var(--shadow-panel);
@@ -243,10 +261,22 @@ select.premium-select:hover { background-color: #e8eaed; }
             <option value="centroids">Icons</option>
           </select>
         </div>
-        <label class="check-pill" title="Colour polygons by properties at risk; scale icon size in centroid mode">
-          <input type="checkbox" id="riskToggle" onchange="onRiskToggle(this.checked)"> Property counts
-        </label>
       </div>
+      <div class="control-group">
+        <span class="control-label">Show</span>
+        <div class="show-group" id="showGroup">
+          <button class="show-btn" id="showBtn" type="button" onclick="toggleShowMenu(event)">Overlays</button>
+          <div class="show-menu" id="showMenu">
+            <div class="show-menu-item" onclick="event.stopPropagation()">
+              <input type="checkbox" id="riskToggle" onchange="onRiskToggle(this.checked)">
+              <label for="riskToggle">Property counts</label>
+            </div>
+            <div class="show-menu-item" onclick="event.stopPropagation()">
+              <input type="checkbox" id="riversToggle" onchange="onRiversToggle(this.checked)">
+              <label for="riversToggle">Rivers</label>
+            </div>
+          </div>
+        </div>
       <div class="control-group boundary-group">
         <div class="control-sub">
           <span class="control-label">Boundaries</span>
@@ -476,16 +506,22 @@ function applyFilters() {
   list.innerHTML=''; list.appendChild(frag);
 }
 
+function clearSelection() {
+  if (selected) { map.removeLayer(selected); selected = null; }
+}
+
 function selectArea(f, lyr, zoom) {
   const code = f.properties.code;
   const source = f.properties.source;
   const cacheKey = source + ':' + code;
   // load full-res polygon for an exact boundary on selection
   const showFull = (full) => {
-    if (selected) map.removeLayer(selected);
+    clearSelection();
     selected = L.geoJSON(full, {style:{color:COL[f.properties.type]||'#5f6368',
       weight:2.5, fillColor:COL[f.properties.type]||'#5f6368', fillOpacity:0.65}}).addTo(map);
-    selected.bindPopup(popupHtml(f.properties)).openPopup();
+    selected.bindPopup(popupHtml(f.properties))
+      .openPopup()
+      .on('popupclose', clearSelection);
     if (zoom) { const b = selected.getBounds(); if (b.isValid()) map.fitBounds(b,{maxZoom:12,padding:[30,30]}); }
   };
   if (fullCache[cacheKey]) { showFull(fullCache[cacheKey]); return; }
@@ -549,9 +585,21 @@ function popupHtml(p) {
   return tabbedPopup(d, h);
 }
 
+function toggleShowMenu(e) {
+  e.stopPropagation();
+  document.getElementById('showMenu').classList.toggle('open');
+}
+function onRiversToggle(on) {
+  if (on) loadRivers();
+  else {
+    if (boundaryLayers['rivers'] && map.hasLayer(boundaryLayers['rivers'])) map.removeLayer(boundaryLayers['rivers']);
+  }
+}
+document.addEventListener('click', () => document.getElementById('showMenu')?.classList.remove('open'));
+map.on('click', clearSelection);
+
 load();
 onBoundary('counties');
-loadRivers();
 </script>
 </body>
 </html>
