@@ -115,6 +115,9 @@ EA_CHANGES = {
     "052FWTKLNKL2":    "coastal",  # Urban area of King's Lynn
     "065FWF3602":      "coastal",  # Barton on Sea, New Milton on the Becton Bunny
     "064FWB6DCB":      "coastal",  # Dartford (tidal Thames)
+    # ── manually added post-LLM ───────────────────────────────────────────────
+    "055FWTWELL4B":    "coastal",  # East of Spalding (tidal Welland / Wash hinterland)
+    "055FWTWELL4A":    "coastal",  # Pinchbeck and West of Spalding
     # ── coastal → river (LLM agreed, confirmed river flooding) ───────────────
     "011FWFNC3BP":     "river",    # River Eden and Caldew at Carlisle
     # ── river → groundwater (LLM agreed) ─────────────────────────────────────
