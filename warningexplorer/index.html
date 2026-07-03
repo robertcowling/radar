@@ -71,7 +71,7 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .foot a { color: #60a5fa; }
 
 .leaflet-popup-content { font-family: 'Roboto', sans-serif; font-size: 12.5px; }
-.pop-wrap { width: 280px; height: 250px; display: flex; flex-direction: column; }
+.pop-wrap { width: 290px; height: 320px; display: flex; flex-direction: column; }
 .pop-tabs { display: flex; gap: 16px; border-bottom: 1px solid #e2e8f0; margin-bottom: 8px; flex-shrink: 0; }
 .pop-tab { background: none; border: none; border-bottom: 2px solid transparent; padding: 4px 2px 6px;
   font-family: 'Roboto', sans-serif; font-size: 11.5px; font-weight: 600; color: #5f6368; cursor: pointer; }
@@ -494,12 +494,19 @@ function popupHtml(p) {
   const range = propRangeLabel(p.propertyCount);
 
   let d = `<div class="pop-details-header">`
-    + `<b>${esc(p.label)}</b> <span style="font-size:10px;font-weight:700;color:${p.source==='NRW'?'#c026d3':'#0369a1'}">${p.source}</span>`
+    + `<b>${esc(p.label)}</b>`
     + `<br><span style="color:${COL[p.type]};font-weight:600">${p.type==='warning'?'Flood warning area':'Flood alert area'}</span>`
     + `</div>`;
 
+  const pubName = p.source === 'NRW' ? 'Natural Resources Wales' : 'Environment Agency';
+  const linkUrl = p.source === 'NRW'
+    ? `https://flood-warning.naturalresources.wales/Detail/${p.code}`
+    : `https://check-for-flooding.service.gov.uk/target-area/${p.code}`;
+  const codeHtml = `<a href="${linkUrl}" target="_blank" style="color:var(--brand-500);text-decoration:underline;font-weight:600;">${esc(p.code)} ↗</a>`;
+
   d += `<table class="pop-table">`;
-  d += `<tr><td class="pop-table-label">Code</td><td class="pop-table-value" style="font-variant-numeric:tabular-nums">${esc(p.code)}</td></tr>`;
+  d += `<tr><td class="pop-table-label">Publisher</td><td class="pop-table-value">${esc(pubName)}</td></tr>`;
+  d += `<tr><td class="pop-table-label">Code</td><td class="pop-table-value" style="font-variant-numeric:tabular-nums">${codeHtml}</td></tr>`;
   if (p.category) {
     d += `<tr><td class="pop-table-label">Flood source</td><td class="pop-table-value">${esc(catLabel(p.category))} <small style="color:#94a3b8">(inferred)</small></td></tr>`;
   }
@@ -518,9 +525,20 @@ function popupHtml(p) {
   if (range) {
     d += `<tr><td class="pop-table-label">Properties</td><td class="pop-table-value"><span class="pop-prop-chip">${esc(range)}</span></td></tr>`;
   }
-  d += `</table>`;
 
   const hist = areaStats[p.code];
+  const rarity = hist ? getRarityInfo(hist, p.type === 'warning' ? 2 : 1) : null;
+  if (rarity) {
+    if (rarity.tierLabel) {
+      const activeText = rarity.activeDescr ? ` <span style="color:#64748b;font-weight:normal">(${esc(rarity.activeDescr)})</span>` : '';
+      d += `<tr><td class="pop-table-label">Rarity</td><td class="pop-table-value" style="font-weight:600">${esc(rarity.tierLabel)}${activeText}</td></tr>`;
+    }
+    if (rarity.rateStr) {
+      d += `<tr><td class="pop-table-label">Return rate</td><td class="pop-table-value">${esc(rarity.rateStr)}</td></tr>`;
+    }
+  }
+  d += `</table>`;
+
   const h = hist ? histBlock(hist, p.type === 'warning' ? 2 : 1) : null;
   return tabbedPopup(d, h);
 }
