@@ -315,36 +315,41 @@ function loadPoly(w) {
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+const TYPE_SHORT = {'Flood Alert':'Alert','Flood Warning':'Warning','Severe Flood Warning':'Severe'};
+const TYPE_COL   = {'Flood Alert':'#f9ab00','Flood Warning':'#d93025','Severe Flood Warning':'#6d0019'};
+
 function histBlock(hist, severityTier) {
   const f = hist.freq && hist.freq[String(severityTier)];
   const tierLabel = f ? f.label : (hist.freq && hist.freq[String(hist.max_severity)] ? hist.freq[String(hist.max_severity)].label : null);
   const pct = f ? f.percentile : null;
-  const lastD = hist.last_issued ? new Date(hist.last_issued) : null;
-  const lastStr = lastD ? `${MONTHS[lastD.getUTCMonth()]} ${lastD.getUTCFullYear()}` : null;
   const rate = hist.per_year;
-  const rateStr = rate >= 1 ? `${rate.toFixed(1)}/yr` : rate > 0 ? `1 every ${Math.round(1/rate)} yrs` : null;
-  const recent = (hist.last_10 || []).slice(0,3).map(e => {
-    const d = new Date(e.d); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-  });
+  const rateStr = rate >= 1 ? `~${rate.toFixed(1)} per year` : rate > 0 ? `~1 every ${Math.round(1/rate)} years` : null;
+  const activeDescr = pct != null ? (pct >= 75 ? `more active than ${Math.round(pct)}% of flood areas` : pct <= 25 ? `quieter than ${Math.round(100-pct)}% of flood areas` : null) : null;
+  const events = (hist.last_10 || []).slice(0, 10);
+
   let h = `<hr style="border:none;border-top:1px solid #e2e8f0;margin:6px 0">`;
-  h += `<div style="font-size:11px;color:#64748b;line-height:1.6">`;
+  h += `<div style="font-size:11px;color:#64748b;line-height:1.7">`;
   h += `<b style="color:#334155;font-size:11.5px">Flood history</b>`;
   if (hist.total_issued) h += ` <span style="color:#94a3b8">· ${hist.total_issued} events since ${hist.first_issued ? hist.first_issued.slice(0,4) : '?'}</span>`;
   if (tierLabel) {
-    const pctOrd = pct != null ? ordinal(Math.round(pct)) : '';
-    h += `<br>Rarity: <b>${esc(tierLabel)}</b>`;
-    if (pctOrd) h += ` <span style="color:#94a3b8">(${pctOrd} percentile)</span>`;
+    h += `<br><b>${esc(tierLabel)}</b>`;
+    if (activeDescr) h += ` <span style="color:#94a3b8">· ${activeDescr}</span>`;
   }
-  if (rateStr) h += `<br>Rate: ~${rateStr}`;
-  if (lastStr) h += ` · last ${lastStr}`;
-  if (recent.length) h += `<br><span style="color:#94a3b8">Recent: ${recent.join(' · ')}</span>`;
+  if (rateStr) h += `<br>${rateStr}`;
+  if (events.length) {
+    h += `<br><span style="color:#475569;font-weight:600">Last ${events.length} events:</span>`;
+    h += `<div style="margin-top:2px;display:grid;grid-template-columns:auto 1fr;gap:1px 6px">`;
+    for (const e of events) {
+      const d = new Date(e.d);
+      const ds = `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+      const col = TYPE_COL[e.t] || '#64748b';
+      const short = TYPE_SHORT[e.t] || e.t;
+      h += `<span style="color:#94a3b8">${ds}</span><span style="color:${col};font-weight:600">${short}</span>`;
+    }
+    h += `</div>`;
+  }
   h += `</div>`;
   return h;
-}
-
-function ordinal(n) {
-  const s = ['th','st','nd','rd'], v = n%100;
-  return n + (s[(v-20)%10] || s[v] || s[0]);
 }
 
 function warningTooltip(w) {
