@@ -61,8 +61,9 @@ Rules:
 - If the river/sea field names an open sea, channel, or large estuary → "coastal".
 - River names with no coastal/tidal signal → "river".
 - When in doubt between river and coastal, prefer "river".
-- Respond ONLY with a JSON array, one object per input area, in the same order:
-  [{"code":"...", "category":"river|coastal|groundwater"}, ...]
+- Respond with a JSON object with a single key "areas" whose value is an array,
+  one object per input area, in the same order:
+  {"areas": [{"code":"...", "category":"river|coastal|groundwater"}, ...]}
 """
 
 
@@ -127,10 +128,19 @@ def classify_batch(client, areas, model=MODEL):
             )
             raw = resp.choices[0].message.content
             parsed = json.loads(raw)
-            # Model may return {"results": [...]} or just [...]
+            # Unwrap envelope: {"areas": [...]} or {"results": [...]} etc.
             if isinstance(parsed, dict):
-                parsed = next(iter(parsed.values()))
-            return {item["code"]: item["category"] for item in parsed}
+                # Find the first value that's a list of dicts
+                for v in parsed.values():
+                    if isinstance(v, list) and v and isinstance(v[0], dict):
+                        parsed = v
+                        break
+                else:
+                    # Might be {"code": "category", ...} mapping directly
+                    if all(isinstance(v, str) for v in parsed.values()):
+                        return {k: v for k, v in parsed.items()}
+                    parsed = []
+            return {item["code"]: item["category"] for item in parsed if isinstance(item, dict)}
         except Exception as e:
             print(f"    Attempt {attempt+1} failed: {e}")
             time.sleep(2 ** attempt)
