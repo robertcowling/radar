@@ -153,10 +153,10 @@ function onBoundary(val) {
       // Two-layer glow (light halo + grey line) rather than a CSS drop-shadow
       // filter — a white-on-white filter is invisible against a light
       // basemap, this renders correctly regardless of the tile style.
-      const weight = val === 'regions' ? 1.5 : 1.0;
+      const weight = val === 'regions' ? 2.4 : 1.8;
       boundaryLayers[val] = L.layerGroup([
-        L.geoJSON(d, {style: {color: '#ffffff', weight: weight + 2.5, opacity: 0.9, fillOpacity: 0}, interactive: false}),
-        L.geoJSON(d, {style: {color: '#5f6368', weight: weight, opacity: 0.85, fillOpacity: 0}, interactive: false}),
+        L.geoJSON(d, {style: {color: '#ffffff', weight: weight + 3, opacity: 0.9, fillOpacity: 0}, interactive: false}),
+        L.geoJSON(d, {style: {color: '#5f6368', weight: weight, opacity: 0.9, fillOpacity: 0}, interactive: false}),
       ]);
       if (currentBoundary === val) { map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); }
     })
@@ -170,7 +170,7 @@ function _strahlerOrder(props) {
   return parseInt(o) || 1;
 }
 function _riverWeight(order) {
-  const w = [0.5, 0.5, 0.7, 1.0, 1.6, 2.4, 3.5];
+  const w = [0.3, 0.3, 0.4, 0.6, 1.0, 1.7, 2.8];
   return w[Math.min(order - 1, 6)];
 }
 
@@ -181,6 +181,15 @@ function toggleRivers() {
   loadRivers();
 }
 
+/* Call after (re)adding the main polygon/marker layer to the map — a newly
+   added layer always paints above earlier ones, so a filter change that
+   rebuilds the poly layer would otherwise repaint it over rivers/boundaries
+   that were previously sent to back. */
+function reassertOverlayOrder() {
+  if (currentBoundary !== 'none' && boundaryLayers[currentBoundary]) boundaryLayers[currentBoundary].bringToBack();
+  if (riversVisible && boundaryLayers['rivers']) boundaryLayers['rivers'].bringToBack();
+}
+
 function loadRivers() {
   if (boundaryLayers['rivers']) {
     if (riversVisible) { map.addLayer(boundaryLayers['rivers']); boundaryLayers['rivers'].bringToBack(); }
@@ -189,7 +198,7 @@ function loadRivers() {
   fetch(R2 + '/geo/rivers.geojson').then(r => r.json()).then(d => {
     const gstyle = f => {
       const o = _strahlerOrder(f.properties);
-      return { color: '#7ab8d4', weight: _riverWeight(o) * 2.2, opacity: 0.18, interactive: false };
+      return { color: '#7ab8d4', weight: _riverWeight(o) * 1.8, opacity: 0.18, interactive: false };
     };
     const mstyle = f => {
       const o = _strahlerOrder(f.properties);

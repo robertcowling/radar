@@ -378,7 +378,7 @@ function render() {
         + `<div class="wm">${w.source==='NRW'?'Natural Resources Wales':'Environment Agency'}`
         + ` · ${w.category? esc(catLabel(w.category))+' · ':''}${counties? esc(counties)+' · ':''}${region? esc(region)+' · ':''}${w.river? esc(w.river):''}</div>`
         + `<span class="pill" style="background:${s.color}">${s.name}</span>`
-        + (range ? `<div style="margin-top:6px">${propChipHtml(w.propertyCount)}</div>` : '');
+        + (range ? `<div style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:10.5px;color:#94a3b8">Properties at risk ${propChipHtml(w.propertyCount)}</div>` : '');
       el.onclick = () => focusWarning(w);
       list.appendChild(el);
       if (isNew) setTimeout(() => el.classList.remove('is-new'), 2600);
