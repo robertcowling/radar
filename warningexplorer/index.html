@@ -113,12 +113,15 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .ff-tip-sub { font-size: 12px; color: #5f6368; font-weight: 500; margin-bottom: 6px; }
 .ff-tip-prop { font-size: 12px; color: #5f6368; display: flex; align-items: center; gap: 6px; }
 
-/* area-name filter, floating top-right of the map */
-.map-search { position: absolute; top: 16px; right: 16px; z-index: 1000; width: 280px; max-width: calc(100% - 32px); }
-.map-search input { width: 100%; box-sizing: border-box; background: white; border: none;
-  padding: 13px 16px; border-radius: 26px; font-family: inherit; font-size: 13.5px; color: #202124;
-  font-weight: 500; outline: none; box-shadow: var(--shadow-panel); }
-.map-search input::placeholder { color: #9ca3af; }
+/* area-name filter, floating top-right of the map — a key touch point,
+   sized and weighted to stand out rather than blend into the chrome */
+.map-search { position: absolute; top: 16px; right: 16px; z-index: 1000; width: 360px; max-width: calc(100% - 32px); }
+.map-search input { width: 100%; box-sizing: border-box; background: white; border: 2px solid white;
+  padding: 16px 20px; border-radius: 30px; font-family: 'Outfit', sans-serif; font-size: 15.5px; color: #111827;
+  font-weight: 600; outline: none; box-shadow: 0 10px 36px rgba(0,0,0,.16), 0 3px 10px rgba(0,0,0,.10);
+  transition: box-shadow .15s, border-color .15s; }
+.map-search input:focus { border-color: var(--brand-500); box-shadow: 0 10px 36px rgba(0,0,0,.16), 0 0 0 3px var(--brand-100); }
+.map-search input::placeholder { color: #6b7280; font-weight: 600; }
 
 /* bottom control bar */
 .player-panel { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -487,6 +490,7 @@ function applyFilters() {
       lyr.bindTooltip(() => tipContent(f.properties), {sticky:true, className:'ff-tip'});
     }
   }).addTo(map);
+  reassertOverlayOrder();
   // list (cap rendered rows for performance)
   const list = document.getElementById('list');
   if (!fs.length) { list.innerHTML = '<div class="empty">No matching flood areas.</div>'; return; }
@@ -502,7 +506,7 @@ function applyFilters() {
       + `<div class="am">${p.type==='warning'?'Warning area':'Alert area'}${p.category? ' · '+esc(catLabel(p.category)):''}`
       + ` · ${p.source==='NRW'?'Natural Resources Wales':'Environment Agency'}`
       + `${counties? ' · '+esc(counties):''}${region? ' · '+esc(region):''}${p.river? ' · '+esc(p.river):''}</div>`
-      + (range ? `<div style="margin-top:6px">${propChipHtml(p.propertyCount)}</div>` : '');
+      + (range ? `<div style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:10.5px;color:#94a3b8">Properties at risk ${propChipHtml(p.propertyCount)}</div>` : '');
     el.onclick = () => selectArea(f, null, true);
     frag.appendChild(el);
   });
