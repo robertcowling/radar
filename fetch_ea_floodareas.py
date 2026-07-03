@@ -292,6 +292,7 @@ def main():
                     "geometry": sgeom,
                     "properties": {"code": code, "label": rec["label"],
                                    "county": rec["county"], "river": rec["river"],
+                                   "eaArea": rec["eaArea"],
                                    "type": rec["type"], "category": category,
                                    "counties": counties, "rainfallZones": rain_zones},
                 })
@@ -311,6 +312,7 @@ def main():
             "geometry": {"type": "Point", "coordinates": [rec["long"], rec["lat"]]},
             "properties": {"code": rec["code"], "label": rec["label"],
                            "county": rec["county"], "river": rec["river"],
+                           "eaArea": rec["eaArea"],
                            "type": rec["type"], "category": rec["category"],
                            "counties": rec["counties"], "rainfallZones": rec["rainfallZones"]},
         })

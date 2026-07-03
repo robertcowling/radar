@@ -23,23 +23,40 @@ from shapely.geometry import shape
 from shapely.strtree import STRtree
 
 _GROUNDWATER_RE = re.compile(r"groundwater", re.IGNORECASE)
-_TIDAL_KEYWORDS_RE = re.compile(r"\btidal\b|\bcoastal\b|\bcoast\b|\bestuary\b|\bsea\b", re.IGNORECASE)
+# Only match coastal keywords in the area *label* — descriptions often mention
+# tidal limits / estuaries for river catchment areas that flow to the sea,
+# which produces false positives (e.g. "River Teign Flood Watch Area").
+_COASTAL_LABEL_RE = re.compile(r"\btidal\b|\bcoastal\b|\bcoast\b|\bestuary\b", re.IGNORECASE)
+# A named sea body in the river/sea field is a reliable coastal indicator.
+_SEA_BODY_RE = re.compile(
+    r"\b(north sea|irish sea|english channel|bristol channel|"
+    r"st george[''s]* channel|morecambe bay|cardigan bay|lyme bay|solent|"
+    r"severn estuary|thames estuary|humber estuary)\b",
+    re.IGNORECASE,
+)
 
 
-def classify_category(*text_fields, is_tidal=None):
+def classify_category(label, description="", river="", is_tidal=None):
     """Best-effort river / coastal / groundwater classification.
 
     is_tidal: pass the live API's isTidal/TIDAL boolean when known (takes
     priority over text heuristics). None when unknown (static area listing).
+
+    Coastal detection is intentionally narrow — only the area *label* is
+    checked for generic coastal keywords, not the description (descriptions
+    routinely mention tidal limits for river catchments). Named sea bodies in
+    the river field are also treated as coastal.
     """
-    text = " ".join(t for t in text_fields if t)
+    all_text = f"{label} {description} {river}"
     if is_tidal is True:
         return "coastal"
-    if _GROUNDWATER_RE.search(text):
+    if _GROUNDWATER_RE.search(all_text):
         return "groundwater"
     if is_tidal is False:
         return "river"
-    if _TIDAL_KEYWORDS_RE.search(text):
+    if _COASTAL_LABEL_RE.search(label):
+        return "coastal"
+    if _SEA_BODY_RE.search(river):
         return "coastal"
     return "river"
 

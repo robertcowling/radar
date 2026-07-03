@@ -210,9 +210,10 @@ function applyFilters() {
     const el = document.createElement('div');
     el.className = 'acard'; el.style.borderLeftColor = COL[p.type]||'#5f6368';
     const counties = (p.counties && p.counties.length) ? p.counties.join(', ') : (p.county || '');
+    const region = p.area || p.eaArea || '';
     el.innerHTML = `<div class="at">${esc(p.label)} <span style="font-size:10px;font-weight:700;color:${p.source==='NRW'?'#c026d3':'#0369a1'}">${p.source}</span></div>`
       + `<div class="am">${p.type==='warning'?'Warning area':'Alert area'}${p.category? ' · '+esc(catLabel(p.category)):''}`
-      + `${counties? ' · '+esc(counties):''}${p.area? ' · '+esc(p.area):''}${p.river? ' · '+esc(p.river):''}</div>`;
+      + `${counties? ' · '+esc(counties):''}${region? ' · '+esc(region):''}${p.river? ' · '+esc(p.river):''}</div>`;
     el.onclick = () => selectArea(f, null, true);
     frag.appendChild(el);
   });
@@ -252,7 +253,8 @@ function popupHtml(p) {
   if (p.river) h += `<br>River/sea: ${esc(p.river)}`;
   if (counties) h += `<br>Count${p.counties && p.counties.length>1 ? 'ies':'y'}: ${esc(counties)}`;
   if (p.rainfallZones && p.rainfallZones.length) h += `<br>Rainfall zone${p.rainfallZones.length>1?'s':''}: ${esc(p.rainfallZones.join(', '))}`;
-  if (p.area) h += `<br>Area: ${esc(p.area)}`;
+  const region = p.area || p.eaArea || '';
+  if (region) h += `<br>Region: ${esc(region)}`;
   h += `<br><small style="color:#94a3b8">${esc(p.code)}</small>`;
   return h;
 }
