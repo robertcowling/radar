@@ -221,8 +221,8 @@ select.premium-select:hover { background-color: #e8eaed; }
           <span class="control-label">Source</span>
           <select class="premium-select" id="sourceSel" onchange="render()">
             <option value="all">England &amp; Wales</option>
-            <option value="EA">England (EA)</option>
-            <option value="NRW">Wales (NRW)</option>
+            <option value="EA">Environment Agency</option>
+            <option value="NRW">Natural Resources Wales</option>
           </select>
         </div>
         <div class="control-group">
@@ -367,8 +367,9 @@ function render() {
       const counties = (w.counties && w.counties.length) ? w.counties.join(', ') : (w.county || '');
       const region = w.area || w.eaArea || '';
       const range = propRangeLabel(w.propertyCount);
-      el.innerHTML = `<div class="wt">${esc(w.label)} <span style="font-size:10px;font-weight:700;color:${w.source==='NRW'?'#c026d3':'#0369a1'}">${w.source}</span></div>`
-        + `<div class="wm">${w.category? esc(catLabel(w.category))+' · ':''}${counties? esc(counties)+' · ':''}${region? esc(region)+' · ':''}${w.river? esc(w.river):''}</div>`
+      el.innerHTML = `<div class="wt">${esc(w.label)}</div>`
+        + `<div class="wm"><span style="font-weight:600;color:${w.source==='NRW'?'#c026d3':'#0369a1'}">${w.source==='NRW'?'Natural Resources Wales':'Environment Agency'}</span>`
+        + ` · ${w.category? esc(catLabel(w.category))+' · ':''}${counties? esc(counties)+' · ':''}${region? esc(region)+' · ':''}${w.river? esc(w.river):''}</div>`
         + `<span class="pill" style="background:${s.color}">${s.name}</span>`
         + (range ? `<span class="prop-pill">${esc(range)} properties</span>` : '');
       el.onclick = () => focusWarning(w);
