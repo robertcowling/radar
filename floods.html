@@ -74,6 +74,20 @@ select.sel { appearance: none; -webkit-appearance: none; background: #f1f3f4; bo
 .foot a { color: #60a5fa; }
 .leaflet-popup-content { font-family: 'Roboto', sans-serif; font-size: 12.5px; }
 .leaflet-popup-content b { font-size: 13px; }
+.geo-wrap { position: relative; }
+.geo-input { width: 100%; box-sizing: border-box; background: #f1f3f4; border: none;
+  padding: 8px 36px 8px 12px; border-radius: 20px; font-family: inherit; font-size: 12.5px;
+  color: #202124; font-weight: 500; outline: none; }
+.geo-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; font-size: 14px; padding: 0; line-height: 1; color: #5f6368; }
+.geo-btn:hover { color: #1d4ed8; }
+.geo-drop { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white;
+  border: 1px solid #dde1e7; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  z-index: 1000; max-height: 200px; overflow-y: auto; display: none; }
+.geo-drop.open { display: block; }
+.geo-result { padding: 8px 12px; font-size: 12px; color: #374151; cursor: pointer; border-bottom: 1px solid #f1f3f4; }
+.geo-result:last-child { border-bottom: none; }
+.geo-result:hover { background: #f0f9ff; }
 </style>
 </head>
 <body>
@@ -110,6 +124,12 @@ select.sel { appearance: none; -webkit-appearance: none; background: #f1f3f4; bo
       <div class="stat" style="background:#f9ab00"><div class="n" id="nAlert">0</div><div class="l">Alert</div></div>
     </div>
     <div class="controls">
+      <div class="geo-wrap">
+        <input class="geo-input" id="geoInput" type="text" placeholder="Find a place…"
+               onkeydown="if(event.key==='Enter')geoSearch()">
+        <button class="geo-btn" onclick="geoSearch()" title="Search location">&#x1F4CD;</button>
+        <div class="geo-drop" id="geoDrop"></div>
+      </div>
       <div class="ctl-row">
         <div class="ctl">
           <label>Display</label>
@@ -394,8 +414,54 @@ window.addEventListener('resize', () => { drawChart(); });
 
 loadCurrent();
 loadSeries();
-onBoundary('counties');   // on by default, matching the <select> default above
+onBoundary('counties');
 setInterval(loadCurrent, 5*60*1000);
+
+/* ── Geocoder ── */
+let geoPin = null;
+function geoSearch() {
+  const q = document.getElementById('geoInput').value.trim();
+  if (!q) return;
+  const drop = document.getElementById('geoDrop');
+  drop.innerHTML = '<div class="geo-result" style="color:#94a3b8">Searching…</div>';
+  drop.classList.add('open');
+  fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) +
+    '&format=json&limit=5&countrycodes=gb', {headers:{'Accept-Language':'en'}})
+    .then(r => r.json())
+    .then(results => {
+      if (!results.length) {
+        drop.innerHTML = '<div class="geo-result" style="color:#94a3b8">No results found</div>';
+        return;
+      }
+      if (results.length === 1) { geoGoto(results[0]); return; }
+      drop.innerHTML = '';
+      results.forEach(res => {
+        const el = document.createElement('div');
+        el.className = 'geo-result';
+        el.textContent = res.display_name.split(',').slice(0, 3).join(', ');
+        el.onclick = () => geoGoto(res);
+        drop.appendChild(el);
+      });
+    })
+    .catch(() => { drop.innerHTML = '<div class="geo-result" style="color:#94a3b8">Search failed</div>'; });
+}
+
+function geoGoto(result) {
+  document.getElementById('geoDrop').classList.remove('open');
+  if (geoPin) { map.removeLayer(geoPin); geoPin = null; }
+  const lat = parseFloat(result.lat), lon = parseFloat(result.lon);
+  const bb = result.boundingbox;
+  if (bb) map.fitBounds([[+bb[0],+bb[2]],[+bb[1],+bb[3]]], {maxZoom:13});
+  else map.setView([lat, lon], 12);
+  geoPin = L.circleMarker([lat, lon], {radius:8, color:'#1d4ed8', weight:2,
+    fillColor:'#3b82f6', fillOpacity:0.9}).addTo(map)
+    .bindTooltip(result.display_name.split(',').slice(0,2).join(', '), {permanent:false});
+  geoPin.on('click', () => { map.removeLayer(geoPin); geoPin = null; });
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.geo-wrap')) document.getElementById('geoDrop').classList.remove('open');
+});
 </script>
 </body>
 </html>
