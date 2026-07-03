@@ -1,5 +1,6 @@
-/* flood-common.js — shared utilities for floodareas.html + floods.html
-   Loaded via <script src> before each page's own inline <script>.
+/* flood-common.js — shared utilities for /warningexplorer + /floodwarnings
+   Loaded via <script src="../flood-common.js"> before each page's own inline
+   <script> (both pages live one directory below the repo root).
    Assumes `map` and `R2` are defined (as globals) by the time these
    functions are actually called, not necessarily by the time they're parsed. */
 
@@ -39,6 +40,19 @@ function propRangeLabel(n) {
   return '20,000+';
 }
 
+/* Sequential blue scale for the "colour by properties at risk" choropleth
+   mode — index lines up 1:1 with PROP_BUCKETS. */
+const PROP_COLORS = ['#eff6ff', '#dbeafe', '#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6', '#2563eb', '#1e3a8a'];
+function propColorIndex(n) {
+  if (n == null || n <= 0) return -1;
+  for (let i = 0; i < PROP_BUCKETS.length; i++) if (n < PROP_BUCKETS[i][0]) return i;
+  return PROP_BUCKETS.length - 1;
+}
+function propColor(n) {
+  const i = propColorIndex(n);
+  return i < 0 ? '#cbd5e1' : PROP_COLORS[i];
+}
+
 function histBlock(hist, severityTier) {
   const f = hist.freq && hist.freq[String(severityTier)];
   const tierLabel = f ? f.label : (hist.freq && hist.freq[String(hist.max_severity)] ? hist.freq[String(hist.max_severity)].label : null);
@@ -72,6 +86,28 @@ function histBlock(hist, severityTier) {
   return h;
 }
 
+/* ---------- Tabbed popup (Details / History) ----------
+   No DOM ids are used so this is safe even if multiple popup instances
+   happen to exist in the DOM at once — tab switching is scoped via
+   closest('.pop-wrap') on the clicked button. */
+function tabbedPopup(detailsHtml, historyHtml) {
+  if (!historyHtml) return `<div class="pop-wrap"><div class="pop-panel">${detailsHtml}</div></div>`;
+  return `<div class="pop-wrap">
+    <div class="pop-tabs">
+      <button class="pop-tab active" onclick="popSwitchTab(this,0)" type="button">Details</button>
+      <button class="pop-tab" onclick="popSwitchTab(this,1)" type="button">History</button>
+    </div>
+    <div class="pop-panel" data-i="0">${detailsHtml}</div>
+    <div class="pop-panel" data-i="1" style="display:none">${historyHtml}</div>
+  </div>`;
+}
+function popSwitchTab(btn, i) {
+  const wrap = btn.closest('.pop-wrap');
+  wrap.querySelectorAll('.pop-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  wrap.querySelectorAll('.pop-panel').forEach(p => { p.style.display = (p.dataset.i === String(i)) ? 'block' : 'none'; });
+}
+
 /* ---------- Boundary overlays (catchments/counties/regions + rivers) ---------- */
 const BFILES = {catchments: 'uk_catchments.geojson', counties: 'uk-counties.geojson', regions: 'uk_regions.geojson'};
 const boundaryLayers = {};
@@ -83,7 +119,7 @@ function onBoundary(val) {
   currentBoundary = val;
   if (val === 'none' || !BFILES[val]) return;
   if (boundaryLayers[val]) { map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); return; }
-  fetch(BFILES[val]).then(r => { if (!r.ok) throw 0; return r.json(); })
+  fetch('../' + BFILES[val]).then(r => { if (!r.ok) throw 0; return r.json(); })
     .catch(() => fetch(R2 + '/' + BFILES[val]).then(r => r.json()))
     .then(d => {
       boundaryLayers[val] = L.geoJSON(d, {style: {color: '#5f6368', weight: 1, fillOpacity: 0}, interactive: false});
@@ -93,9 +129,8 @@ function onBoundary(val) {
 }
 
 function toggleRivers() {
-  riversVisible = !riversVisible;
-  const btn = document.getElementById('riverBtn');
-  if (btn) btn.classList.toggle('on', riversVisible);
+  const cb = document.getElementById('riverBtn');
+  riversVisible = cb ? cb.checked : !riversVisible;
   if (!riversVisible && boundaryLayers['rivers']) { map.removeLayer(boundaryLayers['rivers']); return; }
   loadRivers();
 }
