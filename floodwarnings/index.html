@@ -131,30 +131,12 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .ff-tip-sub { font-size: 12px; color: #5f6368; font-weight: 500; margin-bottom: 6px; }
 .ff-tip-prop { font-size: 12px; color: #5f6368; display: flex; align-items: center; gap: 6px; }
 
-/* find-a-place floating pill */
-.geo-float { position: absolute; top: 16px; right: 16px; z-index: 1000; }
-.geo-pill { display: flex; align-items: center; gap: 2px; background: white; border-radius: 26px;
-  box-shadow: var(--shadow-panel); height: 52px; box-sizing: border-box; padding: 0 6px;
-  width: 52px; overflow: hidden; transition: width .25s ease, padding .25s ease; }
-.geo-float.expanded .geo-pill { width: 300px; }
-.geo-icon-btn { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; border: none;
-  background: black; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
-  transition: background .15s; }
-.geo-icon-btn:hover { background: #333333; }
-.geo-input2 { flex: 1; min-width: 0; border: none; outline: none; font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 13.5px; color: #202124;
-  background: transparent; opacity: 0; width: 0; transition: opacity .15s; }
-.geo-input2::placeholder { font-family: 'Outfit', sans-serif; font-weight: 600; color: #9ca3af; }
-.geo-float.expanded .geo-input2 { opacity: 1; width: auto; }
-.geo-pin-icon { background: none !important; border: none !important; }
-.geo-clear { display: none; flex-shrink: 0; background: none; border: none; cursor: pointer; color: #9aa0a6;
-  font-size: 18px; line-height: 1; padding: 4px; }
-.geo-float.expanded .geo-clear { display: inline-flex; }
-.geo-drop2 { position: absolute; top: calc(100% + 8px); right: 0; width: 280px; background: white;
-  border-radius: 12px; box-shadow: var(--shadow-panel); z-index: 1010; max-height: 240px; overflow-y: auto; display: none; }
-.geo-drop2.open { display: block; }
-.geo-result2 { padding: 9px 14px; font-size: 12.5px; color: #374151; cursor: pointer; border-bottom: 1px solid #f1f3f4; }
-.geo-result2:last-child { border-bottom: none; }
-.geo-result2:hover { background: var(--brand-50); }
+/* area-name filter, floating top-right of the map */
+.map-search { position: absolute; top: 16px; right: 16px; z-index: 1000; width: 280px; max-width: calc(100% - 32px); }
+.map-search input { width: 100%; box-sizing: border-box; background: white; border: none;
+  padding: 13px 16px; border-radius: 26px; font-family: inherit; font-size: 13.5px; color: #202124;
+  font-weight: 500; outline: none; box-shadow: var(--shadow-panel); }
+.map-search input::placeholder { color: #9ca3af; }
 
 /* bottom control bar */
 .player-panel { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -214,17 +196,6 @@ select.premium-select:hover { background-color: #e8eaed; }
     <div class="map-wrap">
       <div id="map"></div>
 
-      <div class="geo-float" id="geoFloat">
-        <div class="geo-pill">
-          <button class="geo-icon-btn" onclick="geoIconClick(event)" title="Find a place" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
-          <input class="geo-input2" id="geoInput" type="text" placeholder="Find a place…"
-                 onkeydown="if(event.key==='Enter')geoSearch(); if(event.key==='Escape')geoCollapse();">
-          <button class="geo-clear" onclick="geoClear(event)" title="Clear" type="button">&times;</button>
-        </div>
-        <div class="geo-drop2" id="geoDrop"></div>
-      </div>
 
       <div class="player-panel">
         <div class="control-group">
@@ -260,6 +231,15 @@ select.premium-select:hover { background-color: #e8eaed; }
           </select>
         </div>
         <div class="control-group">
+          <span class="control-label">Boundaries</span>
+          <select class="premium-select" id="boundSel" onchange="onBoundary(this.value)">
+            <option value="none">No overlay</option>
+            <option value="catchments">Catchments</option>
+            <option value="counties" selected>Counties</option>
+            <option value="regions">Regions</option>
+          </select>
+        </div>
+        <div class="control-group">
           <span class="control-label" style="opacity:0;pointer-events:none">Show</span>
           <div class="show-dropdown" id="showDropdown">
             <button class="show-btn" onclick="showToggle(event)" type="button">
@@ -267,12 +247,6 @@ select.premium-select:hover { background-color: #e8eaed; }
               <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#5F6368" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div class="show-panel" id="showPanel">
-              <div class="show-section-label">Boundaries</div>
-              <label class="show-item"><input type="radio" name="boundaryRadio" value="none" onchange="onBoundary('none')"> No overlay</label>
-              <label class="show-item"><input type="radio" name="boundaryRadio" value="catchments" onchange="onBoundary('catchments')"> Catchments</label>
-              <label class="show-item"><input type="radio" name="boundaryRadio" value="counties" checked onchange="onBoundary('counties')"> Counties</label>
-              <label class="show-item"><input type="radio" name="boundaryRadio" value="regions" onchange="onBoundary('regions')"> Regions</label>
-              <div class="show-divider"></div>
               <label class="show-item"><input type="checkbox" id="riverBtn" onchange="toggleRivers()"> Rivers</label>
             </div>
           </div>
@@ -401,10 +375,10 @@ function render() {
       const region = w.area || w.eaArea || '';
       const range = propRangeLabel(w.propertyCount);
       el.innerHTML = `<div class="wt">${esc(w.label)}</div>`
-        + `<div class="wm"><span style="font-weight:600;color:${w.source==='NRW'?'#c026d3':'#0369a1'}">${w.source==='NRW'?'Natural Resources Wales':'Environment Agency'}</span>`
+        + `<div class="wm">${w.source==='NRW'?'Natural Resources Wales':'Environment Agency'}`
         + ` · ${w.category? esc(catLabel(w.category))+' · ':''}${counties? esc(counties)+' · ':''}${region? esc(region)+' · ':''}${w.river? esc(w.river):''}</div>`
         + `<span class="pill" style="background:${s.color}">${s.name}</span>`
-        + (range ? `<span class="prop-pill">${esc(range)} properties</span>` : '');
+        + (range ? `<div style="margin-top:6px">${propChipHtml(w.propertyCount)}</div>` : '');
       el.onclick = () => focusWarning(w);
       list.appendChild(el);
       if (isNew) setTimeout(() => el.classList.remove('is-new'), 2600);

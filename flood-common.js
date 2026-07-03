@@ -150,11 +150,14 @@ function onBoundary(val) {
   fetch('../' + BFILES[val]).then(r => { if (!r.ok) throw 0; return r.json(); })
     .catch(() => fetch(R2 + '/' + BFILES[val]).then(r => r.json()))
     .then(d => {
+      // Two-layer glow (light halo + grey line) rather than a CSS drop-shadow
+      // filter — a white-on-white filter is invisible against a light
+      // basemap, this renders correctly regardless of the tile style.
       const weight = val === 'regions' ? 1.5 : 1.0;
-      boundaryLayers[val] = L.geoJSON(d, {
-        style: {color: '#5f6368', weight: weight, fillOpacity: 0, className: 'region-boundary'},
-        interactive: false
-      });
+      boundaryLayers[val] = L.layerGroup([
+        L.geoJSON(d, {style: {color: '#ffffff', weight: weight + 2.5, opacity: 0.9, fillOpacity: 0}, interactive: false}),
+        L.geoJSON(d, {style: {color: '#5f6368', weight: weight, opacity: 0.85, fillOpacity: 0}, interactive: false}),
+      ]);
       if (currentBoundary === val) { map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); }
     })
     .catch(e => console.error('boundary load failed', e));
@@ -211,85 +214,3 @@ document.addEventListener('click', e => {
   if (dd && panel && panel.classList.contains('open') && !dd.contains(e.target)) panel.classList.remove('open');
 });
 
-/* ---------- Find-a-place geocoder (floating pill widget) ---------- */
-let geoPin = null;
-
-function geoExpand() {
-  document.getElementById('geoFloat').classList.add('expanded');
-  document.getElementById('geoInput').focus();
-}
-function geoCollapse() {
-  document.getElementById('geoFloat').classList.remove('expanded');
-  document.getElementById('geoDrop').classList.remove('open');
-}
-function geoIconClick(e) {
-  e.stopPropagation();
-  const el = document.getElementById('geoFloat');
-  if (!el.classList.contains('expanded')) geoExpand();
-  else geoSearch();
-}
-function geoClear(e) {
-  e.stopPropagation();
-  document.getElementById('geoInput').value = '';
-  document.getElementById('geoDrop').classList.remove('open');
-  document.getElementById('geoInput').focus();
-}
-
-function geoSearch() {
-  const q = document.getElementById('geoInput').value.trim();
-  if (!q) return;
-  const drop = document.getElementById('geoDrop');
-  drop.innerHTML = '<div class="geo-result2" style="color:#94a3b8">Searching…</div>';
-  drop.classList.add('open');
-  fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) +
-    '&format=json&limit=5&countrycodes=gb', {headers: {'Accept-Language': 'en'}})
-    .then(r => r.json())
-    .then(results => {
-      if (!results.length) {
-        drop.innerHTML = '<div class="geo-result2" style="color:#94a3b8">No results found</div>';
-        return;
-      }
-      if (results.length === 1) { geoGoto(results[0]); return; }
-      drop.innerHTML = '';
-      results.forEach(res => {
-        const el = document.createElement('div');
-        el.className = 'geo-result2';
-        el.textContent = res.display_name.split(',').slice(0, 3).join(', ');
-        el.onclick = () => geoGoto(res);
-        drop.appendChild(el);
-      });
-    })
-    .catch(() => { drop.innerHTML = '<div class="geo-result2" style="color:#94a3b8">Search failed</div>'; });
-}
-
-function geoGoto(result) {
-  document.getElementById('geoDrop').classList.remove('open');
-  if (geoPin) { map.removeLayer(geoPin); geoPin = null; }
-  const lat = parseFloat(result.lat), lon = parseFloat(result.lon);
-  const bb = result.boundingbox;
-  if (bb) map.fitBounds([[+bb[0], +bb[2]], [+bb[1], +bb[3]]], {maxZoom: 13});
-  else map.setView([lat, lon], 12);
-
-  const pinSvg = `<svg viewBox="0 0 24 30" width="30" height="38" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));">`
-    + `<path d="M12 2C7.03 2 3 6.03 3 11c0 6.75 9 17 9 17s9-10.25 9-17c0-4.97-4.03-9-9-9z" fill="#374151" stroke="white" stroke-width="1.5" stroke-linejoin="round" />`
-    + `<circle cx="12" cy="11" r="3" fill="white" />`
-    + `</svg>`;
-  const icon = L.divIcon({
-    html: pinSvg,
-    iconSize: [30, 38],
-    iconAnchor: [15, 38],
-    className: 'geo-pin-icon',
-    popupAnchor: [0, -38]
-  });
-
-  geoPin = L.marker([lat, lon], {icon: icon}).addTo(map)
-    .bindTooltip(result.display_name.split(',').slice(0, 2).join(', '), {permanent: false, className: 'ff-tip'});
-  geoPin.on('click', () => { map.removeLayer(geoPin); geoPin = null; });
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('.geo-float')) geoCollapse();
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') geoCollapse();
-});
