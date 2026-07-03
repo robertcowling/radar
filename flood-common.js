@@ -61,7 +61,7 @@ const PROP_COLORS = [
   '#1e40af',
   '#1e3a8a',
   '#172554',
-  '#090d16',
+  '#0b1a40',
 ];
 function propColorIndex(n) {
   if (n == null || n <= 0) return -1;
