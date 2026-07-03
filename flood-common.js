@@ -72,6 +72,15 @@ function propColor(n) {
   const i = propColorIndex(n);
   return i < 0 ? '#cbd5e1' : PROP_COLORS[i];
 }
+function propChipHtml(n) {
+  const range = propRangeLabel(n);
+  if (!range) return '';
+  const idx = propColorIndex(n);
+  const bg = idx < 0 ? '#cbd5e1' : PROP_COLORS[idx];
+  const fg = (idx >= 0 && idx <= 4) ? '#1f2937' : '#ffffff';
+  const border = (idx === 0) ? 'border:1px solid #d1d5db;' : '';
+  return `<span class="pop-prop-chip" style="background:${bg};color:${fg};${border}">${esc(range)}</span>`;
+}
 
 function getRarityInfo(hist, severityTier) {
   if (!hist) return null;
@@ -223,8 +232,20 @@ function geoGoto(result) {
   const bb = result.boundingbox;
   if (bb) map.fitBounds([[+bb[0], +bb[2]], [+bb[1], +bb[3]]], {maxZoom: 13});
   else map.setView([lat, lon], 12);
-  geoPin = L.circleMarker([lat, lon], {radius: 8, color: '#1d4ed8', weight: 2,
-    fillColor: '#3b82f6', fillOpacity: 0.9}).addTo(map)
+
+  const pinSvg = `<svg viewBox="0 0 24 30" width="30" height="38" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));">`
+    + `<path d="M12 2C7.03 2 3 6.03 3 11c0 6.75 9 17 9 17s9-10.25 9-17c0-4.97-4.03-9-9-9z" fill="#374151" stroke="white" stroke-width="1.5" stroke-linejoin="round" />`
+    + `<circle cx="12" cy="11" r="3" fill="white" />`
+    + `</svg>`;
+  const icon = L.divIcon({
+    html: pinSvg,
+    iconSize: [30, 38],
+    iconAnchor: [15, 38],
+    className: 'geo-pin-icon',
+    popupAnchor: [0, -38]
+  });
+
+  geoPin = L.marker([lat, lon], {icon: icon}).addTo(map)
     .bindTooltip(result.display_name.split(',').slice(0, 2).join(', '), {permanent: false, className: 'ff-tip'});
   geoPin.on('click', () => { map.removeLayer(geoPin); geoPin = null; });
 }
