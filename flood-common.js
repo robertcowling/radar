@@ -140,6 +140,7 @@ function popSwitchTab(btn, i) {
 const BFILES = {catchments: 'uk_catchments.geojson', counties: 'uk-counties.geojson', regions: 'uk_regions.geojson'};
 const boundaryLayers = {};
 let currentBoundary = 'none';
+let riversVisible = false;
 
 function onBoundary(val) {
   if (currentBoundary !== 'none' && boundaryLayers[currentBoundary]) map.removeLayer(boundaryLayers[currentBoundary]);
@@ -170,10 +171,16 @@ function _riverWeight(order) {
   return w[Math.min(order - 1, 6)];
 }
 
+function toggleRivers() {
+  const cb = document.getElementById('riverBtn');
+  riversVisible = cb ? cb.checked : !riversVisible;
+  if (!riversVisible) { if (boundaryLayers['rivers']) map.removeLayer(boundaryLayers['rivers']); return; }
+  loadRivers();
+}
+
 function loadRivers() {
   if (boundaryLayers['rivers']) {
-    map.addLayer(boundaryLayers['rivers']);
-    boundaryLayers['rivers'].bringToBack();
+    if (riversVisible) { map.addLayer(boundaryLayers['rivers']); boundaryLayers['rivers'].bringToBack(); }
     return;
   }
   fetch(R2 + '/geo/rivers.geojson').then(r => r.json()).then(d => {
@@ -189,10 +196,20 @@ function loadRivers() {
       L.geoJSON(d, { style: gstyle }),
       L.geoJSON(d, { style: mstyle })
     ]);
-    map.addLayer(boundaryLayers['rivers']);
-    boundaryLayers['rivers'].bringToBack();
+    if (riversVisible) { map.addLayer(boundaryLayers['rivers']); boundaryLayers['rivers'].bringToBack(); }
   }).catch(e => console.error('rivers:', e));
 }
+
+/* ---------- "Show" dropdown (boundaries + rivers) ---------- */
+function showToggle(e) {
+  if (e) { e.stopPropagation(); e.preventDefault(); }
+  document.getElementById('showPanel').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  const dd = document.getElementById('showDropdown');
+  const panel = document.getElementById('showPanel');
+  if (dd && panel && panel.classList.contains('open') && !dd.contains(e.target)) panel.classList.remove('open');
+});
 
 /* ---------- Find-a-place geocoder (floating pill widget) ---------- */
 let geoPin = null;
