@@ -142,11 +142,20 @@ const boundaryLayers = {};
 let currentBoundary = 'none';
 let riversVisible = false;
 
+/* L.LayerGroup has no bringToBack() (only vector/Path layers do) — the
+   boundary/river overlays are two-layer glow groups, so bring each child
+   layer to back individually. */
+function _bringGroupToBack(group) {
+  if (!group) return;
+  if (typeof group.bringToBack === 'function') { group.bringToBack(); return; }
+  if (typeof group.eachLayer === 'function') group.eachLayer(l => { if (l.bringToBack) l.bringToBack(); });
+}
+
 function onBoundary(val) {
   if (currentBoundary !== 'none' && boundaryLayers[currentBoundary]) map.removeLayer(boundaryLayers[currentBoundary]);
   currentBoundary = val;
   if (val === 'none' || !BFILES[val]) return;
-  if (boundaryLayers[val]) { map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); return; }
+  if (boundaryLayers[val]) { map.addLayer(boundaryLayers[val]); _bringGroupToBack(boundaryLayers[val]); return; }
   fetch('../' + BFILES[val]).then(r => { if (!r.ok) throw 0; return r.json(); })
     .catch(() => fetch(R2 + '/' + BFILES[val]).then(r => r.json()))
     .then(d => {
@@ -158,7 +167,7 @@ function onBoundary(val) {
         L.geoJSON(d, {style: {color: '#ffffff', weight: weight + 3, opacity: 0.9, fillOpacity: 0}, interactive: false}),
         L.geoJSON(d, {style: {color: '#5f6368', weight: weight, opacity: 0.9, fillOpacity: 0}, interactive: false}),
       ]);
-      if (currentBoundary === val) { map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); }
+      if (currentBoundary === val) { map.addLayer(boundaryLayers[val]); _bringGroupToBack(boundaryLayers[val]); }
     })
     .catch(e => console.error('boundary load failed', e));
 }
@@ -186,13 +195,13 @@ function toggleRivers() {
    rebuilds the poly layer would otherwise repaint it over rivers/boundaries
    that were previously sent to back. */
 function reassertOverlayOrder() {
-  if (currentBoundary !== 'none' && boundaryLayers[currentBoundary]) boundaryLayers[currentBoundary].bringToBack();
-  if (riversVisible && boundaryLayers['rivers']) boundaryLayers['rivers'].bringToBack();
+  if (currentBoundary !== 'none' && boundaryLayers[currentBoundary]) _bringGroupToBack(boundaryLayers[currentBoundary]);
+  if (riversVisible && boundaryLayers['rivers']) _bringGroupToBack(boundaryLayers['rivers']);
 }
 
 function loadRivers() {
   if (boundaryLayers['rivers']) {
-    if (riversVisible) { map.addLayer(boundaryLayers['rivers']); boundaryLayers['rivers'].bringToBack(); }
+    if (riversVisible) { map.addLayer(boundaryLayers['rivers']); _bringGroupToBack(boundaryLayers['rivers']); }
     return;
   }
   fetch(R2 + '/geo/rivers.geojson').then(r => r.json()).then(d => {
@@ -208,7 +217,7 @@ function loadRivers() {
       L.geoJSON(d, { style: gstyle }),
       L.geoJSON(d, { style: mstyle })
     ]);
-    if (riversVisible) { map.addLayer(boundaryLayers['rivers']); boundaryLayers['rivers'].bringToBack(); }
+    if (riversVisible) { map.addLayer(boundaryLayers['rivers']); _bringGroupToBack(boundaryLayers['rivers']); }
   }).catch(e => console.error('rivers:', e));
 }
 
