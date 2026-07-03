@@ -90,15 +90,19 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 
 .leaflet-popup-content { font-family: 'Roboto', sans-serif; font-size: 12.5px; }
 .leaflet-popup-content b { font-size: 13px; }
-.pop-wrap { min-width: 230px; }
-.pop-tabs { display: flex; gap: 16px; border-bottom: 1px solid #e2e8f0; margin-bottom: 8px; }
+.pop-wrap { width: 280px; height: 250px; display: flex; flex-direction: column; }
+.pop-tabs { display: flex; gap: 16px; border-bottom: 1px solid #e2e8f0; margin-bottom: 8px; flex-shrink: 0; }
 .pop-tab { background: none; border: none; border-bottom: 2px solid transparent; padding: 4px 2px 6px;
   font-family: 'Roboto', sans-serif; font-size: 11.5px; font-weight: 600; color: #5f6368; cursor: pointer; }
 .pop-tab.active { color: var(--brand-500); border-bottom-color: var(--brand-500); }
-.pop-panel { max-height: 260px; overflow-y: auto; }
-.prop-box { margin: 8px 0; padding: 7px 11px; background: var(--brand-50); border-radius: 8px; }
-.prop-label { font-size: 10.5px; color: #5f6368; }
-.prop-value { font-size: 15px; color: var(--brand-700); font-family: 'Outfit', sans-serif; }
+.pop-panel { flex: 1; overflow-y: auto; }
+.pop-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11.5px; }
+.pop-table td { padding: 4px 0; vertical-align: top; border-bottom: 1px solid #f1f3f4; }
+.pop-table tr:last-child td { border-bottom: none; }
+.pop-table-label { color: #5f6368; font-weight: 500; width: 90px; }
+.pop-table-value { color: #202124; }
+.pop-prop-chip { display: inline-block; background: #eef2f6; color: #475569; border-radius: 12px; font-size: 10px; font-weight: 700; padding: 2.5px 8px; }
+.pop-details-header { margin-bottom: 6px; line-height: 1.4; }
 .hist-block { font-size: 11px; color: #5f6368; }
 .hist-title { font-family: 'Outfit', sans-serif; font-size: 11.5px; font-weight: 700; color: #334155; }
 .hist-rarity { margin-top: 3px; }
@@ -240,7 +244,6 @@ select.premium-select:hover { background-color: #e8eaed; }
               <option value="regions">Regions</option>
             </select>
           </div>
-          <label class="check-pill"><input type="checkbox" id="riverBtn" onchange="toggleRivers()"> Rivers</label>
         </div>
       </div>
     </div>
@@ -424,18 +427,43 @@ function tipContent(w) {
 function popupHtml(w) {
   const s = SEV[w.severityLevel];
   const counties = (w.counties && w.counties.length) ? w.counties.join(', ') : (w.county || '');
-  let d = `<b>${esc(w.label)}</b> <span style="font-size:10px;font-weight:700;color:${w.source==='NRW'?'#c026d3':'#0369a1'}">${w.source}</span>`
-    + `<br><span style="color:${s.color};font-weight:600">${s.name}</span>`;
-  if (w.category) d += `<br>Flood source: ${esc(catLabel(w.category))} <small style="color:#94a3b8">(inferred)</small>`;
-  if (w.river) d += `<br>River/sea: ${esc(w.river)}`;
-  if (counties) d += `<br>Count${w.counties && w.counties.length>1 ? 'ies':'y'}: ${esc(counties)}`;
-  if (w.rainfallZones && w.rainfallZones.length) d += `<br>Rainfall zone${w.rainfallZones.length>1?'s':''}: ${esc(w.rainfallZones.join(', '))}`;
   const region = w.area || w.eaArea || '';
-  if (region) d += `<br>Region: ${esc(region)}`;
   const range = propRangeLabel(w.propertyCount);
-  if (range) d += `<div class="prop-box"><span class="prop-label">Properties at risk</span><br><b class="prop-value">${esc(range)}</b></div>`;
-  if (w.timeSeverityChanged) d += `<br><small>Severity since ${fmt(w.timeSeverityChanged)}</small>`;
-  if (w.message) d += `<hr style="border:none;border-top:1px solid #eee;margin:6px 0"><div style="max-height:140px;overflow:auto;font-size:11.5px;color:#555">${esc(w.message)}</div>`;
+
+  let d = `<div class="pop-details-header">`
+    + `<b>${esc(w.label)}</b> <span style="font-size:10px;font-weight:700;color:${w.source==='NRW'?'#c026d3':'#0369a1'}">${w.source}</span>`
+    + `<br><span style="color:${s.color};font-weight:600">${s.name}</span>`
+    + `</div>`;
+
+  d += `<table class="pop-table">`;
+  d += `<tr><td class="pop-table-label">Code</td><td class="pop-table-value" style="font-variant-numeric:tabular-nums">${esc(w.code)}</td></tr>`;
+  if (w.category) {
+    d += `<tr><td class="pop-table-label">Flood source</td><td class="pop-table-value">${esc(catLabel(w.category))} <small style="color:#94a3b8">(inferred)</small></td></tr>`;
+  }
+  if (w.river) {
+    d += `<tr><td class="pop-table-label">River/sea</td><td class="pop-table-value">${esc(w.river)}</td></tr>`;
+  }
+  if (counties) {
+    d += `<tr><td class="pop-table-label">Count${w.counties && w.counties.length>1 ? 'ies':'y'}</td><td class="pop-table-value">${esc(counties)}</td></tr>`;
+  }
+  if (w.rainfallZones && w.rainfallZones.length) {
+    d += `<tr><td class="pop-table-label">Rainfall zone${w.rainfallZones.length>1?'s':''}</td><td class="pop-table-value">${esc(w.rainfallZones.join(', '))}</td></tr>`;
+  }
+  if (region) {
+    d += `<tr><td class="pop-table-label">Region</td><td class="pop-table-value">${esc(region)}</td></tr>`;
+  }
+  if (range) {
+    d += `<tr><td class="pop-table-label">Properties</td><td class="pop-table-value"><span class="pop-prop-chip">${esc(range)}</span></td></tr>`;
+  }
+  if (w.timeSeverityChanged) {
+    d += `<tr><td class="pop-table-label">Severity since</td><td class="pop-table-value">${fmt(w.timeSeverityChanged)}</td></tr>`;
+  }
+  d += `</table>`;
+
+  if (w.message) {
+    d += `<hr style="border:none;border-top:1px solid #eee;margin:6px 0"><div style="max-height:80px;overflow:auto;font-size:11.5px;color:#555">${esc(w.message)}</div>`;
+  }
+
   const hist = areaStats[w.code];
   const h = hist ? histBlock(hist, w.severityLevel) : null;
   return tabbedPopup(d, h);
@@ -504,7 +532,6 @@ loadCurrent();
 loadSeries();
 onBoundary('counties');
 loadRivers();
-document.getElementById('riverBtn').checked = riversVisible;
 setInterval(loadCurrent, 5*60*1000);
 </script>
 </body>

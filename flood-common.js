@@ -27,22 +27,42 @@ function fmtEventDateTime(iso) {
   return `${ds}, ${ts}`;
 }
 
-/* Property counts are shown as ranges, never exact numbers — the underlying
-   spatial join is a useful estimate, not a precise figure. */
 const PROP_BUCKETS = [
-  [10, '<10'], [50, '10–50'], [200, '50–200'], [500, '200–500'],
-  [1000, '500–1,000'], [5000, '1,000–5,000'], [20000, '5,000–20,000'],
-  [Infinity, '20,000+'],
+  [50, '<50'],
+  [100, '50–100'],
+  [200, '100–200'],
+  [300, '200–300'],
+  [400, '300–400'],
+  [500, '400–500'],
+  [600, '500–600'],
+  [700, '600–700'],
+  [800, '700–800'],
+  [900, '800–900'],
+  [1000, '900–1,000'],
+  [Infinity, '1,000+'],
 ];
 function propRangeLabel(n) {
   if (n == null || n <= 0) return null;
   for (const [max, label] of PROP_BUCKETS) if (n < max) return label;
-  return '20,000+';
+  return PROP_BUCKETS[PROP_BUCKETS.length - 1][1];
 }
 
 /* Sequential blue scale for the "colour by properties at risk" choropleth
    mode — index lines up 1:1 with PROP_BUCKETS. */
-const PROP_COLORS = ['#eff6ff', '#dbeafe', '#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6', '#2563eb', '#1e3a8a'];
+const PROP_COLORS = [
+  '#eff6ff',
+  '#dbeafe',
+  '#bfdbfe',
+  '#93c5fd',
+  '#60a5fa',
+  '#3b82f6',
+  '#2563eb',
+  '#1d4ed8',
+  '#1e40af',
+  '#1e3a8a',
+  '#172554',
+  '#090d16',
+];
 function propColorIndex(n) {
   if (n == null || n <= 0) return -1;
   for (let i = 0; i < PROP_BUCKETS.length; i++) if (n < PROP_BUCKETS[i][0]) return i;
@@ -112,7 +132,6 @@ function popSwitchTab(btn, i) {
 const BFILES = {catchments: 'uk_catchments.geojson', counties: 'uk-counties.geojson', regions: 'uk_regions.geojson'};
 const boundaryLayers = {};
 let currentBoundary = 'none';
-let riversVisible = true;
 
 function onBoundary(val) {
   if (currentBoundary !== 'none' && boundaryLayers[currentBoundary]) map.removeLayer(boundaryLayers[currentBoundary]);
@@ -128,16 +147,10 @@ function onBoundary(val) {
     .catch(e => console.error('boundary load failed', e));
 }
 
-function toggleRivers() {
-  const cb = document.getElementById('riverBtn');
-  riversVisible = cb ? cb.checked : !riversVisible;
-  if (!riversVisible && boundaryLayers['rivers']) { map.removeLayer(boundaryLayers['rivers']); return; }
-  loadRivers();
-}
-
 function loadRivers() {
   if (boundaryLayers['rivers']) {
-    if (riversVisible) { map.addLayer(boundaryLayers['rivers']); boundaryLayers['rivers'].bringToBack(); }
+    map.addLayer(boundaryLayers['rivers']);
+    boundaryLayers['rivers'].bringToBack();
     return;
   }
   fetch(R2 + '/geo/rivers.geojson').then(r => r.json()).then(d => {
@@ -148,7 +161,8 @@ function loadRivers() {
       },
       interactive: false,
     });
-    if (riversVisible) { map.addLayer(boundaryLayers['rivers']); boundaryLayers['rivers'].bringToBack(); }
+    map.addLayer(boundaryLayers['rivers']);
+    boundaryLayers['rivers'].bringToBack();
   }).catch(e => console.error('rivers:', e));
 }
 
