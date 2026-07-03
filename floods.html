@@ -157,7 +157,7 @@ select.sel { appearance: none; -webkit-appearance: none; background: #f1f3f4; bo
           </select>
         </div>
         <div class="ctl">
-          <label>Water type</label>
+          <label>Flood source</label>
           <select class="sel" id="categorySel" onchange="render()">
             <option value="all">Any</option>
             <option value="river">River</option>
@@ -177,7 +177,7 @@ select.sel { appearance: none; -webkit-appearance: none; background: #f1f3f4; bo
         </select>
       </div>
       <p style="font-size:10.5px;color:#94a3b8;margin:2px 4px 0;line-height:1.4;">
-        Water type is a best-effort classification inferred from area names/descriptions
+        Flood source is a best-effort classification inferred from area names/descriptions
         (and the live isTidal/TIDAL flag where available) — not an official field from either agency.
       </p>
     </div>
@@ -309,7 +309,7 @@ function popupHtml(w) {
   const counties = (w.counties && w.counties.length) ? w.counties.join(', ') : (w.county || '');
   let h = `<b>${esc(w.label)}</b> <span style="font-size:10px;font-weight:700;color:${w.source==='NRW'?'#c026d3':'#0369a1'}">${w.source}</span>`
     + `<br><span style="color:${s.color};font-weight:600">${s.name}</span>`;
-  if (w.category) h += `<br>Water type: ${esc(catLabel(w.category))} <small style="color:#94a3b8">(inferred)</small>`;
+  if (w.category) h += `<br>Flood source: ${esc(catLabel(w.category))} <small style="color:#94a3b8">(inferred)</small>`;
   if (w.river) h += `<br>River/sea: ${esc(w.river)}`;
   if (counties) h += `<br>Count${w.counties && w.counties.length>1 ? 'ies':'y'}: ${esc(counties)}`;
   if (w.rainfallZones && w.rainfallZones.length) h += `<br>Rainfall zone${w.rainfallZones.length>1?'s':''}: ${esc(w.rainfallZones.join(', '))}`;
