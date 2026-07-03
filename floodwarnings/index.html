@@ -176,6 +176,25 @@ select.premium-select:hover { background-color: #e8eaed; }
 .check-pill { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; font-weight: 600;
   white-space: nowrap; cursor: pointer; padding: 8px 10px; border-radius: 20px; background: #f1f3f4; flex-shrink: 0; }
 .check-pill input[type=checkbox] { accent-color: var(--brand-500); width: 15px; height: 15px; cursor: pointer; margin: 0; }
+
+/* "Show" dropdown — boundaries (single choice) + rivers (checkbox) */
+.show-dropdown { position: relative; width: 100%; }
+.show-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
+  appearance: none; background: #f1f3f4; border: none; padding: 8px 12px; border-radius: 20px;
+  font-family: inherit; font-size: 12px; color: #202124; font-weight: 500; cursor: pointer;
+  outline: none; box-sizing: border-box; }
+.show-btn:hover { background: #e8eaed; }
+.show-panel { display: none; position: absolute; bottom: calc(100% + 8px); left: 0; min-width: 190px;
+  background: white; border-radius: 12px; border: 1px solid #dadce0; box-shadow: var(--shadow-panel);
+  z-index: 1010; padding: 6px 0; }
+.show-panel.open { display: block; }
+.show-section-label { font-family: 'Outfit', sans-serif; font-size: 9.5px; font-weight: 700; color: #94a3b8;
+  letter-spacing: .4px; padding: 6px 14px 4px; }
+.show-item { display: flex; align-items: center; gap: 9px; padding: 7px 14px; cursor: pointer;
+  font-size: 12.5px; color: #202124; }
+.show-item:hover { background: #f1f3f4; }
+.show-item input { accent-color: var(--brand-500); width: 15px; height: 15px; cursor: pointer; margin: 0; }
+.show-divider { height: 1px; background: #eef1f4; margin: 5px 0; }
 @media (max-width: 900px) {
   .player-panel { width: 95%; max-width: none; flex-wrap: wrap; gap: 8px 10px; padding: 10px 14px; bottom: 12px; }
   .control-group { flex: 1 1 45%; min-width: 130px; }
@@ -224,11 +243,11 @@ select.premium-select:hover { background-color: #e8eaed; }
           </select>
         </div>
         <div class="control-group">
-          <span class="control-label">Source</span>
+          <span class="control-label">Location</span>
           <select class="premium-select" id="sourceSel" onchange="render()">
-            <option value="all">England &amp; Wales</option>
-            <option value="EA">Environment Agency</option>
-            <option value="NRW">Natural Resources Wales</option>
+            <option value="all">England and Wales</option>
+            <option value="EA">England</option>
+            <option value="NRW">Wales</option>
           </select>
         </div>
         <div class="control-group">
@@ -240,15 +259,22 @@ select.premium-select:hover { background-color: #e8eaed; }
             <option value="groundwater">Groundwater</option>
           </select>
         </div>
-        <div class="control-group boundary-group">
-          <div class="control-sub">
-            <span class="control-label">Boundaries</span>
-            <select class="premium-select" id="boundSel" onchange="onBoundary(this.value)">
-              <option value="none">No overlay</option>
-              <option value="catchments">Catchments</option>
-              <option value="counties" selected>Counties</option>
-              <option value="regions">Regions</option>
-            </select>
+        <div class="control-group">
+          <span class="control-label" style="opacity:0;pointer-events:none">Show</span>
+          <div class="show-dropdown" id="showDropdown">
+            <button class="show-btn" onclick="showToggle(event)" type="button">
+              <span>Show</span>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#5F6368" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="show-panel" id="showPanel">
+              <div class="show-section-label">Boundaries</div>
+              <label class="show-item"><input type="radio" name="boundaryRadio" value="none" onchange="onBoundary('none')"> No overlay</label>
+              <label class="show-item"><input type="radio" name="boundaryRadio" value="catchments" onchange="onBoundary('catchments')"> Catchments</label>
+              <label class="show-item"><input type="radio" name="boundaryRadio" value="counties" checked onchange="onBoundary('counties')"> Counties</label>
+              <label class="show-item"><input type="radio" name="boundaryRadio" value="regions" onchange="onBoundary('regions')"> Regions</label>
+              <div class="show-divider"></div>
+              <label class="show-item"><input type="checkbox" id="riverBtn" onchange="toggleRivers()"> Rivers</label>
+            </div>
           </div>
         </div>
       </div>
@@ -504,9 +530,9 @@ function popupHtml(w) {
 function focusWarning(w) {
   if (document.getElementById('modeSel').value === 'polygons' && polyCache[w.code]) {
     const b = L.geoJSON(polyCache[w.code]).getBounds();
-    if (b.isValid()) { map.fitBounds(b, {maxZoom:11, padding:[30,30]}); return; }
+    if (b.isValid()) { map.panInsideBounds(b, {animate:true}); return; }
   }
-  if (w.lat != null) { map.setView([w.lat, w.long], 10); }
+  if (w.lat != null) { map.panInsideBounds(L.latLngBounds([[w.lat,w.long],[w.lat,w.long]]), {animate:true}); }
 }
 
 function fmt(iso){ try { return new Date(iso).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e){ return iso; } }
@@ -563,7 +589,6 @@ window.addEventListener('resize', () => { drawChart(); });
 loadCurrent();
 loadSeries();
 onBoundary('counties');
-loadRivers();
 setInterval(loadCurrent, 5*60*1000);
 </script>
 </body>
