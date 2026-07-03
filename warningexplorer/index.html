@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Flood Warning Explorer | Flood Forecast</title>
 <meta name="description" content="Explore every Environment Agency (England) and Natural Resources Wales flood warning area and flood alert area on an interactive map.">
-<link rel="icon" type="image/png" href="favicon.png">
+<link rel="icon" type="image/png" href="../favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -14,16 +14,17 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <style>
 :root {
-  --brand-50:  #f0fbfb;
-  --brand-100: #d6f4f4;
-  --brand-200: #AFEAE9;
-  --brand-300: #79D6DA;
-  --brand-400: #44BBC8;
-  --brand-500: #2F8696;
-  --brand-600: #266b78;
-  --brand-700: #1f555f;
-  --navy-900: #293548;
-  --navy-700: #3a4a63;
+  /* Accent matches this project's own theme (index.html/rain/gaugecheck play
+     buttons, active tabs, focus rings) — not an imported reference color. */
+  --brand-50:  #e8f0fe;
+  --brand-100: #d2e3fc;
+  --brand-200: #aecbfa;
+  --brand-300: #8ab4f8;
+  --brand-400: #669df6;
+  --brand-500: #1a73e8;
+  --brand-600: #1557b0;
+  --brand-700: #0f4c96;
+  --ink-900: #1e293b;
   --shadow-panel: 0 8px 32px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.06);
   --shadow-tooltip: 0 8px 24px rgba(0,0,0,.15);
 }
@@ -34,7 +35,7 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 ::-webkit-scrollbar-track { background: #f1f3f4; }
 ::-webkit-scrollbar-thumb { background: #bdc1c6; border-radius: 3px; }
 
-.topbar { background: var(--navy-900); color: #f1f5f9; height: 50px; flex-shrink: 0;
+.topbar { background: var(--ink-900); color: #f1f5f9; height: 50px; flex-shrink: 0;
   display: flex; align-items: center; gap: 16px; padding: 0 18px; }
 .topbar h1 { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700; margin: 0; letter-spacing: 0.3px; }
 .topbar .nav { margin-left: auto; display: flex; gap: 14px; font-size: 13px; }
@@ -47,10 +48,10 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 
 .side { width: 360px; flex: none; border-left: 2px solid #dde1e7; background: white;
   display: flex; flex-direction: column; overflow: hidden; }
-.side-head { background: var(--navy-700); color: #f1f5f9; height: 48px; flex-shrink: 0;
+.side-head { background: var(--ink-900); color: #f1f5f9; height: 48px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
   font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
-.side-head .cnt { font-weight: 500; color: #9adbe0; font-family: 'Roboto', sans-serif; }
+.side-head .cnt { font-weight: 500; color: #93c5fd; font-family: 'Roboto', sans-serif; }
 .side-search { padding: 10px 12px; border-bottom: 1px solid #eef1f4; flex-shrink: 0; }
 .side-search input { width: 100%; box-sizing: border-box; appearance: none; -webkit-appearance: none;
   background: #f1f3f4; border: none; padding: 8px 12px; border-radius: 20px; font-family: inherit;
@@ -70,10 +71,16 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .foot a { color: #60a5fa; }
 
 .leaflet-popup-content { font-family: 'Roboto', sans-serif; font-size: 12.5px; }
+.pop-wrap { min-width: 230px; }
+.pop-tabs { display: flex; gap: 16px; border-bottom: 1px solid #e2e8f0; margin-bottom: 8px; }
+.pop-tab { background: none; border: none; border-bottom: 2px solid transparent; padding: 4px 2px 6px;
+  font-family: 'Roboto', sans-serif; font-size: 11.5px; font-weight: 600; color: #5f6368; cursor: pointer; }
+.pop-tab.active { color: var(--brand-500); border-bottom-color: var(--brand-500); }
+.pop-panel { max-height: 260px; overflow-y: auto; }
 .prop-box { margin: 8px 0; padding: 7px 11px; background: var(--brand-50); border-radius: 8px; }
 .prop-label { font-size: 10.5px; color: #5f6368; }
 .prop-value { font-size: 15px; color: var(--brand-700); font-family: 'Outfit', sans-serif; }
-.hist-block { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #5f6368; }
+.hist-block { font-size: 11px; color: #5f6368; }
 .hist-title { font-family: 'Outfit', sans-serif; font-size: 11.5px; font-weight: 700; color: #334155; }
 .hist-rarity { margin-top: 3px; }
 .hist-rate { margin-top: 2px; }
@@ -121,9 +128,9 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 
 /* bottom control bar */
 .player-panel { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
-  z-index: 1000; width: 92%; max-width: 900px; background: white; border-radius: 24px;
+  z-index: 1000; width: 94%; max-width: 1040px; background: white; border-radius: 24px;
   box-shadow: var(--shadow-panel); padding: 10px 18px; display: flex; align-items: flex-end;
-  gap: 14px; box-sizing: border-box; }
+  gap: 12px; box-sizing: border-box; }
 .control-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
 .control-label { font-family: 'Outfit', sans-serif; font-size: 9.5px; font-weight: 700; color: #5f6368;
   letter-spacing: 0.4px; padding-left: 10px; display: flex; align-items: center; gap: 4px; }
@@ -134,15 +141,26 @@ select.premium-select { appearance: none; -webkit-appearance: none; width: 100%;
   background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 10px center; }
 select.premium-select:hover { background-color: #e8eaed; }
-.boundary-group { flex-direction: row; align-items: flex-end; gap: 6px; }
+.boundary-group { flex: 1.35; flex-direction: row; align-items: flex-end; gap: 6px; }
 .boundary-group .control-sub { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.toggle-pill { border: none; border-radius: 20px; background: #f1f3f4; color: #5f6368;
-  font-size: 12px; font-weight: 600; padding: 8px 14px; cursor: pointer; white-space: nowrap;
-  flex-shrink: 0; transition: background .2s, color .2s; font-family: inherit; }
-.toggle-pill.on { background: var(--brand-500); color: #fff; }
+.check-pill { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; font-weight: 600;
+  white-space: nowrap; cursor: pointer; padding: 8px 10px; border-radius: 20px; background: #f1f3f4; flex-shrink: 0; }
+.check-pill input[type=checkbox] { accent-color: var(--brand-500); width: 15px; height: 15px; cursor: pointer; margin: 0; }
+
+/* risk (properties-at-risk) choropleth legend, shown only when the toggle is on */
+.risk-legend { position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%);
+  z-index: 999; background: white; border-radius: 14px; box-shadow: var(--shadow-panel);
+  padding: 8px 14px; display: none; }
+.risk-legend.show { display: block; }
+.risk-legend-title { font-family: 'Outfit', sans-serif; font-size: 9.5px; font-weight: 700; color: #5f6368;
+  letter-spacing: .4px; margin-bottom: 4px; text-align: center; }
+.risk-legend-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; width: 230px; }
+.risk-legend-bar span { flex: 1; }
+.risk-legend-labels { display: flex; justify-content: space-between; font-size: 9px; color: #94a3b8; margin-top: 3px; width: 230px; }
 @media (max-width: 900px) {
   .player-panel { width: 95%; max-width: none; flex-wrap: wrap; gap: 8px 10px; padding: 10px 14px; bottom: 12px; }
   .control-group { flex: 1 1 45%; min-width: 130px; }
+  .risk-legend { bottom: auto; top: 16px; left: 16px; transform: none; }
 }
 </style>
 </head>
@@ -150,8 +168,8 @@ select.premium-select:hover { background-color: #e8eaed; }
 <div class="topbar">
   <h1>Flood Warning Explorer</h1>
   <div class="nav">
-    <a href="floods.html">Active warnings</a>
-    <a href="menu.html">Menu</a>
+    <a href="/floodwarnings">Active warnings</a>
+    <a href="/menu.html">Menu</a>
   </div>
 </div>
 
@@ -169,6 +187,17 @@ select.premium-select:hover { background-color: #e8eaed; }
         <button class="geo-clear" onclick="geoClear(event)" title="Clear" type="button">&times;</button>
       </div>
       <div class="geo-drop2" id="geoDrop"></div>
+    </div>
+
+    <div class="risk-legend" id="riskLegend">
+      <div class="risk-legend-title">Properties at risk</div>
+      <div class="risk-legend-bar">
+        <span style="background:#eff6ff"></span><span style="background:#dbeafe"></span>
+        <span style="background:#bfdbfe"></span><span style="background:#93c5fd"></span>
+        <span style="background:#60a5fa"></span><span style="background:#3b82f6"></span>
+        <span style="background:#2563eb"></span><span style="background:#1e3a8a"></span>
+      </div>
+      <div class="risk-legend-labels"><span>&lt;10</span><span>20,000+</span></div>
     </div>
 
     <div class="player-panel">
@@ -189,7 +218,7 @@ select.premium-select:hover { background-color: #e8eaed; }
         </select>
       </div>
       <div class="control-group">
-        <span class="control-label">Water type <span class="info-ico" title="Best-effort classification inferred from area names/descriptions and the live isTidal/TIDAL flag where available — not an official field from either agency.">&#9432;</span></span>
+        <span class="control-label">Flood source <span class="info-ico" title="Best-effort classification inferred from area names/descriptions and the live isTidal/TIDAL flag where available — not an official field from either agency.">&#9432;</span></span>
         <select class="premium-select" id="categorySel" onchange="applyFilters()">
           <option value="all">Any</option>
           <option value="river">River</option>
@@ -197,12 +226,17 @@ select.premium-select:hover { background-color: #e8eaed; }
           <option value="groundwater">Groundwater</option>
         </select>
       </div>
-      <div class="control-group">
-        <span class="control-label">Display</span>
-        <select class="premium-select" id="displaySel" onchange="onDisplayMode(this.value)">
-          <option value="polygons">Polygons</option>
-          <option value="centroids">Centroids</option>
-        </select>
+      <div class="control-group boundary-group">
+        <div class="control-sub">
+          <span class="control-label">Display</span>
+          <select class="premium-select" id="displaySel" onchange="onDisplayMode(this.value)">
+            <option value="polygons">Polygons</option>
+            <option value="centroids">Centroids</option>
+          </select>
+        </div>
+        <label class="check-pill" title="Colour polygons by properties at risk; scale icon size in centroid mode">
+          <input type="checkbox" id="riskToggle" onchange="onRiskToggle(this.checked)"> Risk
+        </label>
       </div>
       <div class="control-group boundary-group">
         <div class="control-sub">
@@ -214,7 +248,7 @@ select.premium-select:hover { background-color: #e8eaed; }
             <option value="regions">Regions</option>
           </select>
         </div>
-        <button id="riverBtn" class="toggle-pill" onclick="toggleRivers()">Rivers</button>
+        <label class="check-pill"><input type="checkbox" id="riverBtn" onchange="toggleRivers()"> Rivers</label>
       </div>
     </div>
   </div>
@@ -234,7 +268,7 @@ select.premium-select:hover { background-color: #e8eaed; }
   </div>
 </div>
 
-<script src="flood-common.js"></script>
+<script src="../flood-common.js"></script>
 <script>
 const R2 = 'https://radar.floodforecast.co.uk';
 const COL = {warning:'#d93025', alert:'#f9ab00'};
@@ -254,6 +288,13 @@ let layer = null;              // current geojson layer
 const fullCache = {};          // "SOURCE:code" -> full-res feature
 let selected = null;
 let displayMode = 'polygons';
+let colorByRisk = false;
+
+function onRiskToggle(checked) {
+  colorByRisk = checked;
+  document.getElementById('riskLegend').classList.toggle('show', colorByRisk);
+  applyFilters();
+}
 
 // Per-agency reference: R2 prefix for polygons/{code}.json lookups + human label.
 const SOURCES = {
@@ -261,8 +302,19 @@ const SOURCES = {
   NRW: { prefix: 'nrw/floodareas', label: 'Natural Resources Wales' },
 };
 
-function style(f){ return {color: COL[f.properties.type]||'#5f6368', weight:1,
-  fillColor: COL[f.properties.type]||'#5f6368', fillOpacity:0.18}; }
+function style(f){
+  // Leaflet's resetStyle() calls this for circleMarkers too (they have
+  // setStyle) — return {} for Points so pointToLayer's own color/radius
+  // logic isn't clobbered (icons keep the original severity colour scheme
+  // even in "colour by risk" mode; only polygon fill uses the risk scale).
+  if (f.geometry && f.geometry.type === 'Point') return {};
+  if (colorByRisk) {
+    const c = propColor(f.properties.propertyCount);
+    return {color:c, weight:1, fillColor:c, fillOpacity:0.5};
+  }
+  return {color: COL[f.properties.type]||'#5f6368', weight:1,
+    fillColor: COL[f.properties.type]||'#5f6368', fillOpacity:0.18};
+}
 
 function fetchJson(url){ return fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }); }
 
@@ -272,13 +324,13 @@ function load() {
   const loadPolys = (source) => {
     const pfx = SOURCES[source].prefix;
     return fetchJson(R2+'/'+pfx+'/polygons_all.min.geojson')
-      .catch(()=>fetchJson(pfx+'/polygons_all.min.geojson'))
+      .catch(()=>fetchJson('../'+pfx+'/polygons_all.min.geojson'))
       .then(tag(source)).catch(()=>[]);
   };
   const loadCents = (source) => {
     const pfx = SOURCES[source].prefix;
     return fetchJson(R2+'/'+pfx+'/centroids.geojson')
-      .catch(()=>fetchJson(pfx+'/centroids.geojson'))
+      .catch(()=>fetchJson('../'+pfx+'/centroids.geojson'))
       .then(tag(source)).catch(()=>[]);
   };
   const srcs = Object.keys(SOURCES);
@@ -338,8 +390,12 @@ function applyFilters() {
   if (layer) map.removeLayer(layer);
   layer = L.geoJSON({type:'FeatureCollection', features:fs}, {
     style,
-    pointToLayer: (f, latlng) => L.circleMarker(latlng, {radius:5, weight:1.5,
-      color:'#fff', fillColor: COL[f.properties.type]||'#5f6368', fillOpacity:0.9}),
+    pointToLayer: (f, latlng) => {
+      const idx = propColorIndex(f.properties.propertyCount);
+      const radius = colorByRisk ? (idx < 0 ? 4 : 5 + idx * 1.4) : 5;
+      return L.circleMarker(latlng, {radius, weight:1.5,
+        color:'#fff', fillColor: COL[f.properties.type]||'#5f6368', fillOpacity:0.9});
+    },
     onEachFeature: (f, lyr) => {
       lyr.on('click', () => selectArea(f, lyr));
       lyr.bindTooltip(() => tipContent(f.properties), {sticky:true, className:'ff-tip'});
@@ -388,27 +444,27 @@ function selectArea(f, lyr, zoom) {
 
 function popupHtml(p) {
   const counties = (p.counties && p.counties.length) ? p.counties.join(', ') : (p.county || '');
-  let h = `<b>${esc(p.label)}</b> <span style="font-size:10px;font-weight:700;color:${p.source==='NRW'?'#c026d3':'#0369a1'}">${p.source}</span>`
+  let d = `<b>${esc(p.label)}</b> <span style="font-size:10px;font-weight:700;color:${p.source==='NRW'?'#c026d3':'#0369a1'}">${p.source}</span>`
     + `<br><span style="color:${COL[p.type]};font-weight:600">`
     + `${p.type==='warning'?'Flood warning area':'Flood alert area'}</span>`;
-  if (p.category) h += `<br>Flood source: ${esc(catLabel(p.category))} <small style="color:#94a3b8">(inferred)</small>`;
-  if (p.river) h += `<br>River/sea: ${esc(p.river)}`;
-  if (counties) h += `<br>Count${p.counties && p.counties.length>1 ? 'ies':'y'}: ${esc(counties)}`;
-  if (p.rainfallZones && p.rainfallZones.length) h += `<br>Rainfall zone${p.rainfallZones.length>1?'s':''}: ${esc(p.rainfallZones.join(', '))}`;
+  if (p.category) d += `<br>Flood source: ${esc(catLabel(p.category))} <small style="color:#94a3b8">(inferred)</small>`;
+  if (p.river) d += `<br>River/sea: ${esc(p.river)}`;
+  if (counties) d += `<br>Count${p.counties && p.counties.length>1 ? 'ies':'y'}: ${esc(counties)}`;
+  if (p.rainfallZones && p.rainfallZones.length) d += `<br>Rainfall zone${p.rainfallZones.length>1?'s':''}: ${esc(p.rainfallZones.join(', '))}`;
   const region = p.area || p.eaArea || '';
-  if (region) h += `<br>Region: ${esc(region)}`;
+  if (region) d += `<br>Region: ${esc(region)}`;
   const range = propRangeLabel(p.propertyCount);
-  if (range) h += `<div class="prop-box"><span class="prop-label">Properties at risk</span><br><b class="prop-value">${esc(range)}</b></div>`;
+  if (range) d += `<div class="prop-box"><span class="prop-label">Properties at risk</span><br><b class="prop-value">${esc(range)}</b></div>`;
+  d += `<br><small style="color:#94a3b8">${esc(p.code)}</small>`;
   const hist = areaStats[p.code];
-  if (hist) h += histBlock(hist, p.type === 'warning' ? 2 : 1);
-  h += `<br><small style="color:#94a3b8">${esc(p.code)}</small>`;
-  return h;
+  const h = hist ? histBlock(hist, p.type === 'warning' ? 2 : 1) : null;
+  return tabbedPopup(d, h);
 }
 
 load();
 onBoundary('counties');
 loadRivers();
-document.getElementById('riverBtn').classList.toggle('on', riversVisible);
+document.getElementById('riverBtn').checked = riversVisible;
 </script>
 </body>
 </html>
