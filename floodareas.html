@@ -117,8 +117,8 @@ select.sel { padding-right: 30px; cursor: pointer;
           <option value="catchments">Catchments</option>
           <option value="counties" selected>Counties</option>
           <option value="regions">Regions</option>
-          <option value="rivers">Rivers</option>
         </select>
+        <button id="riverBtn" onclick="toggleRivers()" style="padding:4px 10px;border:1px solid #334155;border-radius:6px;background:#1e293b;color:#94a3b8;cursor:pointer;font-size:12px;white-space:nowrap">Rivers</button>
       </div>
       <div class="legend">
         <span><i style="background:#d93025"></i>Warning area</span>
@@ -286,14 +286,14 @@ function popupHtml(p) {
 
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-/* boundaries + rivers overlay */
+/* boundaries overlay */
 const BFILES = {catchments:'uk_catchments.geojson', counties:'uk-counties.geojson', regions:'uk_regions.geojson'};
 const boundaryLayers = {}; let currentBoundary='none';
+let riversVisible = false;
 function onBoundary(val) {
   if (currentBoundary!=='none' && boundaryLayers[currentBoundary]) map.removeLayer(boundaryLayers[currentBoundary]);
   currentBoundary = val;
   if (val==='none') return;
-  if (val==='rivers') { loadRivers(); return; }
   if (!BFILES[val]) return;
   if (boundaryLayers[val]) { map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); return; }
   fetch(BFILES[val]).then(r=>{if(!r.ok)throw 0;return r.json();})
@@ -301,6 +301,16 @@ function onBoundary(val) {
     .then(d=>{ boundaryLayers[val]=L.geoJSON(d,{style:{color:'#5f6368',weight:1,fillOpacity:0},interactive:false});
       if(currentBoundary===val){map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack();} })
     .catch(e=>console.error(e));
+}
+
+function toggleRivers() {
+  riversVisible = !riversVisible;
+  const btn = document.getElementById('riverBtn');
+  btn.style.background = riversVisible ? '#1d4ed8' : '#1e293b';
+  btn.style.color = riversVisible ? '#fff' : '#94a3b8';
+  btn.style.borderColor = riversVisible ? '#1d4ed8' : '#334155';
+  if (!riversVisible && boundaryLayers['rivers']) { map.removeLayer(boundaryLayers['rivers']); return; }
+  loadRivers();
 }
 
 function loadRivers() {
@@ -314,7 +324,7 @@ function loadRivers() {
       },
       interactive: false,
     });
-    if (currentBoundary==='rivers') { map.addLayer(boundaryLayers['rivers']); boundaryLayers['rivers'].bringToBack(); }
+    if (riversVisible) { map.addLayer(boundaryLayers['rivers']); boundaryLayers['rivers'].bringToBack(); }
   }).catch(e=>console.error('rivers:', e));
 }
 
