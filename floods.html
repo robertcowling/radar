@@ -168,13 +168,15 @@ select.sel { appearance: none; -webkit-appearance: none; background: #f1f3f4; bo
       </div>
       <div class="ctl">
         <label>Boundary overlay</label>
-        <select class="sel" id="boundSel" onchange="onBoundary(this.value)">
-          <option value="none">None</option>
-          <option value="catchments">Catchments</option>
-          <option value="counties" selected>Counties</option>
-          <option value="regions">Regions</option>
-          <option value="rivers">Rivers</option>
-        </select>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select class="sel" id="boundSel" onchange="onBoundary(this.value)" style="flex:1">
+            <option value="none">None</option>
+            <option value="catchments">Catchments</option>
+            <option value="counties" selected>Counties</option>
+            <option value="regions">Regions</option>
+          </select>
+          <button id="riverBtn" onclick="toggleRivers()" style="padding:4px 10px;border:1px solid #334155;border-radius:6px;background:#1e293b;color:#94a3b8;cursor:pointer;font-size:12px;white-space:nowrap">Rivers</button>
+        </div>
       </div>
       <p style="font-size:10.5px;color:#94a3b8;margin:2px 4px 0;line-height:1.4;">
         Flood source is a best-effort classification inferred from area names/descriptions
@@ -333,12 +335,11 @@ function fmt(iso){ try { return new Date(iso).toLocaleString('en-GB',{day:'numer
 
 /* ── Boundary overlays (same pattern as the other viewers) ── */
 const BFILES = {catchments:'uk_catchments.geojson', counties:'uk-counties.geojson', regions:'uk_regions.geojson'};
-const boundaryLayers = {}; let currentBoundary = 'none';
+const boundaryLayers = {}; let currentBoundary = 'none'; let riversVisible = false;
 function onBoundary(val) {
   if (currentBoundary !== 'none' && boundaryLayers[currentBoundary]) map.removeLayer(boundaryLayers[currentBoundary]);
   currentBoundary = val;
   if (val === 'none') return;
-  if (val === 'rivers') { loadRivers(); return; }
   if (!BFILES[val]) return;
   if (boundaryLayers[val]) { map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); return; }
   fetch(BFILES[val]).then(r=>{if(!r.ok)throw 0;return r.json();})
@@ -346,6 +347,16 @@ function onBoundary(val) {
     .then(d => { boundaryLayers[val] = L.geoJSON(d, {style:{color:'#5f6368',weight:1,fillOpacity:0},interactive:false});
       if (currentBoundary===val){ map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); } })
     .catch(e=>console.error('boundary load failed', e));
+}
+
+function toggleRivers() {
+  riversVisible = !riversVisible;
+  const btn = document.getElementById('riverBtn');
+  btn.style.background = riversVisible ? '#1d4ed8' : '#1e293b';
+  btn.style.color = riversVisible ? '#fff' : '#94a3b8';
+  btn.style.borderColor = riversVisible ? '#1d4ed8' : '#334155';
+  if (!riversVisible && boundaryLayers['rivers']) { map.removeLayer(boundaryLayers['rivers']); return; }
+  loadRivers();
 }
 
 function loadRivers() {
@@ -359,7 +370,7 @@ function loadRivers() {
       },
       interactive: false,
     });
-    if (currentBoundary==='rivers') { map.addLayer(boundaryLayers['rivers']); boundaryLayers['rivers'].bringToBack(); }
+    if (riversVisible) { map.addLayer(boundaryLayers['rivers']); boundaryLayers['rivers'].bringToBack(); }
   }).catch(e=>console.error('rivers:', e));
 }
 
