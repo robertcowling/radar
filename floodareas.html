@@ -88,7 +88,13 @@ select.sel { padding-right: 30px; cursor: pointer;
           <option value="coastal">Coastal &amp; tidal</option>
           <option value="groundwater">Groundwater</option>
         </select>
-        <select class="sel" id="boundSel" onchange="onBoundary(this.value)">
+        <select class="sel" id="displaySel" onchange="onDisplayMode(this.value)">
+          <option value="polygons">Polygons</option>
+          <option value="centroids">Centroids</option>
+        </select>
+      </div>
+      <div class="ctl-row">
+        <select class="sel" id="boundSel" onchange="onBoundary(this.value)" style="flex:1">
           <option value="none">No overlay</option>
           <option value="catchments">Catchments</option>
           <option value="counties" selected>Counties</option>
@@ -117,11 +123,13 @@ const map = L.map('map').setView([52.8, -1.5], 6);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   {attribution:'&copy; OpenStreetMap &copy; CARTO', maxZoom:18, subdomains:'abcd'}).addTo(map);
 
-let allFeatures = [];          // simplified overview features (polygons) or centroids, from all sources
+let polyFeatures = [];         // polygon overview features per source
+let centFeatures = [];         // centroid point features per source
+let allFeatures = [];          // active set (poly or cent depending on displaySel)
 let layer = null;              // current geojson layer
 const fullCache = {};          // "SOURCE:code" -> full-res feature
 let selected = null;
-const pointModeBySource = {};  // source -> true when only centroids are available for it
+let displayMode = 'polygons';
 
 // Per-agency reference: R2 prefix for polygons/{code}.json lookups + human label.
 const SOURCES = {
@@ -135,40 +143,38 @@ function style(f){ return {color: COL[f.properties.type]||'#5f6368', weight:1,
 function fetchJson(url){ return fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }); }
 
 function load() {
-  Promise.all(Object.keys(SOURCES).map(loadSource)).then(results => {
-    allFeatures = results.flat();
+  // Load polygons and centroids for all sources in parallel.
+  const tag = (source) => (d) => { (d.features||[]).forEach(f => { f.properties.source = source; }); return d.features||[]; };
+  const loadPolys = (source) => {
+    const pfx = SOURCES[source].prefix;
+    return fetchJson(R2+'/'+pfx+'/polygons_all.min.geojson')
+      .catch(()=>fetchJson(pfx+'/polygons_all.min.geojson'))
+      .then(tag(source)).catch(()=>[]);
+  };
+  const loadCents = (source) => {
+    const pfx = SOURCES[source].prefix;
+    return fetchJson(R2+'/'+pfx+'/centroids.geojson')
+      .catch(()=>fetchJson(pfx+'/centroids.geojson'))
+      .then(tag(source)).catch(()=>[]);
+  };
+  const srcs = Object.keys(SOURCES);
+  Promise.all([
+    Promise.all(srcs.map(loadPolys)),
+    Promise.all(srcs.map(loadCents)),
+  ]).then(([polys, cents]) => {
+    polyFeatures = polys.flat();
+    centFeatures = cents.flat();
+    allFeatures = displayMode === 'centroids' ? centFeatures : polyFeatures;
     applyFilters();
-    if (!allFeatures.length) {
-      document.getElementById('list').innerHTML = '<div class="empty">Could not load any flood areas. Have fetch_ea_floodareas.py / build_nrw_floodareas.py been run?</div>';
-    }
+    if (!allFeatures.length)
+      document.getElementById('list').innerHTML = '<div class="empty">Could not load flood areas.</div>';
   });
 }
 
-function loadSource(source) {
-  const pfx = SOURCES[source].prefix;
-  const tag = (d) => (d.features || []).forEach(f => { f.properties.source = source; });
-  // Preferred: the simplified combined polygon overview.
-  return fetchJson(R2 + '/' + pfx + '/polygons_all.min.geojson')
-    .catch(() => fetchJson(pfx + '/polygons_all.min.geojson'))
-    .then(d => { pointModeBySource[source] = false; tag(d); return d.features || []; })
-    .catch(() => loadCentroids(source));
-}
-
-function loadCentroids(source) {
-  // Fallback: centroids are written early in a reference build, so show points
-  // (with exact polygons on click) until the heavier combined file lands.
-  const pfx = SOURCES[source].prefix;
-  return fetchJson(R2 + '/' + pfx + '/centroids.geojson')
-    .catch(() => fetchJson(pfx + '/centroids.geojson'))
-    .then(d => {
-      pointModeBySource[source] = true;
-      (d.features || []).forEach(f => { f.properties.source = source; });
-      const n = document.createElement('div'); n.className = 'foot'; n.style.color = '#b45309';
-      n.textContent = SOURCES[source].label + ': showing centroids — the full polygon overview is still building; click any area for its exact boundary.';
-      document.querySelector('.controls').appendChild(n);
-      return d.features || [];
-    })
-    .catch(() => { console.warn(source + ': no flood-area data available'); return []; });
+function onDisplayMode(val) {
+  displayMode = val;
+  allFeatures = displayMode === 'centroids' ? centFeatures : polyFeatures;
+  applyFilters();
 }
 
 function filtered() {
