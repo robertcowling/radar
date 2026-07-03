@@ -205,6 +205,7 @@ def main():
             "long": lon,
             "areaType": ref.get("type", "warning"),
             "source": "NRW",
+            "propertyCount": ref.get("propertyCount", 0),
         }
         warnings.append(w)
         if lvl == 1:
@@ -247,6 +248,26 @@ def main():
             r2_put_json(r2, EVENTS_KEY, events_obj)
         write_local("nrw/timeline/events.json", events_obj)
         print(f"  Appended {len(new_events)} event(s); {len(events_obj['events'])} total.")
+
+        # Update flood history stats whenever new warnings are raised
+        raised = [e for e in new_events if e.get("kind") == "raised" and (e.get("to") or 9) < 4]
+        if raised and r2:
+            try:
+                from update_flood_stats import append_and_rebuild
+                history_events = [
+                    {
+                        "date":   e["t"],
+                        "code":   e["code"],
+                        "name":   e.get("label", ""),
+                        "type":   SEV_NAME.get(e["to"], "Flood Alert"),
+                        "area":   e.get("county", ""),
+                        "source": "NRW",
+                    }
+                    for e in raised
+                ]
+                append_and_rebuild(history_events, r2, R2_BUCKET)
+            except Exception as exc:
+                print(f"  [flood_stats] Update skipped: {exc}")
     else:
         print("  No state changes.")
 
