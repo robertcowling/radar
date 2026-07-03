@@ -99,6 +99,7 @@ select.sel { padding-right: 30px; cursor: pointer;
           <option value="catchments">Catchments</option>
           <option value="counties" selected>Counties</option>
           <option value="regions">Regions</option>
+          <option value="rivers">Rivers</option>
         </select>
       </div>
       <div class="legend">
@@ -267,19 +268,36 @@ function popupHtml(p) {
 
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-/* boundaries */
+/* boundaries + rivers overlay */
 const BFILES = {catchments:'uk_catchments.geojson', counties:'uk-counties.geojson', regions:'uk_regions.geojson'};
 const boundaryLayers = {}; let currentBoundary='none';
 function onBoundary(val) {
   if (currentBoundary!=='none' && boundaryLayers[currentBoundary]) map.removeLayer(boundaryLayers[currentBoundary]);
   currentBoundary = val;
-  if (val==='none'||!BFILES[val]) return;
+  if (val==='none') return;
+  if (val==='rivers') { loadRivers(); return; }
+  if (!BFILES[val]) return;
   if (boundaryLayers[val]) { map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); return; }
   fetch(BFILES[val]).then(r=>{if(!r.ok)throw 0;return r.json();})
     .catch(()=>fetch(R2+'/'+BFILES[val]).then(r=>r.json()))
     .then(d=>{ boundaryLayers[val]=L.geoJSON(d,{style:{color:'#5f6368',weight:1,fillOpacity:0},interactive:false});
       if(currentBoundary===val){map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack();} })
     .catch(e=>console.error(e));
+}
+
+function loadRivers() {
+  if (boundaryLayers['rivers']) { map.addLayer(boundaryLayers['rivers']); boundaryLayers['rivers'].bringToBack(); return; }
+  fetch(R2+'/geo/rivers.geojson').then(r=>r.json()).then(d=>{
+    boundaryLayers['rivers'] = L.geoJSON(d, {
+      style: f => {
+        const order = f.properties['Strahler Stream Order'] || 1;
+        return { color:'#3b82f6', weight: order >= 6 ? 2 : order >= 4 ? 1.2 : 0.6,
+                 opacity: order >= 4 ? 0.7 : 0.4 };
+      },
+      interactive: false,
+    });
+    if (currentBoundary==='rivers') { map.addLayer(boundaryLayers['rivers']); boundaryLayers['rivers'].bringToBack(); }
+  }).catch(e=>console.error('rivers:', e));
 }
 
 load();
