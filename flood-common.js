@@ -144,11 +144,20 @@ let riversVisible = false;
 
 /* L.LayerGroup has no bringToBack() (only vector/Path layers do) — the
    boundary/river overlays are two-layer glow groups, so bring each child
-   layer to back individually. */
+   layer to back individually. Each bringToBack() call re-inserts its layer
+   as the very first (bottom-most) child, so whichever call happens LAST
+   ends up truly at the back — iterate in REVERSE of the group's creation
+   order so the first-added child (the halo, meant to sit underneath)
+   is called last and ends up at the bottom, preserving halo-under-line. */
 function _bringGroupToBack(group) {
   if (!group) return;
   if (typeof group.bringToBack === 'function') { group.bringToBack(); return; }
-  if (typeof group.eachLayer === 'function') group.eachLayer(l => { if (l.bringToBack) l.bringToBack(); });
+  if (typeof group.eachLayer !== 'function') return;
+  const layers = [];
+  group.eachLayer(l => layers.push(l));
+  for (let i = layers.length - 1; i >= 0; i--) {
+    if (layers[i].bringToBack) layers[i].bringToBack();
+  }
 }
 
 function onBoundary(val) {
