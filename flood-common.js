@@ -72,6 +72,15 @@ function propColor(n) {
   const i = propColorIndex(n);
   return i < 0 ? '#cbd5e1' : PROP_COLORS[i];
 }
+function propChipHtml(n) {
+  const range = propRangeLabel(n);
+  if (!range) return '';
+  const idx = propColorIndex(n);
+  const bg = idx < 0 ? '#cbd5e1' : PROP_COLORS[idx];
+  const fg = (idx >= 0 && idx <= 4) ? '#1f2937' : '#ffffff';
+  const border = (idx === 0) ? 'border:1px solid #d1d5db;' : '';
+  return `<span class="pop-prop-chip" style="background:${bg};color:${fg};${border}">${esc(range)}</span>`;
+}
 
 function getRarityInfo(hist, severityTier) {
   if (!hist) return null;
@@ -140,10 +149,25 @@ function onBoundary(val) {
   fetch('../' + BFILES[val]).then(r => { if (!r.ok) throw 0; return r.json(); })
     .catch(() => fetch(R2 + '/' + BFILES[val]).then(r => r.json()))
     .then(d => {
-      boundaryLayers[val] = L.geoJSON(d, {style: {color: '#5f6368', weight: 1, fillOpacity: 0}, interactive: false});
+      const weight = val === 'regions' ? 1.5 : 1.0;
+      boundaryLayers[val] = L.geoJSON(d, {
+        style: {color: '#5f6368', weight: weight, fillOpacity: 0, className: 'region-boundary'},
+        interactive: false
+      });
       if (currentBoundary === val) { map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); }
     })
     .catch(e => console.error('boundary load failed', e));
+}
+
+function _strahlerOrder(props) {
+  if (!props) return 1;
+  const o = props['Strahler Stream Order'] || props.strahler || props.STRAHLER ||
+            props.stream_order || props.STREAM_ORDER || props.StreamOrde || props.streamorde || 1;
+  return parseInt(o) || 1;
+}
+function _riverWeight(order) {
+  const w = [0.5, 0.5, 0.7, 1.0, 1.6, 2.4, 3.5];
+  return w[Math.min(order - 1, 6)];
 }
 
 function loadRivers() {
@@ -153,13 +177,18 @@ function loadRivers() {
     return;
   }
   fetch(R2 + '/geo/rivers.geojson').then(r => r.json()).then(d => {
-    boundaryLayers['rivers'] = L.geoJSON(d, {
-      style: f => {
-        const order = f.properties['Strahler Stream Order'] || 1;
-        return {color: '#3b82f6', weight: order >= 6 ? 2 : order >= 4 ? 1.2 : 0.6, opacity: order >= 4 ? 0.7 : 0.4};
-      },
-      interactive: false,
-    });
+    const gstyle = f => {
+      const o = _strahlerOrder(f.properties);
+      return { color: '#7ab8d4', weight: _riverWeight(o) * 2.2, opacity: 0.18, interactive: false };
+    };
+    const mstyle = f => {
+      const o = _strahlerOrder(f.properties);
+      return { color: '#1e6a96', weight: _riverWeight(o), opacity: 0.85, interactive: false };
+    };
+    boundaryLayers['rivers'] = L.layerGroup([
+      L.geoJSON(d, { style: gstyle }),
+      L.geoJSON(d, { style: mstyle })
+    ]);
     map.addLayer(boundaryLayers['rivers']);
     boundaryLayers['rivers'].bringToBack();
   }).catch(e => console.error('rivers:', e));
@@ -223,8 +252,20 @@ function geoGoto(result) {
   const bb = result.boundingbox;
   if (bb) map.fitBounds([[+bb[0], +bb[2]], [+bb[1], +bb[3]]], {maxZoom: 13});
   else map.setView([lat, lon], 12);
-  geoPin = L.circleMarker([lat, lon], {radius: 8, color: '#1d4ed8', weight: 2,
-    fillColor: '#3b82f6', fillOpacity: 0.9}).addTo(map)
+
+  const pinSvg = `<svg viewBox="0 0 24 30" width="30" height="38" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));">`
+    + `<path d="M12 2C7.03 2 3 6.03 3 11c0 6.75 9 17 9 17s9-10.25 9-17c0-4.97-4.03-9-9-9z" fill="#374151" stroke="white" stroke-width="1.5" stroke-linejoin="round" />`
+    + `<circle cx="12" cy="11" r="3" fill="white" />`
+    + `</svg>`;
+  const icon = L.divIcon({
+    html: pinSvg,
+    iconSize: [30, 38],
+    iconAnchor: [15, 38],
+    className: 'geo-pin-icon',
+    popupAnchor: [0, -38]
+  });
+
+  geoPin = L.marker([lat, lon], {icon: icon}).addTo(map)
     .bindTooltip(result.display_name.split(',').slice(0, 2).join(', '), {permanent: false, className: 'ff-tip'});
   geoPin.on('click', () => { map.removeLayer(geoPin); geoPin = null; });
 }
