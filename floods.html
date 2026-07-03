@@ -191,6 +191,12 @@ select.sel { appearance: none; -webkit-appearance: none; background: #f1f3f4; bo
 
 <script>
 const R2 = 'https://radar.floodforecast.co.uk';
+
+let areaStats = {};
+fetch(R2 + '/flood_history/area_stats.json')
+  .then(r => r.json()).then(d => { areaStats = d; })
+  .catch(() => {});
+
 const SEV = {
   1: {name:'Severe Flood Warning', color:'#6d0019', short:'Severe'},
   2: {name:'Flood Warning',        color:'#d93025', short:'Warning'},
@@ -282,6 +288,7 @@ function render() {
       const s = SEV[w.severityLevel];
       L.circleMarker([w.lat, w.long], {radius:8, color:'#fff', weight:2,
         fillColor:s.color, fillOpacity:0.95})
+        .bindTooltip(warningTooltip(w), {sticky:true})
         .bindPopup(popupHtml(w)).addTo(markerLayer);
     });
   } else {
@@ -294,7 +301,7 @@ function loadPoly(w) {
   const cacheKey = w.source + ':' + w.code;
   const draw = (feat) => {
     const gj = L.geoJSON(feat, {style:{color:s.color, weight:1.5, fillColor:s.color,
-      fillOpacity:0.35}}).bindPopup(popupHtml(w));
+      fillOpacity:0.35}}).bindTooltip(warningTooltip(w), {sticky:true}).bindPopup(popupHtml(w));
     gj.addTo(polyLayer);
   };
   if (polyCache[cacheKey]) { draw(polyCache[cacheKey]); return; }
@@ -304,6 +311,48 @@ function loadPoly(w) {
       if (w.lat != null) L.circleMarker([w.lat, w.long], {radius:8, color:'#fff',
         weight:2, fillColor:s.color, fillOpacity:0.95}).bindPopup(popupHtml(w)).addTo(polyLayer);
     });
+}
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function histBlock(hist, severityTier) {
+  const f = hist.freq && hist.freq[String(severityTier)];
+  const tierLabel = f ? f.label : (hist.freq && hist.freq[String(hist.max_severity)] ? hist.freq[String(hist.max_severity)].label : null);
+  const pct = f ? f.percentile : null;
+  const lastD = hist.last_issued ? new Date(hist.last_issued) : null;
+  const lastStr = lastD ? `${MONTHS[lastD.getUTCMonth()]} ${lastD.getUTCFullYear()}` : null;
+  const rate = hist.per_year;
+  const rateStr = rate >= 1 ? `${rate.toFixed(1)}/yr` : rate > 0 ? `1 every ${Math.round(1/rate)} yrs` : null;
+  const recent = (hist.last_10 || []).slice(0,3).map(e => {
+    const d = new Date(e.d); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  });
+  let h = `<hr style="border:none;border-top:1px solid #e2e8f0;margin:6px 0">`;
+  h += `<div style="font-size:11px;color:#64748b;line-height:1.6">`;
+  h += `<b style="color:#334155;font-size:11.5px">Flood history</b>`;
+  if (hist.total_issued) h += ` <span style="color:#94a3b8">· ${hist.total_issued} events since ${hist.first_issued ? hist.first_issued.slice(0,4) : '?'}</span>`;
+  if (tierLabel) {
+    const pctOrd = pct != null ? ordinal(Math.round(pct)) : '';
+    h += `<br>Rarity: <b>${esc(tierLabel)}</b>`;
+    if (pctOrd) h += ` <span style="color:#94a3b8">(${pctOrd} percentile)</span>`;
+  }
+  if (rateStr) h += `<br>Rate: ~${rateStr}`;
+  if (lastStr) h += ` · last ${lastStr}`;
+  if (recent.length) h += `<br><span style="color:#94a3b8">Recent: ${recent.join(' · ')}</span>`;
+  h += `</div>`;
+  return h;
+}
+
+function ordinal(n) {
+  const s = ['th','st','nd','rd'], v = n%100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+
+function warningTooltip(w) {
+  const s = SEV[w.severityLevel];
+  const hist = areaStats[w.code];
+  const tier = String(w.severityLevel);
+  const label = hist && hist.freq && hist.freq[tier] ? hist.freq[tier].label : null;
+  return w.label + `<br><span style="color:${s.color};font-weight:600">${s.short}</span>` + (label ? ` · ${label}` : '');
 }
 
 function popupHtml(w) {
@@ -317,6 +366,9 @@ function popupHtml(w) {
   if (w.rainfallZones && w.rainfallZones.length) h += `<br>Rainfall zone${w.rainfallZones.length>1?'s':''}: ${esc(w.rainfallZones.join(', '))}`;
   const region = w.area || w.eaArea || '';
   if (region) h += `<br>Region: ${esc(region)}`;
+  if (w.propertyCount) h += `<br>Properties at risk: ${w.propertyCount.toLocaleString()}`;
+  const hist = areaStats[w.code];
+  if (hist) h += histBlock(hist, w.severityLevel);
   if (w.timeSeverityChanged) h += `<br><small>Severity since ${fmt(w.timeSeverityChanged)}</small>`;
   if (w.message) h += `<hr style="border:none;border-top:1px solid #eee;margin:6px 0"><div style="max-height:140px;overflow:auto;font-size:11.5px;color:#555">${esc(w.message)}</div>`;
   return h;

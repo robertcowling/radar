@@ -138,6 +138,11 @@ select.sel { padding-right: 30px; cursor: pointer;
 <script>
 const R2 = 'https://radar.floodforecast.co.uk';
 const COL = {warning:'#d93025', alert:'#f9ab00'};
+
+let areaStats = {};
+fetch(R2 + '/flood_history/area_stats.json')
+  .then(r => r.json()).then(d => { areaStats = d; })
+  .catch(() => {});
 const map = L.map('map').setView([52.8, -1.5], 6);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   {attribution:'&copy; OpenStreetMap &copy; CARTO', maxZoom:18, subdomains:'abcd'}).addTo(map);
@@ -223,7 +228,13 @@ function applyFilters() {
       color:'#fff', fillColor: COL[f.properties.type]||'#5f6368', fillOpacity:0.9}),
     onEachFeature: (f, lyr) => {
       lyr.on('click', () => selectArea(f, lyr));
-      lyr.bindTooltip(f.properties.label, {sticky:true});
+      lyr.bindTooltip(() => {
+        const p = f.properties;
+        const hist = areaStats[p.code];
+        const tier = p.type === 'warning' ? '2' : '1';
+        const label = hist && hist.freq && hist.freq[tier] ? hist.freq[tier].label : null;
+        return p.label + (label ? ` · ${label}` : '');
+      }, {sticky:true});
     }
   }).addTo(map);
   // list (cap rendered rows for performance)
@@ -269,6 +280,40 @@ function catLabel(cat) {
   return {river:'River', coastal:'Coastal & tidal', groundwater:'Groundwater'}[cat] || cat;
 }
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function histBlock(hist, severityTier) {
+  const f = hist.freq && hist.freq[String(severityTier)];
+  const tierLabel = f ? f.label : (hist.freq && hist.freq[String(hist.max_severity)] ? hist.freq[String(hist.max_severity)].label : null);
+  const pct = f ? f.percentile : null;
+  const lastD = hist.last_issued ? new Date(hist.last_issued) : null;
+  const lastStr = lastD ? `${MONTHS[lastD.getUTCMonth()]} ${lastD.getUTCFullYear()}` : null;
+  const rate = hist.per_year;
+  const rateStr = rate >= 1 ? `${rate.toFixed(1)}/yr` : rate > 0 ? `1 every ${Math.round(1/rate)} yrs` : null;
+  const recent = (hist.last_10 || []).slice(0,3).map(e => {
+    const d = new Date(e.d); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  });
+  let h = `<hr style="border:none;border-top:1px solid #e2e8f0;margin:6px 0">`;
+  h += `<div style="font-size:11px;color:#64748b;line-height:1.6">`;
+  h += `<b style="color:#334155;font-size:11.5px">Flood history</b>`;
+  if (hist.total_issued) h += ` <span style="color:#94a3b8">· ${hist.total_issued} events since ${hist.first_issued ? hist.first_issued.slice(0,4) : '?'}</span>`;
+  if (tierLabel) {
+    const pctOrd = pct != null ? ordinal(Math.round(pct)) : '';
+    h += `<br>Rarity: <b>${esc(tierLabel)}</b>`;
+    if (pctOrd) h += ` <span style="color:#94a3b8">(${pctOrd} percentile)</span>`;
+  }
+  if (rateStr) h += `<br>Rate: ~${rateStr}`;
+  if (lastStr) h += ` · last ${lastStr}`;
+  if (recent.length) h += `<br><span style="color:#94a3b8">Recent: ${recent.join(' · ')}</span>`;
+  h += `</div>`;
+  return h;
+}
+
+function ordinal(n) {
+  const s = ['th','st','nd','rd'], v = n%100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+
 function popupHtml(p) {
   const counties = (p.counties && p.counties.length) ? p.counties.join(', ') : (p.county || '');
   let h = `<b>${esc(p.label)}</b> <span style="font-size:10px;font-weight:700;color:${p.source==='NRW'?'#c026d3':'#0369a1'}">${p.source}</span>`
@@ -280,6 +325,9 @@ function popupHtml(p) {
   if (p.rainfallZones && p.rainfallZones.length) h += `<br>Rainfall zone${p.rainfallZones.length>1?'s':''}: ${esc(p.rainfallZones.join(', '))}`;
   const region = p.area || p.eaArea || '';
   if (region) h += `<br>Region: ${esc(region)}`;
+  if (p.propertyCount) h += `<br>Properties at risk: ${p.propertyCount.toLocaleString()}`;
+  const hist = areaStats[p.code];
+  if (hist) h += histBlock(hist, p.type === 'warning' ? 2 : 1);
   h += `<br><small style="color:#94a3b8">${esc(p.code)}</small>`;
   return h;
 }
