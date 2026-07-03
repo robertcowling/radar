@@ -61,7 +61,7 @@ const PROP_COLORS = [
   '#1e40af',
   '#1e3a8a',
   '#172554',
-  '#090d16',
+  '#0b1a40',
 ];
 function propColorIndex(n) {
   if (n == null || n <= 0) return -1;
@@ -110,14 +110,14 @@ function histBlock(hist, severityTier) {
    happen to exist in the DOM at once — tab switching is scoped via
    closest('.pop-wrap') on the clicked button. */
 function tabbedPopup(detailsHtml, historyHtml) {
-  if (!historyHtml) return `<div class="pop-wrap"><div class="pop-panel">${detailsHtml}</div></div>`;
+  const histContent = historyHtml || `<div class="hist-block"><div class="hist-title" style="margin-bottom:8px">Flood history</div><div style="font-size:11.5px;color:#94a3b8;margin-top:12px">No history recorded for this area.</div></div>`;
   return `<div class="pop-wrap">
     <div class="pop-tabs">
       <button class="pop-tab active" onclick="popSwitchTab(this,0)" type="button">Details</button>
       <button class="pop-tab" onclick="popSwitchTab(this,1)" type="button">History</button>
     </div>
     <div class="pop-panel" data-i="0">${detailsHtml}</div>
-    <div class="pop-panel" data-i="1" style="display:none">${historyHtml}</div>
+    <div class="pop-panel" data-i="1" style="display:none">${histContent}</div>
   </div>`;
 }
 function popSwitchTab(btn, i) {

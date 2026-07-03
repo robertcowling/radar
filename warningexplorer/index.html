@@ -46,7 +46,7 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .map-wrap { flex: 1; position: relative; min-width: 0; }
 #map { position: absolute; inset: 0; background: #e8eaed; }
 
-.side { width: 360px; flex: none; border-left: 2px solid #dde1e7; background: white;
+.side { width: 390px; flex: none; border-left: 2px solid #dde1e7; background: white;
   display: flex; flex-direction: column; overflow: hidden; }
 .side-head { background: var(--ink-900); color: #f1f5f9; height: 48px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
@@ -60,40 +60,40 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .legend span { display: flex; align-items: center; gap: 5px; }
 .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
 .list { flex: 1; overflow-y: auto; }
-.acard { padding: 9px 14px; border-bottom: 1px solid #f1f3f4; cursor: pointer; border-left: 4px solid transparent; }
+.acard { padding: 12px 16px; border-bottom: 1px solid #f1f3f4; cursor: pointer; border-left: 4px solid transparent; }
 .acard:hover { background: #f8fafc; }
-.acard .at { font-family: 'Outfit', sans-serif; font-size: 12.5px; font-weight: 600; color: #1f2937; }
-.acard .am { font-size: 11px; color: #6b7280; margin-top: 2px; }
+.acard .at { font-family: 'Outfit', sans-serif; font-size: 13.5px; font-weight: 600; color: #1f2937; }
+.acard .am { font-size: 11.5px; color: #6b7280; margin-top: 3px; }
 .prop-pill { display: inline-block; margin-top: 5px; background: #f1f3f4; color: #475569;
   border-radius: 12px; font-size: 9px; font-weight: 700; padding: 2px 7px; }
 .empty { padding: 30px 18px; text-align: center; color: #94a3b8; font-size: 13px; }
 .foot { font-size: 10.5px; color: #94a3b8; padding: 8px 14px; flex-shrink: 0; border-top: 1px solid #eef1f4; }
 .foot a { color: #60a5fa; }
 
-.leaflet-popup-content { font-family: 'Roboto', sans-serif; font-size: 12.5px; }
-.pop-wrap { width: 290px; height: 320px; display: flex; flex-direction: column; }
+.leaflet-popup-content { font-family: 'Roboto', sans-serif; font-size: 13.5px; }
+.pop-wrap { width: 300px; height: 380px; display: flex; flex-direction: column; }
 .pop-tabs { display: flex; gap: 16px; border-bottom: 1px solid #e2e8f0; margin-bottom: 8px; flex-shrink: 0; }
 .pop-tab { background: none; border: none; border-bottom: 2px solid transparent; padding: 4px 2px 6px;
-  font-family: 'Roboto', sans-serif; font-size: 11.5px; font-weight: 600; color: #5f6368; cursor: pointer; }
+  font-family: 'Roboto', sans-serif; font-size: 13px; font-weight: 600; color: #5f6368; cursor: pointer; }
 .pop-tab.active { color: var(--brand-500); border-bottom-color: var(--brand-500); }
 .pop-panel { flex: 1; overflow-y: auto; }
-.pop-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11.5px; }
+.pop-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13px; }
 .pop-table td { padding: 4px 0; vertical-align: top; border-bottom: 1px solid #f1f3f4; }
 .pop-table tr:last-child td { border-bottom: none; }
-.pop-table-label { color: #5f6368; font-weight: 500; width: 90px; }
+.pop-table-label { color: #5f6368; font-weight: 500; width: 95px; }
 .pop-table-value { color: #202124; }
-.pop-prop-chip { display: inline-block; background: #eef2f6; color: #475569; border-radius: 12px; font-size: 10px; font-weight: 700; padding: 2.5px 8px; }
+.pop-prop-chip { display: inline-block; background: #eef2f6; color: #475569; border-radius: 12px; font-size: 11px; font-weight: 700; padding: 2.5px 8px; }
 .pop-details-header { margin-bottom: 6px; line-height: 1.4; }
-.hist-block { font-size: 11px; color: #5f6368; }
-.hist-title { font-family: 'Outfit', sans-serif; font-size: 11.5px; font-weight: 700; color: #334155; }
+.hist-block { font-size: 12.5px; color: #5f6368; }
+.hist-title { font-family: 'Outfit', sans-serif; font-size: 13.5px; font-weight: 700; color: #334155; }
 .hist-rarity { margin-top: 3px; }
 .hist-rate { margin-top: 2px; }
 .hist-muted { color: #94a3b8; font-weight: 400; }
 .hist-sub { margin-top: 6px; font-weight: 600; color: #475569; }
-.hist-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; border-bottom: 1px dashed #f1f3f4; }
+.hist-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px dashed #f1f3f4; }
 .hist-row:last-child { border-bottom: none; }
 .hist-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.hist-date { color: #94a3b8; font-variant-numeric: tabular-nums; min-width: 128px; }
+.hist-date { color: #94a3b8; font-variant-numeric: tabular-nums; min-width: 138px; }
 .hist-type { font-weight: 600; }
 
 /* floating tooltip */
@@ -178,7 +178,7 @@ select.premium-select:hover { background-color: #e8eaed; }
 <div class="topbar">
   <h1>Flood Warning Explorer</h1>
   <div class="nav">
-    <a href="/floodwarnings">Active warnings</a>
+    <a href="/floodwarnings/index.html">Active warnings</a>
     <a href="/menu.html">Menu</a>
   </div>
 </div>
@@ -217,8 +217,8 @@ select.premium-select:hover { background-color: #e8eaed; }
         <span class="control-label">Source</span>
         <select class="premium-select" id="sourceSel" onchange="applyFilters()">
           <option value="all">England &amp; Wales</option>
-          <option value="EA">England (EA)</option>
-          <option value="NRW">Wales (NRW)</option>
+          <option value="EA">Environment Agency</option>
+          <option value="NRW">Natural Resources Wales</option>
         </select>
       </div>
       <div class="control-group">
@@ -458,8 +458,9 @@ function applyFilters() {
     const counties = (p.counties && p.counties.length) ? p.counties.join(', ') : (p.county || '');
     const region = p.area || p.eaArea || '';
     const range = propRangeLabel(p.propertyCount);
-    el.innerHTML = `<div class="at">${esc(p.label)} <span style="font-size:10px;font-weight:700;color:${p.source==='NRW'?'#c026d3':'#0369a1'}">${p.source}</span></div>`
+    el.innerHTML = `<div class="at">${esc(p.label)}</div>`
       + `<div class="am">${p.type==='warning'?'Warning area':'Alert area'}${p.category? ' · '+esc(catLabel(p.category)):''}`
+      + ` · <span style="font-weight:600;color:${p.source==='NRW'?'#c026d3':'#0369a1'}">${p.source==='NRW'?'Natural Resources Wales':'Environment Agency'}</span>`
       + `${counties? ' · '+esc(counties):''}${region? ' · '+esc(region):''}${p.river? ' · '+esc(p.river):''}</div>`
       + (range ? `<span class="prop-pill">${esc(range)} properties</span>` : '');
     el.onclick = () => selectArea(f, null, true);
