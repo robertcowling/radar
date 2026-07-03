@@ -137,9 +137,9 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
   width: 52px; overflow: hidden; transition: width .25s ease, padding .25s ease; }
 .geo-float.expanded .geo-pill { width: 300px; }
 .geo-icon-btn { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; border: none;
-  background: #facc15; color: #1f2937; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
-  transition: background .15s; }
-.geo-icon-btn:hover { background: #eab308; }
+  background: black; color: var(--brand-500); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+  transition: background .15s, color .15s; }
+.geo-icon-btn:hover { background: #1a1a1a; color: #14b8a6; }
 .geo-input2 { flex: 1; min-width: 0; border: none; outline: none; font: inherit; font-size: 12.5px; color: #202124;
   background: transparent; opacity: 0; width: 0; transition: opacity .15s; }
 .geo-float.expanded .geo-input2 { opacity: 1; width: auto; }
@@ -403,7 +403,7 @@ function loadPoly(w) {
   const cacheKey = w.source + ':' + w.code;
   const draw = (feat) => {
     const gj = L.geoJSON(feat, {style:{color:s.color, weight:1.5, fillColor:s.color,
-      fillOpacity:0.35}}).bindTooltip(() => tipContent(w), {sticky:true, className:'ff-tip'}).bindPopup(popupHtml(w));
+      fillOpacity:0.55}}).bindTooltip(() => tipContent(w), {sticky:true, className:'ff-tip'}).bindPopup(popupHtml(w));
     gj.addTo(polyLayer);
   };
   if (polyCache[cacheKey]) { draw(polyCache[cacheKey]); return; }

@@ -117,9 +117,9 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
   width: 52px; overflow: hidden; transition: width .25s ease, padding .25s ease; }
 .geo-float.expanded .geo-pill { width: 300px; }
 .geo-icon-btn { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; border: none;
-  background: #facc15; color: #1f2937; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
-  transition: background .15s; }
-.geo-icon-btn:hover { background: #eab308; }
+  background: black; color: var(--brand-500); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+  transition: background .15s, color .15s; }
+.geo-icon-btn:hover { background: #1a1a1a; color: #14b8a6; }
 .geo-input2 { flex: 1; min-width: 0; border: none; outline: none; font: inherit; font-size: 12.5px; color: #202124;
   background: transparent; opacity: 0; width: 0; transition: opacity .15s; }
 .geo-float.expanded .geo-input2 { opacity: 1; width: auto; }
@@ -357,10 +357,10 @@ function style(f){
   if (f.geometry && f.geometry.type === 'Point') return {};
   if (colorByRisk) {
     const c = propColor(f.properties.propertyCount);
-    return {color:c, weight:1, fillColor:c, fillOpacity:0.5};
+    return {color:c, weight:1, fillColor:c, fillOpacity:0.7};
   }
   return {color: COL[f.properties.type]||'#5f6368', weight:1,
-    fillColor: COL[f.properties.type]||'#5f6368', fillOpacity:0.18};
+    fillColor: COL[f.properties.type]||'#5f6368', fillOpacity:0.38};
 }
 
 function fetchJson(url){ return fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }); }
@@ -481,7 +481,7 @@ function selectArea(f, lyr, zoom) {
   const showFull = (full) => {
     if (selected) map.removeLayer(selected);
     selected = L.geoJSON(full, {style:{color:COL[f.properties.type]||'#5f6368',
-      weight:2.5, fillColor:COL[f.properties.type]||'#5f6368', fillOpacity:0.4}}).addTo(map);
+      weight:2.5, fillColor:COL[f.properties.type]||'#5f6368', fillOpacity:0.65}}).addTo(map);
     selected.bindPopup(popupHtml(f.properties)).openPopup();
     if (zoom) { const b = selected.getBounds(); if (b.isValid()) map.fitBounds(b,{maxZoom:12,padding:[30,30]}); }
   };
