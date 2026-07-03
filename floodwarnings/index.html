@@ -117,6 +117,7 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .hist-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .hist-date { color: #94a3b8; font-variant-numeric: tabular-nums; min-width: 138px; }
 .hist-type { font-weight: 600; }
+.region-boundary { filter: drop-shadow(0px 0px 1.5px rgba(255,255,255,0.7)); }
 
 /* floating tooltip */
 .leaflet-tooltip.ff-tip { background: white; border: none; border-radius: 10px;
@@ -302,7 +303,7 @@ const SOURCES = {
 };
 
 const map = L.map('map', {zoomControl:true}).setView([52.8, -1.5], 6);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18, subdomains:'abcd'
 }).addTo(map);
 

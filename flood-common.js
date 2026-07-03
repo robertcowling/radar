@@ -149,10 +149,25 @@ function onBoundary(val) {
   fetch('../' + BFILES[val]).then(r => { if (!r.ok) throw 0; return r.json(); })
     .catch(() => fetch(R2 + '/' + BFILES[val]).then(r => r.json()))
     .then(d => {
-      boundaryLayers[val] = L.geoJSON(d, {style: {color: '#5f6368', weight: 1, fillOpacity: 0}, interactive: false});
+      const weight = val === 'regions' ? 1.5 : 1.0;
+      boundaryLayers[val] = L.geoJSON(d, {
+        style: {color: '#5f6368', weight: weight, fillOpacity: 0, className: 'region-boundary'},
+        interactive: false
+      });
       if (currentBoundary === val) { map.addLayer(boundaryLayers[val]); boundaryLayers[val].bringToBack(); }
     })
     .catch(e => console.error('boundary load failed', e));
+}
+
+function _strahlerOrder(props) {
+  if (!props) return 1;
+  const o = props['Strahler Stream Order'] || props.strahler || props.STRAHLER ||
+            props.stream_order || props.STREAM_ORDER || props.StreamOrde || props.streamorde || 1;
+  return parseInt(o) || 1;
+}
+function _riverWeight(order) {
+  const w = [0.5, 0.5, 0.7, 1.0, 1.6, 2.4, 3.5];
+  return w[Math.min(order - 1, 6)];
 }
 
 function loadRivers() {
@@ -162,13 +177,18 @@ function loadRivers() {
     return;
   }
   fetch(R2 + '/geo/rivers.geojson').then(r => r.json()).then(d => {
-    boundaryLayers['rivers'] = L.geoJSON(d, {
-      style: f => {
-        const order = f.properties['Strahler Stream Order'] || 1;
-        return {color: '#3b82f6', weight: order >= 6 ? 2 : order >= 4 ? 1.2 : 0.6, opacity: order >= 4 ? 0.7 : 0.4};
-      },
-      interactive: false,
-    });
+    const gstyle = f => {
+      const o = _strahlerOrder(f.properties);
+      return { color: '#7ab8d4', weight: _riverWeight(o) * 2.2, opacity: 0.18, interactive: false };
+    };
+    const mstyle = f => {
+      const o = _strahlerOrder(f.properties);
+      return { color: '#1e6a96', weight: _riverWeight(o), opacity: 0.85, interactive: false };
+    };
+    boundaryLayers['rivers'] = L.layerGroup([
+      L.geoJSON(d, { style: gstyle }),
+      L.geoJSON(d, { style: mstyle })
+    ]);
     map.addLayer(boundaryLayers['rivers']);
     boundaryLayers['rivers'].bringToBack();
   }).catch(e => console.error('rivers:', e));
