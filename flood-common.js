@@ -73,25 +73,24 @@ function propColor(n) {
   return i < 0 ? '#cbd5e1' : PROP_COLORS[i];
 }
 
-function histBlock(hist, severityTier) {
+function getRarityInfo(hist, severityTier) {
+  if (!hist) return null;
   const f = hist.freq && hist.freq[String(severityTier)];
   const tierLabel = f ? f.label : (hist.freq && hist.freq[String(hist.max_severity)] ? hist.freq[String(hist.max_severity)].label : null);
   const pct = f ? f.percentile : null;
   const rate = hist.per_year;
   const rateStr = rate >= 1 ? `~${rate.toFixed(1)} per year` : rate > 0 ? `~1 every ${Math.round(1 / rate)} years` : null;
   const activeDescr = pct != null ? (pct >= 75 ? `more active than ${Math.round(pct)}% of flood areas` : pct <= 25 ? `quieter than ${Math.round(100 - pct)}% of flood areas` : null) : null;
+  return { tierLabel, activeDescr, rateStr };
+}
+
+function histBlock(hist, severityTier) {
   const events = (hist.last_10 || []).slice(0, 10);
 
   let h = `<div class="hist-block">`;
   h += `<div class="hist-title">Flood history`;
   if (hist.total_issued) h += ` <span class="hist-muted">· ${hist.total_issued} events since ${hist.first_issued ? hist.first_issued.slice(0, 4) : '?'}</span>`;
   h += `</div>`;
-  if (tierLabel) {
-    h += `<div class="hist-rarity"><b>${esc(tierLabel)}</b>`;
-    if (activeDescr) h += ` <span class="hist-muted">· ${activeDescr}</span>`;
-    h += `</div>`;
-  }
-  if (rateStr) h += `<div class="hist-rate">${rateStr}</div>`;
   if (events.length) {
     h += `<div class="hist-sub">Last ${events.length} events</div>`;
     for (const e of events) {
