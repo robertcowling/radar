@@ -243,9 +243,10 @@ function render() {
       const s = SEV[w.severityLevel];
       const el = document.createElement('div');
       el.className = 'wcard'; el.style.borderLeftColor = s.color;
-      const counties = (w.counties && w.counties.length) ? w.counties.join(', ') : (w.county || w.area || '');
+      const counties = (w.counties && w.counties.length) ? w.counties.join(', ') : (w.county || '');
+      const region = w.area || w.eaArea || '';
       el.innerHTML = `<div class="wt">${esc(w.label)} <span style="font-size:10px;font-weight:700;color:${w.source==='NRW'?'#c026d3':'#0369a1'}">${w.source}</span></div>`
-        + `<div class="wm">${w.category? esc(catLabel(w.category))+' · ':''}${esc(counties)}${w.river? ' · '+esc(w.river):''}</div>`
+        + `<div class="wm">${w.category? esc(catLabel(w.category))+' · ':''}${counties? esc(counties)+' · ':''}${region? esc(region)+' · ':''}${w.river? esc(w.river):''}</div>`
         + `<span class="pill" style="background:${s.color}">${s.name}</span>`;
       el.onclick = () => focusWarning(w);
       list.appendChild(el);
@@ -291,7 +292,8 @@ function popupHtml(w) {
   if (w.river) h += `<br>River/sea: ${esc(w.river)}`;
   if (counties) h += `<br>Count${w.counties && w.counties.length>1 ? 'ies':'y'}: ${esc(counties)}`;
   if (w.rainfallZones && w.rainfallZones.length) h += `<br>Rainfall zone${w.rainfallZones.length>1?'s':''}: ${esc(w.rainfallZones.join(', '))}`;
-  if (w.area) h += `<br>Area: ${esc(w.area)}`;
+  const region = w.area || w.eaArea || '';
+  if (region) h += `<br>Region: ${esc(region)}`;
   if (w.timeSeverityChanged) h += `<br><small>Severity since ${fmt(w.timeSeverityChanged)}</small>`;
   if (w.message) h += `<hr style="border:none;border-top:1px solid #eee;margin:6px 0"><div style="max-height:140px;overflow:auto;font-size:11.5px;color:#555">${esc(w.message)}</div>`;
   return h;
