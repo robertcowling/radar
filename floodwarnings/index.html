@@ -73,7 +73,7 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .stat .l { font-size: 10px; font-weight: 600; margin-top: 4px; opacity: 0.95; }
 .list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: #f8fafc; }
 .empty { padding: 30px 18px; text-align: center; color: #94a3b8; font-size: 13px; }
-.wcard { background: white; border-radius: 8px; padding: 14px; border-left: 4px solid transparent;
+.wcard { background: white; border-radius: 8px; padding: 14px; border-left: 6px solid transparent;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
   cursor: pointer; transition: transform 0.15s, background 0.15s, box-shadow 0.15s; }
 .wcard:hover { background: #f8fafc; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.12); }
@@ -106,16 +106,16 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .pop-table-value { color: #202124; }
 .pop-prop-chip { display: inline-block; background: #eef2f6; color: #475569; border-radius: 12px; font-size: 11px; font-weight: 700; padding: 2.5px 8px; }
 .pop-details-header { margin-bottom: 6px; line-height: 1.4; }
-.hist-block { font-size: 12.5px; color: #5f6368; }
-.hist-title { font-family: 'Outfit', sans-serif; font-size: 13.5px; font-weight: 700; color: #334155; }
+.hist-block { font-size: 12.5px; color: #202124; }
+.hist-title { font-family: 'Outfit', sans-serif; font-size: 13.5px; font-weight: 700; color: #1e293b; }
 .hist-rarity { margin-top: 3px; }
 .hist-rate { margin-top: 2px; }
-.hist-muted { color: #94a3b8; font-weight: 400; }
-.hist-sub { margin-top: 6px; font-weight: 600; color: #475569; }
-.hist-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px dashed #f1f3f4; }
+.hist-muted { color: #5f6368; font-weight: 400; }
+.hist-sub { margin-top: 6px; font-weight: 600; color: #374151; }
+.hist-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px dashed #e2e8f0; }
 .hist-row:last-child { border-bottom: none; }
 .hist-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.hist-date { color: #94a3b8; font-variant-numeric: tabular-nums; min-width: 138px; }
+.hist-date { color: #5f6368; font-variant-numeric: tabular-nums; min-width: 138px; }
 .hist-type { font-weight: 600; }
 .region-boundary { filter: drop-shadow(0px 0px 1.5px rgba(255,255,255,0.7)); }
 
@@ -134,9 +134,9 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 /* area-name filter, floating top-right of the map */
 .map-search { position: absolute; top: 16px; right: 16px; z-index: 1000; width: 280px; max-width: calc(100% - 32px); }
 .map-search input { width: 100%; box-sizing: border-box; background: white; border: none;
-  padding: 13px 16px; border-radius: 26px; font-family: inherit; font-size: 13.5px; color: #202124;
-  font-weight: 500; outline: none; box-shadow: var(--shadow-panel); }
-.map-search input::placeholder { color: #9ca3af; }
+  padding: 13px 16px; border-radius: 26px; font-family: inherit; font-size: 13.5px; color: #000;
+  font-weight: 600; outline: none; box-shadow: var(--shadow-panel); }
+.map-search input::placeholder { color: #475569; font-weight: 600; }
 
 /* bottom control bar */
 .player-panel { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -458,7 +458,7 @@ function tipContent(w) {
   if (counties) parts.push(counties);
   const boundaryInfo = parts.join(' · ');
 
-  return `<div class="ff-tip-body" style="border-left: 4px solid ${s.color}">
+  return `<div class="ff-tip-body" style="border-left: 6px solid ${s.color}">
     <div class="ff-tip-head"><span class="ff-tip-title">${esc(w.label)}</span></div>
     <div class="ff-tip-sub">${s.name}${freq ? ' · '+esc(freq) : ''}${boundaryInfo ? '<br>' + esc(boundaryInfo) : ''}</div>
     ${range ? `<div class="ff-tip-prop">Properties at risk: ${propChipHtml(w.propertyCount)}</div>` : ''}
