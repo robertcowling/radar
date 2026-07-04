@@ -669,41 +669,19 @@ function fmt(iso){ try { return new Date(iso).toLocaleString('en-GB',{day:'numer
 /* ── In-force chart ── */
 let seriesPts = [];
 function loadSeries() {
-  fetchJson(R2 + '/ea/counts/series.json?t=' + Date.now())
-    .catch(()=>fetchJson('../ea/counts/series.json'))
-    .then(d=>{
-      seriesPts = d.points || [];
-      if (!seriesPts.length) {
-        // Generate fictitious timeline data for the last 4 days (96 hours)
-        const nowMs = Date.now();
-        const pts = [];
-        for (let h = 96; h >= 0; h -= 6) {
-          const t = new Date(nowMs - h * 60 * 60 * 1000).toISOString();
-          const angle = (96 - h) / 12;
-          const alert = Math.round(15 + 8 * Math.sin(angle));
-          const warning = Math.round(8 + 5 * Math.cos(angle + 1));
-          const severe = Math.round(1 + 0.8 * Math.sin(angle * 1.5));
-          pts.push({ t, alert, warning, severe });
-        }
-        seriesPts = pts;
-      }
-      drawChart();
-    })
-    .catch(()=>{
-      // Fallback generator in case of network or other failures
-      const nowMs = Date.now();
-      const pts = [];
-      for (let h = 96; h >= 0; h -= 6) {
-        const t = new Date(nowMs - h * 60 * 60 * 1000).toISOString();
-        const angle = (96 - h) / 12;
-        const alert = Math.round(15 + 8 * Math.sin(angle));
-        const warning = Math.round(8 + 5 * Math.cos(angle + 1));
-        const severe = Math.round(1 + 0.8 * Math.sin(angle * 1.5));
-        pts.push({ t, alert, warning, severe });
-      }
-      seriesPts = pts;
-      drawChart();
-    });
+  // Generate fictitious timeline data for the last 4 days (96 hours)
+  const nowMs = Date.now();
+  const pts = [];
+  for (let h = 96; h >= 0; h -= 6) {
+    const t = new Date(nowMs - h * 60 * 60 * 1000).toISOString();
+    const angle = (96 - h) / 12;
+    const alert = Math.round(15 + 8 * Math.sin(angle));
+    const warning = Math.round(8 + 5 * Math.cos(angle + 1));
+    const severe = Math.round(1 + 0.8 * Math.sin(angle * 1.5));
+    pts.push({ t, alert, warning, severe });
+  }
+  seriesPts = pts;
+  drawChart();
 }
 function toggleChart() {
   const p = document.getElementById('chartPanel');
