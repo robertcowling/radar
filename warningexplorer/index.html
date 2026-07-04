@@ -115,7 +115,9 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
  
 /* area-name filter, floating top-right of the map — a key touch point,
    sized and weighted to stand out rather than blend into the chrome */
-.map-search { position: absolute; top: 16px; right: 16px; z-index: 1000; width: 360px; max-width: calc(100% - 32px); display: flex; align-items: center; }
+.map-search-container { position: absolute; top: 16px; right: 16px; z-index: 1000; width: 360px; max-width: calc(100% - 32px);
+  display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.map-search { width: 100%; position: relative; display: flex; align-items: center; pointer-events: auto; }
 .map-search input { width: 100%; box-sizing: border-box; background: white; border: 2px solid white;
   padding: 16px 45px 16px 20px; border-radius: 30px; font-family: 'Outfit', sans-serif; font-size: 15.5px; color: #000;
   font-weight: 600; outline: none; box-shadow: 0 10px 36px rgba(0,0,0,.16), 0 3px 10px rgba(0,0,0,.10);
@@ -125,6 +127,15 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .map-search-clear { position: absolute; right: 16px; background: none; border: none; font-size: 20px; color: #9ca3af; cursor: pointer; display: none; padding: 4px; line-height: 1; outline: none; }
 .map-search-clear:hover { color: #111827; }
 .map-search-clear.show { display: block; }
+.map-search-pills { display: flex; flex-wrap: wrap; gap: 6px; pointer-events: auto; }
+.search-pill { background: white; border: 1px solid #dadce0; box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  border-radius: 16px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; color: #1f2937;
+  transition: background 0.15s, border-color 0.15s; }
+.search-pill:hover { background: #f8fafc; border-color: #cbd5e1; }
+.search-pill-close { background: none; border: none; font-size: 14px; font-weight: 700; color: #94a3b8;
+  cursor: pointer; padding: 0; line-height: 1; display: inline-flex; align-items: center; justify-content: center; outline: none; }
+.search-pill-close:hover { color: #ef4444; }
 
 /* bottom control bar */
 .player-panel { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -215,9 +226,12 @@ select.premium-select:hover { background-color: #e8eaed; }
   <div class="map-wrap">
     <div id="map"></div>
 
-    <div class="map-search">
-      <input id="search" type="text" placeholder="Filter area by name, location, county…" oninput="onSearchInput()">
-      <button class="map-search-clear" id="searchClear" onclick="clearSearch()" type="button">&times;</button>
+    <div class="map-search-container">
+      <div class="map-search">
+        <input id="search" type="text" placeholder="Filter area by name, location, county…" oninput="onSearchInput()" onkeydown="onSearchKeyDown(event)">
+        <button class="map-search-clear" id="searchClear" onclick="clearSearch()" type="button">&times;</button>
+      </div>
+      <div class="map-search-pills" id="searchPills"></div>
     </div>
 
     <div class="risk-legend" id="riskLegend">
@@ -510,6 +524,54 @@ function matchFeature(p, criteria) {
   });
 }
 
+let activeSearchPills = [];
+
+function renderSearchPills() {
+  const container = document.getElementById('searchPills');
+  if (!container) return;
+  container.innerHTML = '';
+  activeSearchPills.forEach((pillText, idx) => {
+    const pill = document.createElement('div');
+    pill.className = 'search-pill';
+    
+    let displayText = pillText;
+    if (pillText.includes(':')) {
+      const parts = pillText.split(':');
+      displayText = `<span style="color:var(--brand-500)">${esc(parts[0])}:</span>${esc(parts[1])}`;
+    } else {
+      displayText = esc(displayText);
+    }
+
+    pill.innerHTML = `<span>${displayText}</span>`
+      + `<button class="search-pill-close" onclick="removeSearchPill(${idx})" type="button">&times;</button>`;
+    container.appendChild(pill);
+  });
+}
+
+function removeSearchPill(idx) {
+  activeSearchPills.splice(idx, 1);
+  renderSearchPills();
+  applyFilters();
+}
+
+function onSearchKeyDown(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const input = document.getElementById('search');
+    const val = input.value.trim();
+    if (val) {
+      if (!activeSearchPills.includes(val)) {
+        activeSearchPills.push(val);
+      }
+      input.value = '';
+      const clearBtn = document.getElementById('searchClear');
+      if (clearBtn) clearBtn.classList.remove('show');
+      renderSearchPills();
+      applyFilters();
+    }
+  }
+}
+
 function onSearchInput() {
   const q = document.getElementById('search').value;
   const clearBtn = document.getElementById('searchClear');
@@ -535,14 +597,25 @@ function filtered() {
   const t = document.getElementById('typeSel').value;
   const src = document.getElementById('sourceSel').value;
   const cat = document.getElementById('categorySel').value;
-  const criteria = q ? parseSearchQuery(q) : null;
+
+  const queries = [...activeSearchPills];
+  if (q) {
+    queries.push(q);
+  }
+
+  const queryCriteria = queries.map(query => parseSearchQuery(query));
 
   return allFeatures.filter(f => {
     const p = f.properties;
     if (t !== 'all' && p.type !== t) return false;
     if (src !== 'all' && p.source !== src) return false;
     if (cat !== 'all' && p.category !== cat) return false;
-    if (criteria && !matchFeature(p, criteria)) return false;
+
+    if (queryCriteria.length > 0) {
+      const matchedAny = queryCriteria.some(criteria => matchFeature(p, criteria));
+      if (!matchedAny) return false;
+    }
+
     return true;
   });
 }
