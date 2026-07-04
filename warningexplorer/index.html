@@ -379,7 +379,7 @@ function updateLegend() {
         </div>
         <div class="risk-legend-size">
           <span class="circle" style="width: 24px; height: 24px;"></span>
-          <span class="label">500</span>
+          <span class="label">250</span>
         </div>
         <div class="risk-legend-size">
           <span class="circle" style="width: 41px; height: 41px;"></span>
@@ -396,7 +396,7 @@ function updateLegend() {
       <div class="risk-legend-bar">${barSpans}</div>
       <div class="risk-legend-labels">
         <span>&lt;50</span>
-        <span>500</span>
+        <span>250</span>
         <span>1,000+</span>
       </div>
     `;
@@ -737,9 +737,16 @@ function selectArea(f, lyr, zoom) {
   // load full-res polygon for an exact boundary on selection
   const showFull = (full) => {
     if (selected) map.removeLayer(selected);
-    selected = L.geoJSON(full, {style:{color:COL[f.properties.type]||'#5f6368',
-      weight:2.5, fillColor:COL[f.properties.type]||'#5f6368', fillOpacity:0.65}}).addTo(map);
-    selected.bindPopup(popupHtml(f.properties)).openPopup();
+    selected = L.geoJSON(full, {style:{color:'#000000', weight:3.5, fillOpacity:0}}).addTo(map);
+    
+    const bounds = selected.getBounds();
+    if (bounds.isValid()) {
+      const topCenter = L.latLng(bounds.getNorth(), bounds.getCenter().lng);
+      selected.bindPopup(popupHtml(f.properties)).openPopup(topCenter);
+    } else {
+      selected.bindPopup(popupHtml(f.properties)).openPopup();
+    }
+
     if (zoom) { const b = selected.getBounds(); if (b.isValid()) map.panInsideBounds(b, {animate:true}); }
   };
   if (fullCache[cacheKey]) { showFull(fullCache[cacheKey]); return; }

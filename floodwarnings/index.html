@@ -450,8 +450,24 @@ function loadPoly(w) {
   const s = SEV[w.severityLevel];
   const cacheKey = w.source + ':' + w.code;
   const draw = (feat) => {
-    const gj = L.geoJSON(feat, {style:{color:s.color, weight:1.5, fillColor:s.color,
-      fillOpacity:0.55}}).bindTooltip(() => tipContent(w), {sticky:true, className:'ff-tip'}).bindPopup(popupHtml(w));
+    const gj = L.geoJSON(feat, {style:{color:s.color, weight:1.5, fillColor:s.color, fillOpacity:0.55}});
+    gj.bindTooltip(() => tipContent(w), {sticky:true, className:'ff-tip'});
+    gj.on('click', (e) => {
+      L.DomEvent.stopPropagation(e);
+      const bounds = gj.getBounds();
+      if (bounds.isValid()) {
+        const topCenter = L.latLng(bounds.getNorth(), bounds.getCenter().lng);
+        L.popup()
+          .setLatLng(topCenter)
+          .setContent(popupHtml(w))
+          .openOn(map);
+      } else {
+        L.popup()
+          .setLatLng(e.latlng)
+          .setContent(popupHtml(w))
+          .openOn(map);
+      }
+    });
     gj.addTo(polyLayer);
   };
   if (polyCache[cacheKey]) { draw(polyCache[cacheKey]); return; }
