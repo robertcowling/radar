@@ -185,6 +185,19 @@ select.premium-select:hover { background-color: #e8eaed; }
   appearance: none; background: #f1f3f4; border: none; padding: 0 12px; height: 34px; border-radius: 20px;
   font-family: inherit; font-size: 12px; color: #202124; font-weight: 500; cursor: pointer;
   outline: none; box-sizing: border-box; }
+
+/* Display mode sliding pill toggle */
+.mode-toggle { position: relative; display: flex; align-items: center; background: #f1f3f4; border: none;
+  border-radius: 20px; padding: 3px; cursor: pointer; height: 34px; width: 100%; font-family: inherit;
+  outline: none; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+.mode-toggle-knob { position: absolute; top: 3px; left: 3px; width: calc(50% - 3px); height: calc(100% - 6px);
+  background: white; border-radius: 17px; box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  transition: transform 0.2s cubic-bezier(0.34,1.2,0.64,1); }
+.mode-toggle.mode-centroids .mode-toggle-knob { transform: translateX(100%); }
+.mode-toggle-label { position: relative; z-index: 1; flex: 1; text-align: center; font-size: 12.5px;
+  font-weight: 500; color: #5f6368; transition: color 0.15s; pointer-events: none; }
+.mode-toggle.mode-polygons .mtl-polygons { color: #202124; font-weight: 600; }
+.mode-toggle.mode-centroids .mtl-centroids { color: #202124; font-weight: 600; }
 .show-btn:hover { background: #e8eaed; }
 .show-panel { display: none; position: absolute; bottom: calc(100% + 8px); left: 0; min-width: 190px;
   background: white; border-radius: 12px; border: 1px solid #dadce0; box-shadow: var(--shadow-panel);
@@ -220,10 +233,11 @@ select.premium-select:hover { background-color: #e8eaed; }
       <div class="player-panel">
         <div class="control-group">
           <span class="control-label">Display</span>
-          <select class="premium-select" id="modeSel" onchange="render()">
-            <option value="icons">Icons</option>
-            <option value="polygons">Polygons</option>
-          </select>
+          <button id="modeToggle" class="mode-toggle mode-polygons" role="switch" aria-checked="false" onclick="toggleDisplayMode()" type="button">
+            <span class="mode-toggle-knob"></span>
+            <span class="mode-toggle-label mtl-polygons">Polys</span>
+            <span class="mode-toggle-label mtl-centroids">Icons</span>
+          </button>
         </div>
         <div class="control-group">
           <span class="control-label">Min severity</span>
@@ -342,6 +356,20 @@ let warnings = [];
 const polyCache = {};
 let markerLayer = L.layerGroup().addTo(map);
 let polyLayer = L.layerGroup().addTo(map);
+let displayMode = 'polygons';
+
+function toggleDisplayMode() {
+  displayMode = displayMode === 'polygons' ? 'icons' : 'polygons';
+  const toggle = document.getElementById('modeToggle');
+  if (toggle) {
+    if (displayMode === 'icons') {
+      toggle.className = 'mode-toggle mode-centroids';
+    } else {
+      toggle.className = 'mode-toggle mode-polygons';
+    }
+  }
+  render();
+}
 
 function loadCurrent() {
   const counts = {severe:0, warning:0, alert:0};
@@ -360,56 +388,57 @@ function loadCurrent() {
     warnings = results.flat();
     
     // TEMPORARY: Fictitious warnings for UI testing (will be removed later)
-    const fakeWarnings = [
-      {
-        label: "Fictitious River Severn at Upper Lyde (Test)",
-        code: "031WAF038",
-        severityLevel: 1,
-        source: "EA",
-        category: "river",
-        river: "River Severn",
-        counties: ["Herefordshire"],
-        area: "West Midlands",
-        propertyCount: 782,
-        timeRaised: "2026-07-01T08:00:00Z",
-        timeSeverityChanged: "2026-07-04T12:00:00Z",
-        message: "Severe flooding is expected. Danger to life. Please follow instructions from emergency services.",
-        lat: 52.08,
-        long: -2.73
-      },
-      {
-        label: "Fictitious River Thames at Abingdon (Test)",
-        code: "061WAF012",
-        severityLevel: 2,
-        source: "EA",
-        category: "river",
-        river: "River Thames",
-        counties: ["Oxfordshire"],
-        area: "Thames Valley",
-        propertyCount: 250,
-        timeRaised: "2026-07-02T15:00:00Z",
-        timeSeverityChanged: "2026-07-03T09:00:00Z",
-        message: "Property flooding is expected. River levels are rising rapidly.",
-        lat: 51.67,
-        long: -1.28
-      },
-      {
-        label: "Fictitious Powys Coastline (Test)",
-        code: "NRW_alert_1",
-        severityLevel: 3,
-        source: "NRW",
-        category: "coastal",
-        river: "Irish Sea",
-        counties: ["Powys"],
-        area: "West Wales",
-        propertyCount: 12,
-        timeRaised: "2026-07-03T20:00:00Z",
-        timeSeverityChanged: "2026-07-03T20:00:00Z",
-        message: "Flooding of low-lying land and roads is possible. Be prepared.",
-        lat: 52.5,
-        long: -4.0
+    const towns = ["Shrewsbury", "Worcester", "Tewkesbury", "Gloucester", "Oxford", "Reading", "Windsor", "Kingston", "Richmond", "Hereford", "Monmouth", "Chepstow", "Cardiff", "Newport", "Swansea", "Aberystwyth", "Bangor", "St Asaph", "Chester", "York", "Lincoln", "Doncaster", "Nottingham", "Derby", "Leicester", "Peterborough", "Ely", "Cambridge", "Ipswich", "Norwich"];
+    const countiesList = [["Shropshire"], ["Worcestershire"], ["Gloucestershire"], ["Gloucestershire"], ["Oxfordshire"], ["Berkshire"], ["Berkshire"], ["Surrey"], ["Greater London"], ["Herefordshire"], ["Monmouthshire"], ["Monmouthshire"], ["Cardiff"], ["Newport"], ["Swansea"], ["Ceredigion"], ["Gwynedd"], ["Denbighshire"], ["Cheshire"], ["North Yorkshire"], ["Lincolnshire"], ["South Yorkshire"], ["Nottinghamshire"], ["Derbyshire"], ["Leicestershire"], ["Cambridgeshire"], ["Cambridgeshire"], ["Cambridgeshire"], ["Suffolk"], ["Norfolk"]];
+    const rivers = ["River Severn", "River Severn", "River Severn", "River Severn", "River Thames", "River Thames", "River Thames", "River Thames", "River Thames", "River Wye", "River Wye", "River Wye", "River Taff", "River Usk", "River Tawe", "River Rheidol", "River Adda", "River Elwy", "River Dee", "River Ouse", "River Witham", "River Don", "River Trent", "River Derwent", "River Soar", "River Nene", "River Great Ouse", "River Cam", "River Orwell", "River Yare"];
+    
+    // Spread coordinates around UK bounds: lat 50.5 to 54.5, long -4.5 to 1.5
+    const lats = [52.71, 52.19, 51.99, 51.86, 51.75, 51.45, 51.48, 51.41, 51.45, 52.06, 51.81, 51.64, 51.48, 51.59, 51.62, 52.41, 53.23, 53.26, 53.19, 53.96, 53.23, 53.52, 52.95, 52.92, 52.63, 52.57, 52.40, 52.20, 52.06, 52.63];
+    const longs = [-2.75, -2.22, -2.16, -2.25, -1.26, -0.97, -0.61, -0.30, -0.30, -2.72, -2.72, -2.67, -3.18, -3.00, -3.94, -4.08, -4.13, -3.44, -2.89, -1.08, -0.54, -1.13, -1.15, -1.48, -1.13, -0.24, 0.26, 0.12, 1.16, 1.30];
+
+    const fakeWarnings = [];
+    const nowMs = Date.now();
+
+    for (let i = 0; i < 30; i++) {
+      const source = i % 3 === 2 ? "NRW" : "EA";
+      const severityLevel = (i % 3) + 1; // 1 = Severe, 2 = Warning, 3 = Alert
+      const category = i % 10 === 0 ? "groundwater" : (i % 5 === 0 ? "coastal" : "river");
+      const riverName = category === "river" ? rivers[i] : (category === "coastal" ? "Irish Sea" : "Groundwater");
+      
+      // Let's use some real-looking codes so we can try to fetch them. If not found, circle markers will show up.
+      // E.g. 031WAF038, 061WAF012, etc.
+      const code = source === "EA" ? `031WAF${String(30 + i).padStart(3, '0')}` : `NRW_${100 + i}`;
+      
+      const timeRaisedOffset = (4 - (i % 4)) * 24 * 60 * 60 * 1000 + (i * 2 * 60 * 60 * 1000); // spread over last 4 days
+      const timeRaised = new Date(nowMs - timeRaisedOffset).toISOString();
+      const timeSeverityChanged = new Date(nowMs - timeRaisedOffset + (i % 3) * 6 * 60 * 60 * 1000).toISOString();
+      
+      let label = "";
+      if (category === "river") {
+        label = `Fictitious ${riverName} at ${towns[i]} (Test)`;
+      } else if (category === "coastal") {
+        label = `Fictitious Tidal flooding along the coast at ${towns[i]} (Test)`;
+      } else {
+        label = `Fictitious Groundwater flooding in the ${towns[i]} area (Test)`;
       }
-    ];
+
+      fakeWarnings.push({
+        label: label,
+        code: code,
+        severityLevel: severityLevel,
+        source: source,
+        category: category,
+        river: riverName,
+        counties: countiesList[i],
+        area: source === "EA" ? "Midlands" : "South Wales",
+        propertyCount: Math.round((i * 45) + (i % 3 === 0 ? 500 : 0)),
+        timeRaised: timeRaised,
+        timeSeverityChanged: timeSeverityChanged,
+        message: `This is a fictitious test warning for ${towns[i]} simulating a severity ${severityLevel} event. Please do not take action based on this test data.`,
+        lat: lats[i],
+        long: longs[i]
+      });
+    }
     warnings = warnings.concat(fakeWarnings);
     
     counts.severe = warnings.filter(w => w.severityLevel === 1).length;
@@ -443,7 +472,7 @@ let firstRender = true;
 function warnKey(w) { return `${w.source}:${w.code}:${w.severityLevel}:${w.timeSeverityChanged||w.timeRaised||''}`; }
 
 function render() {
-  const mode = document.getElementById('modeSel').value;
+  const mode = displayMode;
   markerLayer.clearLayers(); polyLayer.clearLayers();
   const ws = visible();
   document.getElementById('cnt').textContent = ws.length.toLocaleString();
@@ -628,7 +657,7 @@ function popupHtml(w) {
 }
 
 function focusWarning(w) {
-  if (document.getElementById('modeSel').value === 'polygons' && polyCache[w.code]) {
+  if (displayMode === 'polygons' && polyCache[w.code]) {
     const b = L.geoJSON(polyCache[w.code]).getBounds();
     if (b.isValid()) { map.panInsideBounds(b, {animate:true}); return; }
   }
@@ -640,10 +669,19 @@ function fmt(iso){ try { return new Date(iso).toLocaleString('en-GB',{day:'numer
 /* ── In-force chart ── */
 let seriesPts = [];
 function loadSeries() {
-  fetchJson(R2 + '/ea/counts/series.json?t=' + Date.now())
-    .catch(()=>fetchJson('../ea/counts/series.json'))
-    .then(d=>{ seriesPts = d.points || []; drawChart(); })
-    .catch(()=>{});
+  // Generate fictitious timeline data for the last 4 days (96 hours)
+  const nowMs = Date.now();
+  const pts = [];
+  for (let h = 96; h >= 0; h -= 6) {
+    const t = new Date(nowMs - h * 60 * 60 * 1000).toISOString();
+    const angle = (96 - h) / 12;
+    const alert = Math.round(15 + 8 * Math.sin(angle));
+    const warning = Math.round(8 + 5 * Math.cos(angle + 1));
+    const severe = Math.round(1 + 0.8 * Math.sin(angle * 1.5));
+    pts.push({ t, alert, warning, severe });
+  }
+  seriesPts = pts;
+  drawChart();
 }
 function toggleChart() {
   const p = document.getElementById('chartPanel');
