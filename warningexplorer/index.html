@@ -540,8 +540,7 @@ function tipContent(p) {
   return `<div class="ff-tip-body">
     <div class="ff-tip-head"><span class="ff-tip-dot" style="background:${col}"></span>
       <span class="ff-tip-title">${esc(p.label)}</span></div>
-    <div class="ff-tip-sub">${p.type==='warning'?'Warning area':'Alert area'}${freq ? ' · '+esc(freq) : ''}</div>
-    ${boundaryInfo ? `<div class="ff-tip-bounds" style="font-size:11px;color:#64748b;margin-bottom:6px">${esc(boundaryInfo)}</div>` : ''}
+    <div class="ff-tip-sub">${p.type==='warning'?'Warning area':'Alert area'}${freq ? ' · '+esc(freq) : ''}${boundaryInfo ? '<br>' + esc(boundaryInfo) : ''}</div>
     ${range ? `<div class="ff-tip-prop">Properties at risk: ${propChipHtml(p.propertyCount)}</div>` : ''}
   </div>`;
 }
