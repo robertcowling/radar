@@ -358,6 +358,64 @@ function loadCurrent() {
       .catch(() => { console.warn(source + ': no live warnings available'); return []; })
   )).then(results => {
     warnings = results.flat();
+    
+    // TEMPORARY: Fictitious warnings for UI testing (will be removed later)
+    const fakeWarnings = [
+      {
+        label: "Fictitious River Severn at Upper Lyde (Test)",
+        code: "031WAF038",
+        severityLevel: 1,
+        source: "EA",
+        category: "river",
+        river: "River Severn",
+        counties: ["Herefordshire"],
+        area: "West Midlands",
+        propertyCount: 782,
+        timeRaised: "2026-07-01T08:00:00Z",
+        timeSeverityChanged: "2026-07-04T12:00:00Z",
+        message: "Severe flooding is expected. Danger to life. Please follow instructions from emergency services.",
+        lat: 52.08,
+        long: -2.73
+      },
+      {
+        label: "Fictitious River Thames at Abingdon (Test)",
+        code: "061WAF012",
+        severityLevel: 2,
+        source: "EA",
+        category: "river",
+        river: "River Thames",
+        counties: ["Oxfordshire"],
+        area: "Thames Valley",
+        propertyCount: 250,
+        timeRaised: "2026-07-02T15:00:00Z",
+        timeSeverityChanged: "2026-07-03T09:00:00Z",
+        message: "Property flooding is expected. River levels are rising rapidly.",
+        lat: 51.67,
+        long: -1.28
+      },
+      {
+        label: "Fictitious Powys Coastline (Test)",
+        code: "NRW_alert_1",
+        severityLevel: 3,
+        source: "NRW",
+        category: "coastal",
+        river: "Irish Sea",
+        counties: ["Powys"],
+        area: "West Wales",
+        propertyCount: 12,
+        timeRaised: "2026-07-03T20:00:00Z",
+        timeSeverityChanged: "2026-07-03T20:00:00Z",
+        message: "Flooding of low-lying land and roads is possible. Be prepared.",
+        lat: 52.5,
+        long: -4.0
+      }
+    ];
+    warnings = warnings.concat(fakeWarnings);
+    
+    counts.severe = warnings.filter(w => w.severityLevel === 1).length;
+    counts.warning = warnings.filter(w => w.severityLevel === 2).length;
+    counts.alert = warnings.filter(w => w.severityLevel === 3).length;
+
     document.getElementById('nSevere').textContent = counts.severe;
     document.getElementById('nWarning').textContent = counts.warning;
     document.getElementById('nAlert').textContent = counts.alert;
