@@ -62,7 +62,7 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .legend span { display: flex; align-items: center; gap: 5px; }
 .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
 .list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: #f8fafc; }
-.acard { background: white; border-radius: 8px; padding: 14px; border-left: 4px solid transparent;
+.acard { background: white; border-radius: 8px; padding: 14px; border-left: 6px solid transparent;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
   cursor: pointer; transition: transform 0.15s, background 0.15s, box-shadow 0.15s; }
 .acard:hover { background: #f8fafc; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.12); }
@@ -73,7 +73,7 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .empty { padding: 30px 18px; text-align: center; color: #94a3b8; font-size: 13px; }
 .foot { font-size: 10.5px; color: #94a3b8; padding: 8px 14px; flex-shrink: 0; border-top: 1px solid #eef1f4; }
 .foot a { color: #60a5fa; }
-
+ 
 .leaflet-popup-content { font-family: 'Roboto', sans-serif; font-size: 13.5px; }
 .pop-wrap { width: 300px; height: 380px; display: flex; flex-direction: column; }
 .pop-tabs { display: flex; gap: 16px; border-bottom: 1px solid #e2e8f0; margin-bottom: 8px; flex-shrink: 0; }
@@ -88,19 +88,19 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .pop-table-value { color: #202124; }
 .pop-prop-chip { display: inline-block; background: #eef2f6; color: #475569; border-radius: 12px; font-size: 11px; font-weight: 700; padding: 2.5px 8px; }
 .pop-details-header { margin-bottom: 6px; line-height: 1.4; }
-.hist-block { font-size: 12.5px; color: #5f6368; }
-.hist-title { font-family: 'Outfit', sans-serif; font-size: 13.5px; font-weight: 700; color: #334155; }
+.hist-block { font-size: 12.5px; color: #202124; }
+.hist-title { font-family: 'Outfit', sans-serif; font-size: 13.5px; font-weight: 700; color: #1e293b; }
 .hist-rarity { margin-top: 3px; }
 .hist-rate { margin-top: 2px; }
-.hist-muted { color: #94a3b8; font-weight: 400; }
-.hist-sub { margin-top: 6px; font-weight: 600; color: #475569; }
-.hist-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px dashed #f1f3f4; }
+.hist-muted { color: #5f6368; font-weight: 400; }
+.hist-sub { margin-top: 6px; font-weight: 600; color: #374151; }
+.hist-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px dashed #e2e8f0; }
 .hist-row:last-child { border-bottom: none; }
 .hist-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.hist-date { color: #94a3b8; font-variant-numeric: tabular-nums; min-width: 138px; }
+.hist-date { color: #5f6368; font-variant-numeric: tabular-nums; min-width: 138px; }
 .hist-type { font-weight: 600; }
 .region-boundary { filter: drop-shadow(0px 0px 1.5px rgba(255,255,255,0.7)); }
-
+ 
 /* floating tooltip */
 .leaflet-tooltip.ff-tip { background: white; border: none; border-radius: 10px;
   box-shadow: var(--shadow-tooltip); color: #202124; padding: 0; pointer-events: none;
@@ -112,16 +112,16 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .ff-tip-title { font-size: 14px; font-weight: 700; color: #202124; font-family: 'Outfit', sans-serif; }
 .ff-tip-sub { font-size: 12px; color: #5f6368; font-weight: 500; margin-bottom: 6px; }
 .ff-tip-prop { font-size: 12px; color: #5f6368; display: flex; align-items: center; gap: 6px; }
-
+ 
 /* area-name filter, floating top-right of the map — a key touch point,
    sized and weighted to stand out rather than blend into the chrome */
 .map-search { position: absolute; top: 16px; right: 16px; z-index: 1000; width: 360px; max-width: calc(100% - 32px); display: flex; align-items: center; }
 .map-search input { width: 100%; box-sizing: border-box; background: white; border: 2px solid white;
-  padding: 16px 45px 16px 20px; border-radius: 30px; font-family: 'Outfit', sans-serif; font-size: 15.5px; color: #111827;
+  padding: 16px 45px 16px 20px; border-radius: 30px; font-family: 'Outfit', sans-serif; font-size: 15.5px; color: #000;
   font-weight: 600; outline: none; box-shadow: 0 10px 36px rgba(0,0,0,.16), 0 3px 10px rgba(0,0,0,.10);
   transition: box-shadow .15s, border-color .15s; }
 .map-search input:focus { border-color: var(--brand-500); box-shadow: 0 10px 36px rgba(0,0,0,.16), 0 0 0 3px var(--brand-100); }
-.map-search input::placeholder { color: #6b7280; font-weight: 600; }
+.map-search input::placeholder { color: #475569; font-weight: 600; }
 .map-search-clear { position: absolute; right: 16px; background: none; border: none; font-size: 20px; color: #9ca3af; cursor: pointer; display: none; padding: 4px; line-height: 1; outline: none; }
 .map-search-clear:hover { color: #111827; }
 .map-search-clear.show { display: block; }
@@ -561,7 +561,7 @@ function tipContent(p) {
   if (counties) parts.push(counties);
   const boundaryInfo = parts.join(' · ');
 
-  return `<div class="ff-tip-body" style="border-left: 4px solid ${col}">
+  return `<div class="ff-tip-body" style="border-left: 6px solid ${col}">
     <div class="ff-tip-head"><span class="ff-tip-title">${esc(p.label)}</span></div>
     <div class="ff-tip-sub">${p.type==='warning'?'Warning area':'Alert area'}${freq ? ' · '+esc(freq) : ''}${boundaryInfo ? '<br>' + esc(boundaryInfo) : ''}</div>
     ${range ? `<div class="ff-tip-prop">Properties at risk: ${propChipHtml(p.propertyCount)}</div>` : ''}
