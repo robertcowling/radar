@@ -267,7 +267,7 @@ select.premium-select:hover { background-color: #e8eaed; }
           <span class="control-label">Show</span>
           <div class="show-dropdown" id="showDropdown">
             <button class="show-btn" onclick="showToggle(event)" type="button">
-              <span>Overlays</span>
+              <span></span>
               <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#5F6368" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div class="show-panel" id="showPanel">
@@ -605,9 +605,28 @@ document.addEventListener('click', (e) => {
   }
 });
 
+function updateShowButtonText() {
+  const riverBtn = document.getElementById('riverBtn');
+  const active = [];
+  if (riverBtn && riverBtn.checked) active.push('Rivers');
+  
+  const span = document.querySelector('#showDropdown .show-btn span');
+  if (span) {
+    span.textContent = active.join(', ');
+  }
+}
+
+// Hook into shared toggleRivers
+const originalToggleRivers = toggleRivers;
+toggleRivers = function() {
+  originalToggleRivers();
+  updateShowButtonText();
+};
+
 loadCurrent();
 loadSeries();
 onBoundary('counties');
+updateShowButtonText();
 setInterval(loadCurrent, 5*60*1000);
 </script>
 </body>
