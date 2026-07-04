@@ -167,7 +167,7 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
   border-width: 7px; border-style: solid; border-color: #e2e8f0 transparent transparent transparent; z-index: -1; }
 .info-popup.show { display: block; }
 select.premium-select { appearance: none; -webkit-appearance: none; width: 100%; background: #f1f3f4;
-  border: none; padding: 8px 26px 8px 12px; border-radius: 20px; font-family: inherit; font-size: 12px;
+  border: none; padding: 0 26px 0 12px; height: 34px; border-radius: 20px; font-family: inherit; font-size: 12px;
   color: #202124; font-weight: 500; cursor: pointer; outline: none; box-sizing: border-box;
   background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 10px center; }
@@ -175,9 +175,22 @@ select.premium-select:hover { background-color: #e8eaed; }
 /* "Show" dropdown — boundaries (single choice) + rivers (checkbox) */
 .show-dropdown { position: relative; width: 100%; }
 .show-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
-  appearance: none; background: #f1f3f4; border: none; padding: 8px 12px; border-radius: 20px;
+  appearance: none; background: #f1f3f4; border: none; padding: 0 12px; height: 34px; border-radius: 20px;
   font-family: inherit; font-size: 12px; color: #202124; font-weight: 500; cursor: pointer;
   outline: none; box-sizing: border-box; }
+
+/* Display mode sliding pill toggle */
+.mode-toggle { position: relative; display: flex; align-items: center; background: #f1f3f4; border: none;
+  border-radius: 20px; padding: 3px; cursor: pointer; height: 34px; width: 100%; font-family: inherit;
+  outline: none; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+.mode-toggle-knob { position: absolute; top: 3px; left: 3px; width: calc(50% - 3px); height: calc(100% - 6px);
+  background: white; border-radius: 17px; box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  transition: transform 0.2s cubic-bezier(0.34,1.2,0.64,1); }
+.mode-toggle.mode-centroids .mode-toggle-knob { transform: translateX(100%); }
+.mode-toggle-label { position: relative; z-index: 1; flex: 1; text-align: center; font-size: 12.5px;
+  font-weight: 500; color: #5f6368; transition: color 0.15s; pointer-events: none; }
+.mode-toggle.mode-polygons .mtl-polygons { color: #202124; font-weight: 600; }
+.mode-toggle.mode-centroids .mtl-centroids { color: #202124; font-weight: 600; }
 .show-btn:hover { background: #e8eaed; }
 .show-panel { display: none; position: absolute; bottom: calc(100% + 8px); left: 0; min-width: 190px;
   background: white; border-radius: 12px; border: 1px solid #dadce0; box-shadow: var(--shadow-panel);
@@ -283,10 +296,11 @@ select.premium-select:hover { background-color: #e8eaed; }
       </div>
       <div class="control-group">
         <span class="control-label">Display</span>
-        <select class="premium-select" id="displaySel" onchange="onDisplayMode(this.value)">
-          <option value="polygons">Polygons</option>
-          <option value="centroids">Icons</option>
-        </select>
+        <button id="displayToggle" class="mode-toggle mode-polygons" role="switch" aria-checked="false" onclick="toggleDisplayMode()" type="button">
+          <span class="mode-toggle-knob"></span>
+          <span class="mode-toggle-label mtl-polygons">Polys</span>
+          <span class="mode-toggle-label mtl-centroids">Icons</span>
+        </button>
       </div>
       <div class="control-group">
         <span class="control-label">Show</span>
@@ -460,8 +474,21 @@ function load() {
   });
 }
 
+function toggleDisplayMode() {
+  const current = displayMode === 'polygons' ? 'centroids' : 'polygons';
+  onDisplayMode(current);
+}
+
 function onDisplayMode(val) {
   displayMode = val;
+  const toggle = document.getElementById('displayToggle');
+  if (toggle) {
+    if (val === 'centroids') {
+      toggle.className = 'mode-toggle mode-centroids';
+    } else {
+      toggle.className = 'mode-toggle mode-polygons';
+    }
+  }
   allFeatures = displayMode === 'centroids' ? centFeatures : polyFeatures;
   updateLegend();
   applyFilters();
