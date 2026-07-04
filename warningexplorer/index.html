@@ -285,12 +285,14 @@ select.premium-select:hover { background-color: #e8eaed; }
       <div class="control-group">
         <span class="control-label">Show</span>
         <div class="show-dropdown" id="showDropdown">
-          <button class="show-btn" onclick="showToggle(event)" type="button">
-            <span></span>
-            <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#5F6368" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <button class="show-btn" type="button" style="cursor: default;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; width: 100%; font-family: inherit; font-size: 12px; color: #202124; font-weight: 500;">
+              <input type="checkbox" id="riverBtn" onchange="toggleRivers()" style="accent-color: var(--brand-500); width: 15px; height: 15px; cursor: pointer; margin: 0;">
+              <span>Rivers</span>
+            </label>
+            <svg onclick="showToggle(event)" width="10" height="6" viewBox="0 0 10 6" fill="none" style="cursor: pointer; padding: 4px; box-sizing: content-box; margin-left: 8px; flex-shrink: 0;"><path d="M1 1L5 5L9 1" stroke="#5F6368" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <div class="show-panel" id="showPanel">
-            <label class="show-item"><input type="checkbox" id="riverBtn" onchange="toggleRivers()"> Rivers</label>
             <label class="show-item"><input type="checkbox" id="riskToggle" onchange="onRiskToggle(this.checked)"> Property counts</label>
           </div>
         </div>
@@ -399,7 +401,6 @@ function onRiskToggle(checked) {
   colorByRisk = checked;
   updateLegend();
   applyFilters();
-  updateShowButtonText();
 }
 
 // Per-agency reference: R2 prefix for polygons/{code}.json lookups + human label.
@@ -797,29 +798,8 @@ document.addEventListener('click', (e) => {
   }
 });
 
-function updateShowButtonText() {
-  const riverBtn = document.getElementById('riverBtn');
-  const riskToggle = document.getElementById('riskToggle');
-  const active = [];
-  if (riverBtn && riverBtn.checked) active.push('Rivers');
-  if (riskToggle && riskToggle.checked) active.push('Property counts');
-  
-  const span = document.querySelector('#showDropdown .show-btn span');
-  if (span) {
-    span.textContent = active.join(', ');
-  }
-}
-
-// Hook into shared toggleRivers
-const originalToggleRivers = toggleRivers;
-toggleRivers = function() {
-  originalToggleRivers();
-  updateShowButtonText();
-};
-
 load();
 onBoundary('counties');
-updateShowButtonText();
 </script>
 </body>
 </html>
