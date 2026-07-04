@@ -26,12 +26,16 @@ _GROUNDWATER_RE = re.compile(r"groundwater", re.IGNORECASE)
 # Only match coastal keywords in the area *label* — descriptions often mention
 # tidal limits / estuaries for river catchment areas that flow to the sea,
 # which produces false positives (e.g. "River Teign Flood Watch Area").
-_COASTAL_LABEL_RE = re.compile(r"\btidal\b|\bcoastal\b|\bcoast\b|\bestuary\b", re.IGNORECASE)
+# "Wash frontage" is the Environment Agency's own naming convention for the
+# Lincolnshire/Norfolk coast along The Wash — always coastal.
+_COASTAL_LABEL_RE = re.compile(r"\btidal\b|\bcoastal\b|\bcoast\b|\bestuary\b|\bwash frontage\b", re.IGNORECASE)
 # A named sea body in the river/sea field is a reliable coastal indicator.
+# "the wash" (not bare "wash") avoids false positives like "Washford River"
+# or "River Gwash", which are unrelated inland watercourses.
 _SEA_BODY_RE = re.compile(
     r"\b(north sea|irish sea|english channel|bristol channel|"
     r"st george[''s]* channel|morecambe bay|cardigan bay|lyme bay|solent|"
-    r"severn estuary|thames estuary|humber estuary)\b",
+    r"severn estuary|thames estuary|humber estuary|the wash)\b",
     re.IGNORECASE,
 )
 
