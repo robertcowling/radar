@@ -103,7 +103,7 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
   cursor: pointer; transition: transform 0.15s, background 0.15s, box-shadow 0.15s; }
 .wcard:hover { background: #f8fafc; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.12); }
 .wcard .wt { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; color: #1f2937; }
-.wcard .wcard-issued { font-size: 12px; color: #6b7280; margin-top: 4px; font-weight: 700; }
+.wcard .wcard-issued { font-size: 12px; color: #6b7280; margin-top: 4px; margin-bottom: 5px; font-weight: 700; }
 .wcard .wm { font-size: 12px; color: #6b7280; margin-top: 3px; }
 .wcard .pill { display: inline-block; font-size: 10px; font-weight: 700; color: white;
   padding: 1px 7px; border-radius: 10px; margin-top: 0; }
@@ -284,9 +284,11 @@ select.premium-select:hover { background-color: #e8eaed; }
         <div class="control-group">
           <span class="control-label">Alerts and Warnings</span>
           <select class="premium-select" id="sevSel" onchange="render()">
-            <option value="3">Alert and above</option>
-            <option value="2">Warning and above</option>
+            <option value="all">Alert and above</option>
+            <option value="warn_above">Warning and above</option>
             <option value="1">Severe only</option>
+            <option value="2-only" style="display:none;">Warning only</option>
+            <option value="3-only" style="display:none;">Alert only</option>
           </select>
         </div>
         <div class="control-group">
@@ -655,10 +657,29 @@ function visible() {
   const queryCriteria = queries.map(query => parseSearchQuery(query));
 
   return warnings
-    .filter(w => (sevFilter === 'all' || w.severityLevel === parseInt(sevFilter, 10))
-      && (src === 'all' || w.source === src)
-      && (cat === 'all' || w.category === cat)
-      && (queryCriteria.length === 0 || queryCriteria.some(criteria => matchFeature(w, criteria))))
+    .filter(w => {
+      // Severity filter
+      if (sevFilter === 'all') {
+        if (w.severityLevel > 3) return false;
+      } else if (sevFilter === 'warn_above') {
+        if (w.severityLevel > 2) return false;
+      } else if (sevFilter === '3-only') {
+        if (w.severityLevel !== 3) return false;
+      } else if (sevFilter === '2-only') {
+        if (w.severityLevel !== 2) return false;
+      } else if (sevFilter === '1') {
+        if (w.severityLevel !== 1) return false;
+      }
+
+      // Source and category filters
+      if (src !== 'all' && w.source !== src) return false;
+      if (cat !== 'all' && w.category !== cat) return false;
+
+      // Search queries
+      if (queryCriteria.length > 0 && !queryCriteria.some(criteria => matchFeature(w, criteria))) return false;
+
+      return true;
+    })
     .sort((a,b) => new Date(b.timeSeverityChanged || b.timeRaised || 0) - new Date(a.timeSeverityChanged || a.timeRaised || 0));
 }
 
@@ -898,7 +919,7 @@ function focusWarning(w) {
   }
 }
 
-function fmt(iso){ try { return new Date(iso).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e){ return iso; } }
+function fmt(iso){ try { return new Date(iso).toLocaleString('en-GB',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e){ return iso; } }
 
 /* ── In-force chart ── */
 let seriesPts = [];
@@ -1007,8 +1028,8 @@ function drawChart() {
   const Y = v => (H-padB) - (H-padT-padB) * (v/maxY);
   
   // axes
-  ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL,padT); ctx.lineTo(padL,H-padB); ctx.lineTo(W-padR,H-padB); ctx.stroke();
-  ctx.fillStyle='#94a3b8'; ctx.font='10px Roboto';
+  ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL,padT); ctx.lineTo(padL,H-padB); ctx.lineTo(W-padR,H-padB); ctx.stroke();
+  ctx.fillStyle='#475569'; ctx.font='10px Roboto';
   for (let g=0; g<=2; g++){ const v=Math.round(maxY*g/2); const y=Y(v); ctx.fillText(v, 4, y+3);
     ctx.strokeStyle='#f1f3f4'; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke(); }
   
@@ -1022,27 +1043,27 @@ function drawChart() {
   // time labels (intermediate labels every 24h)
   const totalDuration = t1 - t0;
   const numTicks = 4;
-  ctx.fillStyle='#94a3b8';
-  ctx.font='9px Roboto';
+  ctx.fillStyle='#475569';
+  ctx.font='10px Roboto';
   for (let i = 0; i <= numTicks; i++) {
     const tickT = t0 + (totalDuration * i / numTicks);
     const x = X(tickT);
     const dateObj = new Date(tickT);
-    const dateStr = dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+    const dateStr = dateObj.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
     const timeStr = dateObj.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
     const labelText = `${dateStr} ${timeStr}`;
     
-    ctx.strokeStyle = '#e5e7eb';
+    ctx.strokeStyle = '#94a3b8';
     ctx.beginPath();
     ctx.moveTo(x, H - padB);
-    ctx.lineTo(x, H - padB + 3);
+    ctx.lineTo(x, H - padB + 5);
     ctx.stroke();
     
     const textW = ctx.measureText(labelText).width;
     let textX = x - textW / 2;
     if (textX < padL) textX = padL;
     if (textX + textW > W - padR) textX = W - padR - textW;
-    ctx.fillText(labelText, textX, H - 4);
+    ctx.fillText(labelText, textX, H - 5);
   }
 
   // hover effects
@@ -1102,10 +1123,14 @@ window.addEventListener('resize', () => { drawChart(); });
 function filterSeverity(val) {
   const select = document.getElementById('sevSel');
   if (select) {
-    if (select.value === val) {
+    let targetVal = val;
+    if (val === '3') targetVal = '3-only';
+    else if (val === '2') targetVal = '2-only';
+    
+    if (select.value === targetVal) {
       select.value = 'all';
     } else {
-      select.value = val;
+      select.value = targetVal;
     }
     render();
   }
