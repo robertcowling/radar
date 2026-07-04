@@ -115,13 +115,16 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 
 /* area-name filter, floating top-right of the map — a key touch point,
    sized and weighted to stand out rather than blend into the chrome */
-.map-search { position: absolute; top: 16px; right: 16px; z-index: 1000; width: 360px; max-width: calc(100% - 32px); }
+.map-search { position: absolute; top: 16px; right: 16px; z-index: 1000; width: 360px; max-width: calc(100% - 32px); display: flex; align-items: center; }
 .map-search input { width: 100%; box-sizing: border-box; background: white; border: 2px solid white;
-  padding: 16px 20px; border-radius: 30px; font-family: 'Outfit', sans-serif; font-size: 15.5px; color: #111827;
+  padding: 16px 45px 16px 20px; border-radius: 30px; font-family: 'Outfit', sans-serif; font-size: 15.5px; color: #111827;
   font-weight: 600; outline: none; box-shadow: 0 10px 36px rgba(0,0,0,.16), 0 3px 10px rgba(0,0,0,.10);
   transition: box-shadow .15s, border-color .15s; }
 .map-search input:focus { border-color: var(--brand-500); box-shadow: 0 10px 36px rgba(0,0,0,.16), 0 0 0 3px var(--brand-100); }
 .map-search input::placeholder { color: #6b7280; font-weight: 600; }
+.map-search-clear { position: absolute; right: 16px; background: none; border: none; font-size: 20px; color: #9ca3af; cursor: pointer; display: none; padding: 4px; line-height: 1; outline: none; }
+.map-search-clear:hover { color: #111827; }
+.map-search-clear.show { display: block; }
 
 /* bottom control bar */
 .player-panel { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -138,18 +141,12 @@ select.premium-select { appearance: none; -webkit-appearance: none; width: 100%;
   background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 10px center; }
 select.premium-select:hover { background-color: #e8eaed; }
-.boundary-group { flex: 1.35; flex-direction: row; align-items: flex-end; gap: 6px; }
-.boundary-group .control-sub { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.check-pill { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; font-weight: 600;
-  white-space: nowrap; cursor: pointer; padding: 8px 10px; border-radius: 20px; background: #f1f3f4; flex-shrink: 0; }
-.check-pill input[type=checkbox] { accent-color: var(--brand-500); width: 15px; height: 15px; cursor: pointer; margin: 0; }
-
 /* "Show" dropdown — boundaries (single choice) + rivers (checkbox) */
-.show-dropdown { position: relative; flex-shrink: 0; }
-.show-btn { display: flex; align-items: center; justify-content: center; gap: 8px;
-  appearance: none; background: #f1f3f4; border: none; padding: 8px 14px; border-radius: 20px;
+.show-dropdown { position: relative; width: 100%; }
+.show-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
+  appearance: none; background: #f1f3f4; border: none; padding: 8px 12px; border-radius: 20px;
   font-family: inherit; font-size: 12px; color: #202124; font-weight: 500; cursor: pointer;
-  outline: none; box-sizing: border-box; white-space: nowrap; }
+  outline: none; box-sizing: border-box; }
 .show-btn:hover { background: #e8eaed; }
 .show-panel { display: none; position: absolute; bottom: calc(100% + 8px); left: 0; min-width: 190px;
   background: white; border-radius: 12px; border: 1px solid #dadce0; box-shadow: var(--shadow-panel);
@@ -205,7 +202,8 @@ select.premium-select:hover { background-color: #e8eaed; }
     <div id="map"></div>
 
     <div class="map-search">
-      <input id="search" type="text" placeholder="Filter area by name, location, county…" oninput="applyFilters()">
+      <input id="search" type="text" placeholder="Filter area by name, location, county…" oninput="onSearchInput()">
+      <button class="map-search-clear" id="searchClear" onclick="clearSearch()" type="button">&times;</button>
     </div>
 
     <div class="risk-legend" id="riskLegend">
@@ -239,17 +237,18 @@ select.premium-select:hover { background-color: #e8eaed; }
           <option value="groundwater">Groundwater</option>
         </select>
       </div>
-      <div class="control-group boundary-group">
-        <div class="control-sub">
-          <span class="control-label">Display</span>
-          <select class="premium-select" id="displaySel" onchange="onDisplayMode(this.value)">
-            <option value="polygons">Polygons</option>
-            <option value="centroids">Icons</option>
-          </select>
-        </div>
+      <div class="control-group">
+        <span class="control-label">Display</span>
+        <select class="premium-select" id="displaySel" onchange="onDisplayMode(this.value)">
+          <option value="polygons">Polygons</option>
+          <option value="centroids">Icons</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <span class="control-label">Show</span>
         <div class="show-dropdown" id="showDropdown">
           <button class="show-btn" onclick="showToggle(event)" type="button">
-            <span>Show</span>
+            <span>Overlays</span>
             <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#5F6368" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <div class="show-panel" id="showPanel">
@@ -422,19 +421,104 @@ function onDisplayMode(val) {
   applyFilters();
 }
 
+function parseSearchQuery(q) {
+  const criteria = [];
+  const regex = /(?:([\w\-]+):(?:"([^"]*)"|(\S+)))|(?:"([^"]*)")|(\S+)/g;
+  let match;
+  while ((match = regex.exec(q)) !== null) {
+    if (match[1]) {
+      const field = match[1].toLowerCase();
+      const val = (match[2] || match[3] || '').toLowerCase();
+      criteria.push({ type: 'field', field, val });
+    } else if (match[4]) {
+      criteria.push({ type: 'exact', val: match[4].toLowerCase() });
+    } else if (match[5]) {
+      criteria.push({ type: 'word', val: match[5].toLowerCase() });
+    }
+  }
+  return criteria;
+}
+
+function matchFeature(p, criteria) {
+  if (!criteria || criteria.length === 0) return true;
+  const label = (p.label || '').toLowerCase();
+  const code = (p.code || '').toLowerCase();
+  const river = (p.river || '').toLowerCase();
+  const county = (p.county || '').toLowerCase();
+  const counties = (p.counties || []).map(c => c.toLowerCase());
+  const area = (p.area || p.eaArea || '').toLowerCase();
+  const source = (p.source || '').toLowerCase();
+  const type = (p.type || '').toLowerCase();
+  const zones = (p.rainfallZones || []).map(z => z.toLowerCase());
+
+  const hay = (label + ' ' + river + ' ' + county + ' ' + area + ' ' +
+               counties.join(' ') + ' ' + zones.join(' ')).toLowerCase();
+
+  return criteria.every(c => {
+    if (c.type === 'exact' || c.type === 'word') {
+      return hay.includes(c.val) || code.includes(c.val);
+    }
+    if (c.type === 'field') {
+      const v = c.val;
+      switch (c.field) {
+        case 'river':
+          return river.includes(v);
+        case 'county':
+          return county.includes(v) || counties.some(co => co.includes(v));
+        case 'area':
+        case 'region':
+          return area.includes(v);
+        case 'source':
+        case 'publisher':
+        case 'agency':
+          return source.includes(v) || (v === 'ea' && source === 'ea') || (v === 'nrw' && source === 'nrw');
+        case 'type':
+          return type.includes(v);
+        case 'code':
+          return code.includes(v);
+        case 'zone':
+          return zones.some(z => z.includes(v));
+        default:
+          return hay.includes(c.field) && hay.includes(v);
+      }
+    }
+    return false;
+  });
+}
+
+function onSearchInput() {
+  const q = document.getElementById('search').value;
+  const clearBtn = document.getElementById('searchClear');
+  if (clearBtn) {
+    clearBtn.classList.toggle('show', q.length > 0);
+  }
+  applyFilters();
+}
+
+function clearSearch() {
+  const searchInput = document.getElementById('search');
+  searchInput.value = '';
+  const clearBtn = document.getElementById('searchClear');
+  if (clearBtn) {
+    clearBtn.classList.remove('show');
+  }
+  applyFilters();
+  searchInput.focus();
+}
+
 function filtered() {
-  const q = document.getElementById('search').value.trim().toLowerCase();
+  const q = document.getElementById('search').value.trim();
   const t = document.getElementById('typeSel').value;
   const src = document.getElementById('sourceSel').value;
   const cat = document.getElementById('categorySel').value;
+  const criteria = q ? parseSearchQuery(q) : null;
+
   return allFeatures.filter(f => {
     const p = f.properties;
     if (t !== 'all' && p.type !== t) return false;
     if (src !== 'all' && p.source !== src) return false;
     if (cat !== 'all' && p.category !== cat) return false;
-    if (q) { const hay = (p.label+' '+(p.river||'')+' '+(p.county||'')+' '+(p.area||'')+' '+
-      (p.counties||[]).join(' ')+' '+(p.rainfallZones||[]).join(' ')).toLowerCase();
-      if (!hay.includes(q)) return false; }
+    if (criteria && !matchFeature(p, criteria)) return false;
     return true;
   });
 }
@@ -445,10 +529,19 @@ function tipContent(p) {
   const freq = hist && hist.freq && hist.freq[tier] ? hist.freq[tier].label : null;
   const range = propRangeLabel(p.propertyCount);
   const col = COL[p.type] || '#5f6368';
+
+  const counties = (p.counties && p.counties.length) ? p.counties.join(', ') : (p.county || '');
+  const region = p.area || p.eaArea || '';
+  const parts = [];
+  if (region) parts.push(region);
+  if (counties) parts.push(counties);
+  const boundaryInfo = parts.join(' · ');
+
   return `<div class="ff-tip-body">
     <div class="ff-tip-head"><span class="ff-tip-dot" style="background:${col}"></span>
       <span class="ff-tip-title">${esc(p.label)}</span></div>
     <div class="ff-tip-sub">${p.type==='warning'?'Warning area':'Alert area'}${freq ? ' · '+esc(freq) : ''}</div>
+    ${boundaryInfo ? `<div class="ff-tip-bounds" style="font-size:11px;color:#64748b;margin-bottom:6px">${esc(boundaryInfo)}</div>` : ''}
     ${range ? `<div class="ff-tip-prop">Properties at risk: ${propChipHtml(p.propertyCount)}</div>` : ''}
   </div>`;
 }
@@ -506,7 +599,7 @@ function applyFilters() {
       + `<div class="am">${p.type==='warning'?'Warning area':'Alert area'}${p.category? ' · '+esc(catLabel(p.category)):''}`
       + ` · ${p.source==='NRW'?'Natural Resources Wales':'Environment Agency'}`
       + `${counties? ' · '+esc(counties):''}${region? ' · '+esc(region):''}${p.river? ' · '+esc(p.river):''}</div>`
-      + (range ? `<div style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:10.5px;color:#94a3b8">Properties at risk ${propChipHtml(p.propertyCount)}</div>` : '');
+      + (range ? `<div style="margin-top:6px;display:flex;align-items:center;justify-content:flex-end;gap:6px;font-size:10.5px;color:#94a3b8">Properties at risk ${propChipHtml(p.propertyCount)}</div>` : '');
     el.onclick = () => selectArea(f, null, true);
     frag.appendChild(el);
   });
