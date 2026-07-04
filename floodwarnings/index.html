@@ -68,7 +68,10 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
   font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
 .side-head .cnt { font-weight: 700; color: #ffffff; font-family: 'Roboto', sans-serif; }
 .summary { display: flex; gap: 8px; padding: 12px; flex-shrink: 0; border-bottom: 1px solid #eef1f4; }
-.stat { flex: 1; border-radius: 8px; padding: 10px 8px; text-align: center; color: white; }
+.stat { flex: 1; border-radius: 8px; padding: 10px 8px; text-align: center; color: white; cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s; }
+.stat:hover { transform: translateY(-1px); opacity: 0.9; }
+.stat:active { transform: translateY(0); }
 .stat .n { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 700; line-height: 1; }
 .stat .l { font-size: 10px; font-weight: 600; margin-top: 4px; opacity: 0.95; }
 .list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: #f8fafc; }
@@ -78,6 +81,7 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
   cursor: pointer; transition: transform 0.15s, background 0.15s, box-shadow 0.15s; }
 .wcard:hover { background: #f8fafc; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.12); }
 .wcard .wt { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; color: #1f2937; }
+.wcard .wcard-issued { font-size: 11px; color: #475569; margin-top: 4px; font-weight: 500; }
 .wcard .wm { font-size: 12px; color: #6b7280; margin-top: 3px; }
 .wcard .pill { display: inline-block; font-size: 10px; font-weight: 700; color: white;
   padding: 1px 7px; border-radius: 10px; margin-top: 0; }
@@ -337,7 +341,7 @@ fetch(R2 + '/flood_history/area_stats.json')
   .catch(() => {});
 
 const SEV = {
-  1: {name:'Severe Flood Warning', color:'#000000', short:'Severe'},
+  1: {name:'Severe Flood Warning', color:'#343a40', short:'Severe'},
   2: {name:'Flood Warning',        color:'#d93025', short:'Warning'},
   3: {name:'Flood Alert',          color:'#f9ab00', short:'Alert'},
   4: {name:'Warning no longer in force', color:'#9aa0a6', short:'Stood down'},
@@ -457,11 +461,11 @@ function loadCurrent() {
 }
 
 function visible() {
-  const minSev = parseInt(document.getElementById('sevSel').value, 10);
+  const sevFilter = document.getElementById('sevSel').value;
   const src = document.getElementById('sourceSel').value;
   const cat = document.getElementById('categorySel').value;
   return warnings
-    .filter(w => w.severityLevel <= minSev
+    .filter(w => (sevFilter === 'all' || w.severityLevel === parseInt(sevFilter, 10))
       && (src === 'all' || w.source === src)
       && (cat === 'all' || w.category === cat))
     .sort((a,b) => new Date(b.timeSeverityChanged || b.timeRaised || 0) - new Date(a.timeSeverityChanged || a.timeRaised || 0));
@@ -506,11 +510,11 @@ function render() {
       }
 
       el.innerHTML = `<div class="wt">${esc(w.label)}</div>`
+        + `<div class="wcard-issued">Issued: ${fmt(w.timeRaised || w.timeSeverityChanged)}</div>`
         + `<div class="wm">${w.source==='NRW'?'Natural Resources Wales':'Environment Agency'}${w.category? ' · '+esc(catLabel(w.category)):''}</div>`
         + (metaHtml ? `<div class="wcard-meta">${metaHtml}</div>` : '')
         + `<div class="wcard-foot">`
         + `<span class="pill" style="background:${s.color}">${s.name}</span>`
-        + (range ? `<span class="wcard-prop">Properties at risk ${propChipHtml(w.propertyCount)}</span>` : '')
         + `</div>`;
       el.onclick = () => focusWarning(w);
       list.appendChild(el);
@@ -787,7 +791,7 @@ function drawChart() {
   for (let g=0; g<=2; g++){ const v=Math.round(maxY*g/2); const y=Y(v); ctx.fillText(v, 4, y+3);
     ctx.strokeStyle='#f1f3f4'; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke(); }
   
-  const series = [['alert','#f9ab00'],['warning','#d93025'],['severe','#000000']];
+  const series = [['alert','#f9ab00'],['warning','#d93025'],['severe','#343a40']];
   series.forEach(([k,c]) => {
     ctx.strokeStyle=c; ctx.lineWidth=1.6; ctx.beginPath();
     seriesPts.forEach((p,i)=>{ const x=X(xs[i]), y=Y(p[k]||0); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
@@ -849,15 +853,15 @@ function drawChart() {
     
     // Update HTML tooltip
     const dateObj = new Date(p.t);
-    const dateStr = dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+    const dateStr = dateObj.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
     const timeStr = dateObj.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
     const tooltip = document.getElementById('chartTooltip');
     tooltip.innerHTML = `
-      <div style="font-weight:700;margin-bottom:5px;color:#cbd5e1;font-size:10px;text-transform:uppercase;letter-spacing:0.3px;">${dateStr} ${timeStr}</div>
+      <div style="font-weight:700;margin-bottom:5px;color:#cbd5e1;font-size:10px;letter-spacing:0.3px;">${dateStr} ${timeStr}</div>
       <div style="display:flex;flex-direction:column;gap:3px;font-size:11px;">
         <span style="display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:#f9ab00;display:inline-block;"></span>Alerts: <b>${p.alert||0}</b></span>
         <span style="display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:#d93025;display:inline-block;"></span>Warnings: <b>${p.warning||0}</b></span>
-        <span style="display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:#000000;display:inline-block;"></span>Severe: <b>${p.severe||0}</b></span>
+        <span style="display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:#343a40;display:inline-block;"></span>Severe: <b>${p.severe||0}</b></span>
       </div>
     `;
     tooltip.style.display = 'block';
@@ -873,6 +877,18 @@ function drawChart() {
   }
 }
 window.addEventListener('resize', () => { drawChart(); });
+
+function filterSeverity(val) {
+  const select = document.getElementById('sevSel');
+  if (select) {
+    if (select.value === val) {
+      select.value = 'all';
+    } else {
+      select.value = val;
+    }
+    render();
+  }
+}
 
 function toggleInfoPopup(e) {
   e.stopPropagation();
