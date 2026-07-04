@@ -122,7 +122,7 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 /* floating tooltip */
 .leaflet-tooltip.ff-tip { background: white; border: none; border-radius: 10px;
   box-shadow: var(--shadow-tooltip); color: #202124; padding: 0; pointer-events: none;
-  font-family: 'Roboto', sans-serif; }
+  font-family: 'Roboto', sans-serif; overflow: hidden; }
 .leaflet-tooltip.ff-tip::before { display: none; }
 .ff-tip-body { padding: 10px 14px; min-width: 150px; }
 .ff-tip-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
@@ -147,6 +147,20 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .control-label { font-family: 'Outfit', sans-serif; font-size: 9.5px; font-weight: 700; color: #5f6368;
   letter-spacing: 0.4px; padding-left: 10px; display: flex; align-items: center; gap: 4px; }
 .control-label .info-ico { color: #9aa0a6; cursor: help; font-size: 11px; font-weight: 400; }
+
+/* Info circle SVG & popup */
+.info-ico-container { position: relative; display: inline-flex; align-items: center; }
+.info-ico-svg { color: #9aa0a6; cursor: pointer; transition: color 0.15s; margin-left: 4px; vertical-align: middle; }
+.info-ico-svg:hover { color: var(--brand-500); }
+.info-popup { display: none; position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  background: white; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: var(--shadow-panel);
+  padding: 12px 14px; width: 260px; z-index: 1050; font-family: 'Roboto', sans-serif; font-size: 11.5px;
+  color: #374151; font-weight: normal; line-height: 1.5; white-space: normal; text-align: left; }
+.info-popup::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border-width: 6px; border-style: solid; border-color: white transparent transparent transparent; }
+.info-popup::before { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border-width: 7px; border-style: solid; border-color: #e2e8f0 transparent transparent transparent; z-index: -1; }
+.info-popup.show { display: block; }
 select.premium-select { appearance: none; -webkit-appearance: none; width: 100%; background: #f1f3f4;
   border: none; padding: 8px 26px 8px 12px; border-radius: 20px; font-family: inherit; font-size: 12px;
   color: #202124; font-weight: 500; cursor: pointer; outline: none; box-sizing: border-box;
@@ -222,7 +236,17 @@ select.premium-select:hover { background-color: #e8eaed; }
           </select>
         </div>
         <div class="control-group">
-          <span class="control-label">Flood source <span class="info-ico" title="Best-effort classification inferred from area names/descriptions and the live isTidal/TIDAL flag where available — not an official field from either agency.">&#9432;</span></span>
+          <span class="control-label" style="position: relative;">
+            Flood source
+            <span class="info-ico-container">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="info-ico-svg" onclick="toggleInfoPopup(event)">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              <span class="info-popup" id="infoPopup">
+                The flood source is classified automatically by searching for key terms such as 'coastal' or 'groundwater' in warning descriptions. Please note that this automated process is not an official designation and may contain errors.
+              </span>
+            </span>
+          </span>
           <select class="premium-select" id="categorySel" onchange="render()">
             <option value="all">Any</option>
             <option value="river">River</option>
@@ -387,8 +411,10 @@ function render() {
   prevWarnKeys = new Set(ws.map(warnKey));
   firstRender = false;
   // map
+  // Sort so Alerts (3) are drawn first, and Severe (1) are drawn last (on top)
+  const mapWs = ws.slice().sort((a, b) => b.severityLevel - a.severityLevel);
   if (mode === 'icons') {
-    ws.forEach(w => {
+    mapWs.forEach(w => {
       if (w.lat == null || w.long == null) return;
       const s = SEV[w.severityLevel];
       L.circleMarker([w.lat, w.long], {radius:8, color:'#fff', weight:2,
@@ -397,7 +423,7 @@ function render() {
         .bindPopup(popupHtml(w)).addTo(markerLayer);
     });
   } else {
-    ws.forEach(w => loadPoly(w));
+    mapWs.forEach(w => loadPoly(w));
   }
 }
 
@@ -432,9 +458,8 @@ function tipContent(w) {
   if (counties) parts.push(counties);
   const boundaryInfo = parts.join(' · ');
 
-  return `<div class="ff-tip-body">
-    <div class="ff-tip-head"><span class="ff-tip-dot" style="background:${s.color}"></span>
-      <span class="ff-tip-title">${esc(w.label)}</span></div>
+  return `<div class="ff-tip-body" style="border-left: 4px solid ${s.color}">
+    <div class="ff-tip-head"><span class="ff-tip-title">${esc(w.label)}</span></div>
     <div class="ff-tip-sub">${s.name}${freq ? ' · '+esc(freq) : ''}${boundaryInfo ? '<br>' + esc(boundaryInfo) : ''}</div>
     ${range ? `<div class="ff-tip-prop">Properties at risk: ${propChipHtml(w.propertyCount)}</div>` : ''}
   </div>`;
@@ -567,6 +592,18 @@ function drawChart() {
   ctx.fillText(lab, W-padR-ctx.measureText(lab).width, H-5);
 }
 window.addEventListener('resize', () => { drawChart(); });
+
+function toggleInfoPopup(e) {
+  e.stopPropagation();
+  const popup = document.getElementById('infoPopup');
+  if (popup) popup.classList.toggle('show');
+}
+document.addEventListener('click', (e) => {
+  const popup = document.getElementById('infoPopup');
+  if (popup && popup.classList.contains('show') && !e.target.closest('.info-ico-container')) {
+    popup.classList.remove('show');
+  }
+});
 
 loadCurrent();
 loadSeries();
