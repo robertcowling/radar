@@ -345,9 +345,9 @@ select.premium-select:hover { background-color: #e8eaed; }
   <div class="side">
     <div class="side-head"><span>Live Flood Warnings</span><span class="cnt" id="cnt">…</span></div>
     <div class="summary">
-      <div class="stat" style="background:#f9ab00"><div class="n" id="nAlert">0</div><div class="l">Alert</div></div>
-      <div class="stat" style="background:#d93025"><div class="n" id="nWarning">0</div><div class="l">Warning</div></div>
-      <div class="stat" style="background:#000000"><div class="n" id="nSevere">0</div><div class="l">Severe</div></div>
+      <div class="stat" onclick="filterSeverity('3')" style="background:#f9ab00"><div class="n" id="nAlert">0</div><div class="l">Alert</div></div>
+      <div class="stat" onclick="filterSeverity('2')" style="background:#d93025"><div class="n" id="nWarning">0</div><div class="l">Warning</div></div>
+      <div class="stat" onclick="filterSeverity('1')" style="background:#343a40"><div class="n" id="nSevere">0</div><div class="l">Severe</div></div>
     </div>
     <div class="list" id="list"><div class="empty">Loading…</div></div>
     <div class="foot">England: Environment Agency flood data from the real-time data API (Beta), Open Government Licence. <a href="https://www.gov.uk/check-flooding" target="_blank">Official service →</a><br>
@@ -843,11 +843,31 @@ function popupHtml(w) {
 }
 
 function focusWarning(w) {
-  if (displayMode === 'polygons' && polyCache[w.code]) {
-    const b = L.geoJSON(polyCache[w.code]).getBounds();
-    if (b.isValid()) { map.panInsideBounds(b, {animate:true}); return; }
+  let popupLatLng = null;
+  const cacheKey = w.source + ':' + w.code;
+  
+  if (displayMode === 'polygons' && polyCache[cacheKey]) {
+    const layer = L.geoJSON(polyCache[cacheKey]);
+    const b = layer.getBounds();
+    if (b.isValid()) {
+      popupLatLng = L.latLng(b.getNorth(), b.getCenter().lng);
+      map.panInsideBounds(b, {animate:true});
+    }
   }
-  if (w.lat != null) { map.panInsideBounds(L.latLngBounds([[w.lat,w.long],[w.lat,w.long]]), {animate:true}); }
+  
+  if (!popupLatLng && w.lat != null && w.long != null) {
+    popupLatLng = L.latLng(w.lat, w.long);
+    map.panInsideBounds(L.latLngBounds([popupLatLng, popupLatLng]), {animate:true});
+  }
+  
+  if (popupLatLng) {
+    setTimeout(() => {
+      L.popup()
+        .setLatLng(popupLatLng)
+        .setContent(popupHtml(w))
+        .openOn(map);
+    }, 150);
+  }
 }
 
 function fmt(iso){ try { return new Date(iso).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e){ return iso; } }
