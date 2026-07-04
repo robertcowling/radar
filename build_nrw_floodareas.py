@@ -207,20 +207,43 @@ def simplify_ring(ring, tol, dp):
     return None
 
 
+def _repair_if_invalid(geom):
+    """See matching function in fetch_ea_floodareas.py — rounding + RDP
+    simplification routinely introduces self-intersecting rings, and
+    Shapely's containment checks on invalid geometry are undefined."""
+    from shapely.geometry import shape, mapping, Polygon, MultiPolygon, GeometryCollection
+    from shapely.validation import make_valid
+    from shapely.ops import unary_union
+    g = shape(geom)
+    if g.is_valid:
+        return geom
+    fixed = g.buffer(0)
+    if fixed.is_empty or not fixed.is_valid:
+        fixed = make_valid(g)
+        if isinstance(fixed, GeometryCollection):
+            polys = [p for p in fixed.geoms if isinstance(p, (Polygon, MultiPolygon))]
+            fixed = unary_union(polys) if polys else None
+    if fixed is None or fixed.is_empty or not fixed.is_valid:
+        return geom
+    return mapping(fixed)
+
+
 def simplify_geometry(geom, tol=OVERVIEW_TOL, dp=OVERVIEW_DP):
     gtype = geom.get("type")
     coords = geom.get("coordinates")
     if gtype == "Polygon":
         rings = [r for r in (simplify_ring(ring, tol, dp) for ring in coords) if r]
-        return {"type": "Polygon", "coordinates": rings} if rings else None
-    if gtype == "MultiPolygon":
+        result = {"type": "Polygon", "coordinates": rings} if rings else None
+    elif gtype == "MultiPolygon":
         polys = []
         for poly in coords:
             rings = [r for r in (simplify_ring(ring, tol, dp) for ring in poly) if r]
             if rings:
                 polys.append(rings)
-        return {"type": "MultiPolygon", "coordinates": polys} if polys else None
-    return geom
+        result = {"type": "MultiPolygon", "coordinates": polys} if polys else None
+    else:
+        result = geom
+    return _repair_if_invalid(result) if result else None
 
 
 DEFAULT_INPUTS = [

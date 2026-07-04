@@ -188,6 +188,34 @@ def simplify_ring(ring, tol, dp):
     return None
 
 
+def _repair_if_invalid(geom):
+    """Rounding + RDP simplification routinely introduces self-intersecting
+    ("bowtie") rings — coordinates that were fine before rounding can cross
+    after it. Shapely's point-in-polygon behaviour on an invalid geometry is
+    undefined (not a clean error — it can silently return wrong containment
+    results), which matters a lot here since this file is also
+    count_properties.py's spatial-join source. buffer(0) is the standard
+    Shapely self-repair trick and fixes the vast majority; a handful of
+    more degenerate cases need shapely's make_valid(), which can return a
+    GeometryCollection mixing in stray points/lines — keep only the
+    polygonal parts of that."""
+    from shapely.geometry import shape, mapping, Polygon, MultiPolygon, GeometryCollection
+    from shapely.validation import make_valid
+    from shapely.ops import unary_union
+    g = shape(geom)
+    if g.is_valid:
+        return geom
+    fixed = g.buffer(0)
+    if fixed.is_empty or not fixed.is_valid:
+        fixed = make_valid(g)
+        if isinstance(fixed, GeometryCollection):
+            polys = [p for p in fixed.geoms if isinstance(p, (Polygon, MultiPolygon))]
+            fixed = unary_union(polys) if polys else None
+    if fixed is None or fixed.is_empty or not fixed.is_valid:
+        return geom  # couldn't repair — return as-is rather than lose the area
+    return mapping(fixed)
+
+
 def simplify_geometry(geom, tol=OVERVIEW_TOL, dp=OVERVIEW_DP):
     """Simplify a (Multi)Polygon for the lightweight overview layer."""
     if not geom:
@@ -196,15 +224,17 @@ def simplify_geometry(geom, tol=OVERVIEW_TOL, dp=OVERVIEW_DP):
     coords = geom.get("coordinates")
     if gtype == "Polygon":
         rings = [r for r in (simplify_ring(ring, tol, dp) for ring in coords) if r]
-        return {"type": "Polygon", "coordinates": rings} if rings else None
-    if gtype == "MultiPolygon":
+        result = {"type": "Polygon", "coordinates": rings} if rings else None
+    elif gtype == "MultiPolygon":
         polys = []
         for poly in coords:
             rings = [r for r in (simplify_ring(ring, tol, dp) for ring in poly) if r]
             if rings:
                 polys.append(rings)
-        return {"type": "MultiPolygon", "coordinates": polys} if polys else None
-    return geom
+        result = {"type": "MultiPolygon", "coordinates": polys} if polys else None
+    else:
+        result = geom
+    return _repair_if_invalid(result) if result else None
 
 
 def area_type(code):
