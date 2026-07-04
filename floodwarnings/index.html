@@ -240,10 +240,10 @@ select.premium-select:hover { background-color: #e8eaed; }
           </select>
         </div>
         <div class="control-group">
-          <span class="control-label" style="opacity:0;pointer-events:none">Show</span>
+          <span class="control-label">Show</span>
           <div class="show-dropdown" id="showDropdown">
             <button class="show-btn" onclick="showToggle(event)" type="button">
-              <span>Show</span>
+              <span>Overlays</span>
               <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#5F6368" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div class="show-panel" id="showPanel">
@@ -378,7 +378,7 @@ function render() {
         + `<div class="wm">${w.source==='NRW'?'Natural Resources Wales':'Environment Agency'}`
         + ` · ${w.category? esc(catLabel(w.category))+' · ':''}${counties? esc(counties)+' · ':''}${region? esc(region)+' · ':''}${w.river? esc(w.river):''}</div>`
         + `<span class="pill" style="background:${s.color}">${s.name}</span>`
-        + (range ? `<div style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:10.5px;color:#94a3b8">Properties at risk ${propChipHtml(w.propertyCount)}</div>` : '');
+        + (range ? `<div style="margin-top:6px;display:flex;align-items:center;justify-content:flex-end;gap:6px;font-size:10.5px;color:#94a3b8">Properties at risk ${propChipHtml(w.propertyCount)}</div>` : '');
       el.onclick = () => focusWarning(w);
       list.appendChild(el);
       if (isNew) setTimeout(() => el.classList.remove('is-new'), 2600);
@@ -424,10 +424,19 @@ function tipContent(w) {
   const tier = String(w.severityLevel);
   const freq = hist && hist.freq && hist.freq[tier] ? hist.freq[tier].label : null;
   const range = propRangeLabel(w.propertyCount);
+
+  const counties = (w.counties && w.counties.length) ? w.counties.join(', ') : (w.county || '');
+  const region = w.area || w.eaArea || '';
+  const parts = [];
+  if (region) parts.push(region);
+  if (counties) parts.push(counties);
+  const boundaryInfo = parts.join(' · ');
+
   return `<div class="ff-tip-body">
     <div class="ff-tip-head"><span class="ff-tip-dot" style="background:${s.color}"></span>
       <span class="ff-tip-title">${esc(w.label)}</span></div>
     <div class="ff-tip-sub">${s.name}${freq ? ' · '+esc(freq) : ''}</div>
+    ${boundaryInfo ? `<div class="ff-tip-bounds" style="font-size:11px;color:#64748b;margin-bottom:6px">${esc(boundaryInfo)}</div>` : ''}
     ${range ? `<div class="ff-tip-prop">Properties at risk: ${propChipHtml(w.propertyCount)}</div>` : ''}
   </div>`;
 }
