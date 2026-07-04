@@ -259,7 +259,7 @@ select.premium-select:hover { background-color: #e8eaed; }
     </div>
 
     <div class="player-panel">
-      <div class="control-group">
+      <div class="control-group" style="flex: 0.75; min-width: 110px;">
         <span class="control-label">Alerts and Warnings</span>
         <select class="premium-select" id="typeSel" onchange="applyFilters()">
           <option value="all">All</option>
@@ -267,7 +267,7 @@ select.premium-select:hover { background-color: #e8eaed; }
           <option value="alert">Alert</option>
         </select>
       </div>
-      <div class="control-group">
+      <div class="control-group" style="flex: 0.75; min-width: 105px;">
         <span class="control-label" style="position: relative;">
           Flood source
           <span class="info-ico-container">
@@ -286,7 +286,7 @@ select.premium-select:hover { background-color: #e8eaed; }
           <option value="groundwater">Groundwater</option>
         </select>
       </div>
-      <div class="control-group">
+      <div class="control-group" style="flex: 0.95; min-width: 115px;">
         <span class="control-label">Location</span>
         <select class="premium-select" id="sourceSel" onchange="applyFilters()">
           <option value="all">England and Wales</option>
@@ -294,7 +294,7 @@ select.premium-select:hover { background-color: #e8eaed; }
           <option value="NRW">Wales</option>
         </select>
       </div>
-      <div class="control-group">
+      <div class="control-group" style="flex: 0.85; min-width: 100px;">
         <span class="control-label">Display</span>
         <button id="displayToggle" class="mode-toggle mode-polygons" role="switch" aria-checked="false" onclick="toggleDisplayMode()" type="button">
           <span class="mode-toggle-knob"></span>
@@ -302,7 +302,7 @@ select.premium-select:hover { background-color: #e8eaed; }
           <span class="mode-toggle-label mtl-centroids">Icons</span>
         </button>
       </div>
-      <div class="control-group">
+      <div class="control-group" style="flex: 1.45; min-width: 170px;">
         <span class="control-label">Show</span>
         <div class="show-dropdown" id="showDropdown">
           <button class="show-btn" type="button" style="cursor: default;">
@@ -317,7 +317,7 @@ select.premium-select:hover { background-color: #e8eaed; }
           </div>
         </div>
       </div>
-      <div class="control-group">
+      <div class="control-group" style="flex: 0.95; min-width: 110px;">
         <span class="control-label">Areas</span>
         <select class="premium-select" id="boundSel" onchange="onBoundary(this.value)">
           <option value="none">No overlay</option>
