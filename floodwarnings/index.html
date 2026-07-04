@@ -142,11 +142,27 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .ff-tip-prop { font-size: 12px; color: #5f6368; display: flex; align-items: center; gap: 6px; }
 
 /* area-name filter, floating top-right of the map */
-.map-search { position: absolute; top: 16px; right: 16px; z-index: 1000; width: 280px; max-width: calc(100% - 32px); }
-.map-search input { width: 100%; box-sizing: border-box; background: white; border: none;
-  padding: 13px 16px; border-radius: 26px; font-family: inherit; font-size: 13.5px; color: #000;
-  font-weight: 600; outline: none; box-shadow: var(--shadow-panel); }
+.map-search-container { position: absolute; top: 16px; right: 16px; z-index: 1000; width: 360px; max-width: calc(100% - 32px);
+  display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.map-search { width: 100%; position: relative; display: flex; align-items: center; pointer-events: auto; }
+.map-search input { width: 100%; box-sizing: border-box; background: white; border: 2px solid white;
+  padding: 16px 45px 16px 20px; border-radius: 30px; font-family: 'Outfit', sans-serif; font-size: 14px; color: #000;
+  font-weight: 600; outline: none; box-shadow: 0 10px 36px rgba(0,0,0,.16), 0 3px 10px rgba(0,0,0,.10);
+  transition: box-shadow .15s, border-color .15s; }
+.map-search input:focus { border-color: var(--brand-500); box-shadow: 0 10px 36px rgba(0,0,0,.16), 0 0 0 3px var(--brand-100); }
 .map-search input::placeholder { color: #475569; font-weight: 600; }
+.map-search-clear { position: absolute; right: 16px; background: none; border: none; font-size: 20px; color: #9ca3af; cursor: pointer; display: none; padding: 4px; line-height: 1; outline: none; }
+.map-search-clear:hover { color: #111827; }
+.map-search-clear.show { display: block; }
+.map-search-pills { display: flex; flex-wrap: wrap; gap: 6px; pointer-events: auto; }
+.search-pill { background: white; border: 1px solid #dadce0; box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  border-radius: 16px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600; color: #1f2937;
+  transition: background 0.15s, border-color 0.15s; }
+.search-pill:hover { background: #f8fafc; border-color: #cbd5e1; }
+.search-pill-close { background: none; border: none; font-size: 18px; font-weight: 700; color: #94a3b8;
+  cursor: pointer; padding: 0; line-height: 1; display: inline-flex; align-items: center; justify-content: center; outline: none; }
+.search-pill-close:hover { color: #ef4444; }
 
 /* bottom control bar */
 .player-panel { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -232,6 +248,14 @@ select.premium-select:hover { background-color: #e8eaed; }
   <div class="map-col">
     <div class="map-wrap">
       <div id="map"></div>
+
+      <div class="map-search-container">
+        <div class="map-search">
+          <input id="search" type="text" placeholder="Filter live warnings and alerts by name, location, county…" oninput="onSearchInput()" onkeydown="onSearchKeyDown(event)">
+          <button class="map-search-clear" id="searchClear" onclick="clearSearch()" type="button">&times;</button>
+        </div>
+        <div class="map-search-pills" id="searchPills"></div>
+      </div>
 
 
       <div class="player-panel">
@@ -460,14 +484,153 @@ function loadCurrent() {
   });
 }
 
+function parseSearchQuery(q) {
+  const criteria = [];
+  const regex = /(?:([\w\-]+):(?:"([^"]*)"|(\S+)))|(?:"([^"]*)")|(\S+)/g;
+  let match;
+  while ((match = regex.exec(q)) !== null) {
+    if (match[1]) {
+      const field = match[1].toLowerCase();
+      const val = (match[2] || match[3] || '').toLowerCase();
+      criteria.push({ type: 'field', field, val });
+    } else if (match[4]) {
+      criteria.push({ type: 'exact', val: match[4].toLowerCase() });
+    } else if (match[5]) {
+      criteria.push({ type: 'word', val: match[5].toLowerCase() });
+    }
+  }
+  return criteria;
+}
+
+function matchFeature(w, criteria) {
+  if (!criteria || criteria.length === 0) return true;
+  const label = (w.label || '').toLowerCase();
+  const code = (w.code || '').toLowerCase();
+  const river = (w.river || '').toLowerCase();
+  const county = (w.county || '').toLowerCase();
+  const counties = (w.counties || []).map(c => c.toLowerCase());
+  const area = (w.area || w.eaArea || '').toLowerCase();
+  const source = (w.source || '').toLowerCase();
+  const category = (w.category || '').toLowerCase();
+
+  const hay = (label + ' ' + river + ' ' + county + ' ' + area + ' ' +
+               counties.join(' ')).toLowerCase();
+
+  return criteria.every(c => {
+    if (c.type === 'exact' || c.type === 'word') {
+      return hay.includes(c.val) || code.includes(c.val);
+    }
+    if (c.type === 'field') {
+      const v = c.val;
+      switch (c.field) {
+        case 'river':
+          return river.includes(v);
+        case 'county':
+          return county.includes(v) || counties.some(co => co.includes(v));
+        case 'area':
+        case 'region':
+          return area.includes(v);
+        case 'source':
+        case 'publisher':
+        case 'agency':
+          return source.includes(v) || (v === 'ea' && source === 'ea') || (v === 'nrw' && source === 'nrw');
+        case 'code':
+          return code.includes(v);
+        case 'category':
+          return category.includes(v);
+        default:
+          return hay.includes(c.field) && hay.includes(v);
+      }
+    }
+    return false;
+  });
+}
+
+let activeSearchPills = [];
+
+function renderSearchPills() {
+  const container = document.getElementById('searchPills');
+  if (!container) return;
+  container.innerHTML = '';
+  activeSearchPills.forEach((pillText, idx) => {
+    const pill = document.createElement('div');
+    pill.className = 'search-pill';
+    
+    let displayText = pillText;
+    if (pillText.includes(':')) {
+      const parts = pillText.split(':');
+      displayText = `<span style="color:var(--brand-500)">${esc(parts[0])}:</span>${esc(parts[1])}`;
+    } else {
+      displayText = esc(displayText);
+    }
+
+    pill.innerHTML = `<span>${displayText}</span>`
+      + `<button class="search-pill-close" onclick="removeSearchPill(${idx})" type="button">&times;</button>`;
+    container.appendChild(pill);
+  });
+}
+
+function removeSearchPill(idx) {
+  activeSearchPills.splice(idx, 1);
+  renderSearchPills();
+  render();
+}
+
+function onSearchKeyDown(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const input = document.getElementById('search');
+    const val = input.value.trim();
+    if (val) {
+      if (!activeSearchPills.includes(val)) {
+        activeSearchPills.push(val);
+      }
+      input.value = '';
+      const clearBtn = document.getElementById('searchClear');
+      if (clearBtn) clearBtn.classList.remove('show');
+      renderSearchPills();
+      render();
+    }
+  }
+}
+
+function onSearchInput() {
+  const q = document.getElementById('search').value;
+  const clearBtn = document.getElementById('searchClear');
+  if (clearBtn) {
+    clearBtn.classList.toggle('show', q.length > 0);
+  }
+  render();
+}
+
+function clearSearch() {
+  const searchInput = document.getElementById('search');
+  searchInput.value = '';
+  const clearBtn = document.getElementById('searchClear');
+  if (clearBtn) {
+    clearBtn.classList.remove('show');
+  }
+  render();
+  searchInput.focus();
+}
+
 function visible() {
   const sevFilter = document.getElementById('sevSel').value;
   const src = document.getElementById('sourceSel').value;
   const cat = document.getElementById('categorySel').value;
+  
+  const q = document.getElementById('search').value.trim();
+  const queries = [...activeSearchPills];
+  if (q) {
+    queries.push(q);
+  }
+  const queryCriteria = queries.map(query => parseSearchQuery(query));
+
   return warnings
     .filter(w => (sevFilter === 'all' || w.severityLevel === parseInt(sevFilter, 10))
       && (src === 'all' || w.source === src)
-      && (cat === 'all' || w.category === cat))
+      && (cat === 'all' || w.category === cat)
+      && (queryCriteria.length === 0 || queryCriteria.some(criteria => matchFeature(w, criteria))))
     .sort((a,b) => new Date(b.timeSeverityChanged || b.timeRaised || 0) - new Date(a.timeSeverityChanged || a.timeRaised || 0));
 }
 
