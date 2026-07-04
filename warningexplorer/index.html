@@ -569,6 +569,14 @@ function applyFilters() {
   const sorted = sortFeatures(fs);
   document.getElementById('cnt').textContent = fs.length + ' / ' + allFeatures.length;
   if (layer) map.removeLayer(layer);
+
+  // Sort fs so alerts are drawn first, warnings drawn last (on top)
+  fs.sort((a, b) => {
+    const rankA = a.properties.type === 'warning' ? 1 : 0;
+    const rankB = b.properties.type === 'warning' ? 1 : 0;
+    return rankA - rankB;
+  });
+
   layer = L.geoJSON({type:'FeatureCollection', features:fs}, {
     style,
     pointToLayer: (f, latlng) => {

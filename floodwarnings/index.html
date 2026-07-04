@@ -387,8 +387,10 @@ function render() {
   prevWarnKeys = new Set(ws.map(warnKey));
   firstRender = false;
   // map
+  // Sort so Alerts (3) are drawn first, and Severe (1) are drawn last (on top)
+  const mapWs = ws.slice().sort((a, b) => b.severityLevel - a.severityLevel);
   if (mode === 'icons') {
-    ws.forEach(w => {
+    mapWs.forEach(w => {
       if (w.lat == null || w.long == null) return;
       const s = SEV[w.severityLevel];
       L.circleMarker([w.lat, w.long], {radius:8, color:'#fff', weight:2,
@@ -397,7 +399,7 @@ function render() {
         .bindPopup(popupHtml(w)).addTo(markerLayer);
     });
   } else {
-    ws.forEach(w => loadPoly(w));
+    mapWs.forEach(w => loadPoly(w));
   }
 }
 
