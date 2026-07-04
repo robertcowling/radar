@@ -104,7 +104,7 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 /* floating tooltip */
 .leaflet-tooltip.ff-tip { background: white; border: none; border-radius: 10px;
   box-shadow: var(--shadow-tooltip); color: #202124; padding: 0; pointer-events: none;
-  font-family: 'Roboto', sans-serif; }
+  font-family: 'Roboto', sans-serif; overflow: hidden; }
 .leaflet-tooltip.ff-tip::before { display: none; }
 .ff-tip-body { padding: 10px 14px; min-width: 150px; }
 .ff-tip-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
@@ -561,9 +561,8 @@ function tipContent(p) {
   if (counties) parts.push(counties);
   const boundaryInfo = parts.join(' · ');
 
-  return `<div class="ff-tip-body">
-    <div class="ff-tip-head"><span class="ff-tip-dot" style="background:${col}"></span>
-      <span class="ff-tip-title">${esc(p.label)}</span></div>
+  return `<div class="ff-tip-body" style="border-left: 4px solid ${col}">
+    <div class="ff-tip-head"><span class="ff-tip-title">${esc(p.label)}</span></div>
     <div class="ff-tip-sub">${p.type==='warning'?'Warning area':'Alert area'}${freq ? ' · '+esc(freq) : ''}${boundaryInfo ? '<br>' + esc(boundaryInfo) : ''}</div>
     ${range ? `<div class="ff-tip-prop">Properties at risk: ${propChipHtml(p.propertyCount)}</div>` : ''}
   </div>`;
