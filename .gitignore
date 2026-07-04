@@ -48,3 +48,8 @@ nrw/timeline/
 surface_obs/raw/
 surface_obs/out/
 surface_obs/manifest.json
+
+# OS Open UPRN source CSV for count_properties.py — ~2GB, downloaded fresh
+# each time it's needed and deleted afterward, never committed
+osopenuprn_*.csv
+osopenuprn_*.zip
