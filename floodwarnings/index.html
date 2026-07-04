@@ -388,56 +388,57 @@ function loadCurrent() {
     warnings = results.flat();
     
     // TEMPORARY: Fictitious warnings for UI testing (will be removed later)
-    const fakeWarnings = [
-      {
-        label: "Fictitious River Severn at Upper Lyde (Test)",
-        code: "031WAF038",
-        severityLevel: 1,
-        source: "EA",
-        category: "river",
-        river: "River Severn",
-        counties: ["Herefordshire"],
-        area: "West Midlands",
-        propertyCount: 782,
-        timeRaised: "2026-07-01T08:00:00Z",
-        timeSeverityChanged: "2026-07-04T12:00:00Z",
-        message: "Severe flooding is expected. Danger to life. Please follow instructions from emergency services.",
-        lat: 52.08,
-        long: -2.73
-      },
-      {
-        label: "Fictitious River Thames at Abingdon (Test)",
-        code: "061WAF012",
-        severityLevel: 2,
-        source: "EA",
-        category: "river",
-        river: "River Thames",
-        counties: ["Oxfordshire"],
-        area: "Thames Valley",
-        propertyCount: 250,
-        timeRaised: "2026-07-02T15:00:00Z",
-        timeSeverityChanged: "2026-07-03T09:00:00Z",
-        message: "Property flooding is expected. River levels are rising rapidly.",
-        lat: 51.67,
-        long: -1.28
-      },
-      {
-        label: "Fictitious Powys Coastline (Test)",
-        code: "NRW_alert_1",
-        severityLevel: 3,
-        source: "NRW",
-        category: "coastal",
-        river: "Irish Sea",
-        counties: ["Powys"],
-        area: "West Wales",
-        propertyCount: 12,
-        timeRaised: "2026-07-03T20:00:00Z",
-        timeSeverityChanged: "2026-07-03T20:00:00Z",
-        message: "Flooding of low-lying land and roads is possible. Be prepared.",
-        lat: 52.5,
-        long: -4.0
+    const towns = ["Shrewsbury", "Worcester", "Tewkesbury", "Gloucester", "Oxford", "Reading", "Windsor", "Kingston", "Richmond", "Hereford", "Monmouth", "Chepstow", "Cardiff", "Newport", "Swansea", "Aberystwyth", "Bangor", "St Asaph", "Chester", "York", "Lincoln", "Doncaster", "Nottingham", "Derby", "Leicester", "Peterborough", "Ely", "Cambridge", "Ipswich", "Norwich"];
+    const countiesList = [["Shropshire"], ["Worcestershire"], ["Gloucestershire"], ["Gloucestershire"], ["Oxfordshire"], ["Berkshire"], ["Berkshire"], ["Surrey"], ["Greater London"], ["Herefordshire"], ["Monmouthshire"], ["Monmouthshire"], ["Cardiff"], ["Newport"], ["Swansea"], ["Ceredigion"], ["Gwynedd"], ["Denbighshire"], ["Cheshire"], ["North Yorkshire"], ["Lincolnshire"], ["South Yorkshire"], ["Nottinghamshire"], ["Derbyshire"], ["Leicestershire"], ["Cambridgeshire"], ["Cambridgeshire"], ["Cambridgeshire"], ["Suffolk"], ["Norfolk"]];
+    const rivers = ["River Severn", "River Severn", "River Severn", "River Severn", "River Thames", "River Thames", "River Thames", "River Thames", "River Thames", "River Wye", "River Wye", "River Wye", "River Taff", "River Usk", "River Tawe", "River Rheidol", "River Adda", "River Elwy", "River Dee", "River Ouse", "River Witham", "River Don", "River Trent", "River Derwent", "River Soar", "River Nene", "River Great Ouse", "River Cam", "River Orwell", "River Yare"];
+    
+    // Spread coordinates around UK bounds: lat 50.5 to 54.5, long -4.5 to 1.5
+    const lats = [52.71, 52.19, 51.99, 51.86, 51.75, 51.45, 51.48, 51.41, 51.45, 52.06, 51.81, 51.64, 51.48, 51.59, 51.62, 52.41, 53.23, 53.26, 53.19, 53.96, 53.23, 53.52, 52.95, 52.92, 52.63, 52.57, 52.40, 52.20, 52.06, 52.63];
+    const longs = [-2.75, -2.22, -2.16, -2.25, -1.26, -0.97, -0.61, -0.30, -0.30, -2.72, -2.72, -2.67, -3.18, -3.00, -3.94, -4.08, -4.13, -3.44, -2.89, -1.08, -0.54, -1.13, -1.15, -1.48, -1.13, -0.24, 0.26, 0.12, 1.16, 1.30];
+
+    const fakeWarnings = [];
+    const nowMs = Date.now();
+
+    for (let i = 0; i < 30; i++) {
+      const source = i % 3 === 2 ? "NRW" : "EA";
+      const severityLevel = (i % 3) + 1; // 1 = Severe, 2 = Warning, 3 = Alert
+      const category = i % 10 === 0 ? "groundwater" : (i % 5 === 0 ? "coastal" : "river");
+      const riverName = category === "river" ? rivers[i] : (category === "coastal" ? "Irish Sea" : "Groundwater");
+      
+      // Let's use some real-looking codes so we can try to fetch them. If not found, circle markers will show up.
+      // E.g. 031WAF038, 061WAF012, etc.
+      const code = source === "EA" ? `031WAF${String(30 + i).padStart(3, '0')}` : `NRW_${100 + i}`;
+      
+      const timeRaisedOffset = (4 - (i % 4)) * 24 * 60 * 60 * 1000 + (i * 2 * 60 * 60 * 1000); // spread over last 4 days
+      const timeRaised = new Date(nowMs - timeRaisedOffset).toISOString();
+      const timeSeverityChanged = new Date(nowMs - timeRaisedOffset + (i % 3) * 6 * 60 * 60 * 1000).toISOString();
+      
+      let label = "";
+      if (category === "river") {
+        label = `Fictitious ${riverName} at ${towns[i]} (Test)`;
+      } else if (category === "coastal") {
+        label = `Fictitious Tidal flooding along the coast at ${towns[i]} (Test)`;
+      } else {
+        label = `Fictitious Groundwater flooding in the ${towns[i]} area (Test)`;
       }
-    ];
+
+      fakeWarnings.push({
+        label: label,
+        code: code,
+        severityLevel: severityLevel,
+        source: source,
+        category: category,
+        river: riverName,
+        counties: countiesList[i],
+        area: source === "EA" ? "Midlands" : "South Wales",
+        propertyCount: Math.round((i * 45) + (i % 3 === 0 ? 500 : 0)),
+        timeRaised: timeRaised,
+        timeSeverityChanged: timeSeverityChanged,
+        message: `This is a fictitious test warning for ${towns[i]} simulating a severity ${severityLevel} event. Please do not take action based on this test data.`,
+        lat: lats[i],
+        long: longs[i]
+      });
+    }
     warnings = warnings.concat(fakeWarnings);
     
     counts.severe = warnings.filter(w => w.severityLevel === 1).length;
