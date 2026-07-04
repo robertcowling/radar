@@ -174,19 +174,37 @@ def _ring_bbox_span(ring):
     return max(max(xs) - min(xs), max(ys) - min(ys))
 
 
-def simplify_ring(ring, tol, dp):
-    if _ring_bbox_span(ring) < OVERVIEW_MIN_RING:
-        return None
-    simp = _rdp(ring, tol)
+def _round_dedup_close(points, dp):
     out, last = [], None
-    for pt in simp:
+    for pt in points:
         q = [round(pt[0], dp), round(pt[1], dp)]
         if q != last:
             out.append(q)
             last = q
     if len(out) >= 1 and out[0] != out[-1]:
         out.append(out[0][:])
-    return out if len(out) >= 4 else None
+    return out
+
+
+def simplify_ring(ring, tol, dp):
+    """RDP-simplify, round, and drop consecutive duplicates; keep ring closed.
+
+    Small/thin areas can have RDP at the standard ~150m tolerance collapse
+    them to 2-3 points — a degenerate, unclosable ring. Rather than dropping
+    the area from the overview entirely (silently zeroing its property
+    count, since nothing downstream has geometry to test points against),
+    retry with progressively finer tolerance, falling back to the
+    un-simplified ring (still rounded) if even that isn't enough — see the
+    matching fix in fetch_ea_floodareas.py.
+    """
+    if _ring_bbox_span(ring) < OVERVIEW_MIN_RING:
+        out = _round_dedup_close(ring, dp)
+        return out if len(out) >= 4 else None
+    for t in (tol, tol / 4, tol / 16, 0):
+        out = _round_dedup_close(_rdp(ring, t) if t else ring, dp)
+        if len(out) >= 4:
+            return out
+    return None
 
 
 def simplify_geometry(geom, tol=OVERVIEW_TOL, dp=OVERVIEW_DP):
