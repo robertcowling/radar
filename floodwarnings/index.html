@@ -91,9 +91,14 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .side-head .cnt { font-weight: 700; color: #ffffff; font-family: 'Roboto', sans-serif; }
 .summary { display: flex; gap: 8px; padding: 12px; flex-shrink: 0; border-bottom: 1px solid #eef1f4; }
 .stat { flex: 1; border-radius: 8px; padding: 10px 8px; text-align: center; color: white; cursor: pointer;
-  transition: transform 0.15s, opacity 0.15s; }
+  transition: transform 0.15s, opacity 0.15s, box-shadow 0.15s; outline: 3px solid transparent; }
 .stat:hover { transform: translateY(-1px); opacity: 0.9; }
 .stat:active { transform: translateY(0); }
+.summary.has-active .stat:not(.active) { opacity: 0.45; }
+.stat.active {
+  transform: scale(1.03);
+  box-shadow: 0 0 0 2.5px #1e293b, inset 0 0 0 2px rgba(255, 255, 255, 0.85);
+}
 .stat .n { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 700; line-height: 1; }
 .stat .l { font-size: 10px; font-weight: 600; margin-top: 4px; opacity: 0.95; }
 .list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: #f8fafc; }
@@ -168,7 +173,7 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
   display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
 .map-search { width: 100%; position: relative; display: flex; align-items: center; pointer-events: auto; }
 .map-search input { width: 100%; box-sizing: border-box; background: white; border: 2px solid white;
-  padding: 16px 45px 16px 20px; border-radius: 30px; font-family: 'Outfit', sans-serif; font-size: 14px; color: #000;
+  padding: 16px 45px 16px 20px; border-radius: 30px; font-family: 'Outfit', sans-serif; font-size: 15.5px; color: #000;
   font-weight: 600; outline: none; box-shadow: 0 10px 36px rgba(0,0,0,.16), 0 3px 10px rgba(0,0,0,.10);
   transition: box-shadow .15s, border-color .15s; }
 .map-search input:focus { border-color: var(--brand-500); box-shadow: 0 10px 36px rgba(0,0,0,.16), 0 0 0 3px var(--brand-100); }
@@ -178,8 +183,8 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .map-search-clear.show { display: block; }
 .map-search-pills { display: flex; flex-wrap: wrap; gap: 6px; pointer-events: auto; }
 .search-pill { background: white; border: 1px solid #dadce0; box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  border-radius: 16px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;
-  font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600; color: #1f2937;
+  border-radius: 16px; padding: 7px 14px; display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Outfit', sans-serif; font-size: 14.5px; font-weight: 600; color: #1f2937;
   transition: background 0.15s, border-color 0.15s; }
 .search-pill:hover { background: #f8fafc; border-color: #cbd5e1; }
 .search-pill-close { background: none; border: none; font-size: 18px; font-weight: 700; color: #94a3b8;
@@ -273,7 +278,7 @@ select.premium-select:hover { background-color: #e8eaed; }
 
       <div class="map-search-container">
         <div class="map-search">
-          <input id="search" type="text" placeholder="Filter live warnings by name, location, county…" oninput="onSearchInput()" onkeydown="onSearchKeyDown(event)">
+          <input id="search" type="text" placeholder="Filter live warnings by name, location..." oninput="onSearchInput()" onkeydown="onSearchKeyDown(event)">
           <button class="map-search-clear" id="searchClear" onclick="clearSearch()" type="button">&times;</button>
         </div>
         <div class="map-search-pills" id="searchPills"></div>
@@ -331,7 +336,7 @@ select.premium-select:hover { background-color: #e8eaed; }
           <div class="show-dropdown" id="showDropdown">
             <button class="show-btn" type="button" style="cursor: default; width: 100%;">
               <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; width: 100%; font-family: inherit; font-size: 12px; color: #202124; font-weight: 500;">
-                <input type="checkbox" id="riverBtn" onchange="toggleRivers()" style="accent-color: var(--brand-500); width: 15px; height: 15px; cursor: pointer; margin: 0;">
+                <input type="checkbox" id="riverBtn" onchange="toggleRivers()" checked style="accent-color: var(--brand-500); width: 15px; height: 15px; cursor: pointer; margin: 0;">
                 <span>Rivers</span>
               </label>
             </button>
@@ -375,9 +380,9 @@ select.premium-select:hover { background-color: #e8eaed; }
   <div class="side">
     <div class="side-head"><span>Live Flood Warnings</span><span class="cnt" id="cnt">…</span></div>
     <div class="summary">
-      <div class="stat" onclick="filterSeverity('3')" style="background:#f9ab00"><div class="n" id="nAlert">0</div><div class="l">Alert</div></div>
-      <div class="stat" onclick="filterSeverity('2')" style="background:#d93025"><div class="n" id="nWarning">0</div><div class="l">Warning</div></div>
-      <div class="stat" onclick="filterSeverity('1')" style="background:#343a40"><div class="n" id="nSevere">0</div><div class="l">Severe</div></div>
+      <div class="stat" id="statAlert" onclick="filterSeverity('3')" style="background:#f9ab00"><div class="n" id="nAlert">0</div><div class="l">Alert</div></div>
+      <div class="stat" id="statWarning" onclick="filterSeverity('2')" style="background:#d93025"><div class="n" id="nWarning">0</div><div class="l">Warning</div></div>
+      <div class="stat" id="statSevere" onclick="filterSeverity('1')" style="background:#343a40"><div class="n" id="nSevere">0</div><div class="l">Severe</div></div>
     </div>
     <div class="list" id="list"><div class="empty">Loading…</div></div>
     <div class="foot">England: Environment Agency flood data from the real-time data API (Beta), Open Government Licence. <a href="https://www.gov.uk/check-flooding" target="_blank">Official service →</a><br>
@@ -693,6 +698,22 @@ function warnKey(w) { return `${w.source}:${w.code}:${w.severityLevel}:${w.timeS
 function render() {
   const mode = displayMode;
   markerLayer.clearLayers(); polyLayer.clearLayers();
+  
+  // Highlight active chips
+  const sevFilter = document.getElementById('sevSel').value;
+  const summary = document.querySelector('.summary');
+  const statAlert = document.getElementById('statAlert');
+  const statWarning = document.getElementById('statWarning');
+  const statSevere = document.getElementById('statSevere');
+  
+  if (statAlert) statAlert.classList.toggle('active', sevFilter === '3-only');
+  if (statWarning) statWarning.classList.toggle('active', sevFilter === '2-only');
+  if (statSevere) statSevere.classList.toggle('active', sevFilter === '1');
+  
+  if (summary) {
+    summary.classList.toggle('has-active', sevFilter === '3-only' || sevFilter === '2-only' || sevFilter === '1');
+  }
+
   const ws = visible();
   document.getElementById('cnt').textContent = ws.length.toLocaleString();
   // list
@@ -750,6 +771,7 @@ function render() {
   } else {
     mapWs.forEach(w => loadPoly(w));
   }
+  reassertOverlayOrder();
 }
 
 function loadPoly(w) {
@@ -1043,8 +1065,24 @@ function drawChart() {
   // time labels (intermediate labels every 24h)
   const totalDuration = t1 - t0;
   const numTicks = 4;
-  ctx.fillStyle='#475569';
-  ctx.font='10px Roboto';
+  
+  // 1. Draw minor checks first
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 1;
+  const numMinorTicks = numTicks * 2;
+  for (let i = 0; i <= numMinorTicks; i++) {
+    if (i % 2 === 0) continue;
+    const tickT = t0 + (totalDuration * i / numMinorTicks);
+    const x = X(tickT);
+    ctx.beginPath();
+    ctx.moveTo(x, H - padB);
+    ctx.lineTo(x, H - padB + 3);
+    ctx.stroke();
+  }
+
+  // 2. Draw major checks and labels
+  ctx.fillStyle='#334155';
+  ctx.font='12px Roboto';
   for (let i = 0; i <= numTicks; i++) {
     const tickT = t0 + (totalDuration * i / numTicks);
     const x = X(tickT);
@@ -1053,17 +1091,17 @@ function drawChart() {
     const timeStr = dateObj.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
     const labelText = `${dateStr} ${timeStr}`;
     
-    ctx.strokeStyle = '#94a3b8';
+    ctx.strokeStyle = '#64748b';
     ctx.beginPath();
     ctx.moveTo(x, H - padB);
-    ctx.lineTo(x, H - padB + 5);
+    ctx.lineTo(x, H - padB + 6);
     ctx.stroke();
     
     const textW = ctx.measureText(labelText).width;
     let textX = x - textW / 2;
     if (textX < padL) textX = padL;
     if (textX + textW > W - padR) textX = W - padR - textW;
-    ctx.fillText(labelText, textX, H - 5);
+    ctx.fillText(labelText, textX, H - 4);
   }
 
   // hover effects
@@ -1152,6 +1190,8 @@ loadCurrent();
 loadSeries();
 initChartEvents();
 onBoundary('counties');
+riversVisible = true;
+loadRivers();
 setInterval(loadCurrent, 5*60*1000);
 </script>
 </body>
