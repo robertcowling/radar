@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UK Flood Warnings | Flood Forecast</title>
+<title>Live Flood Warnings | Flood Forecast</title>
 <meta name="description" content="Live Environment Agency (England) and Natural Resources Wales flood warnings and alerts on an interactive map, with in-force history and catchment, county and regional overlays.">
 <link rel="icon" type="image/png" href="../favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -53,11 +53,11 @@ body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; background: #f8
 .chart-panel.collapsed { height: 34px; }
 .chart-head { height: 34px; flex-shrink: 0; display: flex; align-items: center; gap: 12px;
   padding: 0 14px; cursor: pointer; user-select: none; font-size: 12px; font-weight: 600; color: #475569; }
-.chart-head .legend { display: flex; gap: 12px; margin-left: 8px; font-weight: 500; }
+.chart-head .legend { display: flex; gap: 12px; margin-left: auto; margin-right: 16px; font-weight: 500; }
 .chart-head .legend span { display: flex; align-items: center; gap: 5px; }
 .chart-head .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
-.chart-head .toggle { margin-left: auto; color: #94a3b8; }
-#chartCanvasWrap { flex: 1; min-height: 0; padding: 4px 10px 8px; }
+.chart-head .toggle { color: #94a3b8; }
+#chartCanvasWrap { position: relative; flex: 1; min-height: 0; padding: 4px 10px 8px; }
 #chartCanvas { width: 100%; height: 100%; display: block; }
 
 /* sidebar */
@@ -232,27 +232,11 @@ select.premium-select:hover { background-color: #e8eaed; }
 
       <div class="player-panel">
         <div class="control-group">
-          <span class="control-label">Display</span>
-          <button id="modeToggle" class="mode-toggle mode-polygons" role="switch" aria-checked="false" onclick="toggleDisplayMode()" type="button">
-            <span class="mode-toggle-knob"></span>
-            <span class="mode-toggle-label mtl-polygons">Polys</span>
-            <span class="mode-toggle-label mtl-centroids">Icons</span>
-          </button>
-        </div>
-        <div class="control-group">
-          <span class="control-label">Min severity</span>
+          <span class="control-label">Alerts and Warnings</span>
           <select class="premium-select" id="sevSel" onchange="render()">
             <option value="3">Alert and above</option>
             <option value="2">Warning and above</option>
             <option value="1">Severe only</option>
-          </select>
-        </div>
-        <div class="control-group">
-          <span class="control-label">Location</span>
-          <select class="premium-select" id="sourceSel" onchange="render()">
-            <option value="all">England and Wales</option>
-            <option value="EA">England</option>
-            <option value="NRW">Wales</option>
           </select>
         </div>
         <div class="control-group">
@@ -275,13 +259,20 @@ select.premium-select:hover { background-color: #e8eaed; }
           </select>
         </div>
         <div class="control-group">
-          <span class="control-label">Areas</span>
-          <select class="premium-select" id="boundSel" onchange="onBoundary(this.value)">
-            <option value="none">No overlay</option>
-            <option value="catchments">Catchments</option>
-            <option value="counties" selected>Counties</option>
-            <option value="regions">Regions</option>
+          <span class="control-label">Location</span>
+          <select class="premium-select" id="sourceSel" onchange="render()">
+            <option value="all">England and Wales</option>
+            <option value="EA">England</option>
+            <option value="NRW">Wales</option>
           </select>
+        </div>
+        <div class="control-group">
+          <span class="control-label">Display</span>
+          <button id="modeToggle" class="mode-toggle mode-polygons" role="switch" aria-checked="false" onclick="toggleDisplayMode()" type="button">
+            <span class="mode-toggle-knob"></span>
+            <span class="mode-toggle-label mtl-polygons">Polys</span>
+            <span class="mode-toggle-label mtl-centroids">Icons</span>
+          </button>
         </div>
         <div class="control-group">
           <span class="control-label">Show</span>
@@ -294,6 +285,15 @@ select.premium-select:hover { background-color: #e8eaed; }
             </button>
           </div>
         </div>
+        <div class="control-group">
+          <span class="control-label">Areas</span>
+          <select class="premium-select" id="boundSel" onchange="onBoundary(this.value)">
+            <option value="none">No overlay</option>
+            <option value="catchments">Catchments</option>
+            <option value="counties" selected>Counties</option>
+            <option value="regions">Regions</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -301,22 +301,25 @@ select.premium-select:hover { background-color: #e8eaed; }
       <div class="chart-head" onclick="toggleChart()">
         <span>Warnings in force over time</span>
         <div class="legend">
-          <span><i class="dot" style="background:#6d0019"></i>Severe</span>
-          <span><i class="dot" style="background:#d93025"></i>Warning</span>
           <span><i class="dot" style="background:#f9ab00"></i>Alert</span>
+          <span><i class="dot" style="background:#d93025"></i>Warning</span>
+          <span><i class="dot" style="background:#000000"></i>Severe</span>
         </div>
         <span class="toggle" id="chartToggle">▾</span>
       </div>
-      <div id="chartCanvasWrap"><canvas id="chartCanvas"></canvas></div>
+      <div id="chartCanvasWrap">
+        <canvas id="chartCanvas"></canvas>
+        <div id="chartTooltip" style="display:none; position:absolute; z-index:1001; background:rgba(30,41,59,0.95); color:white; padding:8px 12px; border-radius:8px; font-family:'Roboto',sans-serif; font-size:11px; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,0.15); line-height:1.4;"></div>
+      </div>
     </div>
   </div>
 
   <div class="side">
-    <div class="side-head"><span>UK Flood Warnings</span><span class="cnt" id="cnt">…</span></div>
+    <div class="side-head"><span>Live Flood Warnings</span><span class="cnt" id="cnt">…</span></div>
     <div class="summary">
-      <div class="stat" style="background:#6d0019"><div class="n" id="nSevere">0</div><div class="l">Severe</div></div>
-      <div class="stat" style="background:#d93025"><div class="n" id="nWarning">0</div><div class="l">Warning</div></div>
       <div class="stat" style="background:#f9ab00"><div class="n" id="nAlert">0</div><div class="l">Alert</div></div>
+      <div class="stat" style="background:#d93025"><div class="n" id="nWarning">0</div><div class="l">Warning</div></div>
+      <div class="stat" style="background:#000000"><div class="n" id="nSevere">0</div><div class="l">Severe</div></div>
     </div>
     <div class="list" id="list"><div class="empty">Loading…</div></div>
     <div class="foot">England: Environment Agency flood data from the real-time data API (Beta), Open Government Licence. <a href="https://www.gov.uk/check-flooding" target="_blank">Official service →</a><br>
@@ -334,7 +337,7 @@ fetch(R2 + '/flood_history/area_stats.json')
   .catch(() => {});
 
 const SEV = {
-  1: {name:'Severe Flood Warning', color:'#6d0019', short:'Severe'},
+  1: {name:'Severe Flood Warning', color:'#000000', short:'Severe'},
   2: {name:'Flood Warning',        color:'#d93025', short:'Warning'},
   3: {name:'Flood Alert',          color:'#f9ab00', short:'Alert'},
   4: {name:'Warning no longer in force', color:'#9aa0a6', short:'Stood down'},
@@ -560,9 +563,25 @@ function loadPoly(w) {
   if (polyCache[cacheKey]) { draw(polyCache[cacheKey]); return; }
   fetch(R2 + '/' + SOURCES[w.source].areas + '/polygons/' + w.code + '.json')
     .then(r => r.json()).then(f => { polyCache[cacheKey] = f; draw(f); })
-    .catch(() => { // fall back to a marker if no polygon
-      if (w.lat != null) L.circleMarker([w.lat, w.long], {radius:8, color:'#fff',
-        weight:2, fillColor:s.color, fillOpacity:0.95}).bindPopup(popupHtml(w)).addTo(polyLayer);
+    .catch(() => {
+      // Fallback to a mock rectangular polygon centered on lat/long if no geometry on server
+      if (w.lat != null && w.long != null) {
+        const d = 0.015;
+        const mockFeat = {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [[
+              [w.long - d, w.lat - d],
+              [w.long + d, w.lat - d],
+              [w.long + d, w.lat + d],
+              [w.long - d, w.lat + d],
+              [w.long - d, w.lat - d]
+            ]]
+          }
+        };
+        draw(mockFeat);
+      }
     });
 }
 
@@ -689,6 +708,62 @@ function toggleChart() {
   document.getElementById('chartToggle').textContent = p.classList.contains('collapsed') ? '▴' : '▾';
   if (!p.classList.contains('collapsed')) setTimeout(drawChart, 210);
 }
+
+let hoverPtIdx = null;
+
+function initChartEvents() {
+  const cv = document.getElementById('chartCanvas');
+  if (!cv) return;
+  
+  const onMove = (e) => {
+    if (seriesPts.length < 2) return;
+    const rect = cv.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const W = cv.width / dpr, H = cv.height / dpr;
+    const padL=28, padR=8;
+    const mouseX = e.clientX - rect.left;
+    
+    if (mouseX < padL || mouseX > W - padR) {
+      if (hoverPtIdx !== null) {
+        hoverPtIdx = null;
+        drawChart();
+        document.getElementById('chartTooltip').style.display = 'none';
+      }
+      return;
+    }
+    
+    const xs = seriesPts.map(p => new Date(p.t).getTime());
+    const t0 = xs[0], t1 = xs[xs.length-1] || t0+1;
+    const totalW = W - padL - padR;
+    const pct = (mouseX - padL) / totalW;
+    const targetT = t0 + pct * (t1 - t0);
+    
+    let closestIdx = 0;
+    let minDiff = Infinity;
+    seriesPts.forEach((p, i) => {
+      const diff = Math.abs(new Date(p.t).getTime() - targetT);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = i;
+      }
+    });
+    
+    if (hoverPtIdx !== closestIdx) {
+      hoverPtIdx = closestIdx;
+      drawChart();
+    }
+  };
+
+  cv.addEventListener('mousemove', onMove);
+  cv.addEventListener('mouseleave', () => {
+    if (hoverPtIdx !== null) {
+      hoverPtIdx = null;
+      drawChart();
+      document.getElementById('chartTooltip').style.display = 'none';
+    }
+  });
+}
+
 function drawChart() {
   const cv = document.getElementById('chartCanvas');
   const wrap = document.getElementById('chartCanvasWrap');
@@ -698,29 +773,104 @@ function drawChart() {
   cv.width = W*dpr; cv.height = H*dpr; const ctx = cv.getContext('2d'); ctx.scale(dpr,dpr);
   ctx.clearRect(0,0,W,H);
   if (seriesPts.length < 2) { ctx.fillStyle='#94a3b8'; ctx.font='12px Roboto'; ctx.fillText('Collecting history…', 10, 20); return; }
-  const padL=28, padR=8, padT=8, padB=18;
+  const padL=28, padR=8, padT=8, padB=22;
   const xs = seriesPts.map(p => new Date(p.t).getTime());
   const t0 = xs[0], t1 = xs[xs.length-1] || t0+1;
   const maxY = Math.max(3, ...seriesPts.map(p => (p.severe||0)+(p.warning||0)+(p.alert||0)),
                         ...seriesPts.map(p=>Math.max(p.severe||0,p.warning||0,p.alert||0)));
   const X = t => padL + (W-padL-padR) * ((t-t0)/((t1-t0)||1));
   const Y = v => (H-padB) - (H-padT-padB) * (v/maxY);
+  
   // axes
   ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL,padT); ctx.lineTo(padL,H-padB); ctx.lineTo(W-padR,H-padB); ctx.stroke();
   ctx.fillStyle='#94a3b8'; ctx.font='10px Roboto';
   for (let g=0; g<=2; g++){ const v=Math.round(maxY*g/2); const y=Y(v); ctx.fillText(v, 4, y+3);
     ctx.strokeStyle='#f1f3f4'; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke(); }
-  const series = [['alert','#f9ab00'],['warning','#d93025'],['severe','#6d0019']];
+  
+  const series = [['alert','#f9ab00'],['warning','#d93025'],['severe','#000000']];
   series.forEach(([k,c]) => {
     ctx.strokeStyle=c; ctx.lineWidth=1.6; ctx.beginPath();
     seriesPts.forEach((p,i)=>{ const x=X(xs[i]), y=Y(p[k]||0); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
     ctx.stroke();
   });
-  // time labels
+  
+  // time labels (intermediate labels every 24h)
+  const totalDuration = t1 - t0;
+  const numTicks = 4;
   ctx.fillStyle='#94a3b8';
-  ctx.fillText(new Date(t0).toLocaleDateString('en-GB',{day:'numeric',month:'short'}), padL, H-5);
-  const lab = new Date(t1).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-  ctx.fillText(lab, W-padR-ctx.measureText(lab).width, H-5);
+  ctx.font='9px Roboto';
+  for (let i = 0; i <= numTicks; i++) {
+    const tickT = t0 + (totalDuration * i / numTicks);
+    const x = X(tickT);
+    const dateObj = new Date(tickT);
+    const dateStr = dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+    const timeStr = dateObj.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    const labelText = `${dateStr} ${timeStr}`;
+    
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.beginPath();
+    ctx.moveTo(x, H - padB);
+    ctx.lineTo(x, H - padB + 3);
+    ctx.stroke();
+    
+    const textW = ctx.measureText(labelText).width;
+    let textX = x - textW / 2;
+    if (textX < padL) textX = padL;
+    if (textX + textW > W - padR) textX = W - padR - textW;
+    ctx.fillText(labelText, textX, H - 4);
+  }
+
+  // hover effects
+  if (hoverPtIdx !== null && hoverPtIdx < seriesPts.length) {
+    const p = seriesPts[hoverPtIdx];
+    const x = X(xs[hoverPtIdx]);
+    
+    // vertical tracking line
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(x, padT);
+    ctx.lineTo(x, H - padB);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // circle markers at line values
+    series.forEach(([k,c]) => {
+      const y = Y(p[k]||0);
+      ctx.fillStyle = c;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(x, y, 4.5, 0, 2*Math.PI);
+      ctx.fill();
+      ctx.stroke();
+    });
+    
+    // Update HTML tooltip
+    const dateObj = new Date(p.t);
+    const dateStr = dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+    const timeStr = dateObj.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    const tooltip = document.getElementById('chartTooltip');
+    tooltip.innerHTML = `
+      <div style="font-weight:700;margin-bottom:5px;color:#cbd5e1;font-size:10px;text-transform:uppercase;letter-spacing:0.3px;">${dateStr} ${timeStr}</div>
+      <div style="display:flex;flex-direction:column;gap:3px;font-size:11px;">
+        <span style="display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:#f9ab00;display:inline-block;"></span>Alerts: <b>${p.alert||0}</b></span>
+        <span style="display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:#d93025;display:inline-block;"></span>Warnings: <b>${p.warning||0}</b></span>
+        <span style="display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:#000000;display:inline-block;"></span>Severe: <b>${p.severe||0}</b></span>
+      </div>
+    `;
+    tooltip.style.display = 'block';
+    
+    // Position tooltip
+    const tooltipW = 120;
+    let leftPos = x + 12;
+    if (leftPos + tooltipW > W) {
+      leftPos = x - tooltipW - 12;
+    }
+    tooltip.style.left = `${leftPos}px`;
+    tooltip.style.top = `8px`;
+  }
 }
 window.addEventListener('resize', () => { drawChart(); });
 
@@ -738,6 +888,7 @@ document.addEventListener('click', (e) => {
 
 loadCurrent();
 loadSeries();
+initChartEvents();
 onBoundary('counties');
 setInterval(loadCurrent, 5*60*1000);
 </script>
