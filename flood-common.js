@@ -84,6 +84,7 @@ function propChipHtml(n) {
 
 function getRarityInfo(hist, severityTier) {
   if (!hist) return null;
+  if (hist.never_issued) return { tierLabel: 'Never issued', activeDescr: null, rateStr: null };
   const f = hist.freq && hist.freq[String(severityTier)];
   const tierLabel = f ? f.label : (hist.freq && hist.freq[String(hist.max_severity)] ? hist.freq[String(hist.max_severity)].label : null);
   const pct = f ? f.percentile : null;
@@ -94,12 +95,24 @@ function getRarityInfo(hist, severityTier) {
 }
 
 function histBlock(hist, severityTier) {
-  const events = (hist.last_10 || []).slice(0, 10);
-
   let h = `<div class="hist-block">`;
-  h += `<div class="hist-title">Flood history`;
-  if (hist.total_issued) h += ` <span class="hist-muted">· ${hist.total_issued} events since ${hist.first_issued ? hist.first_issued.slice(0, 4) : '?'}</span>`;
-  h += `</div>`;
+  h += `<div class="hist-title">Flood history</div>`;
+
+  if (hist.never_issued) {
+    h += `<div class="hist-sub">No flood alerts or warnings recorded here since Jan 2006</div>`;
+    h += `</div>`;
+    return h;
+  }
+
+  if (hist.merged_history) {
+    const n = (hist.aliases || []).length;
+    let note = `Includes history from ${n} retired area code${n === 1 ? '' : 's'}`;
+    if (hist.former_names && hist.former_names.length) note += ` (formerly ${hist.former_names.map(esc).join(', ')})`;
+    h += `<div class="hist-sub" style="color:#64748b">${note}</div>`;
+  }
+
+  const events = (hist.last_10 || []).slice(0, 10);
+  if (hist.total_issued) h += `<div class="hist-sub">${hist.total_issued} events since ${hist.first_issued ? hist.first_issued.slice(0, 4) : '?'}</div>`;
   if (events.length) {
     h += `<div class="hist-sub">Last ${events.length} events</div>`;
     for (const e of events) {
