@@ -250,7 +250,7 @@ def fetch_nrw_data():
 
         start_str = chunk_start.strftime("%Y-%m-%dT%H:%M:%SZ")
         end_str   = chunk_end.strftime("%Y-%m-%dT%H:%M:%SZ")
-        print(f"  NRW fetch: {start_str} → {end_str}")
+        print(f"  NRW fetch: {start_str} -> {end_str}")
         try:
             rr = requests.get(
                 f"{NRW_TELEMETRY_BASE}/measures/readings",
@@ -293,17 +293,15 @@ def fetch_nrw_data():
     return nrw_stations, by_date, latest_dt
 
 
-def fetch_sepa_data():
+def fetch_sepa_data(existing_stations):
     """Fetch SEPA (Scottish) rainfall data via the public Rainfall Data API.
 
     Single bulk endpoint, open data, no key required:
       GET /api/Stations   → lat/lon/name plus a "latest reading" snapshot
                              (itemDate/itemValue) per station.
 
-    itemValue is an accumulated total over the station's own accumRange
-    (varies per station, not always 15 min) — treated as a single latest
-    data point and dropped into its nearest 15-min slot, same fallback
-    approach as NRW's measures.latest_value ingestion above.
+    itemValue is a cumulative total (usually since 9 AM yesterday). We calculate
+    the 15-minute increment by comparing against the last cached cumulative value.
 
     Station IDs are prefixed 'sepa_' to avoid collisions with EA/NRW.
     Returns (sepa_stations dict, by_date dict, latest_dt str or None).
@@ -335,27 +333,51 @@ def fetch_sepa_data():
             continue
 
         sid = f"sepa_{ref}"
+        
+        # itemDate format: "2026-07-05 20:00:00"
+        it_date = (item.get("itemDate") or "").strip()
+        it_val  = item.get("itemValue")
+        
+        # Get previous cumulative value to calculate increment
+        prev_s = existing_stations.get(sid, {})
+        prev_val = prev_s.get("last_cumulative_val")
+        prev_dt = prev_s.get("last_cumulative_dt")
+
+        try:
+            v = float(it_val) if it_val is not None else None
+        except (TypeError, ValueError):
+            v = None
+
         sepa_stations[sid] = {
             "lat":    round(lat_f, 5),
             "lon":    round(lon_f, 5),
             "name":   item.get("station_name") or ref,
             "source": "sepa",
         }
+        if v is not None:
+            sepa_stations[sid]["last_cumulative_val"] = v
+            sepa_stations[sid]["last_cumulative_dt"] = it_date
 
-        # itemDate format: "2026-07-05 20:00:00"
-        it_date = (item.get("itemDate") or "").strip()
-        it_val  = item.get("itemValue")
-        if not it_date or it_val is None:
+        if not it_date or v is None or v < 0:
             continue
-        try:
-            v = float(it_val)
-        except (TypeError, ValueError):
-            continue
-        if v < 0:
-            continue
+
+        # Calculate increment (difference from previous cumulative reading)
+        if prev_val is not None and it_date != prev_dt:
+            if v >= prev_val:
+                inc = v - prev_val
+            else:
+                # Value decreased, indicating a counter reset (e.g. at 09:00 AM)
+                inc = v
+        else:
+            # First time seeing the station, or reading timestamp hasn't changed.
+            # Set increment to 0 to prevent a giant spike of historical rainfall.
+            inc = 0.0
+
         dt_str = it_date.replace(" ", "T")
-        dk, slot = dt_to_slot(dt_str)
-        by_date.setdefault(dk, {}).setdefault(sid, {})[str(slot)] = round(v, 2)
+        if inc > 0.0:
+            dk, slot = dt_to_slot(dt_str)
+            by_date.setdefault(dk, {}).setdefault(sid, {})[str(slot)] = round(inc, 2)
+            
         if latest_dt is None or dt_str > latest_dt:
             latest_dt = dt_str
 
@@ -453,7 +475,16 @@ def main():
         print("Warning: R2 env vars not set — writing local files only (dry run)")
 
     # ── Station metadata ───────────────────────────────────────────────────────
-    stations_data = load_local_json(STATIONS_PATH, {})
+    stations_data = None
+    if USE_R2:
+        try:
+            stations_data, get_ok = r2_get_json(r2, "rain/stations.json", None)
+            if get_ok and stations_data:
+                print(f"Loaded stations.json from R2 ({len(stations_data.get('stations', {}))} stations)")
+        except Exception as e:
+            print(f"Warning: failed to load stations.json from R2: {e}")
+    if not stations_data:
+        stations_data = load_local_json(STATIONS_PATH, {})
     stations = stations_data.get("stations", {})
     if len(stations) < 100:
         stations, suid_to_ref = fetch_stations()
@@ -542,7 +573,7 @@ def main():
 
     # ── SEPA readings (merged in before upload loop) ──────────────────────────
     try:
-        sepa_stations_new, sepa_by_date, sepa_latest = fetch_sepa_data()
+        sepa_stations_new, sepa_by_date, sepa_latest = fetch_sepa_data(stations)
         for date_key, station_slots in sepa_by_date.items():
             for sid, slots in station_slots.items():
                 by_date.setdefault(date_key, {}).setdefault(sid, {}).update(slots)
