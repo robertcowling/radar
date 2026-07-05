@@ -416,6 +416,20 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
   attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18, subdomains:'abcd'
 }).addTo(map);
 
+map.on('popupclose', () => {
+  if (selected) {
+    map.removeLayer(selected);
+    selected = null;
+    selectedCode = null;
+    selectedFeature = null;
+  }
+  if (hiddenLayer) {
+    const prevS = SEV[hiddenLayer.w.severityLevel];
+    hiddenLayer.setStyle({stroke: true, fill: true, color: prevS.color, weight: 1.5, fillColor: prevS.color, fillOpacity: 0.55});
+    hiddenLayer = null;
+  }
+});
+
 function fetchJson(url){ return fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }); }
 
 let warnings = [];
@@ -423,6 +437,10 @@ const polyCache = {};
 let markerLayer = L.layerGroup().addTo(map);
 let polyLayer = L.layerGroup().addTo(map);
 let displayMode = 'polygons';
+let selected = null;
+let selectedCode = null;
+let selectedFeature = null;
+let hiddenLayer = null;
 
 function toggleDisplayMode() {
   displayMode = displayMode === 'polygons' ? 'icons' : 'polygons';
@@ -763,10 +781,14 @@ function render() {
     mapWs.forEach(w => {
       if (w.lat == null || w.long == null) return;
       const s = SEV[w.severityLevel];
-      L.circleMarker([w.lat, w.long], {radius:8, color:'#fff', weight:2,
+      const marker = L.circleMarker([w.lat, w.long], {radius:8, color:'#fff', weight:2,
         fillColor:s.color, fillOpacity:0.95})
-        .bindTooltip(() => tipContent(w), {sticky:true, className:'ff-tip'})
-        .bindPopup(popupHtml(w)).addTo(markerLayer);
+        .bindTooltip(() => tipContent(w), {sticky:true, className:'ff-tip'});
+      marker.on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        selectWarningPoly(w, marker);
+      });
+      marker.addTo(markerLayer);
     });
   } else {
     mapWs.forEach(w => loadPoly(w));
@@ -779,23 +801,19 @@ function loadPoly(w) {
   const cacheKey = w.source + ':' + w.code;
   const draw = (feat) => {
     const gj = L.geoJSON(feat, {style:{color:s.color, weight:1.5, fillColor:s.color, fillOpacity:0.55}});
+    gj.w = w;
     gj.bindTooltip(() => tipContent(w), {sticky:true, className:'ff-tip'});
     gj.on('click', (e) => {
       L.DomEvent.stopPropagation(e);
-      const bounds = gj.getBounds();
-      if (bounds.isValid()) {
-        const topCenter = L.latLng(bounds.getNorth(), bounds.getCenter().lng);
-        L.popup()
-          .setLatLng(topCenter)
-          .setContent(popupHtml(w))
-          .openOn(map);
-      } else {
-        L.popup()
-          .setLatLng(e.latlng)
-          .setContent(popupHtml(w))
-          .openOn(map);
-      }
+      selectWarningPoly(w, gj);
     });
+    if (selectedCode && w.code === selectedCode) {
+      hiddenLayer = gj;
+      gj.setStyle({stroke: false, fill: false});
+      if (selected) {
+        selected.setStyle({color: s.color, weight: 1.5, fillColor: s.color, fillOpacity: 0.55});
+      }
+    }
     gj.addTo(polyLayer);
   };
   if (polyCache[cacheKey]) { draw(polyCache[cacheKey]); return; }
@@ -913,32 +931,88 @@ function popupHtml(w) {
   return tabbedPopup(d, h);
 }
 
-function focusWarning(w) {
-  let popupLatLng = null;
+function selectWarningPoly(w, lyr, zoom) {
+  selectedCode = w.code;
+  selectedFeature = w;
+  
+  if (selected) map.removeLayer(selected);
+  if (hiddenLayer) {
+    const prevS = SEV[hiddenLayer.w.severityLevel];
+    hiddenLayer.setStyle({stroke: true, fill: true, color: prevS.color, weight: 1.5, fillColor: prevS.color, fillOpacity: 0.55});
+  }
+  
+  let targetLyr = lyr;
+  if (!targetLyr) {
+    polyLayer.eachLayer(l => {
+      if (l.w && l.w.code === w.code) targetLyr = l;
+    });
+  }
+  
+  if (targetLyr) {
+    hiddenLayer = targetLyr;
+    targetLyr.setStyle({stroke: false, fill: false});
+  }
+  
+  const s = SEV[w.severityLevel];
   const cacheKey = w.source + ':' + w.code;
   
-  if (displayMode === 'polygons' && polyCache[cacheKey]) {
-    const layer = L.geoJSON(polyCache[cacheKey]);
-    const b = layer.getBounds();
-    if (b.isValid()) {
-      popupLatLng = L.latLng(b.getNorth(), b.getCenter().lng);
-      map.panInsideBounds(b, {animate:true});
+  const showFull = (feat) => {
+    if (selectedCode !== w.code) return;
+    
+    selected = L.geoJSON(feat, {style: {color: s.color, weight: 1.5, fillColor: s.color, fillOpacity: 0.55}}).addTo(map);
+    
+    const bounds = selected.getBounds();
+    let popupLatLng = null;
+    if (bounds.isValid()) {
+      popupLatLng = L.latLng(bounds.getNorth(), bounds.getCenter().lng);
+    } else if (w.lat != null && w.long != null) {
+      popupLatLng = L.latLng(w.lat, w.long);
     }
-  }
+    
+    if (popupLatLng) {
+      selected.bindPopup(popupHtml(w)).openPopup(popupLatLng);
+    } else {
+      selected.bindPopup(popupHtml(w)).openPopup();
+    }
+    
+    if (zoom && bounds.isValid()) {
+      map.panInsideBounds(bounds, {animate: true});
+    }
+  };
   
-  if (!popupLatLng && w.lat != null && w.long != null) {
-    popupLatLng = L.latLng(w.lat, w.long);
-    map.panInsideBounds(L.latLngBounds([popupLatLng, popupLatLng]), {animate:true});
+  if (polyCache[cacheKey]) {
+    showFull(polyCache[cacheKey]);
+  } else {
+    fetch(R2 + '/' + SOURCES[w.source].areas + '/polygons/' + w.code + '.json')
+      .then(r => r.json()).then(f => {
+        polyCache[cacheKey] = f;
+        showFull(f);
+      })
+      .catch(() => {
+        if (w.lat != null && w.long != null) {
+          const d = 0.015;
+          const mockFeat = {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [[
+                [w.long - d, w.lat - d],
+                [w.long + d, w.lat - d],
+                [w.long + d, w.lat + d],
+                [w.long - d, w.lat + d],
+                [w.long - d, w.lat - d]
+              ]]
+            }
+          };
+          polyCache[cacheKey] = mockFeat;
+          showFull(mockFeat);
+        }
+      });
   }
-  
-  if (popupLatLng) {
-    setTimeout(() => {
-      L.popup()
-        .setLatLng(popupLatLng)
-        .setContent(popupHtml(w))
-        .openOn(map);
-    }, 150);
-  }
+}
+
+function focusWarning(w) {
+  selectWarningPoly(w, null, true);
 }
 
 function fmt(iso){ try { return new Date(iso).toLocaleString('en-GB',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e){ return iso; } }

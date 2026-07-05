@@ -364,7 +364,18 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 
 // Clicking off a selected polygon (or selecting another) closes its popup —
 // clear the highlighted overlay at that point rather than leaving it stuck.
-map.on('popupclose', () => { if (selected) { map.removeLayer(selected); selected = null; } });
+map.on('popupclose', () => {
+  if (selected) {
+    map.removeLayer(selected);
+    selected = null;
+    selectedCode = null;
+    selectedFeature = null;
+  }
+  if (hiddenLayer) {
+    if (layer) layer.resetStyle(hiddenLayer);
+    hiddenLayer = null;
+  }
+});
 
 let polyFeatures = [];         // polygon overview features per source
 let centFeatures = [];         // centroid point features per source
@@ -372,6 +383,9 @@ let allFeatures = [];          // active set (poly or cent depending on displayS
 let layer = null;              // current geojson layer
 const fullCache = {};          // "SOURCE:code" -> full-res feature
 let selected = null;
+let selectedCode = null;
+let selectedFeature = null;
+let hiddenLayer = null;
 let displayMode = 'polygons';
 let colorByRisk = false;
 
@@ -721,6 +735,31 @@ function applyFilters() {
       lyr.bindTooltip(() => tipContent(f.properties), {sticky:true, className:'ff-tip'});
     }
   }).addTo(map);
+
+  if (selected && selectedCode && selectedFeature) {
+    // Find the new target layer for selectedCode and hide it
+    let targetLyr = null;
+    layer.eachLayer(l => {
+      if (l.feature && l.feature.properties.code === selectedCode) targetLyr = l;
+    });
+    if (targetLyr) {
+      hiddenLayer = targetLyr;
+      targetLyr.setStyle({stroke: false, fill: false});
+    }
+    
+    // Update style of the selected detailed layer in case colorByRisk toggled
+    let newStyle;
+    if (colorByRisk) {
+      const c = propColor(selectedFeature.properties.propertyCount);
+      newStyle = {color: c, weight: 1.5, fillColor: c, fillOpacity: 0.7};
+    } else {
+      const col = COL[selectedFeature.properties.type] || '#5f6368';
+      newStyle = {color: col, weight: 1.5, fillColor: col, fillOpacity: 0.38};
+    }
+    selected.setStyle(newStyle);
+  } else {
+    hiddenLayer = null;
+  }
   reassertOverlayOrder();
   // list (cap rendered rows for performance)
   const list = document.getElementById('list');
@@ -761,10 +800,38 @@ function selectArea(f, lyr, zoom) {
   const code = f.properties.code;
   const source = f.properties.source;
   const cacheKey = source + ':' + code;
+  
+  selectedCode = code;
+  selectedFeature = f;
+  
+  if (hiddenLayer) {
+    if (layer) layer.resetStyle(hiddenLayer);
+  }
+  let targetLyr = lyr;
+  if (!targetLyr && layer) {
+    layer.eachLayer(l => {
+      if (l.feature && l.feature.properties.code === code) targetLyr = l;
+    });
+  }
+  if (targetLyr) {
+    hiddenLayer = targetLyr;
+    targetLyr.setStyle({stroke: false, fill: false});
+  }
+
   // load full-res polygon for an exact boundary on selection
   const showFull = (full) => {
     if (selected) map.removeLayer(selected);
-    selected = L.geoJSON(full, {style:{color:'#000000', weight:3.5, fillOpacity:0}}).addTo(map);
+    
+    let newStyle;
+    if (colorByRisk) {
+      const c = propColor(f.properties.propertyCount);
+      newStyle = {color: c, weight: 1.5, fillColor: c, fillOpacity: 0.7};
+    } else {
+      const col = COL[f.properties.type] || '#5f6368';
+      newStyle = {color: col, weight: 1.5, fillColor: col, fillOpacity: 0.38};
+    }
+    
+    selected = L.geoJSON(full, {style: newStyle}).addTo(map);
     
     const bounds = selected.getBounds();
     if (bounds.isValid()) {
