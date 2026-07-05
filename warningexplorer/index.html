@@ -751,10 +751,10 @@ function applyFilters() {
     let newStyle;
     if (colorByRisk) {
       const c = propColor(selectedFeature.properties.propertyCount);
-      newStyle = {color: '#1e293b', weight: 2.5, fillColor: c, fillOpacity: 0.7};
+      newStyle = {color: '#000000', weight: 2.5, fillColor: c, fillOpacity: 0.7};
     } else {
       const col = COL[selectedFeature.properties.type] || '#5f6368';
-      newStyle = {color: '#1e293b', weight: 2.5, fillColor: col, fillOpacity: 0.38};
+      newStyle = {color: '#000000', weight: 2.5, fillColor: col, fillOpacity: 0.38};
     }
     selected.setStyle(newStyle);
   } else {
@@ -825,10 +825,10 @@ function selectArea(f, lyr, zoom) {
     let newStyle;
     if (colorByRisk) {
       const c = propColor(f.properties.propertyCount);
-      newStyle = {color: '#1e293b', weight: 2.5, fillColor: c, fillOpacity: 0.7};
+      newStyle = {color: '#000000', weight: 2.5, fillColor: c, fillOpacity: 0.7};
     } else {
       const col = COL[f.properties.type] || '#5f6368';
-      newStyle = {color: '#1e293b', weight: 2.5, fillColor: col, fillOpacity: 0.38};
+      newStyle = {color: '#000000', weight: 2.5, fillColor: col, fillOpacity: 0.38};
     }
     
     selected = L.geoJSON(full, {style: newStyle}).addTo(map);
