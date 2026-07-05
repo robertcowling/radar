@@ -6476,8 +6476,8 @@
       "lon": -2.78238,
       "name": "Avochie",
       "source": "sepa",
-      "last_cumulative_val": 7.8,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_val": 8.6,
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_322556": {
       "lat": 55.66347,
@@ -6613,7 +6613,7 @@
       "name": "Boleside",
       "source": "sepa",
       "last_cumulative_val": 1.2,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_115518": {
       "lat": 55.20255,
@@ -6676,8 +6676,8 @@
       "lon": -3.21151,
       "name": "Brockhoperig",
       "source": "sepa",
-      "last_cumulative_val": 5.4,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_val": 4.8,
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_115523": {
       "lat": 55.66513,
@@ -7052,8 +7052,8 @@
       "lon": -5.00577,
       "name": "Dosmucheran",
       "source": "sepa",
-      "last_cumulative_val": 16.8,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_val": 17.8,
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_464646": {
       "lat": 56.18485,
@@ -7181,7 +7181,7 @@
       "name": "Eskdalemuir Observatory",
       "source": "sepa",
       "last_cumulative_val": 3.8,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_115221": {
       "lat": 57.36511,
@@ -7316,8 +7316,8 @@
       "lon": -2.88346,
       "name": "Gilston",
       "source": "sepa",
-      "last_cumulative_val": 1.2,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_val": 1.6,
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_15204": {
       "lat": 55.77841,
@@ -7653,7 +7653,7 @@
       "name": "Kingledores",
       "source": "sepa",
       "last_cumulative_val": 5.0,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_14968": {
       "lat": 56.33019,
@@ -8309,15 +8309,15 @@
       "name": "Sgodachail",
       "source": "sepa",
       "last_cumulative_val": 11.4,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_14975": {
       "lat": 55.72797,
       "lon": -3.20729,
       "name": "Shiplaw",
       "source": "sepa",
-      "last_cumulative_val": 3.0,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_val": 2.8,
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_494255": {
       "lat": 55.81395,
@@ -8532,8 +8532,8 @@
       "lon": -2.96407,
       "name": "Unthank Raingauge",
       "source": "sepa",
-      "last_cumulative_val": 3.6,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_val": 3.4,
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_116007": {
       "lat": 56.39271,
