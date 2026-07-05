@@ -6380,8 +6380,8 @@
       "lon": -3.20598,
       "name": "Aberlour",
       "source": "sepa",
-      "last_cumulative_val": 8.8,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_val": 9.4,
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_115301": {
       "lat": 57.26273,
@@ -6532,8 +6532,8 @@
       "lon": -4.58788,
       "name": "Balgray RG",
       "source": "sepa",
-      "last_cumulative_val": 18.0,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_val": 19.8,
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_115202": {
       "lat": 57.25007,
@@ -6828,7 +6828,7 @@
       "lon": -5.13492,
       "name": "Coille Mhorgil",
       "source": "sepa",
-      "last_cumulative_val": 17.6,
+      "last_cumulative_val": 18.2,
       "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_14921": {
@@ -7100,8 +7100,8 @@
       "lon": -4.52867,
       "name": "Dunlop",
       "source": "sepa",
-      "last_cumulative_val": 16.4,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_val": 16.6,
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_509196": {
       "lat": 56.94652,
@@ -7124,7 +7124,7 @@
       "lon": -5.43987,
       "name": "Dunstaffnage",
       "source": "sepa",
-      "last_cumulative_val": 27.0,
+      "last_cumulative_val": 27.4,
       "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_234207": {
@@ -7429,7 +7429,7 @@
       "name": "Halkirk",
       "source": "sepa",
       "last_cumulative_val": 1.8,
-      "last_cumulative_dt": "2026-07-05 09:00:00"
+      "last_cumulative_dt": "2026-07-05 10:00:00"
     },
     "sepa_335614": {
       "lat": 55.91651,
@@ -7557,7 +7557,7 @@
       "name": "Inveruglas",
       "source": "sepa",
       "last_cumulative_val": 26.4,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_367365": {
       "lat": 57.25832,
@@ -7908,8 +7908,8 @@
       "lon": -4.24077,
       "name": "Lukeston",
       "source": "sepa",
-      "last_cumulative_val": 6.4,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_val": 7.2,
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_129558": {
       "lat": 56.09892,
@@ -8036,8 +8036,8 @@
       "lon": -4.74266,
       "name": "Muirshiel RG",
       "source": "sepa",
-      "last_cumulative_val": 44.6,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_val": 42.8,
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_372859": {
       "lat": 55.91288,
@@ -8156,8 +8156,8 @@
       "lon": -4.28185,
       "name": "Picketlaw Reservoir",
       "source": "sepa",
-      "last_cumulative_val": 6.6,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_val": 6.8,
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_486057": {
       "lat": 57.59946,
@@ -8388,8 +8388,8 @@
       "lon": -4.44531,
       "name": "Stewarton",
       "source": "sepa",
-      "last_cumulative_val": 15.8,
-      "last_cumulative_dt": "2026-07-05 22:00:00"
+      "last_cumulative_val": 14.8,
+      "last_cumulative_dt": "2026-07-05 23:00:00"
     },
     "sepa_369551": {
       "lat": 56.84215,
