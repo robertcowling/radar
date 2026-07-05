@@ -575,7 +575,7 @@ def _grid_cell_admin_units(cell_name, lat, lon):
 
 def _top_grid_cells(poly_data, accum_key, limit=_GRID_TOP_N):
     """Return [(label, region, mm), ...] for the highest-intensity 20km grid cells
-    in England & Wales for the given accumulation window, labeled by the
+    across the UK for the given accumulation window, labeled by the
     catchment/county they sit in (not a specific village/hamlet)."""
     cells = _top_polys((poly_data or {}).get("grid"), accum_key, limit * 2)
     centroids = _grid_centroids()
@@ -586,10 +586,9 @@ def _top_grid_cells(poly_data, accum_key, limit=_GRID_TOP_N):
             continue
         lat, lon = latlon
         catchment, county = _grid_cell_admin_units(cell_name, lat, lon)
-        # uk-counties.geojson covers England & Wales only, so a missing county
-        # match reliably means the cell is offshore, Scottish, or Northern
-        # Irish (the crude lat/lon region heuristic can't tell those apart
-        # from e.g. NW England) — safest to drop it rather than mislabel it.
+        # uk-counties.geojson now covers the whole UK, so a missing county
+        # match reliably means the cell is offshore — safest to drop it
+        # rather than mislabel it.
         if not county:
             continue
         label = f"{catchment} catchment, {county}" if catchment else county
