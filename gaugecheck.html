@@ -2227,6 +2227,8 @@ function openLeftPopup(id, defaultTab, isoTime) {
     var tab0Style = (tab === 0) ? 'border-bottom:2px solid #1a73e8;color:#1a73e8' : 'color:#5f6368';
     var tab1Style = (tab === 1) ? 'border-bottom:2px solid #1a73e8;color:#1a73e8' : 'color:#5f6368';
     var panelContent = (tab === 0) ? generateAccumTable(id, endMs) : generateSeriesTable(id, endMs);
+    var cadence = detectCadence(id, endMs);
+    var cadenceLabel = cadence === 4 ? 'Hourly' : cadence === 2 ? '30-min' : '15-min';
 
     var tabBtnStyle = 'background:none;border:none;border-bottom:2px solid transparent;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit';
     var tabsHtml = '<div style="margin-top:6px;border-top:1px solid #e8eaed;padding-top:4px">'
@@ -2234,7 +2236,7 @@ function openLeftPopup(id, defaultTab, isoTime) {
         + '<button id="ptab0_' + safeId + '" style="' + tabBtnStyle + ';' + tab0Style + '"'
         + ' onclick="showPopTabFor(\'' + safeId + '\',0)">Totals</button>'
         + '<button id="ptab1_' + safeId + '" style="' + tabBtnStyle + ';' + tab1Style + '"'
-        + ' onclick="showPopTabFor(\'' + safeId + '\',1)">15-min</button>'
+        + ' onclick="showPopTabFor(\'' + safeId + '\',1)">' + cadenceLabel + '</button>'
         + '</div>'
         + '<div id="ppanel_' + safeId + '">' + panelContent + '</div>'
         + '</div>';
@@ -2294,9 +2296,8 @@ function generateAccumTable(id, endMs) {
   return html;
 }
 
-function generateSeriesTable(id, endMs) {
+function detectCadence(id, endMs) {
   var SLOTS = 96;
-  var cadence = 1;
   var populated = [];
   for (var i = 0; i < SLOTS; i++) {
     var slotMs = endMs - i * 15 * 60000;
@@ -2310,11 +2311,17 @@ function generateSeriesTable(id, endMs) {
   }
   if (populated.length >= 3) {
     if (populated.every(function(s) { return s % 4 === 0; })) {
-      cadence = 4;
+      return 4;
     } else if (populated.every(function(s) { return s % 2 === 0; })) {
-      cadence = 2;
+      return 2;
     }
   }
+  return 1;
+}
+
+function generateSeriesTable(id, endMs) {
+  var SLOTS = 96;
+  var cadence = detectCadence(id, endMs);
 
   var rows = [];
   for (var i = 0; i < SLOTS; i++) {
