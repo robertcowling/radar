@@ -53,3 +53,7 @@ surface_obs/manifest.json
 # each time it's needed and deleted afterward, never committed
 osopenuprn_*.csv
 osopenuprn_*.zip
+
+# Locally-rebuilt flood_history/* output (area_stats.json etc.) — staged here
+# before upload_flood_history.py pushes it to R2; large/derived, not git.
+/flood_history_build/

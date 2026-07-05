@@ -21,12 +21,40 @@ import io
 import json
 import sys
 import os
+from pathlib import Path
 
 import pandas as pd
 
 MASTER_KEY  = "flood_history/events_master.csv.gz"
 STATS_KEY   = "flood_history/area_stats.json"
 OVERALL_KEY = "flood_history/overall_stats.json"
+ALIASES_MANUAL_PATH = Path(__file__).parent / "aliases_manual.csv"
+EA_AREAS_KEY  = "ea/floodareas/index.json"
+NRW_AREAS_KEY = "nrw/floodareas/index.json"
+
+
+def _load_manual_aliases() -> dict:
+    if not ALIASES_MANUAL_PATH.exists():
+        return {}
+    m = pd.read_csv(ALIASES_MANUAL_PATH)
+    return dict(zip(m.iloc[:, 0].astype(str).str.strip(),
+                    m.iloc[:, 1].astype(str).str.strip()))
+
+
+def _load_current_areas(r2, bucket: str) -> dict:
+    """code -> name for every live EA + NRW target area, so genuinely quiet
+    areas get an explicit never_issued entry instead of just being absent."""
+    current = {}
+    for key in (EA_AREAS_KEY, NRW_AREAS_KEY):
+        try:
+            obj = r2.get_object(Bucket=bucket, Key=key)
+            idx = json.loads(obj["Body"].read())
+            for rec in idx.get("areas", []):
+                if rec.get("code"):
+                    current[str(rec["code"]).strip()] = rec.get("label", "")
+        except Exception as e:
+            print(f"  [flood_stats] warning: couldn't load {key}: {e}", file=sys.stderr)
+    return current
 
 
 def append_and_rebuild(new_events: list, r2, bucket: str) -> None:
@@ -70,8 +98,11 @@ def append_and_rebuild(new_events: list, r2, bucket: str) -> None:
     df = bfs.clean([master_frame, new_frame])
 
     # ── 4. Rebuild stats ───────────────────────────────────────────────────────
-    area_stats = bfs.build_area_stats(df)
-    overall    = bfs.build_overall(df, area_stats)
+    manual = _load_manual_aliases()
+    alias, _ambiguous = bfs.build_aliases(df, manual)
+    current_areas = _load_current_areas(r2, bucket)
+    area_stats = bfs.build_area_stats(df, alias, current_areas)
+    overall    = bfs.build_overall(df.assign(code=df.code.map(lambda c: alias.get(c, c))), area_stats)
 
     # ── 5. Upload ──────────────────────────────────────────────────────────────
     buf = io.BytesIO()
