@@ -28,6 +28,9 @@ NRW_TELEMETRY_BASE = "https://api.naturalresources.wales/telemetry/api"
 NRW_KEY  = os.environ.get("NRW_KEY", "")
 USE_NRW  = bool(NRW_KEY)
 
+# ── SEPA API ──────────────────────────────────────────────────────────────────
+SEPA_BASE = "https://www2.sepa.org.uk/rainfall"   # open data, no key required
+
 # ── Cloudflare R2 ─────────────────────────────────────────────────────────────
 R2_ACCOUNT_ID    = os.environ.get("R2_ACCOUNT_ID", "")
 R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID", "")
@@ -290,6 +293,75 @@ def fetch_nrw_data():
     return nrw_stations, by_date, latest_dt
 
 
+def fetch_sepa_data():
+    """Fetch SEPA (Scottish) rainfall data via the public Rainfall Data API.
+
+    Single bulk endpoint, open data, no key required:
+      GET /api/Stations   → lat/lon/name plus a "latest reading" snapshot
+                             (itemDate/itemValue) per station.
+
+    itemValue is an accumulated total over the station's own accumRange
+    (varies per station, not always 15 min) — treated as a single latest
+    data point and dropped into its nearest 15-min slot, same fallback
+    approach as NRW's measures.latest_value ingestion above.
+
+    Station IDs are prefixed 'sepa_' to avoid collisions with EA/NRW.
+    Returns (sepa_stations dict, by_date dict, latest_dt str or None).
+    """
+    sepa_stations = {}
+    by_date = {}
+    latest_dt = None
+
+    print("Fetching SEPA stations from Rainfall Data API...")
+    try:
+        r = requests.get(f"{SEPA_BASE}/api/Stations", timeout=30)
+        r.raise_for_status()
+        items = r.json()
+        if not isinstance(items, list):
+            items = items.get("items") or items.get("value") or []
+    except Exception as e:
+        print(f"  Warning: SEPA /api/Stations failed: {e}")
+        return sepa_stations, by_date, latest_dt
+
+    for item in items:
+        ref = item.get("station_no")
+        lat = item.get("station_latitude")
+        lon = item.get("station_longitude")
+        if not ref or lat is None or lon is None:
+            continue
+        try:
+            lat_f, lon_f = float(lat), float(lon)
+        except (TypeError, ValueError):
+            continue
+
+        sid = f"sepa_{ref}"
+        sepa_stations[sid] = {
+            "lat":    round(lat_f, 5),
+            "lon":    round(lon_f, 5),
+            "name":   item.get("station_name") or ref,
+            "source": "sepa",
+        }
+
+        # itemDate format: "2026-07-05 20:00:00"
+        it_date = (item.get("itemDate") or "").strip()
+        it_val  = item.get("itemValue")
+        if not it_date or it_val is None:
+            continue
+        try:
+            v = float(it_val)
+        except (TypeError, ValueError):
+            continue
+        if v < 0:
+            continue
+        dt_str = it_date.replace(" ", "T")
+        dk, slot = dt_to_slot(dt_str)
+        by_date.setdefault(dk, {}).setdefault(sid, {})[str(slot)] = round(v, 2)
+        if latest_dt is None or dt_str > latest_dt:
+            latest_dt = dt_str
+
+    print(f"  SEPA total: {len(sepa_stations)} stations, latest={latest_dt}")
+    return sepa_stations, by_date, latest_dt
+
 
 def parse_readings(items, suid_to_ref=None):
     """Group readings by (date_key → station_id → slot_str → value).
@@ -467,6 +539,27 @@ def main():
                         print(f"Warning: stations.json NRW update failed: {e}")
         except Exception as e:
             print(f"Warning: NRW fetch failed: {e}")
+
+    # ── SEPA readings (merged in before upload loop) ──────────────────────────
+    try:
+        sepa_stations_new, sepa_by_date, sepa_latest = fetch_sepa_data()
+        for date_key, station_slots in sepa_by_date.items():
+            for sid, slots in station_slots.items():
+                by_date.setdefault(date_key, {}).setdefault(sid, {}).update(slots)
+        if sepa_latest and (latest_dt is None or sepa_latest > latest_dt):
+            latest_dt = sepa_latest
+        if sepa_stations_new:
+            stations.update(sepa_stations_new)
+            stations_data["stations"] = stations
+            write_local_json(STATIONS_PATH, stations_data)
+            if USE_R2:
+                try:
+                    r2_put_json(r2, "rain/stations.json", stations_data)
+                    print(f"Updated stations.json with {len(sepa_stations_new)} SEPA stations")
+                except Exception as e:
+                    print(f"Warning: stations.json SEPA update failed: {e}")
+    except Exception as e:
+        print(f"Warning: SEPA fetch failed: {e}")
 
     # ── Merge into R2 day files ───────────────────────────────────────────────
     available_days = set(meta.get("available_days", []))
