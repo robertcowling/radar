@@ -877,13 +877,10 @@
             return html;
         }
 
-        function generateSeriesTable(id) {
-            // ── Detect this station's native reporting cadence ──────────────────
-            // Sample up to 96 slots to find the GCD of populated slot indices.
-            // If readings only land on even slots (0,2,4...) → 30-min cadence.
-            // If readings only land on multiples of 4 → 60-min cadence.
+        function detectCadence(id) {
+            var s = stations[id];
+            if (s && s.source === 'sepa') return 4;
             var sampleSlots = Math.min(endSlotIdx, 95);
-            var cadence = 1; // default: every slot = 15 min
             var populated = [];
             for (var i = endSlotIdx; i >= Math.max(0, endSlotIdx - sampleSlots); i--) {
                 var t2 = new Date(slotToMs(i));
@@ -895,14 +892,18 @@
                 }
             }
             if (populated.length >= 3) {
-                // Check if all populated slots are divisible by 4 (60-min)
                 if (populated.every(function(s) { return s % 4 === 0; })) {
-                    cadence = 4;
-                // Check if all populated slots are even (30-min)
+                    return 4;
                 } else if (populated.every(function(s) { return s % 2 === 0; })) {
-                    cadence = 2;
+                    return 2;
                 }
             }
+            return 1;
+        }
+
+        function generateSeriesTable(id) {
+            // ── Detect this station's native reporting cadence ──────────────────
+            var cadence = detectCadence(id);
 
             var rows = [];
             for (var i = endSlotIdx; i >= 0; i--) {
@@ -957,6 +958,8 @@
         function getPopupHTML(id, val) {
             var s = stations[id];
             if (!s) return '';
+            var cadence = detectCadence(id);
+            var cadenceLabel = cadence === 4 ? 'Hourly' : cadence === 2 ? '30-min' : '15-min';
             var name = s.name || id;
             var hydroUrl = s.guid ? 'https://environment.data.gov.uk/hydrology/station/' + s.guid : null;
             var nameHtml = hydroUrl ? '<a href="' + hydroUrl + '" target="_blank" style="color:#1a73e8;font-weight:700">' + name + ' &#x2197;</a>' : '<b>' + name + '</b>';
@@ -976,7 +979,7 @@
                 + '<button id="ptab0_' + safeId + '" style="' + tabBtnStyle + ';border-bottom:2px solid #1a73e8;color:#1a73e8"'
                 + ' onclick="showPopTabFor(\'' + safeId + '\',0)">Totals</button>'
                 + '<button id="ptab1_' + safeId + '" style="' + tabBtnStyle + ';color:#5f6368"'
-                + ' onclick="showPopTabFor(\'' + safeId + '\',1)">15-min</button>'
+                + ' onclick="showPopTabFor(\'' + safeId + '\',1)">' + cadenceLabel + '</button>'
                 + '</div>'
                 + '<div id="ppanel_' + safeId + '">' + generateAccumTable(id) + '</div>'
                 + '</div>';
