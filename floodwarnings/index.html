@@ -811,7 +811,7 @@ function loadPoly(w) {
       hiddenLayer = gj;
       gj.setStyle({stroke: false, fill: false});
       if (selected) {
-        selected.setStyle({color: s.color, weight: 1.5, fillColor: s.color, fillOpacity: 0.55});
+        selected.setStyle({color: '#1e293b', weight: 2.5, fillColor: s.color, fillOpacity: 0.55});
       }
     }
     gj.addTo(polyLayer);
@@ -959,7 +959,7 @@ function selectWarningPoly(w, lyr, zoom) {
   const showFull = (feat) => {
     if (selectedCode !== w.code) return;
     
-    selected = L.geoJSON(feat, {style: {color: s.color, weight: 1.5, fillColor: s.color, fillOpacity: 0.55}}).addTo(map);
+    selected = L.geoJSON(feat, {style: {color: '#1e293b', weight: 2.5, fillColor: s.color, fillOpacity: 0.55}}).addTo(map);
     
     const bounds = selected.getBounds();
     let popupLatLng = null;
