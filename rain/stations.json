@@ -6380,8 +6380,8 @@
       "lon": -3.20598,
       "name": "Aberlour",
       "source": "sepa",
-      "last_cumulative_val": 9.4,
-      "last_cumulative_dt": "2026-07-06 01:00:00"
+      "last_cumulative_val": 9.2,
+      "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_115301": {
       "lat": 57.26273,
@@ -6628,8 +6628,8 @@
       "lon": -4.49863,
       "name": "Bow Burn Raingauge",
       "source": "sepa",
-      "last_cumulative_val": 8.4,
-      "last_cumulative_dt": "2026-07-06 01:00:00"
+      "last_cumulative_val": 8.2,
+      "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_15161": {
       "lat": 56.28192,
@@ -6652,7 +6652,7 @@
       "lon": -2.82495,
       "name": "Braidlie",
       "source": "sepa",
-      "last_cumulative_val": 0.2,
+      "last_cumulative_val": 1.6,
       "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_115521": {
@@ -6709,7 +6709,7 @@
       "name": "Cairngorm Raingauge and Snow Scale",
       "source": "sepa",
       "last_cumulative_val": 0.0,
-      "last_cumulative_dt": "2026-07-06 01:00:00"
+      "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_115526": {
       "lat": 55.88934,
@@ -6837,15 +6837,15 @@
       "name": "Colliston",
       "source": "sepa",
       "last_cumulative_val": 0.2,
-      "last_cumulative_dt": "2026-07-06 02:00:00"
+      "last_cumulative_dt": "2026-07-06 03:00:00"
     },
     "sepa_552791": {
       "lat": 56.20151,
       "lon": -4.60131,
       "name": "Comer Farm",
       "source": "sepa",
-      "last_cumulative_val": 18.8,
-      "last_cumulative_dt": "2026-07-06 01:00:00"
+      "last_cumulative_val": 19.6,
+      "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_525510": {
       "lat": 55.91019,
@@ -6876,8 +6876,8 @@
       "lon": -3.52983,
       "name": "Coulter Reservoir",
       "source": "sepa",
-      "last_cumulative_val": 4.8,
-      "last_cumulative_dt": "2026-07-06 02:00:00"
+      "last_cumulative_val": 4.4,
+      "last_cumulative_dt": "2026-07-06 03:00:00"
     },
     "sepa_1063066": {
       "lat": 55.19549,
@@ -6909,7 +6909,7 @@
       "name": "Crichton Mains",
       "source": "sepa",
       "last_cumulative_val": 1.2,
-      "last_cumulative_dt": "2026-07-06 01:00:00"
+      "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_234192": {
       "lat": 57.68712,
@@ -7052,8 +7052,8 @@
       "lon": -5.00577,
       "name": "Dosmucheran",
       "source": "sepa",
-      "last_cumulative_val": 17.8,
-      "last_cumulative_dt": "2026-07-06 01:00:00"
+      "last_cumulative_val": 17.6,
+      "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_464646": {
       "lat": 56.18485,
@@ -7124,8 +7124,8 @@
       "lon": -5.43987,
       "name": "Dunstaffnage",
       "source": "sepa",
-      "last_cumulative_val": 28.6,
-      "last_cumulative_dt": "2026-07-06 02:00:00"
+      "last_cumulative_val": 27.8,
+      "last_cumulative_dt": "2026-07-06 03:00:00"
     },
     "sepa_234207": {
       "lat": 59.10853,
@@ -7157,7 +7157,7 @@
       "name": "Edinburgh RBG (Royal Botanic Garden)",
       "source": "sepa",
       "last_cumulative_val": 1.2,
-      "last_cumulative_dt": "2026-07-06 02:00:00"
+      "last_cumulative_dt": "2026-07-06 03:00:00"
     },
     "sepa_492363": {
       "lat": 57.94422,
@@ -7180,8 +7180,8 @@
       "lon": -3.2068,
       "name": "Eskdalemuir Observatory",
       "source": "sepa",
-      "last_cumulative_val": 2.8,
-      "last_cumulative_dt": "2026-07-06 01:00:00"
+      "last_cumulative_val": 2.0,
+      "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_115221": {
       "lat": 57.36511,
@@ -7253,7 +7253,7 @@
       "name": "Frenich Farm",
       "source": "sepa",
       "last_cumulative_val": 16.4,
-      "last_cumulative_dt": "2026-07-06 01:00:00"
+      "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_115223": {
       "lat": 57.092,
@@ -7405,7 +7405,7 @@
       "name": "Gogarbank",
       "source": "sepa",
       "last_cumulative_val": 1.6,
-      "last_cumulative_dt": "2026-07-06 01:00:00"
+      "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_14984": {
       "lat": 55.51137,
@@ -7484,8 +7484,8 @@
       "lon": -2.53968,
       "name": "Hungry Snout 2 (Whiteadder Reservoir)",
       "source": "sepa",
-      "last_cumulative_val": 3.2,
-      "last_cumulative_dt": "2026-07-06 02:00:00"
+      "last_cumulative_val": 3.0,
+      "last_cumulative_dt": "2026-07-06 03:00:00"
     },
     "sepa_469625": {
       "lat": 55.74448,
@@ -7493,7 +7493,7 @@
       "name": "Hunterston Terminal",
       "source": "sepa",
       "last_cumulative_val": 14.8,
-      "last_cumulative_dt": "2026-07-06 02:00:00"
+      "last_cumulative_dt": "2026-07-06 03:00:00"
     },
     "sepa_115584": {
       "lat": 55.34215,
@@ -7613,7 +7613,7 @@
       "name": "Killin",
       "source": "sepa",
       "last_cumulative_val": 0.0,
-      "last_cumulative_dt": "2026-07-06 02:00:00"
+      "last_cumulative_dt": "2026-07-06 03:00:00"
     },
     "sepa_234253": {
       "lat": 58.14139,
@@ -7820,8 +7820,8 @@
       "lon": -4.43625,
       "name": "Loch Katrine",
       "source": "sepa",
-      "last_cumulative_val": 6.8,
-      "last_cumulative_dt": "2026-07-06 01:00:00"
+      "last_cumulative_val": 7.2,
+      "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_485489": {
       "lat": 56.23604,
@@ -7877,7 +7877,7 @@
       "name": "Low Creoch",
       "source": "sepa",
       "last_cumulative_val": 2.2,
-      "last_cumulative_dt": "2026-07-06 02:00:00"
+      "last_cumulative_dt": "2026-07-06 03:00:00"
     },
     "sepa_115612": {
       "lat": 55.07053,
@@ -7916,7 +7916,7 @@
       "lon": -4.63886,
       "name": "Luss Raingauge",
       "source": "sepa",
-      "last_cumulative_val": 6.2,
+      "last_cumulative_val": 6.4,
       "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_14974": {
@@ -7973,7 +7973,7 @@
       "name": "Milton of Evelix TBR",
       "source": "sepa",
       "last_cumulative_val": 8.4,
-      "last_cumulative_dt": "2026-07-05 09:00:00"
+      "last_cumulative_dt": "2026-07-05 10:00:00"
     },
     "sepa_338429": {
       "lat": 54.95888,
@@ -8012,8 +8012,8 @@
       "lon": -5.27193,
       "name": "Monyquil Farm",
       "source": "sepa",
-      "last_cumulative_val": 22.6,
-      "last_cumulative_dt": "2026-07-06 02:00:00"
+      "last_cumulative_val": 21.4,
+      "last_cumulative_dt": "2026-07-06 03:00:00"
     },
     "sepa_15022": {
       "lat": 55.77013,
@@ -8076,8 +8076,8 @@
       "lon": -5.43,
       "name": "New Kelso",
       "source": "sepa",
-      "last_cumulative_val": 21.6,
-      "last_cumulative_dt": "2026-07-06 02:00:00"
+      "last_cumulative_val": 24.0,
+      "last_cumulative_dt": "2026-07-06 03:00:00"
     },
     "sepa_15083": {
       "lat": 56.25431,
@@ -8420,7 +8420,7 @@
       "lon": -4.0026,
       "name": "Strathy Bridge",
       "source": "sepa",
-      "last_cumulative_val": 3.0,
+      "last_cumulative_val": 3.2,
       "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_15172": {
@@ -8428,8 +8428,8 @@
       "lon": -4.32898,
       "name": "Strathyre",
       "source": "sepa",
-      "last_cumulative_val": 2.8,
-      "last_cumulative_dt": "2026-07-06 02:00:00"
+      "last_cumulative_val": 3.0,
+      "last_cumulative_dt": "2026-07-06 03:00:00"
     },
     "sepa_361047": {
       "lat": 56.36918,
@@ -8532,16 +8532,16 @@
       "lon": -2.96407,
       "name": "Unthank Raingauge",
       "source": "sepa",
-      "last_cumulative_val": 3.2,
-      "last_cumulative_dt": "2026-07-06 01:00:00"
+      "last_cumulative_val": 1.8,
+      "last_cumulative_dt": "2026-07-06 02:00:00"
     },
     "sepa_116007": {
       "lat": 56.39271,
       "lon": -4.46371,
       "name": "Upper Monachyle",
       "source": "sepa",
-      "last_cumulative_val": 8.4,
-      "last_cumulative_dt": "2026-07-06 02:00:00"
+      "last_cumulative_val": 8.6,
+      "last_cumulative_dt": "2026-07-06 03:00:00"
     },
     "sepa_115406": {
       "lat": 57.59399,
