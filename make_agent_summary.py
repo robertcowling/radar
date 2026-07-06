@@ -360,6 +360,8 @@ def load_rain_gauge_stats():
         lat, lon = info.get("lat", 0), info.get("lon", 0)
         name     = info.get("name", sid).strip()
         region   = assign_region(lat, lon)
+        if region == "Scotland":
+            continue  # agent summary covers England & Wales only
 
         def acc(n_slots):
             total = 0.0

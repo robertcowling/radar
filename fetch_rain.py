@@ -365,9 +365,16 @@ def fetch_sepa_data(existing_stations):
         if prev_val is not None and it_date != prev_dt:
             if v >= prev_val:
                 inc = v - prev_val
-            else:
-                # Value decreased, indicating a counter reset (e.g. at 09:00 AM)
+            elif prev_val > 0 and v <= prev_val * 0.3:
+                # Genuine counter reset (e.g. 09:00 AM accumulation restart) —
+                # the new value is a small fraction of the old one.
                 inc = v
+            else:
+                # Small downward wobble (sensor revision/noise), not a real
+                # reset. Treating the whole cumulative value as one slot's
+                # rainfall would create a false multi-mm spike, so just
+                # resync the baseline without recording an increment.
+                inc = 0.0
         else:
             # First time seeing the station, or reading timestamp hasn't changed.
             # Set increment to 0 to prevent a giant spike of historical rainfall.
