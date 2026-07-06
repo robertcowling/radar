@@ -6613,7 +6613,7 @@
       "name": "Boleside",
       "source": "sepa",
       "last_cumulative_val": 1.2,
-      "last_cumulative_dt": "2026-07-06 06:00:00"
+      "last_cumulative_dt": "2026-07-06 07:00:00"
     },
     "sepa_115518": {
       "lat": 55.20255,
@@ -6677,7 +6677,7 @@
       "name": "Brockhoperig",
       "source": "sepa",
       "last_cumulative_val": 3.6,
-      "last_cumulative_dt": "2026-07-06 06:00:00"
+      "last_cumulative_dt": "2026-07-06 07:00:00"
     },
     "sepa_115523": {
       "lat": 55.66513,
@@ -7052,8 +7052,8 @@
       "lon": -5.00577,
       "name": "Dosmucheran",
       "source": "sepa",
-      "last_cumulative_val": 22.2,
-      "last_cumulative_dt": "2026-07-06 06:00:00"
+      "last_cumulative_val": 24.0,
+      "last_cumulative_dt": "2026-07-06 07:00:00"
     },
     "sepa_464646": {
       "lat": 56.18485,
@@ -7317,7 +7317,7 @@
       "name": "Gilston",
       "source": "sepa",
       "last_cumulative_val": 1.6,
-      "last_cumulative_dt": "2026-07-06 06:00:00"
+      "last_cumulative_dt": "2026-07-06 07:00:00"
     },
     "sepa_15204": {
       "lat": 55.77841,
@@ -7653,7 +7653,7 @@
       "name": "Kingledores",
       "source": "sepa",
       "last_cumulative_val": 2.8,
-      "last_cumulative_dt": "2026-07-06 06:00:00"
+      "last_cumulative_dt": "2026-07-06 07:00:00"
     },
     "sepa_14968": {
       "lat": 56.33019,
@@ -7972,7 +7972,7 @@
       "lon": -4.08416,
       "name": "Milton of Evelix TBR",
       "source": "sepa",
-      "last_cumulative_val": 10.2,
+      "last_cumulative_val": 10.4,
       "last_cumulative_dt": "2026-07-05 14:00:00"
     },
     "sepa_338429": {
@@ -8308,8 +8308,8 @@
       "lon": -4.54698,
       "name": "Sgodachail",
       "source": "sepa",
-      "last_cumulative_val": 13.6,
-      "last_cumulative_dt": "2026-07-06 06:00:00"
+      "last_cumulative_val": 14.0,
+      "last_cumulative_dt": "2026-07-06 07:00:00"
     },
     "sepa_14975": {
       "lat": 55.72797,
@@ -8317,7 +8317,7 @@
       "name": "Shiplaw",
       "source": "sepa",
       "last_cumulative_val": 2.6,
-      "last_cumulative_dt": "2026-07-06 06:00:00"
+      "last_cumulative_dt": "2026-07-06 07:00:00"
     },
     "sepa_494255": {
       "lat": 55.81395,
@@ -8453,7 +8453,7 @@
       "name": "Teviothead",
       "source": "sepa",
       "last_cumulative_val": 1.2,
-      "last_cumulative_dt": "2026-07-06 06:00:00"
+      "last_cumulative_dt": "2026-07-06 07:00:00"
     },
     "sepa_115244": {
       "lat": 57.202,
