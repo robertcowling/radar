@@ -6381,7 +6381,7 @@
       "name": "Aberlour",
       "source": "sepa",
       "last_cumulative_val": 9.4,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_115301": {
       "lat": 57.26273,
@@ -6404,7 +6404,7 @@
       "lon": -4.64462,
       "name": "Allnabad",
       "source": "sepa",
-      "last_cumulative_val": 11.6,
+      "last_cumulative_val": 11.8,
       "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_115304": {
@@ -6828,7 +6828,7 @@
       "lon": -5.13492,
       "name": "Coille Mhorgil",
       "source": "sepa",
-      "last_cumulative_val": 19.6,
+      "last_cumulative_val": 19.8,
       "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_14921": {
@@ -7100,8 +7100,8 @@
       "lon": -4.52867,
       "name": "Dunlop",
       "source": "sepa",
-      "last_cumulative_val": 14.6,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_val": 12.8,
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_509196": {
       "lat": 56.94652,
@@ -7124,7 +7124,7 @@
       "lon": -5.43987,
       "name": "Dunstaffnage",
       "source": "sepa",
-      "last_cumulative_val": 27.8,
+      "last_cumulative_val": 28.2,
       "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_234207": {
@@ -7205,7 +7205,7 @@
       "name": "Fife Airport",
       "source": "sepa",
       "last_cumulative_val": 0.6,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_115339": {
       "lat": 57.33129,
@@ -7228,7 +7228,7 @@
       "lon": -3.87356,
       "name": "Forsinain",
       "source": "sepa",
-      "last_cumulative_val": 3.0,
+      "last_cumulative_val": 3.2,
       "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_14948": {
@@ -7341,7 +7341,7 @@
       "name": "Glen Nevis",
       "source": "sepa",
       "last_cumulative_val": 26.8,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_133088": {
       "lat": 56.42522,
@@ -7364,8 +7364,8 @@
       "lon": -4.1216,
       "name": "Glengavel Reservoir",
       "source": "sepa",
-      "last_cumulative_val": 14.8,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_val": 14.0,
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_327238": {
       "lat": 55.89359,
@@ -7429,7 +7429,7 @@
       "name": "Halkirk",
       "source": "sepa",
       "last_cumulative_val": 2.0,
-      "last_cumulative_dt": "2026-07-05 11:00:00"
+      "last_cumulative_dt": "2026-07-05 12:00:00"
     },
     "sepa_335614": {
       "lat": 55.91651,
@@ -7556,8 +7556,8 @@
       "lon": -4.71287,
       "name": "Inveruglas",
       "source": "sepa",
-      "last_cumulative_val": 26.8,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_val": 27.2,
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_367365": {
       "lat": 57.25832,
@@ -8036,8 +8036,8 @@
       "lon": -4.74266,
       "name": "Muirshiel RG",
       "source": "sepa",
-      "last_cumulative_val": 42.0,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_val": 40.2,
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_372859": {
       "lat": 55.91288,
@@ -8388,8 +8388,8 @@
       "lon": -4.44531,
       "name": "Stewarton",
       "source": "sepa",
-      "last_cumulative_val": 12.8,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_val": 11.4,
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_369551": {
       "lat": 56.84215,
