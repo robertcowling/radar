@@ -6380,8 +6380,8 @@
       "lon": -3.20598,
       "name": "Aberlour",
       "source": "sepa",
-      "last_cumulative_val": 9.0,
-      "last_cumulative_dt": "2026-07-06 05:00:00"
+      "last_cumulative_val": 9.8,
+      "last_cumulative_dt": "2026-07-06 06:00:00"
     },
     "sepa_115301": {
       "lat": 57.26273,
@@ -6404,7 +6404,7 @@
       "lon": -4.64462,
       "name": "Allnabad",
       "source": "sepa",
-      "last_cumulative_val": 15.2,
+      "last_cumulative_val": 15.6,
       "last_cumulative_dt": "2026-07-06 06:00:00"
     },
     "sepa_115304": {
@@ -6828,7 +6828,7 @@
       "lon": -5.13492,
       "name": "Coille Mhorgil",
       "source": "sepa",
-      "last_cumulative_val": 24.2,
+      "last_cumulative_val": 24.4,
       "last_cumulative_dt": "2026-07-06 06:00:00"
     },
     "sepa_14921": {
@@ -7100,8 +7100,8 @@
       "lon": -4.52867,
       "name": "Dunlop",
       "source": "sepa",
-      "last_cumulative_val": 11.0,
-      "last_cumulative_dt": "2026-07-06 05:00:00"
+      "last_cumulative_val": 10.8,
+      "last_cumulative_dt": "2026-07-06 06:00:00"
     },
     "sepa_509196": {
       "lat": 56.94652,
@@ -7228,7 +7228,7 @@
       "lon": -3.87356,
       "name": "Forsinain",
       "source": "sepa",
-      "last_cumulative_val": 5.2,
+      "last_cumulative_val": 5.8,
       "last_cumulative_dt": "2026-07-06 06:00:00"
     },
     "sepa_14948": {
@@ -7364,8 +7364,8 @@
       "lon": -4.1216,
       "name": "Glengavel Reservoir",
       "source": "sepa",
-      "last_cumulative_val": 11.4,
-      "last_cumulative_dt": "2026-07-06 05:00:00"
+      "last_cumulative_val": 11.0,
+      "last_cumulative_dt": "2026-07-06 06:00:00"
     },
     "sepa_327238": {
       "lat": 55.89359,
@@ -7972,7 +7972,7 @@
       "lon": -4.08416,
       "name": "Milton of Evelix TBR",
       "source": "sepa",
-      "last_cumulative_val": 9.6,
+      "last_cumulative_val": 9.8,
       "last_cumulative_dt": "2026-07-05 13:00:00"
     },
     "sepa_338429": {
@@ -8261,7 +8261,7 @@
       "name": "Ross Priory",
       "source": "sepa",
       "last_cumulative_val": 6.6,
-      "last_cumulative_dt": "2026-07-06 05:00:00"
+      "last_cumulative_dt": "2026-07-06 06:00:00"
     },
     "sepa_15070": {
       "lat": 56.29913,
@@ -8388,8 +8388,8 @@
       "lon": -4.44531,
       "name": "Stewarton",
       "source": "sepa",
-      "last_cumulative_val": 10.8,
-      "last_cumulative_dt": "2026-07-06 05:00:00"
+      "last_cumulative_val": 11.0,
+      "last_cumulative_dt": "2026-07-06 06:00:00"
     },
     "sepa_369551": {
       "lat": 56.84215,
