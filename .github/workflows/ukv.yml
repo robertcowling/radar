@@ -2,6 +2,11 @@ name: Fetch UKV Forecast
 
 on:
   workflow_dispatch:
+    inputs:
+      force_rerun:
+        description: "Reprocess the latest run even if already marked processed (e.g. after a boundary/mask fix)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -32,6 +37,7 @@ jobs:
         R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+        FORCE_RERUN: ${{ inputs.force_rerun }}
       run: python fetch_ukv.py
 
     - name: Commit metadata
