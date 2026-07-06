@@ -6381,7 +6381,7 @@
       "name": "Aberlour",
       "source": "sepa",
       "last_cumulative_val": 9.0,
-      "last_cumulative_dt": "2026-07-06 04:00:00"
+      "last_cumulative_dt": "2026-07-06 05:00:00"
     },
     "sepa_115301": {
       "lat": 57.26273,
@@ -6404,7 +6404,7 @@
       "lon": -4.64462,
       "name": "Allnabad",
       "source": "sepa",
-      "last_cumulative_val": 13.6,
+      "last_cumulative_val": 14.0,
       "last_cumulative_dt": "2026-07-06 05:00:00"
     },
     "sepa_115304": {
@@ -6828,7 +6828,7 @@
       "lon": -5.13492,
       "name": "Coille Mhorgil",
       "source": "sepa",
-      "last_cumulative_val": 24.4,
+      "last_cumulative_val": 24.6,
       "last_cumulative_dt": "2026-07-06 05:00:00"
     },
     "sepa_14921": {
@@ -7100,8 +7100,8 @@
       "lon": -4.52867,
       "name": "Dunlop",
       "source": "sepa",
-      "last_cumulative_val": 11.2,
-      "last_cumulative_dt": "2026-07-06 04:00:00"
+      "last_cumulative_val": 11.0,
+      "last_cumulative_dt": "2026-07-06 05:00:00"
     },
     "sepa_509196": {
       "lat": 56.94652,
@@ -7364,8 +7364,8 @@
       "lon": -4.1216,
       "name": "Glengavel Reservoir",
       "source": "sepa",
-      "last_cumulative_val": 12.0,
-      "last_cumulative_dt": "2026-07-06 04:00:00"
+      "last_cumulative_val": 11.4,
+      "last_cumulative_dt": "2026-07-06 05:00:00"
     },
     "sepa_327238": {
       "lat": 55.89359,
@@ -7428,8 +7428,8 @@
       "lon": -3.493,
       "name": "Halkirk",
       "source": "sepa",
-      "last_cumulative_val": 3.8,
-      "last_cumulative_dt": "2026-07-05 15:00:00"
+      "last_cumulative_val": 4.0,
+      "last_cumulative_dt": "2026-07-05 16:00:00"
     },
     "sepa_335614": {
       "lat": 55.91651,
@@ -7556,8 +7556,8 @@
       "lon": -4.71287,
       "name": "Inveruglas",
       "source": "sepa",
-      "last_cumulative_val": 28.6,
-      "last_cumulative_dt": "2026-07-06 04:00:00"
+      "last_cumulative_val": 28.2,
+      "last_cumulative_dt": "2026-07-06 05:00:00"
     },
     "sepa_367365": {
       "lat": 57.25832,
@@ -7852,7 +7852,7 @@
       "lon": -3.69139,
       "name": "Lochindorb North",
       "source": "sepa",
-      "last_cumulative_val": 13.2,
+      "last_cumulative_val": 13.4,
       "last_cumulative_dt": "2026-07-06 05:00:00"
     },
     "sepa_509677": {
@@ -7972,7 +7972,7 @@
       "lon": -4.08416,
       "name": "Milton of Evelix TBR",
       "source": "sepa",
-      "last_cumulative_val": 8.6,
+      "last_cumulative_val": 8.8,
       "last_cumulative_dt": "2026-07-05 12:00:00"
     },
     "sepa_338429": {
@@ -8036,8 +8036,8 @@
       "lon": -4.74266,
       "name": "Muirshiel RG",
       "source": "sepa",
-      "last_cumulative_val": 36.4,
-      "last_cumulative_dt": "2026-07-06 04:00:00"
+      "last_cumulative_val": 35.4,
+      "last_cumulative_dt": "2026-07-06 05:00:00"
     },
     "sepa_372859": {
       "lat": 55.91288,
@@ -8261,7 +8261,7 @@
       "name": "Ross Priory",
       "source": "sepa",
       "last_cumulative_val": 6.6,
-      "last_cumulative_dt": "2026-07-06 04:00:00"
+      "last_cumulative_dt": "2026-07-06 05:00:00"
     },
     "sepa_15070": {
       "lat": 56.29913,
@@ -8389,7 +8389,7 @@
       "name": "Stewarton",
       "source": "sepa",
       "last_cumulative_val": 10.8,
-      "last_cumulative_dt": "2026-07-06 04:00:00"
+      "last_cumulative_dt": "2026-07-06 05:00:00"
     },
     "sepa_369551": {
       "lat": 56.84215,
