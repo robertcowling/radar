@@ -19,6 +19,7 @@ from poly_utils import (
     masks_to_npz_bytes as _masks_to_npz_bytes_util,
     npz_bytes_to_masks as _npz_bytes_to_masks_util,
     compute_poly_averages as _compute_poly_averages_util,
+    geojson_fingerprint as _geojson_fingerprint_util,
 )
 
 # ── Output domain (matches process_parallel.py / parallel feed viewer) ─────────
@@ -226,9 +227,12 @@ def load_or_build_masks(r2, layer_name, geojson_path, name_key):
     """Load cached pixel masks from R2, or build and upload them if missing."""
     npz_key   = f"accum_masks/{layer_name}.npz"
     names_key = f"accum_masks/{layer_name}_names.json"
+    fp_key    = f"accum_masks/{layer_name}_fp.json"
 
+    current_fp = _geojson_fingerprint_util(geojson_path)
+    cached_fp  = json_from_r2(r2, fp_key)
     names_data = json_from_r2(r2, names_key)
-    if names_data is not None:
+    if names_data is not None and cached_fp == current_fp:
         try:
             obj       = r2.get_object(Bucket=R2_BUCKET, Key=npz_key)
             npz_bytes = obj["Body"].read()
@@ -248,6 +252,7 @@ def load_or_build_masks(r2, layer_name, geojson_path, name_key):
     r2.put_object(Bucket=R2_BUCKET, Key=npz_key, Body=npz_bytes,
                   ContentType="application/octet-stream")
     json_to_r2(r2, names_key, names)
+    json_to_r2(r2, fp_key, current_fp)
     print(f"  [{layer_name}] masks uploaded to R2")
     return masks
 
