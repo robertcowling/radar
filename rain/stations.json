@@ -6477,7 +6477,7 @@
       "name": "Avochie",
       "source": "sepa",
       "last_cumulative_val": 8.6,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_322556": {
       "lat": 55.66347,
@@ -6613,7 +6613,7 @@
       "name": "Boleside",
       "source": "sepa",
       "last_cumulative_val": 1.2,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_115518": {
       "lat": 55.20255,
@@ -6676,8 +6676,8 @@
       "lon": -3.21151,
       "name": "Brockhoperig",
       "source": "sepa",
-      "last_cumulative_val": 4.4,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_val": 3.8,
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_115523": {
       "lat": 55.66513,
@@ -7053,7 +7053,7 @@
       "name": "Dosmucheran",
       "source": "sepa",
       "last_cumulative_val": 17.8,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_464646": {
       "lat": 56.18485,
@@ -7317,7 +7317,7 @@
       "name": "Gilston",
       "source": "sepa",
       "last_cumulative_val": 1.6,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_15204": {
       "lat": 55.77841,
@@ -7653,7 +7653,7 @@
       "name": "Kingledores",
       "source": "sepa",
       "last_cumulative_val": 4.6,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_14968": {
       "lat": 56.33019,
@@ -8309,15 +8309,15 @@
       "name": "Sgodachail",
       "source": "sepa",
       "last_cumulative_val": 11.4,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_14975": {
       "lat": 55.72797,
       "lon": -3.20729,
       "name": "Shiplaw",
       "source": "sepa",
-      "last_cumulative_val": 2.6,
-      "last_cumulative_dt": "2026-07-06 00:00:00"
+      "last_cumulative_val": 2.4,
+      "last_cumulative_dt": "2026-07-06 01:00:00"
     },
     "sepa_494255": {
       "lat": 55.81395,
