@@ -6828,7 +6828,7 @@
       "lon": -5.13492,
       "name": "Coille Mhorgil",
       "source": "sepa",
-      "last_cumulative_val": 19.2,
+      "last_cumulative_val": 19.4,
       "last_cumulative_dt": "2026-07-06 00:00:00"
     },
     "sepa_14921": {
@@ -7100,8 +7100,8 @@
       "lon": -4.52867,
       "name": "Dunlop",
       "source": "sepa",
-      "last_cumulative_val": 16.6,
-      "last_cumulative_dt": "2026-07-05 23:00:00"
+      "last_cumulative_val": 14.6,
+      "last_cumulative_dt": "2026-07-06 00:00:00"
     },
     "sepa_509196": {
       "lat": 56.94652,
@@ -7124,7 +7124,7 @@
       "lon": -5.43987,
       "name": "Dunstaffnage",
       "source": "sepa",
-      "last_cumulative_val": 28.0,
+      "last_cumulative_val": 28.2,
       "last_cumulative_dt": "2026-07-06 00:00:00"
     },
     "sepa_234207": {
@@ -7365,7 +7365,7 @@
       "name": "Glengavel Reservoir",
       "source": "sepa",
       "last_cumulative_val": 14.8,
-      "last_cumulative_dt": "2026-07-05 23:00:00"
+      "last_cumulative_dt": "2026-07-06 00:00:00"
     },
     "sepa_327238": {
       "lat": 55.89359,
@@ -7429,7 +7429,7 @@
       "name": "Halkirk",
       "source": "sepa",
       "last_cumulative_val": 1.8,
-      "last_cumulative_dt": "2026-07-05 10:00:00"
+      "last_cumulative_dt": "2026-07-05 11:00:00"
     },
     "sepa_335614": {
       "lat": 55.91651,
@@ -7556,8 +7556,8 @@
       "lon": -4.71287,
       "name": "Inveruglas",
       "source": "sepa",
-      "last_cumulative_val": 26.4,
-      "last_cumulative_dt": "2026-07-05 23:00:00"
+      "last_cumulative_val": 26.8,
+      "last_cumulative_dt": "2026-07-06 00:00:00"
     },
     "sepa_367365": {
       "lat": 57.25832,
@@ -8036,8 +8036,8 @@
       "lon": -4.74266,
       "name": "Muirshiel RG",
       "source": "sepa",
-      "last_cumulative_val": 42.8,
-      "last_cumulative_dt": "2026-07-05 23:00:00"
+      "last_cumulative_val": 42.0,
+      "last_cumulative_dt": "2026-07-06 00:00:00"
     },
     "sepa_372859": {
       "lat": 55.91288,
@@ -8260,8 +8260,8 @@
       "lon": -4.55746,
       "name": "Ross Priory",
       "source": "sepa",
-      "last_cumulative_val": 7.2,
-      "last_cumulative_dt": "2026-07-05 23:00:00"
+      "last_cumulative_val": 7.0,
+      "last_cumulative_dt": "2026-07-06 00:00:00"
     },
     "sepa_15070": {
       "lat": 56.29913,
@@ -8388,8 +8388,8 @@
       "lon": -4.44531,
       "name": "Stewarton",
       "source": "sepa",
-      "last_cumulative_val": 14.8,
-      "last_cumulative_dt": "2026-07-05 23:00:00"
+      "last_cumulative_val": 12.8,
+      "last_cumulative_dt": "2026-07-06 00:00:00"
     },
     "sepa_369551": {
       "lat": 56.84215,
