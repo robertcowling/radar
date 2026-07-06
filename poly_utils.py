@@ -5,6 +5,7 @@ Used by both make_accum_multi.py (radar) and fetch_ukv.py (UKV forecast).
 All grid-specific dimensions are passed as parameters so the same code works
 for different output grids.
 """
+import hashlib
 import io
 import json
 
@@ -39,6 +40,12 @@ def _ring_to_pixels(ring, ll_to_merc, xmin, xmax, ymin_m, ymax_m, width, height)
         row = (ymax_m - my) / (ymax_m - ymin_m) * (height - 1)
         pts.append((col, row))
     return pts
+
+
+def geojson_fingerprint(path):
+    """Cheap content fingerprint so callers can detect a changed boundary file."""
+    with open(path, "rb") as f:
+        return hashlib.md5(f.read()).hexdigest()
 
 
 def build_pixel_masks(geojson_path, name_key, width, height, ll_to_merc, xmin, xmax, ymin_m, ymax_m):

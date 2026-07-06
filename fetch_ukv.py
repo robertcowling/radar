@@ -34,6 +34,7 @@ from poly_utils import (
     masks_to_npz_bytes,
     npz_bytes_to_masks,
     compute_poly_averages,
+    geojson_fingerprint,
 )
 
 # ── Output domain — covers full UKV LAEA extent (valid mask handles transparency)
@@ -549,9 +550,16 @@ def load_or_build_ukv_masks(r2):
 
         npz_key   = f"{UKV_MASKS_PREFIX}/{layer_name}.npz"
         names_key = f"{UKV_MASKS_PREFIX}/{layer_name}_names.json"
+        fp_key    = f"{UKV_MASKS_PREFIX}/{layer_name}_fp.json"
 
-        # Try loading from R2 cache
+        current_fp = geojson_fingerprint(geojson_path)
+
+        # Try loading from R2 cache, but only if the source geojson hasn't changed
         try:
+            fp_obj = r2.get_object(Bucket=R2_BUCKET, Key=fp_key)
+            cached_fp = json.loads(fp_obj["Body"].read())
+            if cached_fp != current_fp:
+                raise ValueError("stale mask cache — source geojson changed")
             names_obj = r2.get_object(Bucket=R2_BUCKET, Key=names_key)
             names     = json.loads(names_obj["Body"].read())
             npz_obj   = r2.get_object(Bucket=R2_BUCKET, Key=npz_key)
@@ -574,6 +582,9 @@ def load_or_build_ukv_masks(r2):
                       ContentType="application/octet-stream")
         r2.put_object(Bucket=R2_BUCKET, Key=names_key,
                       Body=json.dumps(names).encode(),
+                      ContentType="application/json; charset=utf-8")
+        r2.put_object(Bucket=R2_BUCKET, Key=fp_key,
+                      Body=json.dumps(current_fp).encode(),
                       ContentType="application/json; charset=utf-8")
         print(f"  [ukv_masks/{layer_name}] cached to R2")
         all_masks[layer_name] = masks
