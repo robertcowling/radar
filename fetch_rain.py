@@ -12,6 +12,7 @@ Called every 15 min by rain_update.yml. Importable by backfill_rain.py.
 import json
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from math import atan2, cos, radians, sin, sqrt
 
@@ -293,18 +294,23 @@ def fetch_nrw_data():
     return nrw_stations, by_date, latest_dt
 
 
-def fetch_sepa_data(existing_stations):
+def fetch_sepa_data():
     """Fetch SEPA (Scottish) rainfall data via the public Rainfall Data API.
 
-    Single bulk endpoint, open data, no key required:
-      GET /api/Stations   → lat/lon/name plus a "latest reading" snapshot
-                             (itemDate/itemValue) per station.
+      GET /api/Stations         → lat/lon/name per station (single bulk call)
+      GET /api/Hourly/{ref}     → that station's own discrete hourly totals
+                                   (not a running cumulative count), covering
+                                   a rolling ~3-4 day window.
 
-    itemValue is a cumulative total (usually since 9 AM yesterday). We calculate
-    the 15-minute increment by comparing against the last cached cumulative value.
+    SEPA has already done the differencing for us, so there's no cumulative
+    counter to track and no reset to detect — we just take its hourly totals
+    as-is. Re-fetching the rolling window every run and overwriting the same
+    slots each time is idempotent and self-heals any bad values a prior run
+    may have written.
 
     Station IDs are prefixed 'sepa_' to avoid collisions with EA/NRW.
-    Returns (sepa_stations dict, by_date dict, latest_dt str or None).
+    Returns (sepa_stations dict, by_date dict, latest_dt str or None,
+    covered_days set of 'YYYYMMDD' strings this run has authoritative data for).
     """
     sepa_stations = {}
     by_date = {}
@@ -319,8 +325,9 @@ def fetch_sepa_data(existing_stations):
             items = items.get("items") or items.get("value") or []
     except Exception as e:
         print(f"  Warning: SEPA /api/Stations failed: {e}")
-        return sepa_stations, by_date, latest_dt
+        return sepa_stations, by_date, latest_dt, set()
 
+    refs = []
     for item in items:
         ref = item.get("station_no")
         lat = item.get("station_latitude")
@@ -333,63 +340,56 @@ def fetch_sepa_data(existing_stations):
             continue
 
         sid = f"sepa_{ref}"
-        
-        # itemDate format: "2026-07-05 20:00:00"
-        it_date = (item.get("itemDate") or "").strip()
-        it_val  = item.get("itemValue")
-        
-        # Get previous cumulative value to calculate increment
-        prev_s = existing_stations.get(sid, {})
-        prev_val = prev_s.get("last_cumulative_val")
-        prev_dt = prev_s.get("last_cumulative_dt")
-
-        try:
-            v = float(it_val) if it_val is not None else None
-        except (TypeError, ValueError):
-            v = None
-
         sepa_stations[sid] = {
             "lat":    round(lat_f, 5),
             "lon":    round(lon_f, 5),
             "name":   item.get("station_name") or ref,
             "source": "sepa",
         }
-        if v is not None:
-            sepa_stations[sid]["last_cumulative_val"] = v
-            sepa_stations[sid]["last_cumulative_dt"] = it_date
+        refs.append((sid, ref))
 
-        if not it_date or v is None or v < 0:
-            continue
+    session = requests.Session()
+    session.mount(SEPA_BASE, requests.adapters.HTTPAdapter(pool_connections=32, pool_maxsize=32))
 
-        # Calculate increment (difference from previous cumulative reading)
-        if prev_val is not None and it_date != prev_dt:
-            if v >= prev_val:
-                inc = v - prev_val
-            elif prev_val > 0 and v <= prev_val * 0.3:
-                # Genuine counter reset (e.g. 09:00 AM accumulation restart) —
-                # the new value is a small fraction of the old one.
-                inc = v
-            else:
-                # Small downward wobble (sensor revision/noise), not a real
-                # reset. Treating the whole cumulative value as one slot's
-                # rainfall would create a false multi-mm spike, so just
-                # resync the baseline without recording an increment.
-                inc = 0.0
-        else:
-            # First time seeing the station, or reading timestamp hasn't changed.
-            # Set increment to 0 to prevent a giant spike of historical rainfall.
-            inc = 0.0
+    def fetch_hourly(sid_ref):
+        sid, ref = sid_ref
+        try:
+            r = session.get(f"{SEPA_BASE}/api/Hourly/{ref}", timeout=20)
+            r.raise_for_status()
+            return sid, r.json()
+        except Exception as e:
+            print(f"  Warning: SEPA Hourly fetch failed for {ref}: {e}")
+            return sid, None
 
-        dt_str = it_date.replace(" ", "T")
-        if inc > 0.0:
-            dk, slot = dt_to_slot(dt_str)
-            by_date.setdefault(dk, {}).setdefault(sid, {})[str(slot)] = round(inc, 2)
-            
-        if latest_dt is None or dt_str > latest_dt:
-            latest_dt = dt_str
+    covered_days = set()  # every date this run's window actually reports on,
+                           # including zero-rain hours — used to safely wipe
+                           # stale/corrupt slots that a dry hour won't overwrite.
+
+    print(f"  Fetching hourly totals for {len(refs)} SEPA stations...")
+    with ThreadPoolExecutor(max_workers=32) as pool:
+        for sid, records in pool.map(fetch_hourly, refs):
+            for rec in records or []:
+                ts = (rec.get("Timestamp") or "").strip()
+                try:
+                    dt = datetime.strptime(ts, "%d/%m/%Y %H:%M:%S")
+                except ValueError:
+                    continue
+                dt_str = dt.strftime("%Y-%m-%dT%H:%M:%S")
+                dk, slot = dt_to_slot(dt_str)
+                covered_days.add(dk)
+
+                try:
+                    v = float(rec.get("Value"))
+                except (TypeError, ValueError):
+                    continue
+                if v <= 0:
+                    continue
+                by_date.setdefault(dk, {}).setdefault(sid, {})[str(slot)] = round(v, 2)
+                if latest_dt is None or dt_str > latest_dt:
+                    latest_dt = dt_str
 
     print(f"  SEPA total: {len(sepa_stations)} stations, latest={latest_dt}")
-    return sepa_stations, by_date, latest_dt
+    return sepa_stations, by_date, latest_dt, covered_days
 
 
 def parse_readings(items, suid_to_ref=None):
@@ -579,8 +579,11 @@ def main():
             print(f"Warning: NRW fetch failed: {e}")
 
     # ── SEPA readings (merged in before upload loop) ──────────────────────────
+    sepa_station_ids = set()
+    sepa_covered_days = set()
     try:
-        sepa_stations_new, sepa_by_date, sepa_latest = fetch_sepa_data(stations)
+        sepa_stations_new, sepa_by_date, sepa_latest, sepa_covered_days = fetch_sepa_data()
+        sepa_station_ids = set(sepa_stations_new)
         for date_key, station_slots in sepa_by_date.items():
             for sid, slots in station_slots.items():
                 by_date.setdefault(date_key, {}).setdefault(sid, {}).update(slots)
@@ -612,6 +615,13 @@ def main():
             existing = {"date": date_key, "readings": {}}
 
         merged = existing.get("readings", {})
+        if date_key in sepa_covered_days:
+            # SEPA's hourly fetch is a complete, authoritative snapshot of
+            # this day's window (not an incremental delta like EA/NRW), so
+            # clear each station's old slots first — otherwise a corrected
+            # dry hour (no new slot) could never overwrite a stale bad value.
+            for sid in sepa_station_ids:
+                merged.pop(sid, None)
         for station, slots in new_readings.items():
             if station not in merged:
                 merged[station] = {}
