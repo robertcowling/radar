@@ -170,6 +170,14 @@ def main():
 
     station_ids = list(station_pixels.keys())
 
+    # SEPA gauges report hourly (1-in-4 15-min slots), unlike EA/NRW's native
+    # 15-min cadence — the "≥50% of slots populated" completeness check below
+    # must be scaled per station or a fully-reporting SEPA gauge never qualifies.
+    cadence_divisor = {
+        sid: (4 if stations.get(sid, {}).get("source") == "sepa" else 1)
+        for sid in station_ids
+    }
+
     # Load accum sums and frame key windows per period
     print("Loading accum sums and frame windows from R2...")
     period_sums   = {}   # period -> np.array
@@ -214,11 +222,10 @@ def main():
     for period, fkeys in period_fkeys.items():
         n_frames = len(fkeys)
         totals, counts = compute_gauge_accum(r2, fkeys, station_ids, day_cache)
-        min_slots = n_frames * 0.5   # require ≥50% slots populated
         period_gauge[period] = {
             sid: totals[sid]
             for sid in station_ids
-            if counts[sid] >= min_slots
+            if counts[sid] >= (n_frames / cadence_divisor[sid]) * 0.5
         }
         print(f"  [{period}] {len(period_gauge[period])} gauges with sufficient data")
 
