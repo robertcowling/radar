@@ -173,13 +173,17 @@ def _is_standard_run(run_ts):
 
 
 def find_latest_run(s3):
-    """Find the latest run that has T+1h data available.
+    """Find the latest run that is fully complete (T+54h data available).
 
     Files are named {valid_time}-{offset}-{param}.nc (not {run_time}-...).
-    List run folders by date (today first) and verify the T+1h rainfall_rate
-    file exists under the correct valid-time filename.
+    List run folders by date (today first) and walk newest-to-oldest. A run
+    that has started publishing (T+1h present) but hasn't reached T+54h yet
+    is still mid-publish — rather than returning it and giving up, keep
+    looking further back so a slow/delayed newest run doesn't stall
+    processing of an older run that already finished completely.
     """
     now = datetime.utcnow()
+    newest_seen = None
     for days_back in range(7):
         date = (now - timedelta(days=days_back)).strftime("%Y%m%d")
         resp = s3.list_objects_v2(
@@ -200,9 +204,16 @@ def find_latest_run(s3):
             valid_ts = valid_dt.strftime("%Y%m%dT%H%MZ")
             prefix   = f"{UKV_PREFIX}{run_ts}/{valid_ts}-PT0001H00M-rainfall_rate.nc"
             chk = s3.list_objects_v2(Bucket=MET_BUCKET, Prefix=prefix, MaxKeys=1)
-            if chk.get("Contents"):
+            if not chk.get("Contents"):
+                print(f"    {run_ts}: T+1h not available yet")
+                continue
+            if newest_seen is None:
+                newest_seen = run_ts
+            if is_run_complete(s3, run_ts):
                 return run_ts
-            print(f"    {run_ts}: T+1h not available yet")
+            print(f"    {run_ts}: T+1h present but run not yet complete (no T+54h) — checking earlier run")
+    if newest_seen:
+        print(f"  No complete run found; newest in-progress run is {newest_seen}")
     return None
 
 
@@ -1116,16 +1127,12 @@ def main():
         print("  Backfill complete and updated metadata uploaded.")
     else:
         print("  Active runs already up to date with splats.")
-    print("Finding latest UKV run...")
+    print("Finding latest complete UKV run...")
     run_ts = find_latest_run(s3)
     if not run_ts:
-        print("No runs found on S3.")
+        print("No complete run found on S3 yet.")
         sys.exit(0)
-    print(f"  Latest: {run_ts}")
-
-    if not is_run_complete(s3, run_ts):
-        print(f"  {run_ts}: run not yet complete on S3 — skipping until next trigger.")
-        sys.exit(0)
+    print(f"  Latest complete: {run_ts}")
 
     force = os.environ.get("FORCE_RERUN", "").lower() in ("1", "true", "yes")
     try:
