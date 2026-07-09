@@ -1161,7 +1161,9 @@ function loadBoundary(val) {
     enforceZOrder();
     return;
   }
-  fetch(BFILES[val]).then(function(r){ return r.json(); }).then(function(d){
+  fetch(R2_CDN + '/geo/' + BFILES[val]).then(function(r){ if (!r.ok) throw 0; return r.json(); })
+    .catch(function(){ return fetch(BFILES[val]).then(function(r){ return r.json(); }); })
+    .then(function(d){
     _bLayersL[val] = L.geoJSON(d, { style:BSTYLES[val], interactive:false });
     _bLayersM[val] = L.geoJSON(d, { style:BSTYLES[val], interactive:false });
     if (currentBoundary === val) {

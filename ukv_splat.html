@@ -441,8 +441,8 @@ function loadBoundary(val) {
     grid:       'uk_grid_20km.geojson',
   };
   if (!files[val] || getLayerObj(val)) return;
-  fetch(files[val])
-    .then(function(r) { return r.json(); })
+  fetch(R2_CDN + '/geo/' + files[val]).then(function(r) { if (!r.ok) throw 0; return r.json(); })
+    .catch(function() { return fetch(files[val]).then(function(r) { return r.json(); }); })
     .then(function(data) {
       var layer = L.geoJSON(data, { style: BOUNDARY_STYLES[val] });
       setLayerObj(val, layer);

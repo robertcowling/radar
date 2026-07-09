@@ -178,8 +178,8 @@ function onBoundary(val) {
   currentBoundary = val;
   if (val === 'none' || !BFILES[val]) return;
   if (boundaryLayers[val]) { map.addLayer(boundaryLayers[val]); _bringGroupToBack(boundaryLayers[val]); return; }
-  fetch('../' + BFILES[val]).then(r => { if (!r.ok) throw 0; return r.json(); })
-    .catch(() => fetch(R2 + '/' + BFILES[val]).then(r => r.json()))
+  fetch(R2 + '/geo/' + BFILES[val]).then(r => { if (!r.ok) throw 0; return r.json(); })
+    .catch(() => fetch('../' + BFILES[val]).then(r => r.json()))
     .then(d => {
       // Two-layer glow (light halo + grey line) rather than a CSS drop-shadow
       // filter — a white-on-white filter is invisible against a light

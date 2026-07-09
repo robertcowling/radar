@@ -928,8 +928,8 @@
 
         function loadBoundary(val) {
             if (val === 'regions' && !regionLayer) {
-                fetch('uk_regions.geojson')
-                    .then(res => res.json())
+                fetch(R2_CDN + '/geo/uk_regions.geojson').then(res => { if (!res.ok) throw 0; return res.json(); })
+                    .catch(() => fetch('uk_regions.geojson').then(res => res.json()))
                     .then(data => {
                         regionLayer = L.geoJSON(data, {
                             style: { color: '#64748b', weight: 1.2, fillOpacity: 0, opacity: 0.5 },
@@ -941,8 +941,8 @@
                     })
                     .catch(err => console.log("Could not load regions:", err));
             } else if (val === 'counties' && !countiesLayer) {
-                fetch('uk-counties.geojson')
-                    .then(res => res.json())
+                fetch(R2_CDN + '/geo/uk-counties.geojson').then(res => { if (!res.ok) throw 0; return res.json(); })
+                    .catch(() => fetch('uk-counties.geojson').then(res => res.json()))
                     .then(data => {
                         countiesLayer = L.geoJSON(data, {
                             style: { color: '#475569', weight: 0.9, fillOpacity: 0, opacity: 0.4 },
