@@ -479,10 +479,12 @@
             maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
         }).addTo(map);
 
+        var R2_CDN = 'https://radar.floodforecast.co.uk';
+
         function loadBoundary(val) {
             if (val === 'regions' && !regionLayer) {
-                fetch('../uk_regions.geojson')
-                    .then(r => r.json())
+                fetch(R2_CDN + '/geo/uk_regions.geojson').then(r => { if (!r.ok) throw 0; return r.json(); })
+                    .catch(() => fetch('../uk_regions.geojson').then(r => r.json()))
                     .then(data => {
                         regionLayer = L.geoJSON(data, {
                             style: {color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary'},
@@ -494,8 +496,8 @@
                     })
                     .catch(() => {});
             } else if (val === 'counties' && !countiesLayer) {
-                fetch('../uk-counties.geojson')
-                    .then(r => r.json())
+                fetch(R2_CDN + '/geo/uk-counties.geojson').then(r => { if (!r.ok) throw 0; return r.json(); })
+                    .catch(() => fetch('../uk-counties.geojson').then(r => r.json()))
                     .then(data => {
                         countiesLayer = L.geoJSON(data, {
                             style: {color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary'},

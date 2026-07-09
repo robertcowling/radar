@@ -1050,7 +1050,8 @@ function applyBoundary(type) {
 
 function ensureBoundary(type, cb) {
   if (geojsonData[type]) { cb(); return; }
-  fetch(BOUNDARY_FILES[type]).then(function(r) { return r.json(); })
+  fetch(R2_CDN + '/geo/' + BOUNDARY_FILES[type]).then(function(r) { if (!r.ok) throw 0; return r.json(); })
+    .catch(function() { return fetch(BOUNDARY_FILES[type]).then(function(r) { return r.json(); }); })
     .then(function(data) { geojsonData[type] = data; cb(); })
     .catch(function(e) { console.error('boundary load failed:', type, e); });
 }

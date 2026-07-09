@@ -810,8 +810,8 @@ function setLayerObj(name, layer) {
 function loadBoundary(val) {
   var files = { regions: 'uk_regions.geojson', counties: 'uk-counties.geojson', catchments: 'uk_catchments.geojson', summary: 'rainfallsummarypolygons.geojson', grid: 'uk_grid_20km.geojson' };
   if (!files[val] || getLayerObj(val)) return;
-  fetch(files[val])
-    .then(function(r) { return r.json(); })
+  fetch(R2_CDN + '/geo/' + files[val]).then(function(r) { if (!r.ok) throw 0; return r.json(); })
+    .catch(function() { return fetch(files[val]).then(function(r) { return r.json(); }); })
     .then(function(data) {
       var layer = L.geoJSON(data, { style: BOUNDARY_STYLES[val] });
       setLayerObj(val, layer);
@@ -828,8 +828,8 @@ function showCatchmentsGhost() {
     if (!map.hasLayer(catchmentsGhostLayer)) catchmentsGhostLayer.addTo(map);
     return;
   }
-  fetch('uk_catchments.geojson')
-    .then(function(r) { return r.json(); })
+  fetch(R2_CDN + '/geo/uk_catchments.geojson').then(function(r) { if (!r.ok) throw 0; return r.json(); })
+    .catch(function() { return fetch('uk_catchments.geojson').then(function(r) { return r.json(); }); })
     .then(function(data) {
       catchmentsGhostLayer = L.geoJSON(data, { style: CATCHMENTS_GHOST, interactive: false });
       if (currentBoundary === 'grid') catchmentsGhostLayer.addTo(map);

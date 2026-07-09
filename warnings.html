@@ -1570,18 +1570,18 @@ function loadBoundary(val) {
     return;
   }
   
-  // Fallback pattern: first try local relative fetch, then fallback to public CDN base
+  // Fallback pattern: first try the CDN (offloads bandwidth from Pages), then local relative fetch
   var localUrl = BFILES[val];
-  var cdnUrl = 'https://radar.floodforecast.co.uk/' + BFILES[val];
-  
-  fetch(localUrl)
+  var cdnUrl = 'https://radar.floodforecast.co.uk/geo/' + BFILES[val];
+
+  fetch(cdnUrl)
     .then(function(r) {
-      if (!r.ok) throw new Error("Local geojson read failed");
+      if (!r.ok) throw new Error("CDN geojson read failed");
       return r.json();
     })
     .catch(function() {
-      return fetch(cdnUrl).then(function(r) {
-        if (!r.ok) throw new Error("CDN geojson read failed");
+      return fetch(localUrl).then(function(r) {
+        if (!r.ok) throw new Error("Local geojson read failed");
         return r.json();
       });
     })

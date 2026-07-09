@@ -1,0 +1,40 @@
+name: Upload boundary GeoJSONs to R2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'uk-counties.geojson'
+      - 'uk_regions.geojson'
+      - 'uk_catchments.geojson'
+      - 'rainfallsummarypolygons.geojson'
+      - 'uk_grid_20km.geojson'
+      - 'upload_boundary_geojsons.py'
+      - '.github/workflows/boundary_geojsons_r2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install boto3
+
+      - name: Upload boundary GeoJSONs to R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: python upload_boundary_geojsons.py
