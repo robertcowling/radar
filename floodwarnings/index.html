@@ -440,6 +440,13 @@ let warnings = [];
 // Selected instant for the "what was in force at this time" scrub (ms epoch).
 // null = live/latest. Set by clicking the in-force chart; cleared via the banner.
 let selectedTime = null;
+// Real-feed state. The page auto-detects: when the EA/NRW feeds carry live
+// warnings or accumulated history it runs on real data; otherwise it falls back
+// to the synthetic demo set so the UI is still explorable.
+let timelineEvents = [];       // merged EA+NRW timeline events, ascending by t
+let floodAreaIndex = {};       // code -> area metadata (geometry/labels) for the historical join
+let realSeriesPoints = null;   // merged EA+NRW in-force count series, or null if none
+let realMode = false;          // true = real warnings/history present; false = demo fallback
 const polyCache = {};
 let markerLayer = L.layerGroup().addTo(map);
 let polyLayer = L.layerGroup().addTo(map);
@@ -463,116 +470,194 @@ function toggleDisplayMode() {
 }
 
 function loadCurrent() {
-  const counts = {severe:0, warning:0, alert:0};
-  Promise.all(Object.entries(SOURCES).map(([source, cfg]) =>
-    fetchJson(R2 + '/' + cfg.floods + '?t=' + Date.now())
-      .catch(() => fetchJson('../' + cfg.floods))
-      .then(d => {
-        const c = d.counts || {};
-        counts.severe += c.severe || 0; counts.warning += c.warning || 0; counts.alert += c.alert || 0;
-        return (d.warnings || [])
+  // Load the live snapshot plus the history/reference feeds that power the
+  // time-scrub, then decide real-vs-demo. All history feeds are optional — a
+  // dormant pipeline (404 / empty) just means we fall back to the demo set.
+  Promise.all([
+    Promise.all(Object.entries(SOURCES).map(([source, cfg]) =>
+      fetchJson(R2 + '/' + cfg.floods + '?t=' + Date.now())
+        .catch(() => fetchJson('../' + cfg.floods))
+        .then(d => (d.warnings || [])
           .filter(w => w.severityLevel >= 1 && w.severityLevel <= 3)
-          .map(w => ({...w, source: w.source || source}));
-      })
-      .catch(() => { console.warn(source + ': no live warnings available'); return []; })
-  )).then(results => {
-    warnings = results.flat();
-    
-    // TEMPORARY: Fictitious warnings for UI testing (will be removed later)
-    const towns = ["Shrewsbury", "Worcester", "Tewkesbury", "Gloucester", "Oxford", "Reading", "Windsor", "Kingston", "Richmond", "Hereford", "Monmouth", "Chepstow", "Cardiff", "Newport", "Swansea", "Aberystwyth", "Bangor", "St Asaph", "Chester", "York", "Lincoln", "Doncaster", "Nottingham", "Derby", "Leicester", "Peterborough", "Ely", "Cambridge", "Ipswich", "Norwich"];
-    const countiesList = [["Shropshire"], ["Worcestershire"], ["Gloucestershire"], ["Gloucestershire"], ["Oxfordshire"], ["Berkshire"], ["Berkshire"], ["Surrey"], ["Greater London"], ["Herefordshire"], ["Monmouthshire"], ["Monmouthshire"], ["Cardiff"], ["Newport"], ["Swansea"], ["Ceredigion"], ["Gwynedd"], ["Denbighshire"], ["Cheshire"], ["North Yorkshire"], ["Lincolnshire"], ["South Yorkshire"], ["Nottinghamshire"], ["Derbyshire"], ["Leicestershire"], ["Cambridgeshire"], ["Cambridgeshire"], ["Cambridgeshire"], ["Suffolk"], ["Norfolk"]];
-    const rivers = ["River Severn", "River Severn", "River Severn", "River Severn", "River Thames", "River Thames", "River Thames", "River Thames", "River Thames", "River Wye", "River Wye", "River Wye", "River Taff", "River Usk", "River Tawe", "River Rheidol", "River Adda", "River Elwy", "River Dee", "River Ouse", "River Witham", "River Don", "River Trent", "River Derwent", "River Soar", "River Nene", "River Great Ouse", "River Cam", "River Orwell", "River Yare"];
-    
-    // Spread coordinates around UK bounds: lat 50.5 to 54.5, long -4.5 to 1.5
-    const lats = [52.71, 52.19, 51.99, 51.86, 51.75, 51.45, 51.48, 51.41, 51.45, 52.06, 51.81, 51.64, 51.48, 51.59, 51.62, 52.41, 53.23, 53.26, 53.19, 53.96, 53.23, 53.52, 52.95, 52.92, 52.63, 52.57, 52.40, 52.20, 52.06, 52.63];
-    const longs = [-2.75, -2.22, -2.16, -2.25, -1.26, -0.97, -0.61, -0.30, -0.30, -2.72, -2.72, -2.67, -3.18, -3.00, -3.94, -4.08, -4.13, -3.44, -2.89, -1.08, -0.54, -1.13, -1.15, -1.48, -1.13, -0.24, 0.26, 0.12, 1.16, 1.30];
-
-    const fakeWarnings = [];
-    const nowMs = Date.now();
-
-    for (let i = 0; i < 30; i++) {
-      const source = i % 3 === 2 ? "NRW" : "EA";
-      const severityLevel = (i % 3) + 1; // 1 = Severe, 2 = Warning, 3 = Alert
-      const category = i % 10 === 0 ? "groundwater" : (i % 5 === 0 ? "coastal" : "river");
-      const riverName = category === "river" ? rivers[i] : (category === "coastal" ? "Irish Sea" : "Groundwater");
-      
-      // Let's use some real-looking codes so we can try to fetch them. If not found, circle markers will show up.
-      // E.g. 031WAF038, 061WAF012, etc.
-      const code = source === "EA" ? `031WAF${String(30 + i).padStart(3, '0')}` : `NRW_${100 + i}`;
-      
-      const timeRaisedOffset = (4 - (i % 4)) * 24 * 60 * 60 * 1000 + (i * 2 * 60 * 60 * 1000); // spread over last 4 days
-      const timeRaised = new Date(nowMs - timeRaisedOffset).toISOString();
-      const timeSeverityChanged = new Date(nowMs - timeRaisedOffset + (i % 3) * 6 * 60 * 60 * 1000).toISOString();
-      
-      let label = "";
-      if (category === "river") {
-        label = `Fictitious ${riverName} at ${towns[i]} (Test)`;
-      } else if (category === "coastal") {
-        label = `Fictitious Tidal flooding along the coast at ${towns[i]} (Test)`;
-      } else {
-        label = `Fictitious Groundwater flooding in the ${towns[i]} area (Test)`;
-      }
-
-      fakeWarnings.push({
-        label: label,
-        code: code,
-        severityLevel: severityLevel,
-        source: source,
-        category: category,
-        river: riverName,
-        counties: countiesList[i],
-        area: source === "EA" ? "Midlands" : "South Wales",
-        propertyCount: Math.round((i * 45) + (i % 3 === 0 ? 500 : 0)),
-        timeRaised: timeRaised,
-        timeSeverityChanged: timeSeverityChanged,
-        message: `This is a fictitious test warning for ${towns[i]} simulating a severity ${severityLevel} event. Please do not take action based on this test data.`,
-        lat: lats[i],
-        long: longs[i],
-        timeEnd: null   // ongoing — still in force now
-      });
-    }
-
-    // TEMPORARY: expired fictitious warnings (both raised AND ended in the past),
-    // spread over the last ~2 weeks so scrubbing the chart back in time reveals
-    // warnings that are no longer in force. Invisible in the live view because
-    // validAt() at "now" excludes anything whose [timeRaised, timeEnd] window has
-    // already closed. (Real path: reconstruct from ea|nrw/timeline/events.json.)
-    for (let i = 0; i < 24; i++) {
-      const source = i % 3 === 2 ? "NRW" : "EA";
-      const severityLevel = (i % 3) + 1;
-      const category = i % 8 === 0 ? "groundwater" : (i % 4 === 0 ? "coastal" : "river");
-      const riverName = category === "river" ? rivers[i % rivers.length] : (category === "coastal" ? "Irish Sea" : "Groundwater");
-      const code = source === "EA" ? `031WAF${String(70 + i).padStart(3, '0')}` : `NRW_${200 + i}`;
-      // Raised between ~14 and ~1 days ago, lasting 6–48h, all ending in the past.
-      const raisedDaysAgo = 14 - (i * 13 / 23);              // 14 → 1 days ago
-      const durationH = 6 + (i % 7) * 6;                     // 6–42h
-      const raisedMs = nowMs - raisedDaysAgo * 24 * 60 * 60 * 1000;
-      const endMs = Math.min(raisedMs + durationH * 60 * 60 * 1000, nowMs - 6 * 60 * 60 * 1000);
-      fakeWarnings.push({
-        label: `Fictitious ${riverName} at ${towns[i % towns.length]} (Expired test)`,
-        code: code,
-        severityLevel: severityLevel,
-        source: source,
-        category: category,
-        river: riverName,
-        counties: countiesList[i % countiesList.length],
-        area: source === "EA" ? "Midlands" : "South Wales",
-        propertyCount: Math.round((i * 37) + (i % 3 === 0 ? 400 : 0)),
-        timeRaised: new Date(raisedMs).toISOString(),
-        timeSeverityChanged: new Date(raisedMs).toISOString(),
-        message: `This is a fictitious expired test warning for ${towns[i % towns.length]}. It was in force from ${new Date(raisedMs).toISOString()} to ${new Date(endMs).toISOString()}.`,
-        lat: lats[i % lats.length],
-        long: longs[i % longs.length],
-        timeEnd: new Date(endMs).toISOString()   // already stood down
-      });
-    }
-
-    warnings = warnings.concat(fakeWarnings);
-    
-    // Tile counts reflect the selected instant (or "now" when live) — see updateCounts().
+          .map(w => ({...w, source: w.source || source})))
+        .catch(() => { console.warn(source + ': no live warnings available'); return []; })
+    )).then(r => r.flat()),
+    loadTimeline(),
+    loadFloodAreas(),
+    loadRealSeries(),
+  ]).then(([realWarnings]) => {
+    // Real mode when there are live warnings OR any accumulated history to scrub.
+    realMode = realWarnings.length > 0 || timelineEvents.length > 0;
+    warnings = realMode ? realWarnings : realWarnings.concat(buildFakeWarnings());
     render();
+    loadSeries(parseInt(document.getElementById('chartPeriodSel').value, 10) || 168);
     if (!warnings.length) document.getElementById('list').innerHTML = '<div class="empty">No active flood warnings.</div>';
   });
+}
+
+// Merge the two agencies' timeline event logs into one ascending-by-time array.
+// Tolerant of a missing/empty feed (dormant pipeline). Events:
+// {t, code, label, county, kind, from, to} with kind raised|escalated|
+// downgraded|stood_down|removed.
+function loadTimeline() {
+  return Promise.all(Object.entries(SOURCES).map(([source, cfg]) => {
+    const base = cfg.floods.split('/')[0];   // 'ea' | 'nrw'
+    return fetchJson(R2 + '/' + base + '/timeline/events.json?t=' + Date.now())
+      .then(d => (d.events || []).map(e => ({...e, source})))
+      .catch(() => []);
+  })).then(lists => {
+    timelineEvents = lists.flat().sort((a, b) => new Date(a.t) - new Date(b.t));
+    return timelineEvents;
+  });
+}
+
+// Build code -> area metadata (lat/long/label/category/river/counties/…) so a
+// historically-reconstructed warning (known only by code) can be rendered.
+function loadFloodAreas() {
+  return Promise.all(Object.entries(SOURCES).map(([source, cfg]) =>
+    fetchJson(R2 + '/' + cfg.areas + '/index.json')
+      .then(d => (d.areas || []).map(a => ({...a, source})))
+      .catch(() => [])
+  )).then(lists => {
+    floodAreaIndex = {};
+    lists.flat().forEach(a => { if (a.code) floodAreaIndex[a.code] = a; });
+    return floodAreaIndex;
+  });
+}
+
+// Merge the two in-force count series ({points:[{t,severe,warning,alert}]}) into
+// one combined series with step carry-forward per source. null when unavailable.
+function loadRealSeries() {
+  return Promise.all(Object.entries(SOURCES).map(([source, cfg]) => {
+    const base = cfg.floods.split('/')[0];
+    return fetchJson(R2 + '/' + base + '/counts/series.json?t=' + Date.now())
+      .then(d => d.points || [])
+      .catch(() => []);
+  })).then(([ea, nrw]) => {
+    realSeriesPoints = mergeCountsSeries(ea, nrw);
+    if (!realSeriesPoints.length) realSeriesPoints = null;
+    return realSeriesPoints;
+  });
+}
+
+function mergeCountsSeries(a, b) {
+  const as = a.slice().sort((x, y) => new Date(x.t) - new Date(y.t));
+  const bs = b.slice().sort((x, y) => new Date(x.t) - new Date(y.t));
+  const times = Array.from(new Set([...as, ...bs].map(p => p.t))).sort();
+  let ai = 0, bi = 0, la = {severe:0,warning:0,alert:0}, lb = {severe:0,warning:0,alert:0};
+  return times.map(t => {
+    while (ai < as.length && as[ai].t <= t) la = as[ai++];
+    while (bi < bs.length && bs[bi].t <= t) lb = bs[bi++];
+    return { t,
+      severe: (la.severe||0)+(lb.severe||0),
+      warning: (la.warning||0)+(lb.warning||0),
+      alert: (la.alert||0)+(lb.alert||0) };
+  });
+}
+
+// Reconstruct the set of warnings in force at instant tMs by replaying the
+// merged timeline up to tMs and joining each in-force code to floodarea metadata.
+function reconstructFromTimeline(tMs) {
+  const state = {};   // code -> {level, label, county, source, t}
+  for (let i = 0; i < timelineEvents.length; i++) {
+    const ev = timelineEvents[i];
+    if (new Date(ev.t).getTime() > tMs) break;
+    if (ev.kind === 'removed' || ev.to == null) { delete state[ev.code]; continue; }
+    state[ev.code] = { level: ev.to, label: ev.label, county: ev.county, source: ev.source, t: ev.t };
+  }
+  const out = [];
+  Object.keys(state).forEach(code => {
+    const st = state[code];
+    if (!(st.level >= 1 && st.level <= 3)) return;   // in force = severity 1..3
+    const m = floodAreaIndex[code] || {};
+    out.push({
+      code, source: st.source || m.source,
+      severityLevel: st.level,
+      label: m.label || st.label || code,
+      category: m.category,
+      river: m.river,
+      counties: m.counties || (st.county ? [st.county] : []),
+      area: m.eaArea || m.area,
+      propertyCount: m.propertyCount,
+      lat: m.lat, long: m.long,
+      timeRaised: st.t,
+      message: '',
+      timeEnd: null,
+      historical: true,
+    });
+  });
+  return out;
+}
+
+// Demo fallback: synthetic warnings (active + expired) so the UI is explorable
+// while the real EA/NRW feeds are dormant/empty. Automatically dropped the moment
+// real warnings or history appear (see realMode in loadCurrent).
+function buildFakeWarnings() {
+  const towns = ["Shrewsbury", "Worcester", "Tewkesbury", "Gloucester", "Oxford", "Reading", "Windsor", "Kingston", "Richmond", "Hereford", "Monmouth", "Chepstow", "Cardiff", "Newport", "Swansea", "Aberystwyth", "Bangor", "St Asaph", "Chester", "York", "Lincoln", "Doncaster", "Nottingham", "Derby", "Leicester", "Peterborough", "Ely", "Cambridge", "Ipswich", "Norwich"];
+  const countiesList = [["Shropshire"], ["Worcestershire"], ["Gloucestershire"], ["Gloucestershire"], ["Oxfordshire"], ["Berkshire"], ["Berkshire"], ["Surrey"], ["Greater London"], ["Herefordshire"], ["Monmouthshire"], ["Monmouthshire"], ["Cardiff"], ["Newport"], ["Swansea"], ["Ceredigion"], ["Gwynedd"], ["Denbighshire"], ["Cheshire"], ["North Yorkshire"], ["Lincolnshire"], ["South Yorkshire"], ["Nottinghamshire"], ["Derbyshire"], ["Leicestershire"], ["Cambridgeshire"], ["Cambridgeshire"], ["Cambridgeshire"], ["Suffolk"], ["Norfolk"]];
+  const rivers = ["River Severn", "River Severn", "River Severn", "River Severn", "River Thames", "River Thames", "River Thames", "River Thames", "River Thames", "River Wye", "River Wye", "River Wye", "River Taff", "River Usk", "River Tawe", "River Rheidol", "River Adda", "River Elwy", "River Dee", "River Ouse", "River Witham", "River Don", "River Trent", "River Derwent", "River Soar", "River Nene", "River Great Ouse", "River Cam", "River Orwell", "River Yare"];
+  const lats = [52.71, 52.19, 51.99, 51.86, 51.75, 51.45, 51.48, 51.41, 51.45, 52.06, 51.81, 51.64, 51.48, 51.59, 51.62, 52.41, 53.23, 53.26, 53.19, 53.96, 53.23, 53.52, 52.95, 52.92, 52.63, 52.57, 52.40, 52.20, 52.06, 52.63];
+  const longs = [-2.75, -2.22, -2.16, -2.25, -1.26, -0.97, -0.61, -0.30, -0.30, -2.72, -2.72, -2.67, -3.18, -3.00, -3.94, -4.08, -4.13, -3.44, -2.89, -1.08, -0.54, -1.13, -1.15, -1.48, -1.13, -0.24, 0.26, 0.12, 1.16, 1.30];
+  const fakeWarnings = [];
+  const nowMs = Date.now();
+
+  for (let i = 0; i < 30; i++) {
+    const source = i % 3 === 2 ? "NRW" : "EA";
+    const severityLevel = (i % 3) + 1; // 1 = Severe, 2 = Warning, 3 = Alert
+    const category = i % 10 === 0 ? "groundwater" : (i % 5 === 0 ? "coastal" : "river");
+    const riverName = category === "river" ? rivers[i] : (category === "coastal" ? "Irish Sea" : "Groundwater");
+    const code = source === "EA" ? `031WAF${String(30 + i).padStart(3, '0')}` : `NRW_${100 + i}`;
+    const timeRaisedOffset = (4 - (i % 4)) * 24 * 60 * 60 * 1000 + (i * 2 * 60 * 60 * 1000); // spread over last 4 days
+    const timeRaised = new Date(nowMs - timeRaisedOffset).toISOString();
+    const timeSeverityChanged = new Date(nowMs - timeRaisedOffset + (i % 3) * 6 * 60 * 60 * 1000).toISOString();
+
+    let label = "";
+    if (category === "river") {
+      label = `Fictitious ${riverName} at ${towns[i]} (Test)`;
+    } else if (category === "coastal") {
+      label = `Fictitious Tidal flooding along the coast at ${towns[i]} (Test)`;
+    } else {
+      label = `Fictitious Groundwater flooding in the ${towns[i]} area (Test)`;
+    }
+
+    fakeWarnings.push({
+      label, code, severityLevel, source, category, river: riverName,
+      counties: countiesList[i],
+      area: source === "EA" ? "Midlands" : "South Wales",
+      propertyCount: Math.round((i * 45) + (i % 3 === 0 ? 500 : 0)),
+      timeRaised, timeSeverityChanged,
+      message: `This is a fictitious test warning for ${towns[i]} simulating a severity ${severityLevel} event. Please do not take action based on this test data.`,
+      lat: lats[i], long: longs[i],
+      timeEnd: null   // ongoing — still in force now
+    });
+  }
+
+  // Expired demo warnings (raised AND ended in the past), spread over ~2 weeks so
+  // scrubbing the chart back reveals warnings no longer in force.
+  for (let i = 0; i < 24; i++) {
+    const source = i % 3 === 2 ? "NRW" : "EA";
+    const severityLevel = (i % 3) + 1;
+    const category = i % 8 === 0 ? "groundwater" : (i % 4 === 0 ? "coastal" : "river");
+    const riverName = category === "river" ? rivers[i % rivers.length] : (category === "coastal" ? "Irish Sea" : "Groundwater");
+    const code = source === "EA" ? `031WAF${String(70 + i).padStart(3, '0')}` : `NRW_${200 + i}`;
+    const raisedDaysAgo = 14 - (i * 13 / 23);              // 14 → 1 days ago
+    const durationH = 6 + (i % 7) * 6;                     // 6–42h
+    const raisedMs = nowMs - raisedDaysAgo * 24 * 60 * 60 * 1000;
+    const endMs = Math.min(raisedMs + durationH * 60 * 60 * 1000, nowMs - 6 * 60 * 60 * 1000);
+    fakeWarnings.push({
+      label: `Fictitious ${riverName} at ${towns[i % towns.length]} (Expired test)`,
+      code, severityLevel, source, category, river: riverName,
+      counties: countiesList[i % countiesList.length],
+      area: source === "EA" ? "Midlands" : "South Wales",
+      propertyCount: Math.round((i * 37) + (i % 3 === 0 ? 400 : 0)),
+      timeRaised: new Date(raisedMs).toISOString(),
+      timeSeverityChanged: new Date(raisedMs).toISOString(),
+      message: `This is a fictitious expired test warning for ${towns[i % towns.length]}. It was in force from ${new Date(raisedMs).toISOString()} to ${new Date(endMs).toISOString()}.`,
+      lat: lats[i % lats.length], long: longs[i % longs.length],
+      timeEnd: new Date(endMs).toISOString()   // already stood down
+    });
+  }
+  return fakeWarnings;
 }
 
 function parseSearchQuery(q) {
@@ -719,12 +804,16 @@ function validAt(w, tMs) {
 }
 
 // The set of warnings in force at instant tMs. This is the ONLY place that knows
-// "in force at T". Fake path: filter the loaded `warnings` by their synthesized
-// [timeRaised, timeEnd] windows. Real path (later): replay
-// ea|nrw/timeline/events.json up to tMs (raised/escalated/downgraded set level,
-// stood_down → 4, removed → delete), keep level 1..3, and join each `code` to the
-// floodareas reference for geometry/metadata — swap this body, no call sites change.
+// "in force at T".
+//  • Real mode, live (now): the current.json snapshot in `warnings`.
+//  • Real mode, past: replay the merged timeline up to tMs and join codes to
+//    floodarea metadata (reconstructFromTimeline).
+//  • Demo mode: filter the synthetic set by its [timeRaised, timeEnd] windows.
 function warningsInForceAt(tMs) {
+  if (realMode) {
+    const isLive = selectedTime == null || (Date.now() - tMs) < 60 * 1000;
+    return isLive ? warnings.slice() : reconstructFromTimeline(tMs);
+  }
   return warnings.filter(w => validAt(w, tMs));
 }
 
@@ -753,11 +842,10 @@ function visible() {
   }
   const queryCriteria = queries.map(query => parseSearchQuery(query));
 
-  return warnings
+  // Base set = whatever was in force at the viewed instant (warningsInForceAt
+  // handles live-vs-scrub and real-vs-demo); the chips filter it down further.
+  return warningsInForceAt(tSel)
     .filter(w => {
-      // Time filter: only warnings in force at the viewed instant.
-      if (!validAt(w, tSel)) return false;
-
       // Severity filter
       if (sevFilter === 'all') {
         if (w.severityLevel > 3) return false;
@@ -1098,11 +1186,22 @@ function fmt(iso){ try { return new Date(iso).toLocaleString('en-GB',{weekday:'s
 /* ── In-force chart ── */
 let seriesPts = [];
 
-// Chart data-source seam. Fake path: synthesize a plausible sine/cosine curve.
-// Real path (later): fetch + merge ea/counts/series.json + nrw/counts/series.json
-// (each already recording {t, severe, warning, alert} per poll), trimmed to the
-// selected period — swap this body, callers unchanged.
+// Chart data source. Real path: the merged EA+NRW in-force count series
+// (realSeriesPoints), trimmed to the selected period. Falls back to the
+// synthetic curve when no real series has accumulated yet.
 function getSeries(hours) {
+  if (realSeriesPoints && realSeriesPoints.length >= 2) {
+    const cutoff = Date.now() - hours * 60 * 60 * 1000;
+    const pts = realSeriesPoints
+      .filter(p => new Date(p.t).getTime() >= cutoff)
+      .map(p => ({ t: p.t, alert: p.alert || 0, warning: p.warning || 0, severe: p.severe || 0 }));
+    if (pts.length >= 2) return pts;
+  }
+  return buildFakeSeries(hours);
+}
+
+// Synthetic fallback curve.
+function buildFakeSeries(hours) {
   const nowMs = Date.now();
   const pts = [];
   let step = 6;
