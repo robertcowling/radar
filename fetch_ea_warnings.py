@@ -28,7 +28,7 @@ import json
 import os
 import urllib.request
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from geo_membership import classify_category
 
@@ -47,6 +47,20 @@ SERIES_KEY  = "ea/counts/series.json"
 INDEX_KEY   = "ea/floodareas/index.json"
 
 UA = {"User-Agent": "floodforecast-radar/1.0 (+https://floodforecast.co.uk)"}
+
+# Rolling retention for the timeline/series working logs. The permanent issuance
+# record lives in flood_history/ (events_master.csv.gz), so trimming these here
+# only bounds the client payload; 180 days is generous vs the 2-week scrub window.
+RETENTION_DAYS = 180
+
+
+def within_retention(t, cutoff):
+    """True if ISO-8601 timestamp t is at or after cutoff. Keeps anything
+    unparseable/missing rather than silently dropping data."""
+    try:
+        return datetime.fromisoformat(t) >= cutoff
+    except (TypeError, ValueError):
+        return True
 
 SEV_NAME = {1: "Severe Flood Warning", 2: "Flood Warning",
             3: "Flood Alert", 4: "Warning no longer in force"}
@@ -201,14 +215,16 @@ def main():
         if code not in now_by_code and old.get("severityLevel") != 4:
             new_events.append(mk_event(now_iso, code, old, old.get("severityLevel"), None, "removed"))
 
+    retention_cutoff = now - timedelta(days=RETENTION_DAYS)
     if new_events:
         events_obj = (r2_get_json(r2, EVENTS_KEY) if r2 else None) or read_local("ea/timeline/events.json", {"events": []})
         events_obj.setdefault("events", []).extend(new_events)
+        events_obj["events"] = [e for e in events_obj["events"] if within_retention(e.get("t"), retention_cutoff)]
         events_obj["updated_at"] = now_iso
         if r2:
             r2_put_json(r2, EVENTS_KEY, events_obj)
         write_local("ea/timeline/events.json", events_obj)
-        print(f"  Appended {len(new_events)} event(s); {len(events_obj['events'])} total.")
+        print(f"  Appended {len(new_events)} event(s); {len(events_obj['events'])} total (≤{RETENTION_DAYS}d).")
 
         # Update flood history stats whenever new warnings are raised
         raised = [e for e in new_events if e.get("kind") == "raised" and (e.get("to") or 9) < 4]
@@ -232,7 +248,7 @@ def main():
     else:
         print("  No state changes.")
 
-    # 3. Append an in-force count point (indefinite retention)
+    # 3. Append an in-force count point (rolling RETENTION_DAYS window)
     series_obj = (r2_get_json(r2, SERIES_KEY) if r2 else None) or read_local("ea/counts/series.json", {"points": []})
     series_obj.setdefault("points", []).append({
         "t": now_iso,
@@ -240,11 +256,12 @@ def main():
         "warning": counts["warning"],
         "alert": counts["alert"],
     })
+    series_obj["points"] = [p for p in series_obj["points"] if within_retention(p.get("t"), retention_cutoff)]
     series_obj["updated_at"] = now_iso
     if r2:
         r2_put_json(r2, SERIES_KEY, series_obj)
     write_local("ea/counts/series.json", series_obj)
-    print(f"  Count point appended; {len(series_obj['points'])} total.")
+    print(f"  Count point appended; {len(series_obj['points'])} total (≤{RETENTION_DAYS}d).")
 
     # 4. Save current snapshot
     if r2:
