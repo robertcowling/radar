@@ -1,226 +1,6 @@
 {
-  "generated_at": "2026-07-09T12:07:00.000Z",
+  "generated_at": "2026-07-11T08:52:00.000Z",
   "frames": [
-    {
-      "valid_time": "Tue 07 Jul 2026 12:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071200_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071200_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Tue 07 Jul 2026 13:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071300_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071300_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Tue 07 Jul 2026 14:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071400_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071400_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Tue 07 Jul 2026 15:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071500_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071500_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Tue 07 Jul 2026 16:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071600_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071600_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Tue 07 Jul 2026 17:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071700_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071700_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Tue 07 Jul 2026 18:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071800_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071800_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Tue 07 Jul 2026 19:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071900_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607071900_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Tue 07 Jul 2026 20:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607072000_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607072000_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Tue 07 Jul 2026 21:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607072100_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607072100_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Tue 07 Jul 2026 22:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607072200_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607072200_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Tue 07 Jul 2026 23:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607072300_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607072300_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 00:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080000_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080000_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 01:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080100_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080100_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 02:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080200_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080200_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 03:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080300_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080300_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 04:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080400_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080400_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 05:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080500_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080500_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 06:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080600_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080600_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 07:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080700_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080700_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 08:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080800_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080800_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 09:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080900_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607080900_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 10:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081000_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081000_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 11:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081100_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081100_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 12:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081200_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081200_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 13:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081300_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081300_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 14:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081400_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081400_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 15:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081500_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081500_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 16:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081600_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081600_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 17:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081700_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081700_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 18:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081800_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081800_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 19:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081900_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607081900_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 20:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607082000_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607082000_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 21:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607082100_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607082100_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 22:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607082200_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607082200_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Wed 08 Jul 2026 23:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607082300_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607082300_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Thu 09 Jul 2026 00:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090000_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090000_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Thu 09 Jul 2026 01:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090100_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090100_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Thu 09 Jul 2026 02:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090200_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090200_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Thu 09 Jul 2026 03:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090300_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090300_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Thu 09 Jul 2026 04:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090400_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090400_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Thu 09 Jul 2026 05:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090500_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090500_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Thu 09 Jul 2026 06:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090600_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090600_mslp_detail.svg"
-    },
-    {
-      "valid_time": "Thu 09 Jul 2026 07:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090700_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090700_mslp_detail.svg"
-    },
     {
       "valid_time": "Thu 09 Jul 2026 08:00 UTC",
       "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607090800_mslp.svg",
@@ -275,6 +55,226 @@
       "valid_time": "Thu 09 Jul 2026 18:00 UTC",
       "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607091800_mslp.svg",
       "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607091800_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Thu 09 Jul 2026 19:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607091900_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607091900_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Thu 09 Jul 2026 20:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607092000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607092000_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Thu 09 Jul 2026 21:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607092100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607092100_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Thu 09 Jul 2026 22:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607092200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607092200_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Thu 09 Jul 2026 23:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607092300_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607092300_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 00:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100000_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 01:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100100_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 02:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100200_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 03:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100300_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100300_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 04:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100400_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100400_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 05:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100500_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100500_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 06:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100600_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100600_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 07:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100700_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100700_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 08:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100800_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100800_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 09:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100900_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607100900_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 10:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101000_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 11:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101100_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 12:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101200_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 13:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101300_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101300_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 14:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101400_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101400_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 15:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101500_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101500_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 16:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101600_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101600_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 17:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101700_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101700_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 18:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101800_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101800_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 19:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101900_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607101900_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 20:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607102000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607102000_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 21:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607102100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607102100_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 22:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607102200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607102200_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Fri 10 Jul 2026 23:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607102300_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607102300_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 00:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110000_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 01:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110100_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 02:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110200_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 03:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110300_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110300_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 04:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110400_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110400_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 05:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110500_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110500_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 06:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110600_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110600_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 07:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110700_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110700_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 08:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110800_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110800_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 09:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110900_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110900_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 10:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111000_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 11:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111100_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 12:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111200_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 13:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111300_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111300_mslp_detail.svg"
+    },
+    {
+      "valid_time": "Sat 11 Jul 2026 14:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111400_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111400_mslp_detail.svg"
     }
   ]
 }
