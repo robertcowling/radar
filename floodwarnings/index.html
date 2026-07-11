@@ -370,6 +370,10 @@ select.premium-select:hover { background-color: #e8eaed; }
         </div>
         <span class="toggle" id="chartToggle">▾</span>
       </div>
+      <div id="timeBanner" style="display:none; align-items:center; gap:12px; padding:7px 12px; background:#e8f0fe; color:#1a4b8f; border-top:1px solid #c6dafc; font-size:12.5px;">
+        <span id="timeBannerText"></span>
+        <button type="button" onclick="clearSelectedTime()" style="margin-left:auto; border:1px solid #1a73e8; background:#fff; color:#1a73e8; border-radius:6px; padding:3px 10px; font-size:12px; cursor:pointer;">Return to latest</button>
+      </div>
       <div id="chartCanvasWrap">
         <canvas id="chartCanvas"></canvas>
         <div id="chartTooltip" style="display:none; position:absolute; z-index:1001; background:rgba(30,41,59,0.95); color:white; padding:8px 12px; border-radius:8px; font-family:'Roboto',sans-serif; font-size:11px; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,0.15); line-height:1.4;"></div>
@@ -433,6 +437,9 @@ map.on('popupclose', () => {
 function fetchJson(url){ return fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }); }
 
 let warnings = [];
+// Selected instant for the "what was in force at this time" scrub (ms epoch).
+// null = live/latest. Set by clicking the in-force chart; cleared via the banner.
+let selectedTime = null;
 const polyCache = {};
 let markerLayer = L.layerGroup().addTo(map);
 let polyLayer = L.layerGroup().addTo(map);
@@ -520,18 +527,49 @@ function loadCurrent() {
         timeSeverityChanged: timeSeverityChanged,
         message: `This is a fictitious test warning for ${towns[i]} simulating a severity ${severityLevel} event. Please do not take action based on this test data.`,
         lat: lats[i],
-        long: longs[i]
+        long: longs[i],
+        timeEnd: null   // ongoing — still in force now
       });
     }
+
+    // TEMPORARY: expired fictitious warnings (both raised AND ended in the past),
+    // spread over the last ~2 weeks so scrubbing the chart back in time reveals
+    // warnings that are no longer in force. Invisible in the live view because
+    // validAt() at "now" excludes anything whose [timeRaised, timeEnd] window has
+    // already closed. (Real path: reconstruct from ea|nrw/timeline/events.json.)
+    for (let i = 0; i < 24; i++) {
+      const source = i % 3 === 2 ? "NRW" : "EA";
+      const severityLevel = (i % 3) + 1;
+      const category = i % 8 === 0 ? "groundwater" : (i % 4 === 0 ? "coastal" : "river");
+      const riverName = category === "river" ? rivers[i % rivers.length] : (category === "coastal" ? "Irish Sea" : "Groundwater");
+      const code = source === "EA" ? `031WAF${String(70 + i).padStart(3, '0')}` : `NRW_${200 + i}`;
+      // Raised between ~14 and ~1 days ago, lasting 6–48h, all ending in the past.
+      const raisedDaysAgo = 14 - (i * 13 / 23);              // 14 → 1 days ago
+      const durationH = 6 + (i % 7) * 6;                     // 6–42h
+      const raisedMs = nowMs - raisedDaysAgo * 24 * 60 * 60 * 1000;
+      const endMs = Math.min(raisedMs + durationH * 60 * 60 * 1000, nowMs - 6 * 60 * 60 * 1000);
+      fakeWarnings.push({
+        label: `Fictitious ${riverName} at ${towns[i % towns.length]} (Expired test)`,
+        code: code,
+        severityLevel: severityLevel,
+        source: source,
+        category: category,
+        river: riverName,
+        counties: countiesList[i % countiesList.length],
+        area: source === "EA" ? "Midlands" : "South Wales",
+        propertyCount: Math.round((i * 37) + (i % 3 === 0 ? 400 : 0)),
+        timeRaised: new Date(raisedMs).toISOString(),
+        timeSeverityChanged: new Date(raisedMs).toISOString(),
+        message: `This is a fictitious expired test warning for ${towns[i % towns.length]}. It was in force from ${new Date(raisedMs).toISOString()} to ${new Date(endMs).toISOString()}.`,
+        lat: lats[i % lats.length],
+        long: longs[i % longs.length],
+        timeEnd: new Date(endMs).toISOString()   // already stood down
+      });
+    }
+
     warnings = warnings.concat(fakeWarnings);
     
-    counts.severe = warnings.filter(w => w.severityLevel === 1).length;
-    counts.warning = warnings.filter(w => w.severityLevel === 2).length;
-    counts.alert = warnings.filter(w => w.severityLevel === 3).length;
-
-    document.getElementById('nSevere').textContent = counts.severe;
-    document.getElementById('nWarning').textContent = counts.warning;
-    document.getElementById('nAlert').textContent = counts.alert;
+    // Tile counts reflect the selected instant (or "now" when live) — see updateCounts().
     render();
     if (!warnings.length) document.getElementById('list').innerHTML = '<div class="empty">No active flood warnings.</div>';
   });
@@ -667,10 +705,46 @@ function clearSearch() {
   searchInput.focus();
 }
 
+// The instant the map/list/tiles should reflect: the pinned scrub time, or "now".
+function viewTime() { return selectedTime != null ? selectedTime : Date.now(); }
+
+// Is warning w in force at instant tMs? A warning is valid from timeRaised until
+// timeEnd (exclusive of neither end); a null timeEnd means it is still ongoing.
+// Real EA/NRW live warnings carry no timeEnd, so they read as ongoing.
+function validAt(w, tMs) {
+  const start = new Date(w.timeRaised || w.timeSeverityChanged || 0).getTime();
+  if (isNaN(start) || start > tMs) return false;
+  if (w.timeEnd) { const end = new Date(w.timeEnd).getTime(); if (!isNaN(end) && end < tMs) return false; }
+  return true;
+}
+
+// The set of warnings in force at instant tMs. This is the ONLY place that knows
+// "in force at T". Fake path: filter the loaded `warnings` by their synthesized
+// [timeRaised, timeEnd] windows. Real path (later): replay
+// ea|nrw/timeline/events.json up to tMs (raised/escalated/downgraded set level,
+// stood_down → 4, removed → delete), keep level 1..3, and join each `code` to the
+// floodareas reference for geometry/metadata — swap this body, no call sites change.
+function warningsInForceAt(tMs) {
+  return warnings.filter(w => validAt(w, tMs));
+}
+
+// Tile counts (Severe/Warning/Alert) for the viewed instant, independent of the
+// severity/source/search chips so they always show the full picture at that time.
+function updateCounts() {
+  const base = warningsInForceAt(viewTime()).filter(w => w.severityLevel >= 1 && w.severityLevel <= 3);
+  const nSevere = document.getElementById('nSevere');
+  const nWarning = document.getElementById('nWarning');
+  const nAlert = document.getElementById('nAlert');
+  if (nSevere) nSevere.textContent = base.filter(w => w.severityLevel === 1).length;
+  if (nWarning) nWarning.textContent = base.filter(w => w.severityLevel === 2).length;
+  if (nAlert) nAlert.textContent = base.filter(w => w.severityLevel === 3).length;
+}
+
 function visible() {
   const sevFilter = document.getElementById('sevSel').value;
   const src = document.getElementById('sourceSel').value;
   const cat = document.getElementById('categorySel').value;
+  const tSel = viewTime();
   
   const q = document.getElementById('search').value.trim();
   const queries = [...activeSearchPills];
@@ -681,6 +755,9 @@ function visible() {
 
   return warnings
     .filter(w => {
+      // Time filter: only warnings in force at the viewed instant.
+      if (!validAt(w, tSel)) return false;
+
       // Severity filter
       if (sevFilter === 'all') {
         if (w.severityLevel > 3) return false;
@@ -715,6 +792,7 @@ function warnKey(w) { return `${w.source}:${w.code}:${w.severityLevel}:${w.timeS
 
 function render() {
   const mode = displayMode;
+  updateCounts();
   markerLayer.clearLayers(); polyLayer.clearLayers();
   
   // Highlight active chips
@@ -1019,7 +1097,12 @@ function fmt(iso){ try { return new Date(iso).toLocaleString('en-GB',{weekday:'s
 
 /* ── In-force chart ── */
 let seriesPts = [];
-function loadSeries(hours = 168) {
+
+// Chart data-source seam. Fake path: synthesize a plausible sine/cosine curve.
+// Real path (later): fetch + merge ea/counts/series.json + nrw/counts/series.json
+// (each already recording {t, severe, warning, alert} per poll), trimmed to the
+// selected period — swap this body, callers unchanged.
+function getSeries(hours) {
   const nowMs = Date.now();
   const pts = [];
   let step = 6;
@@ -1036,7 +1119,17 @@ function loadSeries(hours = 168) {
     const severe = Math.round(1 + 0.8 * Math.sin(angle * 1.5));
     pts.push({ t, alert, warning, severe });
   }
-  seriesPts = pts;
+  return pts;
+}
+
+function loadSeries(hours = 168) {
+  seriesPts = getSeries(hours);
+  // A pinned scrub time may fall outside the newly selected period — clear it if so.
+  if (selectedTime != null && seriesPts.length) {
+    const t0 = new Date(seriesPts[0].t).getTime();
+    const t1 = new Date(seriesPts[seriesPts.length - 1].t).getTime();
+    if (selectedTime < t0 || selectedTime > t1) clearSelectedTime();
+  }
   drawChart();
 }
 
@@ -1053,18 +1146,29 @@ function toggleChart() {
 
 let hoverPtIdx = null;
 
+// Map a mouse x (px, canvas-relative) to a timestamp on the chart's time axis,
+// clamped to the series domain. Shared by hover and click.
+function chartXToTime(mouseX, W) {
+  const padL = 28, padR = 8;
+  const xs = seriesPts.map(p => new Date(p.t).getTime());
+  const t0 = xs[0], t1 = xs[xs.length - 1] || t0 + 1;
+  const totalW = W - padL - padR;
+  const pct = Math.max(0, Math.min(1, (mouseX - padL) / totalW));
+  return t0 + pct * (t1 - t0);
+}
+
 function initChartEvents() {
   const cv = document.getElementById('chartCanvas');
   if (!cv) return;
-  
+
   const onMove = (e) => {
     if (seriesPts.length < 2) return;
     const rect = cv.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    const W = cv.width / dpr, H = cv.height / dpr;
+    const W = cv.width / dpr;
     const padL=28, padR=8;
     const mouseX = e.clientX - rect.left;
-    
+
     if (mouseX < padL || mouseX > W - padR) {
       if (hoverPtIdx !== null) {
         hoverPtIdx = null;
@@ -1073,13 +1177,9 @@ function initChartEvents() {
       }
       return;
     }
-    
-    const xs = seriesPts.map(p => new Date(p.t).getTime());
-    const t0 = xs[0], t1 = xs[xs.length-1] || t0+1;
-    const totalW = W - padL - padR;
-    const pct = (mouseX - padL) / totalW;
-    const targetT = t0 + pct * (t1 - t0);
-    
+
+    const targetT = chartXToTime(mouseX, W);
+
     let closestIdx = 0;
     let minDiff = Infinity;
     seriesPts.forEach((p, i) => {
@@ -1089,14 +1189,35 @@ function initChartEvents() {
         closestIdx = i;
       }
     });
-    
+
     if (hoverPtIdx !== closestIdx) {
       hoverPtIdx = closestIdx;
       drawChart();
     }
   };
 
+  const onClick = (e) => {
+    if (seriesPts.length < 2) return;
+    const rect = cv.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const W = cv.width / dpr;
+    const padL = 28, padR = 8;
+    const mouseX = e.clientX - rect.left;
+    const t1 = new Date(seriesPts[seriesPts.length - 1].t).getTime();
+    // Clicking at/after the latest point returns to live.
+    if (mouseX >= W - padR || chartXToTime(mouseX, W) >= t1) {
+      clearSelectedTime();
+      return;
+    }
+    selectedTime = chartXToTime(mouseX, W);
+    drawChart();
+    render();
+    updateTimeBanner();
+  };
+
   cv.addEventListener('mousemove', onMove);
+  cv.addEventListener('click', onClick);
+  cv.style.cursor = 'crosshair';
   cv.addEventListener('mouseleave', () => {
     if (hoverPtIdx !== null) {
       hoverPtIdx = null;
@@ -1104,6 +1225,30 @@ function initChartEvents() {
       document.getElementById('chartTooltip').style.display = 'none';
     }
   });
+}
+
+// Pin/unpin the scrub time.
+function clearSelectedTime() {
+  if (selectedTime == null) return;
+  selectedTime = null;
+  drawChart();
+  render();
+  updateTimeBanner();
+}
+
+// Show/hide the "viewing warnings in force at <time>" banner.
+function updateTimeBanner() {
+  const bar = document.getElementById('timeBanner');
+  if (!bar) return;
+  if (selectedTime == null) { bar.style.display = 'none'; return; }
+  const txt = document.getElementById('timeBannerText');
+  if (txt) {
+    const d = new Date(selectedTime);
+    const dateStr = d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
+    const timeStr = d.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    txt.textContent = `Viewing warnings in force at ${dateStr} ${timeStr}`;
+  }
+  bar.style.display = 'flex';
 }
 
 function drawChart() {
@@ -1176,6 +1321,29 @@ function drawChart() {
     if (textX < padL) textX = padL;
     if (textX + textW > W - padR) textX = W - padR - textW;
     ctx.fillText(labelText, textX, H - 4);
+  }
+
+  // persistent selected-time marker (pinned scrub instant)
+  if (selectedTime != null && selectedTime >= t0 && selectedTime <= t1) {
+    const xSel = X(selectedTime);
+    ctx.strokeStyle = '#1a73e8';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(xSel, padT);
+    ctx.lineTo(xSel, H - padB);
+    ctx.stroke();
+    // small flag at the top
+    const d = new Date(selectedTime);
+    const flag = d.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    ctx.font = '10px Roboto';
+    const fw = ctx.measureText(flag).width + 8;
+    let fx = xSel - fw / 2;
+    if (fx < padL) fx = padL;
+    if (fx + fw > W - padR) fx = W - padR - fw;
+    ctx.fillStyle = '#1a73e8';
+    ctx.fillRect(fx, padT, fw, 14);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(flag, fx + 4, padT + 10);
   }
 
   // hover effects

@@ -382,7 +382,10 @@ def fetch_sepa_data():
                     v = float(rec.get("Value"))
                 except (TypeError, ValueError):
                     continue
-                if v <= 0:
+                # Keep genuine zero (dry-hour) readings — only reject negatives,
+                # matching EA/NRW parsing. Dropping zeros here made a dry hour and
+                # an offline gauge indistinguishable in storage (absent slot).
+                if v < 0:
                     continue
                 by_date.setdefault(dk, {}).setdefault(sid, {})[str(slot)] = round(v, 2)
                 if latest_dt is None or dt_str > latest_dt:

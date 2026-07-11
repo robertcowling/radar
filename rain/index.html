@@ -342,6 +342,15 @@
             opacity: 0.35;
             border: none;
         }
+        /* Gauge reported readings but the window total is ~0 (genuinely dry) —
+           full-size but muted, showing "0.0", so it reads as measured-and-dry
+           rather than the faded no-data dot (offline / no readings at all). */
+        .rg-icon.rg-dry {
+            background: #eef1f3;
+            color: #6b7a86;
+            border-color: rgba(120,144,156,0.45);
+            text-shadow: none;
+        }
 
         #menuBtn {
             background: none; border: none; cursor: pointer;
@@ -680,9 +689,14 @@
 
         function htmlEsc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
-        function getAccumStyle(val) {
+        // hasData distinguishes a genuinely dry gauge (reported readings summing to
+        // ~0 → show "0.0") from one that is offline / has no readings in the window
+        // (→ faded no-data dot). Callers that only ever pass val >= 0.05 (Top 10,
+        // threshold timeline) omit hasData and always land in the coloured branch.
+        function getAccumStyle(val, hasData) {
             var breaks = SCALE_MODES[scaleMode];
-            if (val < 0.05) return {nodata: true, fill: ''};
+            if (hasData === false) return {nodata: true, fill: ''};
+            if (val < 0.05) return {dry: true, fill: '', text: ''};
             var colorIdx = 0;
             for (var i = 0; i < breaks.length; i++) {
                 if (val >= breaks[i]) colorIdx = i; else break;
@@ -1010,29 +1024,33 @@
                 slotKeys[s] = [fmtDateKey(t), String(Math.round((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15))];
             }
             var accumMap = {};
+            var accumHas = {};   // sid → true if the gauge reported ANY reading in the window
             var stIds = Object.keys(stations);
             for (var i = 0; i < stIds.length; i++) {
                 var sid = stIds[i];
-                var total = 0;
+                var total = 0, present = 0;
                 for (var s = 0; s < nSlots; s++) {
                     var day = dayCache[slotKeys[s][0]];
                     if (!day) continue;
                     var stData = day.readings[sid];
                     if (!stData) continue;
                     var v = stData[slotKeys[s][1]];
-                    if (typeof v === 'number' && v >= 0) total += v;
+                    if (typeof v === 'number' && v >= 0) { total += v; present++; }
                 }
                 accumMap[sid] = total;
+                accumHas[sid] = present > 0;
             }
 
             var prevVals = renderFrame._prev || {};
+            var prevHas = renderFrame._prevHas || {};
             var popMins = Math.round((endSlotIdx - startSlotIdx) * 15);
             var popDur = popMins < 60 ? popMins + 'min' : popMins % 60 === 0 ? (popMins / 60) + 'hr' : Math.floor(popMins / 60) + 'hr ' + (popMins % 60) + 'min';
             Object.keys(markers).forEach(function(id) {
                 var val = accumMap[id] || 0;
-                var style = getAccumStyle(val);
+                var has = !!accumHas[id];
+                var style = getAccumStyle(val, has);
                 var div = markers[id]._rgDiv;
-                var changed = prevVals[id] !== val || prevVals._scale !== scaleMode;
+                var changed = prevVals[id] !== val || prevHas[id] !== has || prevVals._scale !== scaleMode;
                 if (div) {
                     if (changed) {
                         if (style.nodata) {
@@ -1040,6 +1058,12 @@
                             div.style.background = '';
                             div.style.color = '';
                             div.textContent = '';
+                        } else if (style.dry) {
+                            // Genuinely dry: reported readings, window total ~0.
+                            div.className = 'rg-icon rg-dry';
+                            div.style.background = '';
+                            div.style.color = '';
+                            div.textContent = showValues ? fmtVal(val) : '';
                         } else {
                             div.className = 'rg-icon';
                             div.style.background = style.fill;
@@ -1062,6 +1086,7 @@
             });
             renderFrame._prev = accumMap;
             renderFrame._prev._scale = scaleMode;
+            renderFrame._prevHas = accumHas;
             renderFrame._prev._showValues = showValues;
 
             renderThresholdPanel(accumMap, accumHrs);
