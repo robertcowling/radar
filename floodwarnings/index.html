@@ -529,10 +529,28 @@ function loadRealSeries() {
       .then(d => d.points || [])
       .catch(() => []);
   })).then(([ea, nrw]) => {
-    realSeriesPoints = mergeCountsSeries(ea, nrw);
+    // Snap each source to the nearest 15-min grid first — polls fire on odd
+    // offsets (e.g. :07/:22/:37/:52) with stray seconds, and EA/NRW differ by a
+    // few seconds. Snapping cleans the x-axis and aligns the two sources so they
+    // merge into single points per quarter-hour.
+    realSeriesPoints = mergeCountsSeries(snapTo15(ea), snapTo15(nrw));
     if (!realSeriesPoints.length) realSeriesPoints = null;
     return realSeriesPoints;
   });
+}
+
+// Round each point to the nearest 15-min boundary, keeping the latest reading in
+// each bucket, and re-stamp its timestamp to the exact boundary.
+function snapTo15(points) {
+  const Q = 15 * 60 * 1000;
+  const byBucket = new Map();
+  points.slice()
+    .sort((x, y) => new Date(x.t) - new Date(y.t))
+    .forEach(p => {
+      const bucket = Math.round(new Date(p.t).getTime() / Q) * Q;
+      byBucket.set(bucket, { ...p, t: new Date(bucket).toISOString() });
+    });
+  return Array.from(byBucket.keys()).sort((a, b) => a - b).map(k => byBucket.get(k));
 }
 
 function mergeCountsSeries(a, b) {
