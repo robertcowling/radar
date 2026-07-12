@@ -647,8 +647,11 @@ def main():
     old_days = sorted(d for d in available_days if d < cutoff)
     for d in old_days:
         available_days.discard(d)
-    # Scan R2 directly so orphaned objects not in meta are also removed
-    if USE_R2:
+    # Scan R2 directly so orphaned objects not in meta are also removed.
+    # The scan needs a LIST (Class A per page) and day files only cross the
+    # retention cutoff once a day, so only scan on the first run of each hour
+    # rather than every 10-minute invocation.
+    if USE_R2 and now.minute < 10:
         try:
             paginator = r2.get_paginator("list_objects_v2")
             for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=R2_READINGS_PFX + "/"):

@@ -14,6 +14,7 @@ Dependencies (install in CI with apt-get + pip — not in requirements.txt):
     pip install eccodes cfgrib xarray scipy matplotlib pyproj boto3
 """
 
+import hashlib
 import os
 import json
 import datetime
@@ -116,6 +117,18 @@ def upload_to_r2(r2, local_path, r2_key, existing_keys, content_type='image/png'
     if not force and r2_key in existing_keys:
         return True
     try:
+        if force:
+            # Re-renders often produce byte-identical output — skip the
+            # Class A PUT when nothing changed. R2's ETag for a single-part
+            # upload is the body MD5; head_object is Class B (cheap).
+            with open(local_path, 'rb') as f:
+                local_md5 = hashlib.md5(f.read()).hexdigest()
+            try:
+                head = r2.head_object(Bucket=R2_BUCKET, Key=r2_key)
+                if head.get('ETag', '').strip('"') == local_md5:
+                    return True
+            except Exception:
+                pass
         r2.upload_file(local_path, R2_BUCKET, r2_key, ExtraArgs={'ContentType': content_type})
         print(f"  Uploaded: {r2_key}")
         existing_keys.add(r2_key)
@@ -125,18 +138,19 @@ def upload_to_r2(r2, local_path, r2_key, existing_keys, content_type='image/png'
         return False
 
 
-def cleanup_r2_mslp(r2, retention_days=14):
+def cleanup_r2_mslp(r2, existing_keys, retention_days=14):
+    # Works from the mslp/ listing already fetched at startup rather than
+    # re-listing the prefix — LIST is Class A, DeleteObject is free.
     cutoff_str = (datetime.datetime.now(timezone.utc).replace(tzinfo=None) - datetime.timedelta(days=retention_days)).strftime('%Y%m%d%H%M')
-    paginator = r2.get_paginator('list_objects_v2')
     deleted = 0
-    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=f"{R2_PREFIX}/"):
-        for obj in page.get('Contents', []):
-            key = obj['Key']
-            ts = os.path.basename(key)[:12]
-            if ts.isdigit() and ts < cutoff_str:
-                r2.delete_object(Bucket=R2_BUCKET, Key=key)
-                print(f"  Deleted old MSLP: {key}")
-                deleted += 1
+    for key in sorted(existing_keys):
+        if not key.startswith(f"{R2_PREFIX}/"):
+            continue
+        ts = os.path.basename(key)[:12]
+        if ts.isdigit() and ts < cutoff_str:
+            r2.delete_object(Bucket=R2_BUCKET, Key=key)
+            print(f"  Deleted old MSLP: {key}")
+            deleted += 1
     if deleted:
         print(f"R2 MSLP cleanup: {deleted} deleted")
 
@@ -565,7 +579,7 @@ def main():
     if USE_R2:
         upload_to_r2(r2, META_FILE, META_FILE, r2_keys,
                      content_type='application/json', force=True)
-        cleanup_r2_mslp(r2)
+        cleanup_r2_mslp(r2, r2_keys)
 
     cleanup_old_gribs()
 

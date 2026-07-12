@@ -1,3 +1,4 @@
+import hashlib
 import os
 import h5py
 import numpy as np
@@ -202,6 +203,18 @@ def upload_to_r2(r2, local_path, r2_key, content_type, existing_keys, force=Fals
     if not force and r2_key in existing_keys:
         return True
     try:
+        if force:
+            # Content *may* have changed — skip the Class A PUT when it hasn't.
+            # R2's ETag for a single-part upload is the body MD5; head_object
+            # is Class B (cheap).
+            with open(local_path, 'rb') as f:
+                local_md5 = hashlib.md5(f.read()).hexdigest()
+            try:
+                head = r2.head_object(Bucket=R2_BUCKET, Key=r2_key)
+                if head.get('ETag', '').strip('"') == local_md5:
+                    return True
+            except Exception:
+                pass
         r2.upload_file(local_path, R2_BUCKET, r2_key, ExtraArgs={'ContentType': content_type})
         print(f"  Uploaded to R2: {r2_key}")
         existing_keys.add(r2_key)
@@ -211,21 +224,21 @@ def upload_to_r2(r2, local_path, r2_key, content_type, existing_keys, force=Fals
         return False
 
 
-def cleanup_r2(r2, retention_days=14):
+def cleanup_r2(r2, existing_keys, retention_days=14):
+    # Works from the radar_parallel/ listing already fetched at startup rather
+    # than re-listing the prefix — LIST is Class A, DeleteObject is free.
     cutoff = datetime.utcnow() - timedelta(days=retention_days)
     cutoff_str = cutoff.strftime('%Y%m%d%H%M')
     deleted = 0
 
-    paginator = r2.get_paginator('list_objects_v2')
-    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix='radar_parallel/'):
-        for obj in page.get('Contents', []):
-            key = obj['Key']
-            basename = os.path.basename(key)
-            ts = basename[:12]
-            if ts.isdigit() and ts < cutoff_str:
-                r2.delete_object(Bucket=R2_BUCKET, Key=key)
-                print(f"  Deleted from R2: {key}")
-                deleted += 1
+    for key in sorted(existing_keys):
+        if not key.startswith('radar_parallel/'):
+            continue
+        ts = os.path.basename(key)[:12]
+        if ts.isdigit() and ts < cutoff_str:
+            r2.delete_object(Bucket=R2_BUCKET, Key=key)
+            print(f"  Deleted from R2: {key}")
+            deleted += 1
 
     print(f"R2 parallel cleanup: removed {deleted} objects total.")
 
@@ -316,7 +329,7 @@ def main():
 
     if USE_R2:
         upload_to_r2(r2, "frames_parallel.json", "frames_parallel.json", "application/json", r2_keys, force=True)
-        cleanup_r2(r2)
+        cleanup_r2(r2, r2_keys)
 
 
 if __name__ == "__main__":
