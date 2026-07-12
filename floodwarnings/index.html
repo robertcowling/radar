@@ -1114,6 +1114,18 @@ function fmt(iso){ try { return new Date(iso).toLocaleString('en-GB',{weekday:'s
 
 /* ── In-force chart ── */
 let seriesPts = [];
+let chartPeriodHours = 168;
+
+// The chart's time axis always spans exactly the selected period, ending
+// now — NOT the first/last actual data point. The underlying series can
+// have gaps (e.g. a dormant pipeline stretch), and deriving the domain from
+// whatever data happens to exist made different period selections render
+// identically whenever they both got clamped to the same small pocket of
+// real data (most visible on the shorter presets).
+function chartDomain() {
+  const t1 = Date.now();
+  return [t1 - chartPeriodHours * 60 * 60 * 1000, t1];
+}
 
 // Chart data source: the merged EA+NRW in-force count series (realSeriesPoints),
 // trimmed to the selected period. Empty until the pipeline has accumulated
@@ -1127,11 +1139,11 @@ function getSeries(hours) {
 }
 
 function loadSeries(hours = 168) {
+  chartPeriodHours = hours;
   seriesPts = getSeries(hours);
   // A pinned scrub time may fall outside the newly selected period — clear it if so.
-  if (selectedTime != null && seriesPts.length) {
-    const t0 = new Date(seriesPts[0].t).getTime();
-    const t1 = new Date(seriesPts[seriesPts.length - 1].t).getTime();
+  if (selectedTime != null) {
+    const [t0, t1] = chartDomain();
     if (selectedTime < t0 || selectedTime > t1) clearSelectedTime();
   }
   drawChart();
@@ -1154,8 +1166,7 @@ let hoverPtIdx = null;
 // clamped to the series domain. Shared by hover and click.
 function chartXToTime(mouseX, W) {
   const padL = 28, padR = 8;
-  const xs = seriesPts.map(p => new Date(p.t).getTime());
-  const t0 = xs[0], t1 = xs[xs.length - 1] || t0 + 1;
+  const [t0, t1] = chartDomain();
   const totalW = W - padL - padR;
   const pct = Math.max(0, Math.min(1, (mouseX - padL) / totalW));
   return t0 + pct * (t1 - t0);
@@ -1214,8 +1225,7 @@ function initChartEvents() {
     const W = cv.width / dpr;
     const padL = 28, padR = 8;
     const mouseX = e.clientX - rect.left;
-    const t0 = new Date(seriesPts[0].t).getTime();
-    const t1 = new Date(seriesPts[seriesPts.length - 1].t).getTime();
+    const [t0, t1] = chartDomain();
     // Clicking at/after the latest point returns to live.
     if (mouseX >= W - padR || chartXToTime(mouseX, W) >= t1) {
       clearSelectedTime();
@@ -1274,7 +1284,7 @@ function drawChart() {
   if (seriesPts.length < 2) { ctx.fillStyle='#94a3b8'; ctx.font='12px Roboto'; ctx.fillText('Collecting history…', 10, 20); return; }
   const padL=28, padR=8, padT=8, padB=22;
   const xs = seriesPts.map(p => new Date(p.t).getTime());
-  const t0 = xs[0], t1 = xs[xs.length-1] || t0+1;
+  const [t0, t1] = chartDomain();
   const maxY = Math.max(3, ...seriesPts.map(p => (p.severe||0)+(p.warning||0)+(p.alert||0)),
                         ...seriesPts.map(p=>Math.max(p.severe||0,p.warning||0,p.alert||0)));
   const X = t => padL + (W-padL-padR) * ((t-t0)/((t1-t0)||1));
@@ -1285,7 +1295,25 @@ function drawChart() {
   ctx.fillStyle='#475569'; ctx.font='10px Roboto';
   for (let g=0; g<=2; g++){ const v=Math.round(maxY*g/2); const y=Y(v); ctx.fillText(v, 4, y+3);
     ctx.strokeStyle='#f1f3f4'; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke(); }
-  
+
+  // Faint full-height guide at each local midnight, so day boundaries are easy to
+  // pick out at a glance. Skipped on the 2-week view — a fortnight of daily lines
+  // would be more clutter than help; the axis ticks alone still mark the days.
+  if (chartPeriodHours < 336) {
+    let dayMark = new Date(t0);
+    dayMark.setHours(0, 0, 0, 0);
+    if (dayMark.getTime() < t0) dayMark.setDate(dayMark.getDate() + 1);
+    ctx.strokeStyle = 'rgba(100,116,139,0.14)';
+    ctx.lineWidth = 1;
+    for (let dt = dayMark.getTime(); dt <= t1; dt += 24 * 3600 * 1000) {
+      const x = X(dt);
+      ctx.beginPath();
+      ctx.moveTo(x, padT);
+      ctx.lineTo(x, H - padB);
+      ctx.stroke();
+    }
+  }
+
   const series = [['alert','#f9ab00'],['warning','#d93025'],['severe','#343a40']];
   series.forEach(([k,c]) => {
     ctx.strokeStyle=c; ctx.lineWidth=1.6; ctx.beginPath();
