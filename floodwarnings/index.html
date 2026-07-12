@@ -1294,17 +1294,16 @@ function drawChart() {
   });
   
   // Time axis: ticks snapped to clock-hour boundaries only (so labels always
-  // land on a 15-min-aligned instant, never an arbitrary minute). Majors every
-  // 6h are labeled and plain grey, minors every 3h and unmarked hourly ticks
-  // in between are lighter grey — matching the main radar timeslider's look,
-  // where colour is reserved for the two special instants: a red tick at each
-  // day boundary (00:00, labeled with the date) and an amber tick at noon
-  // (index.html updateTimelineTicks).
+  // land on a 15-min-aligned instant, never an arbitrary minute). Ticks (and
+  // their labels) every 3h, with unmarked hourly ticks in between. Label text
+  // is always plain grey — colour is reserved for the tick line itself, at
+  // the two special instants: a red tick at each day boundary (00:00) and an
+  // amber tick at noon, matching the main radar timeslider (index.html
+  // updateTimelineTicks).
   const MS_HOUR = 3600 * 1000;
   const DAY_COLOR = '#ea4335';
   const NOON_COLOR = '#fbbc04';
   const MAJOR_COLOR = '#9aa0a6';
-  const MINOR_COLOR = '#cbd5e1';
   const UNMARKED_COLOR = '#e1e5ea';
   const LABEL_COLOR = '#5f6368';
 
@@ -1314,14 +1313,14 @@ function drawChart() {
 
   ctx.font = '11px Roboto';
   let lastLabelX = -Infinity;
-  const minLabelGap = 56;
+  const minLabelGap = 40;
 
   for (let tickT = tickStart.getTime(); tickT <= t1; tickT += MS_HOUR) {
     const dateObj = new Date(tickT);
     const hour = dateObj.getHours();
     const x = X(tickT);
 
-    if (hour % 6 === 0) {
+    if (hour % 3 === 0) {
       const isDay = hour === 0;
       const isNoon = hour === 12;
       ctx.strokeStyle = isDay ? DAY_COLOR : isNoon ? NOON_COLOR : MAJOR_COLOR;
@@ -1335,23 +1334,14 @@ function drawChart() {
         const dateStr = dateObj.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
         const timeStr = dateObj.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
         const labelText = isDay ? dateStr : timeStr;
-        ctx.fillStyle = isDay ? DAY_COLOR : LABEL_COLOR;
-        ctx.font = isDay ? 'bold 11px Roboto' : '11px Roboto';
+        ctx.fillStyle = LABEL_COLOR;
         const textW = ctx.measureText(labelText).width;
         let textX = x - textW / 2;
         if (textX < padL) textX = padL;
         if (textX + textW > W - padR) textX = W - padR - textW;
         ctx.fillText(labelText, textX, H - 4);
-        ctx.font = '11px Roboto';
         lastLabelX = x + textW / 2;
       }
-    } else if (hour % 3 === 0) {
-      ctx.strokeStyle = MINOR_COLOR;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x, H - padB);
-      ctx.lineTo(x, H - padB + 5);
-      ctx.stroke();
     } else {
       ctx.strokeStyle = UNMARKED_COLOR;
       ctx.lineWidth = 1;
