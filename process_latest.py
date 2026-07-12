@@ -147,35 +147,24 @@ def upload_to_r2(r2, local_path, r2_key, content_type, existing_keys, force=Fals
         return False
 
 
-def cleanup_r2(r2, retention_days=3):
+def cleanup_r2(r2, existing_keys, retention_days=3):
     """Delete R2 objects in sat_gh/ older than retention_days.
-    Also purges all objects in legacy sat/, radar/, and radar_gh/ prefixes."""
+
+    Works from the sat_gh/ listing already fetched at startup instead of
+    re-listing the prefix — LIST is Class A (the scarce free-tier budget)
+    while DeleteObject is free. Legacy sat/, radar/ and radar_gh/ prefixes
+    were purged long ago; scanning them every run cost 3 LISTs for nothing.
+    """
     cutoff = datetime.utcnow() - timedelta(days=retention_days)
     cutoff_str = cutoff.strftime('%Y%m%d%H%M')
     deleted = 0
 
-    paginator = r2.get_paginator('list_objects_v2')
-    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix='sat_gh/'):
-        for obj in page.get('Contents', []):
-            key = obj['Key']
-            basename = os.path.basename(key)
-            ts = basename[:12]
-            if ts.isdigit() and ts < cutoff_str:
-                r2.delete_object(Bucket=R2_BUCKET, Key=key)
-                print(f"  Deleted from R2: {key}")
-                deleted += 1
-
-    # Purge legacy and retired folders entirely
-    for prefix in ('sat/', 'radar/', 'radar_gh/'):
-        paginator = r2.get_paginator('list_objects_v2')
-        keys = []
-        for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=prefix):
-            keys.extend(obj['Key'] for obj in page.get('Contents', []))
-        for i in range(0, len(keys), 1000):
-            batch = [{'Key': k} for k in keys[i:i+1000]]
-            r2.delete_objects(Bucket=R2_BUCKET, Delete={'Objects': batch})
-            deleted += len(batch)
-            print(f"  Purged {len(batch)} legacy objects from {prefix}")
+    for key in sorted(existing_keys):
+        ts = os.path.basename(key)[:12]
+        if ts.isdigit() and ts < cutoff_str:
+            r2.delete_object(Bucket=R2_BUCKET, Key=key)
+            print(f"  Deleted from R2: {key}")
+            deleted += 1
 
     print(f"R2 cleanup: removed {deleted} objects total.")
 
@@ -264,7 +253,7 @@ def main():
 
     if USE_R2:
         upload_to_r2(r2, "status.json", "status.json", "application/json", r2_keys, force=True)
-        cleanup_r2(r2)
+        cleanup_r2(r2, r2_keys)
 
 
 if __name__ == "__main__":

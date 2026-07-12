@@ -463,6 +463,14 @@ def get_r2_client():
 
 def r2_put_json(r2, data, r2_key):
     body = json.dumps(data, separators=(",", ":")).encode("utf-8")
+    # Skip the Class A PUT when the content hasn't changed — R2's ETag for a
+    # single-part put_object is the body MD5, and head_object is Class B (cheap).
+    try:
+        head = r2.head_object(Bucket=R2_BUCKET, Key=r2_key)
+        if head.get("ETag", "").strip('"') == hashlib.md5(body).hexdigest():
+            return  # identical content already on R2
+    except Exception:
+        pass
     r2.put_object(
         Bucket=R2_BUCKET, Key=r2_key,
         Body=body,
@@ -476,15 +484,19 @@ def r2_upload_file(r2, local_path, r2_key, force=False):
     # Skip if already in R2 — composites are content-addressed by timestamp
     # so if the key exists the content is identical. head_object is Class B
     # (cheap), avoiding a Class A PUT for every frame on every ephemeral run.
-    # Pass force=True for composites whose rendering depends on code (e.g. MSLP).
-    if not force:
-        try:
-            r2.head_object(Bucket=R2_BUCKET, Key=r2_key)
-            return  # already exists
-        except Exception:
-            pass  # not found — fall through to upload
+    # Pass force=True for composites whose rendering depends on code (e.g. MSLP);
+    # even then an ETag/MD5 match means the bytes are identical and the Class A
+    # PUT is skipped (MSLP only actually changes a few times a day).
     with open(local_path, 'rb') as f:
         data = f.read()
+    try:
+        head = r2.head_object(Bucket=R2_BUCKET, Key=r2_key)
+        if not force:
+            return  # already exists
+        if head.get("ETag", "").strip('"') == hashlib.md5(data).hexdigest():
+            return  # identical content already on R2
+    except Exception:
+        pass  # not found — fall through to upload
     r2.put_object(
         Bucket=R2_BUCKET, Key=r2_key,
         Body=data,
@@ -837,8 +849,10 @@ def main():
             os.remove(fpath)
             print(f"  Removed old local composite: {fname}")
 
-    # Prune old composites from R2
-    if r2:
+    # Prune old composites from R2. The prune needs a LIST scan (Class A per
+    # page) and composites only cross the retention cutoff once an hour, so
+    # only scan on the first runs of each hour, not every 5-minute invocation.
+    if r2 and datetime.utcnow().minute < 10:
         try:
             cleanup_old_composites(r2, keep_r2_keys)
         except Exception as e:

@@ -12,6 +12,31 @@
 - Gauge QC: `gaugecheck.html` + `gauge_qc.py`
 - Data served from Cloudflare R2 via `https://radar.floodforecast.co.uk`
 
+## R2 Class A budget
+
+The Cloudflare R2 free tier allows **1M Class A operations/month**
+(PutObject, CopyObject, ListObjects — LIST costs one op *per page*).
+Class B (GetObject, HeadObject) has a 10M allowance and is effectively
+free at our volumes; DeleteObject is completely free. The fetch scripts
+run every 5–15 minutes, so per-run waste multiplies fast. Rules for any
+script that writes to R2:
+
+- **Never unconditionally PUT content that may be unchanged.** R2's ETag
+  for a single-part upload is the body MD5, so `head_object` + MD5 compare
+  (Class B) tells you whether a PUT (Class A) can be skipped. See
+  `r2_upload()` in `make_accum_hourly.py` or `r2_upload_file()` in
+  `make_dashboard_composites.py` for the pattern.
+- **Don't re-LIST a prefix you already listed.** Retention cleanups should
+  reuse the key listing fetched at startup (deletes are free), not paginate
+  the prefix again — see `cleanup_r2()` in `process_latest.py`.
+- **Gate LIST-based prune scans to ~hourly** (`utcnow().minute < 10`)
+  rather than every invocation; expired objects only cross a retention
+  cutoff once an hour at most.
+- The dominant remaining consumer is `fetch_ukv.py` (~25–30 PNG/JSON
+  uploads per forecast step × ~55 steps × 8 runs/day ≈ 350k ops/month) —
+  those are genuinely new objects each run, so reducing them means
+  reducing schemes/thresholds/durations (a product decision, not plumbing).
+
 ## UKV forecast fetch (`fetch_ukv.py`)
 
 - Met Office publishes UKV runs **hourly**, but only the 3-hourly synoptic

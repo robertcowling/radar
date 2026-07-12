@@ -16,6 +16,7 @@ Both use the Met Office colour scheme. No legend or timestamp is baked into the
 images; the consuming UI renders those.
 """
 
+import hashlib
 import io
 import json
 import os
@@ -87,12 +88,18 @@ def get_r2():
 
 
 def r2_upload(r2, buf_bytes, r2_key, force=False):
-    if not force:
-        try:
-            r2.head_object(Bucket=R2_BUCKET, Key=r2_key)
+    # HEAD is Class B (cheap); PUT is Class A (the scarce free-tier budget).
+    # R2's ETag for a single-part put_object is the body MD5, so an ETag match
+    # means the object is already byte-identical and the PUT can be skipped —
+    # even for force=True slots that merely *may* have changed.
+    try:
+        head = r2.head_object(Bucket=R2_BUCKET, Key=r2_key)
+        if not force:
             return  # already exists and stable
-        except Exception:
-            pass
+        if head.get("ETag", "").strip('"') == hashlib.md5(buf_bytes).hexdigest():
+            return  # identical content already on R2
+    except Exception:
+        pass
     r2.put_object(
         Bucket=R2_BUCKET, Key=r2_key,
         Body=buf_bytes,
@@ -103,6 +110,13 @@ def r2_upload(r2, buf_bytes, r2_key, force=False):
 
 def r2_put_json(r2, data, r2_key):
     body = json.dumps(data, separators=(",", ":")).encode()
+    # Skip the Class A PUT when the manifest hasn't changed (ETag = body MD5).
+    try:
+        head = r2.head_object(Bucket=R2_BUCKET, Key=r2_key)
+        if head.get("ETag", "").strip('"') == hashlib.md5(body).hexdigest():
+            return
+    except Exception:
+        pass
     r2.put_object(
         Bucket=R2_BUCKET, Key=r2_key,
         Body=body,
@@ -444,7 +458,10 @@ def main():
     print(f"Daily manifest: {len(daily_manifest)} frames")
 
     # ── Prune old R2 composites ────────────────────────────────────────────────
-    if r2:
+    # The prune needs a LIST scan (Class A per page); expired composites only
+    # cross the retention cutoff once an hour, so only scan on the first runs
+    # of each hour instead of every 5-minute invocation.
+    if r2 and datetime.utcnow().minute < 10:
         cleanup_r2(r2, keep_r2_keys)
 
     print("Done.")
