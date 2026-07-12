@@ -1161,6 +1161,13 @@ function chartXToTime(mouseX, W) {
   return t0 + pct * (t1 - t0);
 }
 
+const FIFTEEN_MIN_MS = 15 * 60 * 1000;
+// Snap a timestamp to the nearest 15-minute mark, clamped to [t0, t1].
+function snapTo15Min(t, t0, t1) {
+  const snapped = Math.round(t / FIFTEEN_MIN_MS) * FIFTEEN_MIN_MS;
+  return Math.max(t0, Math.min(t1, snapped));
+}
+
 function initChartEvents() {
   const cv = document.getElementById('chartCanvas');
   if (!cv) return;
@@ -1207,13 +1214,14 @@ function initChartEvents() {
     const W = cv.width / dpr;
     const padL = 28, padR = 8;
     const mouseX = e.clientX - rect.left;
+    const t0 = new Date(seriesPts[0].t).getTime();
     const t1 = new Date(seriesPts[seriesPts.length - 1].t).getTime();
     // Clicking at/after the latest point returns to live.
     if (mouseX >= W - padR || chartXToTime(mouseX, W) >= t1) {
       clearSelectedTime();
       return;
     }
-    selectedTime = chartXToTime(mouseX, W);
+    selectedTime = snapTo15Min(chartXToTime(mouseX, W), t0, t1);
     drawChart();
     render();
     updateTimeBanner();
@@ -1285,46 +1293,63 @@ function drawChart() {
     ctx.stroke();
   });
   
-  // time labels (intermediate labels every 24h)
-  const totalDuration = t1 - t0;
-  const numTicks = 4;
-  
-  // 1. Draw minor checks first
-  ctx.strokeStyle = '#cbd5e1';
-  ctx.lineWidth = 1;
-  const numMinorTicks = numTicks * 2;
-  for (let i = 0; i <= numMinorTicks; i++) {
-    if (i % 2 === 0) continue;
-    const tickT = t0 + (totalDuration * i / numMinorTicks);
-    const x = X(tickT);
-    ctx.beginPath();
-    ctx.moveTo(x, H - padB);
-    ctx.lineTo(x, H - padB + 3);
-    ctx.stroke();
-  }
+  // Time axis: ticks snapped to clock-hour boundaries only (so labels always
+  // land on a 15-min-aligned instant, never an arbitrary minute). Majors every
+  // 6h, minors every 3h, unmarked (unlabeled) ticks every hour between them.
+  // Colours match the main radar timeslider's tick key (index.html updateTimelineTicks).
+  const MS_HOUR = 3600 * 1000;
+  const MAJOR_COLOR = '#ea4335';
+  const MINOR_COLOR = '#fbbc04';
+  const UNMARKED_COLOR = '#bdc1c6';
 
-  // 2. Draw major checks and labels
-  ctx.fillStyle='#334155';
-  ctx.font='12px Roboto';
-  for (let i = 0; i <= numTicks; i++) {
-    const tickT = t0 + (totalDuration * i / numTicks);
-    const x = X(tickT);
+  let tickStart = new Date(t0);
+  tickStart.setMinutes(0, 0, 0);
+  if (tickStart.getTime() < t0) tickStart.setTime(tickStart.getTime() + MS_HOUR);
+
+  ctx.font = '11px Roboto';
+  let lastLabelX = -Infinity;
+  const minLabelGap = 56;
+
+  for (let tickT = tickStart.getTime(); tickT <= t1; tickT += MS_HOUR) {
     const dateObj = new Date(tickT);
-    const dateStr = dateObj.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
-    const timeStr = dateObj.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
-    const labelText = `${dateStr} ${timeStr}`;
-    
-    ctx.strokeStyle = '#64748b';
-    ctx.beginPath();
-    ctx.moveTo(x, H - padB);
-    ctx.lineTo(x, H - padB + 6);
-    ctx.stroke();
-    
-    const textW = ctx.measureText(labelText).width;
-    let textX = x - textW / 2;
-    if (textX < padL) textX = padL;
-    if (textX + textW > W - padR) textX = W - padR - textW;
-    ctx.fillText(labelText, textX, H - 4);
+    const hour = dateObj.getHours();
+    const x = X(tickT);
+
+    if (hour % 6 === 0) {
+      ctx.strokeStyle = MAJOR_COLOR;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x, H - padB);
+      ctx.lineTo(x, H - padB + 7);
+      ctx.stroke();
+
+      if (x - lastLabelX > minLabelGap) {
+        const dateStr = dateObj.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
+        const timeStr = dateObj.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+        const labelText = hour === 0 ? dateStr : timeStr;
+        ctx.fillStyle = MAJOR_COLOR;
+        const textW = ctx.measureText(labelText).width;
+        let textX = x - textW / 2;
+        if (textX < padL) textX = padL;
+        if (textX + textW > W - padR) textX = W - padR - textW;
+        ctx.fillText(labelText, textX, H - 4);
+        lastLabelX = x + textW / 2;
+      }
+    } else if (hour % 3 === 0) {
+      ctx.strokeStyle = MINOR_COLOR;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x, H - padB);
+      ctx.lineTo(x, H - padB + 5);
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = UNMARKED_COLOR;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, H - padB);
+      ctx.lineTo(x, H - padB + 3);
+      ctx.stroke();
+    }
   }
 
   // persistent selected-time marker (pinned scrub instant)
