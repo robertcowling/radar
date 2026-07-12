@@ -21,6 +21,7 @@ Usage:
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -105,13 +106,33 @@ def clean(frames: list[pd.DataFrame]) -> pd.DataFrame:
     return df.sort_values("date").reset_index(drop=True)
 
 
-def code_tier(code: str) -> str:
-    """warning area vs alert area, from the code pattern"""
+def code_tier(code: str, sev_by_code: dict | None = None) -> str:
+    """warning area vs alert area. Modern codes encode this directly ('FW'
+    = warning tier, 'WA' = alert tier), but older/regional code formats
+    (e.g. FSF, FSC, FAG - pre-2013-ish EA/NRW schemes) don't follow that
+    convention and would otherwise fall through to "?", which permanently
+    excludes them from alias-merging regardless of name/date match. Fall
+    back to the area's own historical severity: alert-tier areas only ever
+    reach severity 1 (Flood Watch/Alert); warning-tier areas reach 2+
+    (Flood Warning / Severe Flood Warning)."""
     if "FW" in code:
         return "FW"
     if "WA" in code:
         return "WA"
+    if sev_by_code is not None and code in sev_by_code:
+        return "WA" if sev_by_code[code] <= 1 else "FW"
     return "?"
+
+
+def normalised_name(name: str) -> str:
+    """Order-independent normalised name for matching areas across code
+    renames. Token-set (not concatenated-string) so re-ordered descriptors
+    still match, e.g. "River Ogmore at Bridgend - Pen y Fai" (old EA/NRW
+    naming) vs "River Ogmore at Pen y Fai, Bridgend" (current registry)."""
+    s = name.lower()
+    s = re.sub(r"^\s*flood (watch|alert|warning)\s+", "", s)
+    tokens = sorted(t for t in re.split(r"[^a-z0-9]+", s) if t)
+    return " ".join(tokens)
 
 
 def build_aliases(df: pd.DataFrame, manual: dict | None = None) -> dict:
@@ -124,9 +145,8 @@ def build_aliases(df: pd.DataFrame, manual: dict | None = None) -> dict:
     take precedence and can also express merges the name match misses.
     """
     d = df.copy()
-    d["nname"] = (d["name"].str.lower()
-                  .str.replace(r"^\s*flood (watch|alert|warning)\s+", "", regex=True)
-                  .str.replace(r"[^a-z0-9]", "", regex=True))
+    d["nname"] = d["name"].map(normalised_name)
+    sev_by_code = d.groupby("code")["severity"].max().to_dict()
     spans = d.groupby("code").agg(first=("date", "min"), last=("date", "max"),
                                   src=("source", "first"))
     edges = []
@@ -137,7 +157,8 @@ def build_aliases(df: pd.DataFrame, manual: dict | None = None) -> dict:
                 a, b = codes[i], codes[j]
                 if spans.loc[a, "src"] != spans.loc[b, "src"]:
                     continue
-                if code_tier(a) != code_tier(b) or code_tier(a) == "?":
+                ta, tb = code_tier(a, sev_by_code), code_tier(b, sev_by_code)
+                if ta != tb or ta == "?":
                     continue
                 overlap = (min(spans.loc[a, "last"], spans.loc[b, "last"])
                            - max(spans.loc[a, "first"], spans.loc[b, "first"])).days
@@ -207,6 +228,52 @@ def build_aliases(df: pd.DataFrame, manual: dict | None = None) -> dict:
     return alias, sorted(set(ambiguous))
 
 
+def match_retired_to_current(df: pd.DataFrame, alias: dict, current_areas: dict | None) -> tuple[dict, list]:
+    """Second pass: link retired codes that build_aliases() couldn't merge
+    because their modern successor has zero standalone history of its own
+    (so there was no second event-bearing node for it to name-match
+    against) - it only shows up in the live target-area registry, not in
+    any historical event. Matches by normalised name + numeric region
+    prefix (first 3 digits of the code) + tier, against `current_areas`.
+    Only auto-links on a single unambiguous candidate; anything with more
+    than one candidate is left alone and returned for manual review, same
+    as build_aliases()'s own ambiguous handling - e.g. numbered sub-reaches
+    like "...PIL01"/"...PIL02"/"...PIL03" along one river share a name but
+    are genuinely distinct areas, not renames of each other.
+    """
+    if not current_areas:
+        return {}, []
+
+    def resolve(c):
+        seen = set()
+        while c in alias and c not in seen:
+            seen.add(c)
+            c = alias[c]
+        return c
+
+    live_by_key = {}
+    for code, name in current_areas.items():
+        key = (normalised_name(name), code[:3])
+        live_by_key.setdefault(key, []).append(code)
+
+    sev_by_code = df.groupby("code")["severity"].max().to_dict()
+    last_name = df.sort_values("date").groupby("code")["name"].last()
+
+    extra, ambiguous = {}, []
+    roots = {resolve(c) for c in df["code"].unique()}
+    for root in roots:
+        if root in current_areas or root in extra:
+            continue
+        key = (normalised_name(last_name[root]), root[:3])
+        tier = code_tier(root, sev_by_code)
+        cands = [c for c in live_by_key.get(key, []) if code_tier(c) == tier]
+        if len(cands) == 1:
+            extra[root] = cands[0]
+        elif len(cands) > 1:
+            ambiguous.append(root)
+    return extra, ambiguous
+
+
 def freq_label(rate: float) -> str:
     for thr, lab in FREQ_LABELS:
         if rate >= thr:
@@ -239,7 +306,14 @@ def build_area_stats(df: pd.DataFrame, alias: dict, current_areas: dict | None =
     for code, g in df.groupby("code"):
         gi = g[~g.is_update]
         src = g["source"].iloc[0]
-        name = g.sort_values("date")["name"].iloc[-1]  # most recent name
+        # Prefer the live registry's name over the event log's, when known -
+        # matters for codes merged onto a current code that has no modern-era
+        # events of its own (see match_retired_to_current()), where the most
+        # recent event name would otherwise be a retired/old-format name.
+        if current_areas and code in current_areas:
+            name = current_areas[code]
+        else:
+            name = g.sort_values("date")["name"].iloc[-1]  # most recent name
         first = gi["date"].min() if len(gi) else g["date"].min()
         last = gi["date"].max() if len(gi) else g["date"].max()
         years = max((ds_end[src] - first).days / 365.25, 1.0)
@@ -394,18 +468,23 @@ def main():
         m = pd.read_csv(args.aliases)
         manual = dict(zip(m.iloc[:, 0].astype(str).str.strip(),
                           m.iloc[:, 1].astype(str).str.strip()))
+
+    current = None
+    if args.current_areas:
+        c = pd.read_csv(args.current_areas)
+        current = dict(zip(c.iloc[:, 0].astype(str).str.strip(), c.iloc[:, 1].astype(str)))
+
     alias, ambiguous = build_aliases(df, manual)
+    extra_alias, extra_ambiguous = match_retired_to_current(df, alias, current)
+    alias.update(extra_alias)
+    ambiguous = sorted(set(ambiguous) | set(extra_ambiguous))
+
     pd.DataFrame(sorted(alias.items()), columns=["old_code", "current_code"]) \
         .to_csv(outdir / "code_aliases.csv", index=False)
     if ambiguous:
         pd.DataFrame({"code": ambiguous,
                       "reason": "excluded from auto-merge: overlaps another same-name area"}) \
             .to_csv(outdir / "merge_ambiguous.csv", index=False)
-
-    current = None
-    if args.current_areas:
-        c = pd.read_csv(args.current_areas)
-        current = dict(zip(c.iloc[:, 0].astype(str).str.strip(), c.iloc[:, 1].astype(str)))
 
     df.to_csv(outdir / "events_master.csv.gz", index=False, compression="gzip")
     area_stats = build_area_stats(df, alias, current)
