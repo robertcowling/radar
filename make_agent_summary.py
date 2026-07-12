@@ -149,9 +149,77 @@ def _fmt_uk_time(iso_str):
         return iso_str[:16]
 
 
-# ── Region assignment (bounding-box lookup) ───────────────────────────────────────
+# ── Region assignment (point-in-polygon against uk_regions.geojson) ───────────────
+# Bounding boxes can't separate Wales from England along the diagonal border —
+# e.g. Nantgwyn (mid-Wales) was landing in "Midlands". Classify by the actual ONS
+# region polygon instead, mapping rgn19nm → the summary's region scheme. The old
+# boxes remain only as an offshore/last-resort fallback.
+
+# ONS rgn19nm → summary region label. East/West Midlands collapse to "Midlands"
+# and London folds into "SE England" to preserve the existing summary buckets.
+_RGN_TO_SUMMARY = {
+    "North East": "NE England",
+    "North West": "NW England",
+    "Yorkshire and the Humber": "Yorkshire",
+    "East Midlands": "Midlands",
+    "West Midlands": "Midlands",
+    "East": "E England",
+    "London": "SE England",
+    "South East": "SE England",
+    "South West": "SW England",
+    "Wales": "Wales",
+    "Scotland": "Scotland",
+    "Northern Ireland": "N Ireland",
+}
+
+_REGION_INDEX = None  # lazy: (names, geoms, STRtree) or False if unavailable
+
+def _region_index():
+    global _REGION_INDEX
+    if _REGION_INDEX is None:
+        try:
+            from shapely.geometry import shape
+            from shapely.strtree import STRtree
+            with open("uk_regions.geojson", encoding="utf-8") as f:
+                data = json.load(f)
+            names, geoms = [], []
+            for feat in data.get("features", []):
+                nm = (feat.get("properties") or {}).get("rgn19nm")
+                gm = feat.get("geometry")
+                if not nm or not gm:
+                    continue
+                try:
+                    shp = shape(gm)
+                    if not shp.is_valid:
+                        shp = shp.buffer(0)
+                except Exception:
+                    continue
+                names.append(nm)
+                geoms.append(shp)
+            _REGION_INDEX = (names, geoms, STRtree(geoms)) if geoms else False
+        except Exception as e:
+            print(f"  [assign_region] polygon index unavailable, using bbox fallback: {e}")
+            _REGION_INDEX = False
+    return _REGION_INDEX
+
 
 def assign_region(lat, lon):
+    idx = _region_index()
+    if idx:
+        try:
+            from shapely.geometry import Point
+            names, geoms, tree = idx
+            pt = Point(lon, lat)
+            for i in tree.query(pt):
+                if geoms[i].intersects(pt):
+                    return _RGN_TO_SUMMARY.get(names[i], names[i])
+        except Exception:
+            pass
+    return _assign_region_bbox(lat, lon)
+
+
+def _assign_region_bbox(lat, lon):
+    """Crude fallback for points outside every region polygon (e.g. offshore)."""
     if lat >= 55.0:
         return "Scotland"
     if lat >= 54.0:
@@ -360,7 +428,7 @@ def load_rain_gauge_stats():
         lat, lon = info.get("lat", 0), info.get("lon", 0)
         name     = info.get("name", sid).strip()
         region   = assign_region(lat, lon)
-        if region == "Scotland":
+        if region in ("Scotland", "N Ireland"):
             continue  # agent summary covers England & Wales only
 
         def acc(n_slots):
