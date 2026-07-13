@@ -1296,10 +1296,9 @@ function drawChart() {
   for (let g=0; g<=2; g++){ const v=Math.round(maxY*g/2); const y=Y(v); ctx.fillText(v, 4, y+3);
     ctx.strokeStyle='#f1f3f4'; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke(); }
 
-  // Faint full-height guide at each local midnight, so day boundaries are easy to
-  // pick out at a glance. Skipped on the 2-week view — a fortnight of daily lines
-  // would be more clutter than help; the axis ticks alone still mark the days.
-  if (chartPeriodHours < 336) {
+  // Faint full-height guide at each local midnight, so day boundaries are easy
+  // to pick out at a glance regardless of the selected period.
+  {
     let dayMark = new Date(t0);
     dayMark.setHours(0, 0, 0, 0);
     if (dayMark.getTime() < t0) dayMark.setDate(dayMark.getDate() + 1);
@@ -1322,11 +1321,22 @@ function drawChart() {
   });
   
   // Time axis: ticks snapped to clock-hour boundaries only (so labels always
-  // land on a 15-min-aligned instant, never an arbitrary minute). Ticks (and
-  // their labels) every 3h, with unmarked hourly ticks in between. Label text
-  // is always plain grey — colour is reserved for the tick line itself, at
-  // the two special instants: a red tick at each day boundary (00:00) and an
-  // amber tick at noon, matching the main radar timeslider (index.html
+  // land on a 15-min-aligned instant, never an arbitrary minute). Label
+  // density and format adapt to the selected period so a date is always
+  // reliably on screen, however far the view is zoomed out - a fixed 3h
+  // label interval looked fine at 1 day but degenerated into a wall of
+  // date-less "09:00"/"21:00" pairs at 1 week+, since a collision-avoidance
+  // skip could arbitrarily hide the once-a-day date label. Day boundaries
+  // (00:00) are always a major tick at any zoom level (0 is a multiple of
+  // every interval below) and always render the date, not the time, so
+  // there's a fixed, guaranteed cadence of date anchors on the axis:
+  //   <=1 day  : major every 3h, minor (unlabeled) every 1h
+  //   <=3 days : major every 6h, minor every 1h
+  //   <=1 week : major every 12h, minor every 3h
+  //   >1 week  : major every 24h (date-only labels), minor every 6h
+  // Label text is always plain grey — colour is reserved for the tick line
+  // itself, at the two special instants: a red tick at each day boundary and
+  // an amber tick at noon, matching the main radar timeslider (index.html
   // updateTimelineTicks).
   const MS_HOUR = 3600 * 1000;
   const DAY_COLOR = '#ea4335';
@@ -1335,20 +1345,24 @@ function drawChart() {
   const UNMARKED_COLOR = '#e1e5ea';
   const LABEL_COLOR = '#5f6368';
 
+  const { majorHours, minorHours } =
+    chartPeriodHours <= 24  ? { majorHours: 3,  minorHours: 1 } :
+    chartPeriodHours <= 72  ? { majorHours: 6,  minorHours: 1 } :
+    chartPeriodHours <= 168 ? { majorHours: 12, minorHours: 3 } :
+                               { majorHours: 24, minorHours: 6 };
+
   let tickStart = new Date(t0);
   tickStart.setMinutes(0, 0, 0);
   if (tickStart.getTime() < t0) tickStart.setTime(tickStart.getTime() + MS_HOUR);
 
   ctx.font = '11px Roboto';
-  let lastLabelX = -Infinity;
-  const minLabelGap = 40;
 
   for (let tickT = tickStart.getTime(); tickT <= t1; tickT += MS_HOUR) {
     const dateObj = new Date(tickT);
     const hour = dateObj.getHours();
     const x = X(tickT);
 
-    if (hour % 3 === 0) {
+    if (hour % majorHours === 0) {
       const isDay = hour === 0;
       const isNoon = hour === 12;
       ctx.strokeStyle = isDay ? DAY_COLOR : isNoon ? NOON_COLOR : MAJOR_COLOR;
@@ -1358,19 +1372,16 @@ function drawChart() {
       ctx.lineTo(x, H - padB + (isDay ? 8 : 7));
       ctx.stroke();
 
-      if (x - lastLabelX > minLabelGap) {
-        const dateStr = dateObj.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
-        const timeStr = dateObj.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
-        const labelText = isDay ? dateStr : timeStr;
-        ctx.fillStyle = LABEL_COLOR;
-        const textW = ctx.measureText(labelText).width;
-        let textX = x - textW / 2;
-        if (textX < padL) textX = padL;
-        if (textX + textW > W - padR) textX = W - padR - textW;
-        ctx.fillText(labelText, textX, H - 4);
-        lastLabelX = x + textW / 2;
-      }
-    } else {
+      const dateStr = dateObj.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
+      const timeStr = dateObj.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+      const labelText = isDay ? dateStr : timeStr;
+      ctx.fillStyle = LABEL_COLOR;
+      const textW = ctx.measureText(labelText).width;
+      let textX = x - textW / 2;
+      if (textX < padL) textX = padL;
+      if (textX + textW > W - padR) textX = W - padR - textW;
+      ctx.fillText(labelText, textX, H - 4);
+    } else if (hour % minorHours === 0) {
       ctx.strokeStyle = UNMARKED_COLOR;
       ctx.lineWidth = 1;
       ctx.beginPath();
