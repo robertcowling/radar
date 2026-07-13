@@ -18,6 +18,7 @@ static/radar5_gh/
 data_h5_opera/
 data_h5/
 status/history.json
+catalog.json
 
 europe_geo.json
 uk_regions_r2.geojson
