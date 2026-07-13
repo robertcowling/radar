@@ -1,71 +1,6 @@
 {
   "frames": [
     {
-      "time": "Tue 16 Jun 2026 00:00 UTC",
-      "url": "20260616.json",
-      "date_key": "20260616"
-    },
-    {
-      "time": "Wed 17 Jun 2026 00:00 UTC",
-      "url": "20260617.json",
-      "date_key": "20260617"
-    },
-    {
-      "time": "Thu 18 Jun 2026 00:00 UTC",
-      "url": "20260618.json",
-      "date_key": "20260618"
-    },
-    {
-      "time": "Fri 19 Jun 2026 00:00 UTC",
-      "url": "20260619.json",
-      "date_key": "20260619"
-    },
-    {
-      "time": "Sat 20 Jun 2026 00:00 UTC",
-      "url": "20260620.json",
-      "date_key": "20260620"
-    },
-    {
-      "time": "Sun 21 Jun 2026 00:00 UTC",
-      "url": "20260621.json",
-      "date_key": "20260621"
-    },
-    {
-      "time": "Mon 22 Jun 2026 00:00 UTC",
-      "url": "20260622.json",
-      "date_key": "20260622"
-    },
-    {
-      "time": "Tue 23 Jun 2026 00:00 UTC",
-      "url": "20260623.json",
-      "date_key": "20260623"
-    },
-    {
-      "time": "Wed 24 Jun 2026 00:00 UTC",
-      "url": "20260624.json",
-      "date_key": "20260624"
-    },
-    {
-      "time": "Thu 25 Jun 2026 00:00 UTC",
-      "url": "20260625.json",
-      "date_key": "20260625"
-    },
-    {
-      "time": "Fri 26 Jun 2026 00:00 UTC",
-      "url": "20260626.json",
-      "date_key": "20260626"
-    },
-    {
-      "time": "Sat 27 Jun 2026 00:00 UTC",
-      "url": "20260627.json",
-      "date_key": "20260627"
-    },
-    {
-      "time": "Sun 28 Jun 2026 00:00 UTC",
-      "url": "20260628.json",
-      "date_key": "20260628"
-    },
-    {
       "time": "Mon 29 Jun 2026 00:00 UTC",
       "url": "20260629.json",
       "date_key": "20260629"
@@ -74,7 +9,72 @@
       "time": "Tue 30 Jun 2026 00:00 UTC",
       "url": "20260630.json",
       "date_key": "20260630"
+    },
+    {
+      "time": "Wed 01 Jul 2026 00:00 UTC",
+      "url": "20260701.json",
+      "date_key": "20260701"
+    },
+    {
+      "time": "Thu 02 Jul 2026 00:00 UTC",
+      "url": "20260702.json",
+      "date_key": "20260702"
+    },
+    {
+      "time": "Fri 03 Jul 2026 00:00 UTC",
+      "url": "20260703.json",
+      "date_key": "20260703"
+    },
+    {
+      "time": "Sat 04 Jul 2026 00:00 UTC",
+      "url": "20260704.json",
+      "date_key": "20260704"
+    },
+    {
+      "time": "Sun 05 Jul 2026 00:00 UTC",
+      "url": "20260705.json",
+      "date_key": "20260705"
+    },
+    {
+      "time": "Mon 06 Jul 2026 00:00 UTC",
+      "url": "20260706.json",
+      "date_key": "20260706"
+    },
+    {
+      "time": "Tue 07 Jul 2026 00:00 UTC",
+      "url": "20260707.json",
+      "date_key": "20260707"
+    },
+    {
+      "time": "Wed 08 Jul 2026 00:00 UTC",
+      "url": "20260708.json",
+      "date_key": "20260708"
+    },
+    {
+      "time": "Thu 09 Jul 2026 00:00 UTC",
+      "url": "20260709.json",
+      "date_key": "20260709"
+    },
+    {
+      "time": "Fri 10 Jul 2026 00:00 UTC",
+      "url": "20260710.json",
+      "date_key": "20260710"
+    },
+    {
+      "time": "Sat 11 Jul 2026 00:00 UTC",
+      "url": "20260711.json",
+      "date_key": "20260711"
+    },
+    {
+      "time": "Sun 12 Jul 2026 00:00 UTC",
+      "url": "20260712.json",
+      "date_key": "20260712"
+    },
+    {
+      "time": "Mon 13 Jul 2026 00:00 UTC",
+      "url": "20260713.json",
+      "date_key": "20260713"
     }
   ],
-  "latest_time": "Tue 30 Jun 2026 00:00 UTC"
+  "latest_time": "Mon 13 Jul 2026 00:00 UTC"
 }
