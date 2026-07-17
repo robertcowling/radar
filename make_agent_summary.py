@@ -19,6 +19,7 @@ Data sources (all from local git repo or public R2):
   frames_mslp.json                MSLP chart URLs
 """
 
+import base64
 import json
 import math
 import os
@@ -46,6 +47,11 @@ FFC_API_KEY = os.environ.get("FFC_API_KEY", "").strip() or _ffc_key_fallback()
 FGS_API_BASE   = "https://api.ffc-environment-agency.fgs.metoffice.gov.uk/api/public/v3"
 OUTPUT_PATH    = "agent/summary.json"
 
+# Placeholder written only on a cold start when no briefing has ever been
+# generated. A *failed* run must never overwrite a good briefing with this —
+# see the graceful-fail path in main().
+SKELETON_SUMMARY = "Briefing not yet generated — trigger the agent_summary workflow."
+
 R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID", "").strip()
 R2_ACCESS_KEY = os.environ.get("R2_ACCESS_KEY_ID", "").strip()
 R2_SECRET_KEY = os.environ.get("R2_SECRET_ACCESS_KEY", "").strip()
@@ -70,6 +76,45 @@ def http_get_json(url, headers=None, timeout=12):
     except Exception as e:
         print(f"  HTTP {url[:80]}: {e}")
         return None
+
+
+_IMG_MIME = {
+    "png":  "image/png",
+    "jpg":  "image/jpeg",
+    "jpeg": "image/jpeg",
+    "gif":  "image/gif",
+    "webp": "image/webp",
+}
+
+
+def image_to_data_url(url, timeout=20):
+    """Download an image and return it as a base64 'data:' URL.
+
+    The vision endpoint requires images to be inlined as base64 data URLs
+    rather than passed by reference — a plain https URL is rejected with
+    'Expected a base64-encoded data URL ... but got a value without the
+    "data:" prefix'. Returns None (caller skips the image) on any failure,
+    so one unreachable frame never sinks the whole briefing.
+    """
+    if not url:
+        return None
+    if url.startswith("data:"):
+        return url
+    ext = url.rsplit(".", 1)[-1].split("?")[0].lower()
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "floodforecast-agent/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read()
+            ctype = (resp.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+    except Exception as e:
+        print(f"  Image fetch {url[:80]}: {e}")
+        return None
+    if not raw:
+        print(f"  Image fetch {url[:80]}: empty body")
+        return None
+    mime = ctype if ctype.startswith("image/") else _IMG_MIME.get(ext, "image/png")
+    b64 = base64.b64encode(raw).decode("ascii")
+    return f"data:{mime};base64,{b64}"
 
 
 def _r2_client():
@@ -1079,9 +1124,15 @@ def call_openai(data_block, images):
         return None
 
     content = [{"type": "text", "text": data_block}]
+    n_attached = 0
     for label, url in images:
+        data_url = image_to_data_url(url)
+        if not data_url:
+            continue  # skip an unreachable/undecodable frame rather than failing the run
         content.append({"type": "text",      "text":      f"\n{label}:"})
-        content.append({"type": "image_url", "image_url": {"url": url}})
+        content.append({"type": "image_url", "image_url": {"url": data_url}})
+        n_attached += 1
+    print(f"  {n_attached}/{len(images)} image(s) inlined as base64 for the vision request")
 
     try:
         client = openai.OpenAI(api_key=OPENAI_API_KEY)
@@ -1235,6 +1286,22 @@ def main():
     else:
         print("OpenAI not configured — writing skeleton output")
 
+    # Did we actually produce a fresh briefing this run?
+    ai_summary = (parsed or {}).get("summary", "").strip()
+    generation_ok = bool(ai_summary) and ai_summary != SKELETON_SUMMARY
+
+    # Graceful fail: if generation failed but a good briefing already exists,
+    # leave it untouched (local file + R2) so the front end keeps showing the
+    # latest available briefing rather than a "not yet generated" placeholder.
+    if not generation_ok:
+        previous = load_json(OUTPUT_PATH)
+        prev_summary = (previous or {}).get("summary", "").strip()
+        if previous and prev_summary and prev_summary != SKELETON_SUMMARY:
+            print("AI generation failed — preserving the last good briefing "
+                  f"(issued {previous.get('generated_at', '?')}); not overwriting.")
+            return
+        print("AI generation failed and no prior briefing exists — writing skeleton placeholder.")
+
     bullets = build_bullets(warnings, rfg, fgs_history_text, gauge_regional, gauge_top10,
                              gauge_trend, cosmos, images, parsed,
                              ukv_trends_insights=ukv_trends_insights)
@@ -1253,8 +1320,7 @@ def main():
     output = {
         "generated_at":    now_utc().strftime("%Y-%m-%dT%H:%M:00Z"),
         "headline":        (parsed or {}).get("headline", ""),
-        "summary":         (parsed or {}).get("summary",
-                            "Briefing not yet generated — trigger the agent_summary workflow."),
+        "summary":         (parsed or {}).get("summary", "") or SKELETON_SUMMARY,
         "context_bullets": bullets,
         "prompt_used":     full_prompt,
         "images_used":     [{"label": lbl, "url": url} for lbl, url in images],
