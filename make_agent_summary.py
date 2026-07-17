@@ -87,14 +87,45 @@ _IMG_MIME = {
 }
 
 
+_MAX_IMG_EDGE = 1280  # long-side cap when re-encoding; vision models tile ~512px anyway
+
+
+def _normalize_to_png(raw):
+    """Re-encode arbitrary image bytes to PNG (RGB, long side ≤ _MAX_IMG_EDGE).
+
+    The dashboard composites are served as .webp, which some vision endpoints
+    reject even as a base64 data URL. PNG is universally accepted, so we
+    normalize here. Returns PNG bytes, or None if Pillow is unavailable or the
+    bytes can't be decoded — the caller then falls back to the original bytes.
+    """
+    try:
+        import io
+        from PIL import Image
+        with Image.open(io.BytesIO(raw)) as im:
+            im = im.convert("RGB")
+            w, h = im.size
+            longest = max(w, h)
+            if longest > _MAX_IMG_EDGE:
+                scale = _MAX_IMG_EDGE / float(longest)
+                im = im.resize((max(1, round(w * scale)), max(1, round(h * scale))))
+            out = io.BytesIO()
+            im.save(out, format="PNG", optimize=True)
+            return out.getvalue()
+    except Exception as e:
+        print(f"  Image normalize (webp→png) failed, using original bytes: {e}")
+        return None
+
+
 def image_to_data_url(url, timeout=20):
     """Download an image and return it as a base64 'data:' URL.
 
     The vision endpoint requires images to be inlined as base64 data URLs
     rather than passed by reference — a plain https URL is rejected with
     'Expected a base64-encoded data URL ... but got a value without the
-    "data:" prefix'. Returns None (caller skips the image) on any failure,
-    so one unreachable frame never sinks the whole briefing.
+    "data:" prefix'. Images are re-encoded to PNG (see _normalize_to_png)
+    because the source .webp frames aren't accepted by every vision endpoint.
+    Returns None (caller skips the image) on any failure, so one unreachable
+    frame never sinks the whole briefing.
     """
     if not url:
         return None
@@ -112,7 +143,11 @@ def image_to_data_url(url, timeout=20):
     if not raw:
         print(f"  Image fetch {url[:80]}: empty body")
         return None
-    mime = ctype if ctype.startswith("image/") else _IMG_MIME.get(ext, "image/png")
+    png = _normalize_to_png(raw)
+    if png is not None:
+        raw, mime = png, "image/png"
+    else:
+        mime = ctype if ctype.startswith("image/") else _IMG_MIME.get(ext, "image/png")
     b64 = base64.b64encode(raw).decode("ascii")
     return f"data:{mime};base64,{b64}"
 
