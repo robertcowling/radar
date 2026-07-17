@@ -143,6 +143,7 @@ def mk_event(t, code, w, from_lvl, to_lvl, kind):
     return {
         "t": t, "code": code, "label": w.get("label", ""),
         "area": w.get("area", ""), "kind": kind, "from": from_lvl, "to": to_lvl,
+        "timeRaised": w.get("timeRaised"),
     }
 
 
@@ -272,7 +273,10 @@ def main():
                 from update_flood_stats import append_and_rebuild
                 history_events = [
                     {
-                        "date":   e["t"],
+                        # Prefer the source's own raise time — if a warning is
+                        # first seen late (poll gap, outage, fetch bug), e["t"]
+                        # is discovery time, not issuance time.
+                        "date":   e.get("timeRaised") or e["t"],
                         "code":   e["code"],
                         "name":   e.get("label", ""),
                         "type":   SEV_NAME.get(e["to"], "Flood Alert"),
