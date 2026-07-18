@@ -4,7 +4,7 @@ fetch_ea_warnings.py — Environment Agency flood warnings fetcher / recorder.
 
 Run frequently (driven by an external scheduler dispatching the GitHub workflow).
 Each run:
-  1. Fetches all current flood warnings/alerts  (/id/floods?min-severity=1)
+  1. Fetches all current flood warnings/alerts  (/id/floods?min-severity=4)
   2. Writes a compact "current" snapshot enriched with centroids
   3. Diffs against the previous snapshot and appends state-change events
   4. Appends an in-force count point (severe / warning / alert) for the chart
@@ -140,7 +140,11 @@ def main():
 
     # 1. Fetch all current warnings (severity 1..4)
     print("Fetching current flood warnings…")
-    floods = http_get_json(f"{API_ROOT}/id/floods?min-severity=1")
+    # min-severity means "at least as severe as" and 1 is the MOST severe, so
+    # min-severity=1 returns only Severe Flood Warnings. 4 returns everything
+    # in force plus recently stood-down (level 4) entries, which the stood_down
+    # counting and event diffing below rely on.
+    floods = http_get_json(f"{API_ROOT}/id/floods?min-severity=4")
     items = floods.get("items", [])
     print(f"  {len(items)} entries returned.")
 
@@ -233,7 +237,10 @@ def main():
                 from update_flood_stats import append_and_rebuild
                 history_events = [
                     {
-                        "date":   e["t"],
+                        # Prefer the source's own raise time — if a warning is
+                        # first seen late (poll gap, outage, fetch bug), e["t"]
+                        # is discovery time, not issuance time.
+                        "date":   e.get("timeRaised") or e["t"],
                         "code":   e["code"],
                         "name":   e.get("label", ""),
                         "type":   SEV_NAME.get(e["to"], "Flood Alert"),
@@ -281,6 +288,7 @@ def mk_event(t, code, w, from_lvl, to_lvl, kind):
         "kind": kind,
         "from": from_lvl,
         "to": to_lvl,
+        "timeRaised": w.get("timeRaised"),
     }
 
 

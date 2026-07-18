@@ -2,9 +2,9 @@
 <html>
 
 <head>
-    <title>UK Radar on OpenStreetMap</title>
+    <title>Radar archive — 22-23 June 2026</title>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="icon" type="image/png" href="../favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Google Fonts: Roboto -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -642,6 +642,72 @@
             background: #e8f0fe;
             color: #1557b0;
         }
+
+        /* About button + modal (the "i" button holding the original request) */
+        .about-btn {
+            position: absolute;
+            top: 90px;
+            left: 12px;
+            z-index: 1000;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            background: white;
+            color: #1a73e8;
+            font-family: 'Roboto', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            font-style: italic;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+        .about-btn:hover {
+            background: #e8f0fe;
+            transform: scale(1.08);
+        }
+        .about-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(32, 33, 36, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .about-overlay.open {
+            display: flex;
+        }
+        .about-modal {
+            max-width: 520px;
+            width: 100%;
+            padding: 24px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .about-modal h3 {
+            margin-bottom: 12px;
+        }
+        .about-modal p {
+            font-size: 13px;
+            line-height: 1.55;
+            margin-bottom: 12px;
+        }
+        .about-prompt {
+            background: #f8f9fa;
+            border-left: 4px solid #1a73e8;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 13px;
+            line-height: 1.55;
+            color: #202124;
+            white-space: pre-wrap;
+        }
+        .about-close {
+            margin-top: 16px;
+        }
     </style>
 </head>
 
@@ -662,7 +728,7 @@
         </div>
 
         <div id="infoContentTop" class="hide-collapsed">
-            <h3 style="margin-top:0;">Rainfall Radar</h3>
+            <h3 style="margin-top:0;">Radar archive: 22&ndash;23 June 2026</h3>
             <div class="time-box">
                 <p id="tzLabel" style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: 700; color: #1a73e8; letter-spacing: 0.5px;">Time (GMT)</p>
                 <div id="timeDisplay" style="font-size: 22px; font-weight: 700; color: #202124; margin-top: 4px;">Loading...</div>
@@ -712,100 +778,43 @@
                 </label>
             </div>
 
-            <div class="opacity-control" style="margin-top: 8px;">
-                <label class="custom-checkbox">
-                    <input type="checkbox" id="mslpToggle" onchange="toggleMslp(this.checked)">
-                    MSLP analysis (GFS)
-                </label>
-            </div>
-
-            <div class="opacity-control" style="margin-top: 8px;">
-                <label class="custom-checkbox">
-                    <input type="checkbox" id="lightningToggle" checked onchange="toggleLightning(this.checked)">
-                    Lightning
-                </label>
-            </div>
-
-            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Radar Feed</p>
-            <div style="margin-bottom: 24px;">
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="radarFeed" value="standard" onchange="onFeedChange('standard')">
-                    UK (standard)
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 0;">
-                    <input type="radio" name="radarFeed" value="parallel" checked onchange="onFeedChange('parallel')">
-                    Full domain
-                </label>
-                <a href="radar5/" style="font-size: 11px; color: #1a73e8; text-decoration: none; margin-left: 26px; display: block; margin-top: 4px; font-weight: 500;">
-                    Switch to MeteoGate 5-Min UK feed &rarr;
-                </a>
-            </div>
-
-            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Satellite</p>
-            <div style="margin-bottom: 24px;">
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="none" checked onchange="onSatLayerChange('none')">
-                    None
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="geo" onchange="onSatLayerChange('geo')">
-                    Visible GeoColour
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="vis" onchange="onSatLayerChange('vis')">
-                    Visible Greyscale (day)
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="ir_grey" onchange="onSatLayerChange('ir_grey')">
-                    IR Greyscale
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 0;">
-                    <input type="radio" name="satLayer" value="ir" onchange="onSatLayerChange('ir')">
-                    IR False Colour
-                </label>
-            </div>
-
             <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Navigation</p>
             <div style="margin-bottom: 24px; font-size: 13px; font-weight: 500; display: flex; flex-direction: column; gap: 8px;">
-                <a href="gaugecheck.html" style="color: #1a73e8; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                <a href="../" style="color: #1a73e8; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    Live radar map
+                </a>
+                <a href="../gaugecheck.html" style="color: #1a73e8; text-decoration: none; display: flex; align-items: center; gap: 6px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                     Gauge QC Dashboard
                 </a>
-                <a href="cosmos/" style="color: #1a73e8; text-decoration: none; display: flex; align-items: center; gap: 6px;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                    UK Soil Moisture
-                </a>
-                <a href="warnings.html" style="color: #1a73e8; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                <a href="../warnings.html" style="color: #1a73e8; text-decoration: none; display: flex; align-items: center; gap: 6px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     Weather Warnings Map
-                </a>
-                <a href="rapid_flood.html" style="color: #1a73e8; text-decoration: none; display: flex; align-items: center; gap: 6px;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-                    Rapid Flood Guidance
                 </a>
             </div>
 
             <p style="font-size: 11px; margin-bottom: 4px; line-height: 1.5;">
-                <strong>Radar:</strong> <a href="https://www.metoffice.gov.uk/services/data/share-your-data" target="_blank" style="color:#1a73e8;">Met Office</a> ODIM H5 composite (1km) — British Crown copyright, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" style="color:#1a73e8;">CC BY-SA 4.0</a><br>
-                <strong>MSLP:</strong> <a href="https://www.noaa.gov" target="_blank" style="color:#1a73e8;">NOAA</a> / <a href="https://www.ncep.noaa.gov" target="_blank" style="color:#1a73e8;">NCEP</a> GFS model analysis via <a href="https://nomads.ncep.noaa.gov" target="_blank" style="color:#1a73e8;">NOMADS</a> — U.S. Government Work, public domain<br>
-                <strong>Satellite:</strong> &copy; <a href="https://www.eumetsat.int" target="_blank" style="color:#1a73e8;">EUMETSAT</a> MTG FCI<br>
-                &nbsp;&nbsp;<a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:rgb_geocolour" target="_blank" style="color:#1a73e8;">GeoColour RGB</a> &middot;
-                <a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:vis06_hrfi" target="_blank" style="color:#1a73e8;">HRFI VIS0.6</a> &middot;
-                <a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:ir105_hrfi" target="_blank" style="color:#1a73e8;">HRFI IR10.5</a><br>
-                <strong>Lightning:</strong> &copy; <a href="https://openweathermap.org" target="_blank" style="color:#1a73e8;">OpenWeather</a> Lightning API
+                <strong>Radar:</strong> <a href="https://www.metoffice.gov.uk/services/data/share-your-data" target="_blank" style="color:#1a73e8;">Met Office</a> ODIM H5 composite (1km) — British Crown copyright, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" style="color:#1a73e8;">CC BY-SA 4.0</a>
             </p>
         </div>
     </div>
 
-    <!-- OpenWeather lightning attribution badge (shown when lightning layer is on) -->
-    <a id="owBadge" href="https://openweathermap.org" target="_blank" rel="noopener"
-       style="position:fixed;bottom:72px;right:10px;z-index:500;display:flex;align-items:center;gap:6px;
-              background:rgba(235,100,0,0.92);color:#fff;font-size:11px;font-weight:700;
-              padding:5px 9px;border-radius:8px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.25);
-              backdrop-filter:blur(4px);">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-        OpenWeather
-    </a>
+    <!-- About button ("i") — opens the modal with the original request -->
+    <button class="about-btn" onclick="toggleAbout(true)" title="About this page">i</button>
+
+    <div class="about-overlay" id="aboutOverlay" onclick="if (event.target === this) toggleAbout(false)">
+        <div class="about-modal surface">
+            <h3>About this page</h3>
+            <p>
+                This is a static archive of the UK rainfall radar for Monday 22 and Tuesday 23 June 2026 —
+                every 15-minute Met Office composite frame across both days, re-rendered from the original
+                data and stored permanently. It was generated from the following request:
+            </p>
+            <div class="about-prompt">spin me up a new radar page that has all the radar frames from 22 June and 23 June on it. call endpoint /opstech. include this prompt in an I button on the interface.  base on the /radar page. delete workflow once generated</div>
+            <button class="btn about-close" onclick="toggleAbout(false)">Close</button>
+        </div>
+    </div>
 
     <!-- Controls Panel -->
     <div class="player-panel surface" id="controlsPanel">
@@ -830,11 +839,9 @@
         <div class="control-group">
             <span class="control-label">Show</span>
             <select id="durationSelect" onchange="updateDuration(this.value)">
-                <option value="3" selected>Last 3 Hours</option>
-                <option value="6">Last 6 Hours</option>
-                <option value="12">Last 12 Hours</option>
-                <option value="24">Last 24 Hours</option>
-                <option value="48">Last 2 Days</option>
+                <option value="all" selected>Both days</option>
+                <option value="22">Mon 22 June</option>
+                <option value="23">Tue 23 June</option>
             </select>
         </div>
 
@@ -857,14 +864,16 @@
         var TRANSPARENT_GIF = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
         var allFrames = [];
-        var frames = []; // will be sliced by duration filter
+        var frames = []; // will be sliced by day filter
         var currentFrameIdx = 0;
         var playing = false;
         var playInterval;
         var playSpeed = 135; // default to new normal speed
-        var currentFeed = 'parallel';
-        var STANDARD_BOUNDS = [[49.0, -11.5], [61.5, 3.5]];
         var PARALLEL_BOUNDS = [[43.7009, -17.9739], [62.9207, 16.1291]];
+
+        function toggleAbout(open) {
+            document.getElementById('aboutOverlay').classList.toggle('open', open);
+        }
 
         // ── Weather Warnings Overlay state ─────────────────────────
         var _allWarnings = [];
@@ -888,8 +897,6 @@
 
         // Radar Overlay
         var bounds = PARALLEL_BOUNDS;
-        // Satellite Overlay — 2× taller domain, same centre (-4.0°, 55.25°)
-        var satBounds = [[37.75, -40.4], [67.5, 32.4]];
         var radarOverlay = L.imageOverlay('', bounds, {
             opacity: 0.7,
             interactive: false,
@@ -897,7 +904,7 @@
         }).addTo(map);
 
         // Radar coverage boundary
-        fetch('radar_boundary.geojson')
+        fetch('../radar_boundary.geojson')
             .then(res => res.json())
             .then(data => {
                 L.geoJSON(data, {
@@ -912,7 +919,7 @@
         function loadBoundary(val) {
             if (val === 'regions' && !regionLayer) {
                 fetch(R2_CDN + '/geo/uk_regions.geojson').then(res => { if (!res.ok) throw 0; return res.json(); })
-                    .catch(() => fetch('uk_regions.geojson').then(res => res.json()))
+                    .catch(() => fetch('../uk_regions.geojson').then(res => res.json()))
                     .then(data => {
                         regionLayer = L.geoJSON(data, {
                             style: { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
@@ -925,7 +932,7 @@
                     .catch(err => console.log("Could not load regions:", err));
             } else if (val === 'counties' && !countiesLayer) {
                 fetch(R2_CDN + '/geo/uk-counties.geojson').then(res => { if (!res.ok) throw 0; return res.json(); })
-                    .catch(() => fetch('uk-counties.geojson').then(res => res.json()))
+                    .catch(() => fetch('../uk-counties.geojson').then(res => res.json()))
                     .then(data => {
                         countiesLayer = L.geoJSON(data, {
                             style: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
@@ -965,19 +972,12 @@
         }
 
         // ── Weather Warnings Ingest & Rendering Engine ───────────────────────────
-        function getWarningArchiveUrls(days) {
-            var urls = [];
-            var now = new Date();
-            for (var i = 0; i <= days; i++) {
-                var d = new Date(now);
-                d.setDate(d.getDate() - i);
-                var yyyy = d.getFullYear();
-                var mm = (d.getMonth() + 1).toString().padStart(2, '0');
-                var dd = d.getDate().toString().padStart(2, '0');
-                var dateStr = "" + yyyy + mm + dd;
-                urls.push('warnings/archive/warnings_' + dateStr + '.json');
-            }
-            return urls;
+        // Fixed to the archive days this page covers.
+        function getWarningArchiveUrls() {
+            return [
+                'warnings/archive/warnings_20260622.json',
+                'warnings/archive/warnings_20260623.json'
+            ];
         }
 
         function fetchWarningArchive(url) {
@@ -987,8 +987,8 @@
                     return r.json();
                 })
                 .catch(function() {
-                    // Fallback: try local file relative to server
-                    return fetch(url + '?_cb=' + Date.now()).then(function(r) {
+                    // Fallback: try local file relative to site root
+                    return fetch('../' + url + '?_cb=' + Date.now()).then(function(r) {
                         if (!r.ok) throw new Error("Local archive not found");
                         return r.json();
                     });
@@ -999,43 +999,19 @@
         }
 
         function loadWarningsData() {
-            var latestUrl = 'https://radar.floodforecast.co.uk/warnings/warnings_latest.json?_cb=' + Date.now();
-            var pLatest = fetch(latestUrl)
-                .then(function(r) {
-                    if (!r.ok) throw new Error("CDN read failed");
-                    return r.json();
-                })
-                .catch(function() {
-                    return fetch('warnings/warnings_latest.json?_cb=' + Date.now()).then(function(r) { return r.json(); });
-                })
-                .catch(function() {
-                    return { warnings: [] };
-                });
-                
-            var promises = [pLatest];
-            var archiveUrls = getWarningArchiveUrls(7);
-            archiveUrls.forEach(function(url) {
-                promises.push(fetchWarningArchive(url));
+            var promises = getWarningArchiveUrls().map(function(url) {
+                return fetchWarningArchive(url);
             });
-            
+
             Promise.all(promises)
                 .then(function(results) {
-                    var latestRes = results[0];
                     var mergedMap = {};
-                    
-                    // Ingest latest warnings
-                    var latestWarnings = latestRes.warnings || [];
-                    latestWarnings.forEach(function(w) {
-                        mergedMap[w.alert_id] = w;
-                    });
-                    
-                    // Ingest archived warnings
-                    for (var i = 1; i < results.length; i++) {
-                        var archiveWarnings = results[i] || [];
-                        archiveWarnings.forEach(function(w) {
+
+                    results.forEach(function(archiveWarnings) {
+                        (archiveWarnings || []).forEach(function(w) {
                             mergedMap[w.alert_id] = w;
                         });
-                    }
+                    });
                     
                     _allWarnings = Object.values(mergedMap);
                     
@@ -1116,7 +1092,7 @@
             container.innerHTML = '';
             
             if (_allWarnings.length === 0) {
-                container.innerHTML = '<div style="padding: 8px 12px; font-size: 12.5px; color: #5f6368; font-weight: 500;">No warnings from the last week</div>';
+                container.innerHTML = '<div style="padding: 8px 12px; font-size: 12.5px; color: #5f6368; font-weight: 500;">No archived warnings for 22&ndash;23 June</div>';
                 return;
             }
             
@@ -1402,297 +1378,56 @@
             return str.charAt(0).toUpperCase() + str.slice(1);
         }
 
-        // Satellite overlays — lazily created, keyed by radio value
-        var satOverlays = {};
-        var satUrlKeys = { geo: 'sat_url_bw', vis: 'sat_url_vis', ir: 'sat_url_ir', ir_grey: 'sat_url_ir_grey' };
-
-        // Return only frames that have both radar and (if enabled) satellite data.
-        // If a satellite layer is active, the frame must have both the radar URL and the satellite URL.
-        // If no satellite layer is active, the frame only needs to have the radar URL.
-        // NOTE: This strict check only applies to "new" frames (within 30 minutes of the latest manifest time).
-        // For older historical frames, we allow them to render with whatever layer is available (at least one).
-        function getEffectiveFrames(sliced) {
-            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
-            var satKey = satUrlKeys[satVal];
-            
-            var latestFrame = allFrames[allFrames.length - 1];
-            var latestMs = latestFrame ? parseUTCStr(latestFrame.time).getTime() : 0;
-            
-            return sliced.filter(function(f) {
-                var frameMs = parseUTCStr(f.time).getTime();
-                var isNew = latestMs && (latestMs - frameMs) <= 30 * 60 * 1000;
-                
-                if (isNew) {
-                    // Radar image is always required
-                    if (!f.url) return false;
-                    
-                    // If a satellite layer is active, that specific satellite URL must also exist
-                    if (satVal !== 'none' && satKey) {
-                        return !!f[satKey];
-                    }
-                    return true;
-                } else {
-                    // Historical frame: keep if at least one active layer is present
-                    if (satVal !== 'none' && satKey) {
-                        return !!(f.url || f[satKey]);
-                    } else {
-                        return !!f.url;
-                    }
-                }
+        // Day filter — 'all', '22' or '23' (UTC day of month within the archive)
+        function getEffectiveFrames(day) {
+            return allFrames.filter(function(f) {
+                if (!f.url) return false;
+                if (day === 'all') return true;
+                return parseUTCStr(f.time).getUTCDate() === parseInt(day);
             });
         }
 
-        // Re-filter the current duration slice for the active sat layer while
-        // keeping the playhead as close to its current time as possible.
-        function refilterFrames() {
-            var hours = document.getElementById('durationSelect').value;
-            var numFrames = parseInt(hours) * 4;
-            var sliced = allFrames.slice(-Math.min(numFrames, allFrames.length));
-
-            var currentTime = frames.length > 0 ? frames[currentFrameIdx].time : null;
-            frames = getEffectiveFrames(sliced);
-            slider.max = Math.max(0, frames.length - 1);
-            updateTimelineTicks();
-
-            var targetIdx = frames.length - 1;
-            if (currentTime && frames.length > 0) {
-                var targetMs = parseUTCStr(currentTime).getTime();
-                var bestDiff = Infinity;
-                frames.forEach(function(f, i) {
-                    var diff = Math.abs(parseUTCStr(f.time).getTime() - targetMs);
-                    if (diff < bestDiff) { bestDiff = diff; targetIdx = i; }
-                });
-            }
-            if (frames.length > 0) setFrame(targetIdx);
-            preloadVisibleFrames();
-        }
-
-        function onSatLayerChange(val) {
-            // Remove all sat overlays
-            Object.keys(satOverlays).forEach(function(k) {
-                if (map.hasLayer(satOverlays[k])) map.removeLayer(satOverlays[k]);
-            });
-            if (val !== 'none') {
-                if (!satOverlays[val]) {
-                    satOverlays[val] = L.imageOverlay('', satBounds, { opacity: 1.0, interactive: false });
-                }
-                satOverlays[val].addTo(map);
-                enforceZOrder();
-            }
-            // Re-filter frames so radar and sat always share the same timesteps
-            refilterFrames();
-        }
-
-        function onFeedChange(val) {
-            currentFeed = val;
-            bounds = val === 'standard' ? STANDARD_BOUNDS : PARALLEL_BOUNDS;
-            radarOverlay.setBounds(bounds);
-            
-            // Re-fetch frames for the selected feed and reset the timeline
-            fetchFrames(true);
-        }
-
-        // ---- MSLP isobar overlay ----
-        var mslpOverlay = null;
-        var mslpEnabled = false;
-        var mslpFrames = [];   // [{ms: epochMs, url: '...', urlDetail: '...'}]
-        var MSLP_DETAIL_ZOOM = 8;  // switch to narrow-stroke variant at this zoom and above
-
-        function parseMslpMeta(data) {
-            if (!data || !Array.isArray(data.frames)) return;
-            mslpFrames = data.frames.map(function(f) {
-                return { ms: parseUTCStr(f.valid_time).getTime(), url: f.url, urlDetail: f.url_detail || f.url };
-            }).sort(function(a, b) { return a.ms - b.ms; });
-            console.log('MSLP: loaded ' + mslpFrames.length + ' frames');
-            // Refresh overlay if it is currently visible
-            if (mslpEnabled && frames.length > 0) updateMslpFrame();
-        }
-
-        function fetchMslpMeta() {
-            fetch('mslp_meta.json?_cb=' + Date.now())
-                .then(cdnJson)
-                .then(function(data) { parseMslpMeta(data); })
-                .catch(function(err) { console.log('MSLP meta not available:', err); });
-        }
-
-        function nearestMslpFrame(frameMs) {
-            if (!mslpFrames.length) return null;
-            var best = mslpFrames[0], bestDiff = Math.abs(mslpFrames[0].ms - frameMs);
-            for (var i = 1; i < mslpFrames.length; i++) {
-                var diff = Math.abs(mslpFrames[i].ms - frameMs);
-                if (diff < bestDiff) { bestDiff = diff; best = mslpFrames[i]; }
-            }
-            return best;  // always return nearest — stale isobars beat none
-        }
-
-        function updateMslpFrame() {
-            if (!mslpEnabled || !mslpOverlay || !frames.length) return;
-            var frameMs = parseUTCStr(frames[currentFrameIdx].time).getTime();
-            var frame = nearestMslpFrame(frameMs);
-            if (!frame) return;
-            var url = map.getZoom() >= MSLP_DETAIL_ZOOM ? frame.urlDetail : frame.url;
-            mslpOverlay.setUrl(url);
-        }
-
-        function toggleMslp(show) {
-            mslpEnabled = show;
-            if (show) {
-                if (!mslpOverlay) {
-                    mslpOverlay = L.imageOverlay('', satBounds, { opacity: 1.0, interactive: false });
-                }
-                mslpOverlay.addTo(map);
-                enforceZOrder();
-                if (frames.length > 0) updateMslpFrame();
-                // Fetch meta if not yet loaded
-                if (!mslpFrames.length) fetchMslpMeta();
-            } else {
-                if (mslpOverlay && map.hasLayer(mslpOverlay)) map.removeLayer(mslpOverlay);
-            }
-        }
-
-        map.on('zoomend', function() { if (mslpEnabled) updateMslpFrame(); });
-
-        // Z-order: sat (back) → radar → mslp → regions (front)
-        // MSLP sits above radar so isobars are always readable
+        // Z-order: radar (back) → warnings → regions (front)
         function enforceZOrder() {
-            Object.keys(satOverlays).forEach(function(k) {
-                if (map.hasLayer(satOverlays[k])) satOverlays[k].bringToBack();
-            });
             if (map.hasLayer(radarOverlay)) radarOverlay.bringToFront();
-            if (mslpOverlay && map.hasLayer(mslpOverlay)) mslpOverlay.bringToFront();
-            
-            // Bring active warning layers to front (above radar/mslp)
+
+            // Bring active warning layers to front (above radar)
             Object.keys(_activeWarningLayers).forEach(function(alertId) {
                 var wLayer = _activeWarningLayers[alertId];
                 if (wLayer && map.hasLayer(wLayer)) {
                     safeBringToFront(wLayer);
                 }
             });
-            
+
             if (regionLayer && map.hasLayer(regionLayer)) safeBringToFront(regionLayer);
             if (countiesLayer && map.hasLayer(countiesLayer)) safeBringToFront(countiesLayer);
-            // Lightning on top of everything so strikes are always visible
-            if (typeof lightningGroup !== 'undefined' && map.hasLayer(lightningGroup)) lightningGroup.bringToFront();
         }
-
-        // ── Lightning Layer ───────────────────────────────────────────────────
-        var LIGHTNING_URL = 'https://radar.floodforecast.co.uk/lightning/lightning_latest.json';
-        var lightningGroup = L.layerGroup().addTo(map);
-        var lightningEnabled = true;
-        var lightningData = null;
-
-        // Returns CircleMarker style for a strike aged `ageMin` minutes, or null to skip.
-        function lightningStyle(ageMin) {
-            if (ageMin <  5)  return { radius: 5.0, color: '#ffffff', fillColor: '#ffffff', fillOpacity: 0.95, weight: 1.5, opacity: 0.95 };
-            if (ageMin < 15)  return { radius: 4.5, color: '#ffffaa', fillColor: '#ffff44', fillOpacity: 0.85, weight: 1.0, opacity: 0.85 };
-            if (ageMin < 30)  return { radius: 4.0, color: '#ffcc00', fillColor: '#ffaa00', fillOpacity: 0.70, weight: 0.8, opacity: 0.70 };
-            if (ageMin < 45)  return { radius: 3.5, color: '#ff8800', fillColor: '#ff6600', fillOpacity: 0.50, weight: 0.8, opacity: 0.50 };
-            if (ageMin < 60)  return { radius: 3.0, color: '#ff4400', fillColor: '#dd3300', fillOpacity: 0.30, weight: 0.5, opacity: 0.30 };
-            if (ageMin < 90)  return { radius: 2.5, color: '#cc2200', fillColor: '#aa1100', fillOpacity: 0.15, weight: 0.5, opacity: 0.15 };
-            return null;
-        }
-
-        function renderLightning() {
-            lightningGroup.clearLayers();
-            if (!lightningEnabled || !lightningData) return;
-            // Use the current radar frame time as reference so strikes animate in sync
-            var refMs = (frames.length > 0)
-                ? parseUTCStr(frames[currentFrameIdx].time).getTime()
-                : Date.now();
-            var shown = 0;
-            lightningData.strikes.forEach(function(strike) {
-                var ageMin = (refMs - new Date(strike.datetime).getTime()) / 60000;
-                var s = lightningStyle(ageMin);
-                if (!s) return;
-                L.circleMarker([strike.lat, strike.lon], {
-                    radius:      s.radius,
-                    color:       s.color,
-                    fillColor:   s.fillColor,
-                    fillOpacity: s.fillOpacity,
-                    weight:      s.weight,
-                    opacity:     s.opacity,
-                    interactive: false,
-                }).addTo(lightningGroup);
-                shown++;
-            });
-            if (shown > 0) enforceZOrder();
-        }
-
-        function fetchLightning() {
-            fetch(LIGHTNING_URL + '?_cb=' + Date.now())
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    lightningData = data;
-                    renderLightning();
-                })
-                .catch(function(e) { console.log('Lightning fetch failed:', e); });
-        }
-
-        function toggleLightning(show) {
-            lightningEnabled = show;
-            document.getElementById('owBadge').style.display = show ? 'flex' : 'none';
-            if (show) {
-                if (!map.hasLayer(lightningGroup)) lightningGroup.addTo(map);
-                if (lightningData) renderLightning(); else fetchLightning();
-            } else {
-                lightningGroup.clearLayers();
-                map.removeLayer(lightningGroup);
-            }
-        }
-
-        // Initial fetch + auto-refresh every 5 min
-        fetchLightning();
-        setInterval(fetchLightning, 5 * 60 * 1000);
-        // Re-render every minute so age-based fading updates in real time
-        setInterval(renderLightning, 60 * 1000);
-
-        // Load MSLP meta at startup (quietly — no overlay created until checkbox ticked)
-        fetchMslpMeta();
-        // Refresh MSLP meta every 30 minutes
-        setInterval(fetchMslpMeta, 30 * 60 * 1000);
 
         // Setup slider
         var slider = document.getElementById('timeSlider');
 
         // --- FRAME LOADING LOGIC ---
-        // Cache-bust frames.json on every fetch so GitHub Pages CDN / browser
-        // cache never serves a stale manifest after a new push.
-        function fetchFrames(isInitial) {
-            const fileName = currentFeed === 'standard' ? 'frames.json' : 'frames_parallel.json';
-            fetch(fileName + '?_cb=' + Date.now())
+        // Static archive: the manifest never changes, so fetch it once.
+        function fetchFrames() {
+            fetch('frames.json?_cb=' + Date.now())
                 .then(cdnJson)
                 .then(data => {
                     if (!data || data.length === 0) {
-                        if (isInitial) document.getElementById('progressText').innerText = "No data available.";
+                        document.getElementById('timeDisplay').innerText = 'No data available';
                         return;
                     }
 
-                    const wasAtLatest = !isInitial && (currentFrameIdx === frames.length - 1);
-                    const prevLatestTime = allFrames.length ? allFrames[allFrames.length - 1].time : null;
-
                     allFrames = data;
 
-                    if (isInitial) {
-                        if (window.innerWidth <= 768) {
-                            document.getElementById('infoPanel').classList.add('collapsed');
-                        }
-                        // Set the initial duration, which also triggers preloadVisibleFrames()
-                        updateDuration(document.getElementById('durationSelect').value);
-                    } else {
-                        // On poll: update frames slice and ticks
-                        const newLatestTime = allFrames[allFrames.length - 1].time;
-                        if (newLatestTime !== prevLatestTime) {
-                            console.log('New radar frames available:', newLatestTime);
-                            updateDuration(document.getElementById('durationSelect').value);
-                            // If user was on the latest frame (or paused at end), advance them
-                            if (wasAtLatest || currentFrameIdx >= frames.length - 1) {
-                                setFrame(frames.length - 1);
-                            }
-                        }
+                    if (window.innerWidth <= 768) {
+                        document.getElementById('infoPanel').classList.add('collapsed');
                     }
+                    // Set the initial day filter, which also triggers preloadVisibleFrames()
+                    updateDuration(document.getElementById('durationSelect').value);
                 })
                 .catch(err => {
                     console.error("Manifest load error:", err);
+                    document.getElementById('timeDisplay').innerText = 'Manifest failed to load';
                 });
         }
 
@@ -1708,12 +1443,8 @@
             if (frames.length === 0) return;
 
             var urlsToLoad = [];
-            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
-            var satKey = satUrlKeys[satVal];
-
             frames.forEach(function(f) {
                 if (f.url) urlsToLoad.push(f.url); // radar
-                if (satKey && f[satKey]) urlsToLoad.push(f[satKey]);
             });
 
             var total = urlsToLoad.length;
@@ -1739,10 +1470,7 @@
         }
 
         // Initial load
-        fetchFrames(true);
-
-        // Auto-poll every 5 minutes for new frames
-        setInterval(function() { fetchFrames(false); }, 5 * 60 * 1000);
+        fetchFrames();
 
         // UK time helpers — browser handles BST/GMT via Intl, zero processing cost
         const _MONTHS = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
@@ -1868,33 +1596,21 @@
         function setFrame(idx) {
             currentFrameIdx = idx;
             var frameData = frames[currentFrameIdx];
-            
+
             var radarUrl = frameData.url || TRANSPARENT_GIF;
             radarOverlay.setUrl(radarUrl);
-            
+
             updateFrameUI(idx);
-
-            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
-            var satKey = satUrlKeys[satVal];
-            if (satKey && satOverlays[satVal] && map.hasLayer(satOverlays[satVal])) {
-                var satUrl = frameData[satKey] || TRANSPARENT_GIF;
-                satOverlays[satVal].setUrl(satUrl);
-            }
-
-            updateMslpFrame();
-            renderLightning();
         }
 
-        function updateDuration(hours) {
-            var numFrames = parseInt(hours) * 4; // 4 frames per hour (15-min intervals)
-            if (numFrames > allFrames.length) numFrames = allFrames.length;
-            var sliced = allFrames.slice(-numFrames);
-            frames = getEffectiveFrames(sliced);
+        function updateDuration(day) {
+            frames = getEffectiveFrames(day);
+            if (frames.length === 0) return;
 
             slider.max = Math.max(0, frames.length - 1);
             updateTimelineTicks();
             preloadVisibleFrames();
-            setFrame(frames.length - 1);
+            setFrame(0);
         }
 
         function onSliderChange(val) {
@@ -1978,13 +1694,6 @@
             }
         }
 
-
-
-        function updateOpacity(val) {
-            document.getElementById('opacityVal').innerText = val;
-            radarOverlay.setOpacity(val / 100);
-        }
-
         // Draw colormap legend (using modern soft rounded rectangles)
         var radar_colors = [
             '#e1f5fe', '#81d4fa', '#03a9f4', '#01579b', '#2e7d32',
@@ -1999,16 +1708,8 @@
         var labelsDiv = document.getElementById('radarLabels');
         labelsDiv.innerHTML = radar_labels.map((l, i) => `<span class="cbar-label" style="left: ${(i) * 11.11}%">${l}</span>`).join('');
 
-        // Auto-enable layers from URL params, e.g. ?mslp=1
-        (function() {
-            var params = new URLSearchParams(window.location.search);
-            if (params.get('mslp') === '1') {
-                document.getElementById('mslpToggle').checked = true;
-                toggleMslp(true);
-            }
-            // Load weather warnings data
-            loadWarningsData();
-        })();
+        // Load weather warnings data for the archived days
+        loadWarningsData();
 
     </script>
 </body>

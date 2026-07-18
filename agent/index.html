@@ -311,6 +311,16 @@
 </footer>
 
 <script>
+  // The briefing's images_used[].url point at the public r2.dev bucket, which
+  // is blocked on many corporate networks. Serve them from the custom domain
+  // instead (same objects, bypasses the block) — matching how the main app
+  // rewrites R2 URLs at display time.
+  const R2_PUBLIC = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
+  const R2_CUSTOM = 'https://radar.floodforecast.co.uk';
+  function radarUrl(u) {
+    return typeof u === 'string' ? u.replace(R2_PUBLIC, R2_CUSTOM) : u;
+  }
+
   function fmtDateUTC(iso) {
     const d = new Date(iso);
     const days  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -361,10 +371,11 @@
         const tile = document.createElement('div');
         tile.className = 'image-tile';
         const im = document.createElement('img');
-        im.src = img.url;
+        const src = radarUrl(img.url);
+        im.src = src;
         im.alt = img.label;
         im.loading = 'lazy';
-        im.addEventListener('click', () => openLightbox(img.url, img.label));
+        im.addEventListener('click', () => openLightbox(src, img.label));
         const lbl = document.createElement('div');
         lbl.className = 'image-tile-label';
         lbl.textContent = img.label;

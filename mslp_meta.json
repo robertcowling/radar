@@ -1,280 +1,280 @@
 {
-  "generated_at": "2026-07-13T06:53:00.000Z",
+  "generated_at": "2026-07-18T20:36:00.000Z",
   "frames": [
     {
-      "valid_time": "Sat 11 Jul 2026 06:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110600_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110600_mslp_detail.svg"
+      "valid_time": "Thu 16 Jul 2026 20:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607162000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607162000_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 07:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110700_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110700_mslp_detail.svg"
+      "valid_time": "Thu 16 Jul 2026 21:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607162100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607162100_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 08:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110800_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110800_mslp_detail.svg"
+      "valid_time": "Thu 16 Jul 2026 22:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607162200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607162200_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 09:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110900_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607110900_mslp_detail.svg"
+      "valid_time": "Thu 16 Jul 2026 23:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607162300_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607162300_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 10:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111000_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111000_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 00:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170000_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 11:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111100_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111100_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 01:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170100_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 12:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111200_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111200_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 02:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170200_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 13:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111300_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111300_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 03:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170300_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170300_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 14:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111400_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111400_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 04:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170400_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170400_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 15:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111500_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111500_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 05:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170500_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170500_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 16:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111600_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111600_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 06:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170600_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170600_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 17:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111700_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111700_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 07:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170700_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170700_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 18:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111800_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111800_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 08:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170800_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170800_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 19:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111900_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607111900_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 09:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170900_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607170900_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 20:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607112000_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607112000_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 10:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171000_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 21:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607112100_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607112100_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 11:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171100_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 22:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607112200_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607112200_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 12:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171200_mslp_detail.svg"
     },
     {
-      "valid_time": "Sat 11 Jul 2026 23:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607112300_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607112300_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 13:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171300_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171300_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 00:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120000_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120000_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 14:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171400_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171400_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 01:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120100_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120100_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 15:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171500_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171500_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 02:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120200_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120200_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 16:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171600_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171600_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 03:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120300_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120300_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 17:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171700_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171700_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 04:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120400_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120400_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 18:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171800_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171800_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 05:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120500_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120500_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 19:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171900_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607171900_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 06:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120600_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120600_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 20:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607172000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607172000_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 07:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120700_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120700_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 21:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607172100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607172100_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 08:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120800_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120800_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 22:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607172200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607172200_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 09:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120900_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607120900_mslp_detail.svg"
+      "valid_time": "Fri 17 Jul 2026 23:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607172300_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607172300_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 10:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121000_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121000_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 00:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180000_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 11:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121100_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121100_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 01:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180100_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 12:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121200_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121200_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 02:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180200_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 13:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121300_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121300_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 03:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180300_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180300_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 14:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121400_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121400_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 04:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180400_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180400_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 15:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121500_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121500_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 05:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180500_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180500_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 16:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121600_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121600_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 06:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180600_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180600_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 17:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121700_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121700_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 07:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180700_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180700_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 18:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121800_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121800_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 08:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180800_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180800_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 19:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121900_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607121900_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 09:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180900_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607180900_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 20:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607122000_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607122000_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 10:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181000_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 21:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607122100_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607122100_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 11:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181100_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 22:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607122200_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607122200_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 12:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181200_mslp_detail.svg"
     },
     {
-      "valid_time": "Sun 12 Jul 2026 23:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607122300_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607122300_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 13:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181300_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181300_mslp_detail.svg"
     },
     {
-      "valid_time": "Mon 13 Jul 2026 00:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130000_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130000_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 14:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181400_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181400_mslp_detail.svg"
     },
     {
-      "valid_time": "Mon 13 Jul 2026 01:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130100_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130100_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 15:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181500_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181500_mslp_detail.svg"
     },
     {
-      "valid_time": "Mon 13 Jul 2026 02:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130200_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130200_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 16:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181600_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181600_mslp_detail.svg"
     },
     {
-      "valid_time": "Mon 13 Jul 2026 03:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130300_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130300_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 17:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181700_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181700_mslp_detail.svg"
     },
     {
-      "valid_time": "Mon 13 Jul 2026 04:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130400_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130400_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 18:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181800_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181800_mslp_detail.svg"
     },
     {
-      "valid_time": "Mon 13 Jul 2026 05:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130500_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130500_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 19:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181900_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607181900_mslp_detail.svg"
     },
     {
-      "valid_time": "Mon 13 Jul 2026 06:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130600_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130600_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 20:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607182000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607182000_mslp_detail.svg"
     },
     {
-      "valid_time": "Mon 13 Jul 2026 07:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130700_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130700_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 21:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607182100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607182100_mslp_detail.svg"
     },
     {
-      "valid_time": "Mon 13 Jul 2026 08:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130800_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130800_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 22:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607182200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607182200_mslp_detail.svg"
     },
     {
-      "valid_time": "Mon 13 Jul 2026 09:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130900_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607130900_mslp_detail.svg"
+      "valid_time": "Sat 18 Jul 2026 23:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607182300_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607182300_mslp_detail.svg"
     },
     {
-      "valid_time": "Mon 13 Jul 2026 10:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607131000_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607131000_mslp_detail.svg"
+      "valid_time": "Sun 19 Jul 2026 00:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607190000_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607190000_mslp_detail.svg"
     },
     {
-      "valid_time": "Mon 13 Jul 2026 11:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607131100_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607131100_mslp_detail.svg"
+      "valid_time": "Sun 19 Jul 2026 01:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607190100_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607190100_mslp_detail.svg"
     },
     {
-      "valid_time": "Mon 13 Jul 2026 12:00 UTC",
-      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607131200_mslp.svg",
-      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607131200_mslp_detail.svg"
+      "valid_time": "Sun 19 Jul 2026 02:00 UTC",
+      "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607190200_mslp.svg",
+      "url_detail": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/mslp/202607190200_mslp_detail.svg"
     }
   ]
 }

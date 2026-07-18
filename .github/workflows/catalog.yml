@@ -1,35 +1,42 @@
-name: Update Soil Data
+name: Generate R2 catalog
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'make_catalog.py'
+      - '.github/workflows/catalog.yml'
+  schedule:
+    - cron: '17 3 * * *'   # daily, off-peak — content is near-static so this is mostly a freshness heartbeat
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  update-soil:
+  catalog:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
+
       - name: Install dependencies
         run: pip install boto3
-      - name: Fetch new data and sync to R2
+
+      - name: Generate and upload catalog.json
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-        run: python make_soil.py
-      - name: Commit changes
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add cosmos/
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update soil data"
-          git push origin
+          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+        run: python make_catalog.py
+
       - name: Report Job Status
         if: always()
         env:
@@ -37,6 +44,6 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-          JOB_NAME: "Soil Moisture (COSMOS)"
+          JOB_NAME: "R2 Catalog"
           JOB_STATUS: ${{ job.status }}
         run: python report_job_status.py
