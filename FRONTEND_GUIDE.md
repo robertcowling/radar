@@ -152,7 +152,7 @@ The satellite domain must match the WMS bbox used when downloading imagery — s
         </div>
 
         <p style="font-size:11px; margin-bottom:4px; line-height:1.5;">
-            <strong>Radar:</strong> <a href="https://www.metoffice.gov.uk/services/data/share-your-data" target="_blank" style="color:#1a73e8;">Met Office</a> ODIM H5 composite (1km) — Open Government Licence v3.0<br>
+            <strong>Radar:</strong> <a href="https://www.metoffice.gov.uk/services/data/share-your-data" target="_blank" style="color:#1a73e8;">Met Office</a> ODIM H5 composite (1km) — British Crown copyright, CC BY-SA 4.0<br>
             <strong>Satellite:</strong> &copy; <a href="https://www.eumetsat.int" target="_blank" style="color:#1a73e8;">EUMETSAT</a> MTG FCI<br>
             &nbsp;&nbsp;<a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:rgb_geocolour" target="_blank" style="color:#1a73e8;">GeoColour RGB</a> &middot;
             <a href="https://view.eumetsat.int/productviewer/productDetails/mtg_fd:vis06_hrfi" target="_blank" style="color:#1a73e8;">HRFI VIS0.6</a> &middot;
