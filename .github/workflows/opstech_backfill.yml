@@ -7,6 +7,11 @@ name: Opstech archive backfill (one-shot)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/radar-page-june-22-23-q1rm1q]
+    paths:
+      - 'opstech_backfill.py'
+      - '.github/workflows/opstech_backfill.yml'
 
 permissions:
   contents: write
