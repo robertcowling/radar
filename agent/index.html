@@ -34,6 +34,29 @@
       white-space: nowrap;
     }
 
+    /* ── Region tabs ────────────────────────── */
+    .region-tabs {
+      display: flex;
+      gap: 6px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 3px;
+    }
+    .region-tab {
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.85);
+      background: none;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .region-tab:hover { background: rgba(255,255,255,0.12); }
+    .region-tab.active { background: #fff; color: #2563eb; }
+
     /* ── Main content ───────────────────────── */
     main {
       max-width: 900px;
@@ -263,6 +286,10 @@
 
 <header>
   <div class="header-title">Weather Briefing</div>
+  <div class="region-tabs" id="region-tabs">
+    <button class="region-tab active" data-region="ew">England &amp; Wales</button>
+    <button class="region-tab" data-region="scotland">Scotland</button>
+  </div>
   <span class="updated-time" id="updated-time"></span>
 </header>
 
@@ -439,22 +466,38 @@
   }
 
   // Load data
-  fetch('summary.json?_=' + Date.now())
-    .then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    })
-    .then(data => {
-      document.getElementById('loading-card')?.remove();
-      buildPage(data);
-    })
-    .catch(err => {
-      const card = document.getElementById('loading-card');
-      if (card) {
-        card.className = 'state-card error';
-        card.textContent = 'Could not load briefing: ' + err.message;
-      }
-    });
+  const REGION_FILES = { ew: 'summary.json', scotland: 'summary_scotland.json' };
+
+  function loadRegion(region) {
+    const main = document.getElementById('main-content');
+    main.innerHTML = '<div class="state-card" id="loading-card">Loading briefing…</div>';
+    fetch(REGION_FILES[region] + '?_=' + Date.now())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(data => {
+        document.getElementById('loading-card')?.remove();
+        buildPage(data);
+      })
+      .catch(err => {
+        const card = document.getElementById('loading-card');
+        if (card) {
+          card.className = 'state-card error';
+          card.textContent = 'Could not load briefing: ' + err.message;
+        }
+      });
+  }
+
+  document.getElementById('region-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('.region-tab');
+    if (!btn) return;
+    document.querySelectorAll('.region-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    loadRegion(btn.dataset.region);
+  });
+
+  loadRegion('ew');
 </script>
 </body>
 </html>
