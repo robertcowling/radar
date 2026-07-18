@@ -44,7 +44,8 @@ def _ffc_key_fallback():
 
 FFC_API_KEY = os.environ.get("FFC_API_KEY", "").strip() or _ffc_key_fallback()
 FGS_API_BASE   = "https://api.ffc-environment-agency.fgs.metoffice.gov.uk/api/public/v3"
-OUTPUT_PATH    = "agent/summary.json"
+OUTPUT_PATH           = "agent/summary.json"
+OUTPUT_PATH_SCOTLAND  = "agent/summary_scotland.json"
 
 R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID", "").strip()
 R2_ACCESS_KEY = os.environ.get("R2_ACCESS_KEY_ID", "").strip()
@@ -239,13 +240,53 @@ def _assign_region_bbox(lat, lon):
 
 # ── Warnings ──────────────────────────────────────────────────────────────────────
 
-def load_warnings():
+def _warning_country(geometry):
+    """Return 'Scotland', 'N Ireland', 'ew', or None (unknown) for a warning's
+    CAP geometry, via intersection against the uk_regions.geojson index."""
+    if not geometry:
+        return None
+    idx = _region_index()
+    if not idx:
+        return None
+    try:
+        from shapely.geometry import shape
+        g = shape(geometry)
+        if not g.is_valid:
+            g = g.buffer(0)
+    except Exception:
+        return None
+    names, geoms, tree = idx
+    matches = set()
+    for i in tree.query(g):
+        if geoms[i].intersects(g):
+            matches.add(_RGN_TO_SUMMARY.get(names[i], names[i]))
+    if "Scotland" in matches:
+        return "Scotland"
+    if "N Ireland" in matches:
+        return "N Ireland"
+    if matches:
+        return "ew"
+    return None
+
+
+def load_warnings(region="ew"):
+    """Load active warnings, filtered to `region` ('ew' or 'scotland') by
+    geometry intersection against uk_regions.geojson, falling back to an
+    area_desc substring match when geometry is missing/unparseable."""
     data = load_json("warnings/warnings_latest.json", {})
     now_str = now_utc().isoformat()
     active = []
     for w in data.get("warnings", []):
         end = w.get("end_date", "")
         if end and end < now_str:
+            continue
+        area_desc = w.get("area_desc", "")
+        country = _warning_country(w.get("geometry"))
+        if country is None:
+            country = "Scotland" if "scotland" in area_desc.lower() else "ew"
+        if region == "scotland" and country != "Scotland":
+            continue
+        if region == "ew" and country == "Scotland":
             continue
         storm = None
         title = w.get("title", "")
@@ -395,7 +436,7 @@ def fmt_fgs_history(fgs_list):
 
 # ── Rain gauge observations ───────────────────────────────────────────────────────
 
-def load_rain_gauge_stats():
+def load_rain_gauge_stats(region="ew"):
     meta     = load_json("rain/meta.json", {})
     r2_base  = meta.get("r2_base_url", "").rstrip("/")
     stations = load_json("rain/stations.json", {}).get("stations", {})
@@ -427,9 +468,11 @@ def load_rain_gauge_stats():
     for sid, info in stations.items():
         lat, lon = info.get("lat", 0), info.get("lon", 0)
         name     = info.get("name", sid).strip()
-        region   = assign_region(lat, lon)
-        if region in ("Scotland", "N Ireland"):
-            continue  # agent summary covers England & Wales only
+        station_region = assign_region(lat, lon)
+        if region == "ew" and station_region in ("Scotland", "N Ireland"):
+            continue
+        if region == "scotland" and station_region != "Scotland":
+            continue
 
         def acc(n_slots):
             total = 0.0
@@ -447,7 +490,7 @@ def load_rain_gauge_stats():
         if a48 < 0.1:
             continue
         station_stats.append({
-            "name": name, "region": region,
+            "name": name, "region": station_region,
             "acc_1hr":  round(acc(4),  1),
             "acc_6hr":  round(acc(24), 1),
             "acc_24hr": round(a24,     1),
@@ -543,8 +586,52 @@ def parse_frame_time(time_str):
 
 # ── UKV poly numerical forecast ───────────────────────────────────────────────────
 
+REGION_LABEL = {"ew": "England & Wales", "scotland": "Scotland"}
+
 # Government regions outside England & Wales — excluded from the E&W-focused tables.
 _NON_EW_REGIONS = {"scotland", "northern ireland", "ni"}
+
+_country_map_cache = {}
+
+
+def _country_for_name(geojson_path, name_key, name):
+    """Return 'Scotland' / 'N Ireland' / 'ew' for a named catchment/county
+    feature, via its centroid against uk_regions.geojson. Cached per file
+    since catchments/counties are looked up repeatedly across windows."""
+    cache_key = (geojson_path, name_key)
+    if cache_key not in _country_map_cache:
+        from shapely.geometry import shape
+        data = load_json(geojson_path, {})
+        m = {}
+        for feat in data.get("features", []):
+            nm = (feat.get("properties") or {}).get(name_key)
+            geom = feat.get("geometry")
+            if not nm or not geom:
+                continue
+            try:
+                c = shape(geom).centroid
+                r = assign_region(c.y, c.x)
+            except Exception:
+                r = None
+            m[nm] = "Scotland" if r == "Scotland" else ("N Ireland" if r == "N Ireland" else "ew")
+        _country_map_cache[cache_key] = m
+    return _country_map_cache[cache_key].get(name, "ew")
+
+
+def _filter_rows_by_country(rows, geojson_path, name_key, region, limit):
+    """Keep only (name, mm) rows whose feature centroid falls in `region`
+    ('ew' excludes Scotland/N Ireland, 'scotland' keeps Scotland only)."""
+    out = []
+    for name, mm in rows:
+        country = _country_for_name(geojson_path, name_key, name)
+        if region == "scotland" and country != "Scotland":
+            continue
+        if region == "ew" and country == "Scotland":
+            continue
+        out.append((name, mm))
+        if len(out) >= limit:
+            break
+    return out
 
 # Number of highest-intensity 20km grid cells to surface per window — the region/
 # county/catchment tables are all spatial *means*, so a locally intense pocket
@@ -643,11 +730,11 @@ def _grid_cell_admin_units(cell_name, lat, lon):
     return _grid_admin_cache[cell_name]
 
 
-def _top_grid_cells(poly_data, accum_key, limit=_GRID_TOP_N):
+def _top_grid_cells(poly_data, accum_key, limit=_GRID_TOP_N, region="ew"):
     """Return [(label, region, mm), ...] for the highest-intensity 20km grid cells
-    across the UK for the given accumulation window, labeled by the
+    across `region` for the given accumulation window, labeled by the
     catchment/county they sit in (not a specific village/hamlet)."""
-    cells = _top_polys((poly_data or {}).get("grid"), accum_key, limit * 2)
+    cells = _top_polys((poly_data or {}).get("grid"), accum_key, limit * 4)
     centroids = _grid_centroids()
     out = []
     for cell_name, mm in cells:
@@ -655,6 +742,11 @@ def _top_grid_cells(poly_data, accum_key, limit=_GRID_TOP_N):
         if not latlon:
             continue
         lat, lon = latlon
+        cell_region = assign_region(lat, lon)
+        if region == "ew" and cell_region in ("Scotland", "N Ireland"):
+            continue
+        if region == "scotland" and cell_region != "Scotland":
+            continue
         catchment, county = _grid_cell_admin_units(cell_name, lat, lon)
         # uk-counties.geojson now covers the whole UK, so a missing county
         # match reliably means the cell is offshore — safest to drop it
@@ -662,7 +754,7 @@ def _top_grid_cells(poly_data, accum_key, limit=_GRID_TOP_N):
         if not county:
             continue
         label = f"{catchment} catchment, {county}" if catchment else county
-        out.append((label, assign_region(lat, lon), mm))
+        out.append((label, cell_region, mm))
         if len(out) >= limit:
             break
     return out
@@ -715,14 +807,23 @@ def _run_window_regions(run, target_valid_label):
     return None
 
 
-def _top_polys(layer_dict, accum_key, limit, ew_only=False):
-    """Return sorted [(name, mm), ...] for a poly layer/period, dropping None and zeros."""
+def _top_polys(layer_dict, accum_key, limit, ew_only=False, region_layer=None):
+    """Return sorted [(name, mm), ...] for a poly layer/period, dropping None and zeros.
+
+    `region_layer`, when set to 'ew' or 'scotland', filters rgn19nm-keyed rows
+    (e.g. the "regions" layer, whose keys are literally "Scotland", "Wales",
+    "North East" etc.) to that country by name substring.
+    """
     period = (layer_dict or {}).get(accum_key, {})
     rows = []
     for name, mm in period.items():
         if mm is None:
             continue
         if ew_only and any(x in name.lower() for x in _NON_EW_REGIONS):
+            continue
+        if region_layer == "scotland" and "scotland" not in name.lower():
+            continue
+        if region_layer == "ew" and any(x in name.lower() for x in _NON_EW_REGIONS):
             continue
         try:
             v = float(mm)
@@ -735,14 +836,16 @@ def _top_polys(layer_dict, accum_key, limit, ew_only=False):
     return rows[:limit]
 
 
-def load_ukv_poly_text():
+def load_ukv_poly_text(region="ew"):
     """Fetch UKV poly accumulations from R2 for several forecast windows.
 
-    Reports the wettest England & Wales regions (plus catchments and counties)
-    for the next 6h / 12h / day-1 (T+0→24) / day-2 (T+24→48) windows, then a
-    short run-to-run trend: how the latest few UKV runs' forecast for a fixed
-    24h-ending-valid-time window has changed (wetter / drier / steady).
+    Reports the wettest regions (plus catchments and counties) within
+    `region` ('ew' or 'scotland') for the next 6h / 12h / day-1 (T+0→24) /
+    day-2 (T+24→48) windows, then a short run-to-run trend: how the latest
+    few UKV runs' forecast for a fixed 24h-ending-valid-time window has
+    changed (wetter / drier / steady).
     """
+    region_label = REGION_LABEL[region]
     meta = load_json("ukv_meta.json", {})
     runs = meta.get("runs", [])
     if not runs:
@@ -782,20 +885,21 @@ def load_ukv_poly_text():
         if not poly_data:
             continue
 
-        regions = _top_polys(poly_data.get("regions"), accum_key, 12, ew_only=True)
+        regions = _top_polys(poly_data.get("regions"), accum_key, 12, region_layer=region)
         if not regions:
             continue
         got_any = True
         if offset_h == 24:
             day1_top = regions
             day1_valid_label = valid_label
-        lines.append(f"\n  {label} ({window_desc}, valid by {_fmt_ddhhmm(valid_label)}) — wettest regions, England & Wales:")
+        lines.append(f"\n  {label} ({window_desc}, valid by {_fmt_ddhhmm(valid_label)}) — wettest regions, {region_label}:")
         for name, mm in regions:
             lines.append(f"    {name}: {mm:.1f} mm")
 
         # Catchments at every window (flood-relevant unit for decision-making)
         catch_limit = 10 if offset_h == 24 else 8
-        catch = _top_polys(poly_data.get("catchments"), accum_key, catch_limit)
+        catch = _top_polys(poly_data.get("catchments"), accum_key, catch_limit * 4)
+        catch = _filter_rows_by_country(catch, "uk_catchments.geojson", "HA_NAME", region, catch_limit)
         if catch:
             lines.append(f"\n  {label} — wettest river catchments:")
             for name, mm in catch:
@@ -803,13 +907,14 @@ def load_ukv_poly_text():
 
         # County / unitary detail on the two daily windows
         if offset_h in (24, 48):
-            counties = _top_polys(poly_data.get("counties"), accum_key, 8)
+            counties = _top_polys(poly_data.get("counties"), accum_key, 8 * 4)
+            counties = _filter_rows_by_country(counties, "uk-counties.geojson", "name", region, 8)
             if counties:
                 lines.append(f"\n  {label} — wettest counties / unitary areas:")
                 for name, mm in counties:
                     lines.append(f"    {name}: {mm:.1f} mm")
 
-            grid_top = _top_grid_cells(poly_data, accum_key)
+            grid_top = _top_grid_cells(poly_data, accum_key, region=region)
             if grid_top:
                 lines.append(
                     f"\n  {label} — highest-intensity 20km grid cells, labeled by "
@@ -941,7 +1046,7 @@ def select_images():
 
 # ── System prompt ─────────────────────────────────────────────────────────────────
 
-SYSTEM_PROMPT = """\
+SYSTEM_PROMPT_EW = """\
 You are an expert UK operational meteorologist writing a concise weather and flood-risk briefing for Flood Forecasting Centre and emergency planning practitioners. Focus on England and Wales.
 
 All map images share the same geographic basemap with boundary lines — geolocate features precisely. Image order:
@@ -962,10 +1067,33 @@ Rainfall thresholds: 10mm/1h heavy; 30mm/1h extreme; 100mm/24h exceptional. For 
 Style: professional third-person prose; no bullet points; specific place names and mm values. Gauge values are single-site point totals; UKV values are spatial area-means — keep these distinct. All times in GMT or BST — never UTC. Use natural time phrases where possible (e.g. "compared with yesterday morning", "up to early Friday"); you may bracket the precise time for verifiability. Only mention meteorological mechanisms (orographic enhancement, frontal lifting, convective instability, etc.) where the radar imagery, gauge distribution, or MSLP charts specifically support it — do not assert mechanisms without evidence. Say flood risk once, proportionately, at the end. In quiet conditions say so plainly."""
 
 
+SYSTEM_PROMPT_SCOTLAND = """\
+You are an expert meteorologist writing a concise weather and flood-risk briefing for Scotland, for SEPA (Scottish Environment Protection Agency) and emergency planning practitioners. Focus exclusively on Scotland — do not discuss England, Wales, or Northern Ireland.
+
+There is no Rapid Flood Guidance (RFG) or Flood Guidance Statement (FGS) data for Scotland in this briefing — those are England & Wales-only Flood Forecasting Centre products; Scotland's own flood forecasting service (SEPA/Met Office Scottish Flood Forecasting Service) is not integrated here, so do not reference RFG or FGS levels for Scotland and do not imply their absence is a data gap.
+
+All map images share the same geographic basemap with boundary lines and cover the whole UK — geolocate and describe only the Scottish portion of each image. Image order:
+  • Four radar RATE composites (~6h loop) — current rainfall location and motion.
+  • Five DAILY ACCUMULATION maps (today partial + 4 prior complete days) — multi-day antecedent context.
+  • Two MSLP charts (latest + ~12h earlier) — synoptic driver and evolution.
+  • (If present) UKV catchment diff — blue=drier, red=wetter vs prior run. Use only if the UKV trends section shows significant changes over Scotland.
+
+Respond with a JSON object inside <json> tags:
+- "headline": One sentence, max 12 words, about Scotland only. The UKV figures are area-MEANS and can look deceptively light even when a locally heavy pocket is forecast — if the grid-cell peak list (below) shows a notably heavier local pocket than its surrounding region/county mean, lead the headline with the affected catchment/council area or sub-regional area (e.g. "heavier pockets over the Grampian Highlands and the Spey catchment") rather than a generic "quiet"/"light rain" descriptor. Describe the general pattern and broad area affected — do not name individual villages, hamlets, or specific grid points.
+- "summary": Three paragraphs separated by \\n\\n. Two sentences each — be direct and concise. MANDATORY structure, never merge:
+    Para 1 — Synoptic scene: describe what the MSLP charts show and how the pattern has changed over/near Scotland; name the feature driving the weather (front, low, ridge etc).
+    Para 2 — Recent observations: where the heaviest rain fell in Scotland in the last 24h with gauge point-totals and area names; note antecedent context from the daily accumulation maps and any active Met Office warnings for Scotland (naming any storm).
+    Para 3 — Outlook: UKV day-1 and day-2 area-mean totals for the wettest Scottish regions and catchments, cited as "UKV (run ddd D/HHMM BST/GMT)" with natural valid-time phrases like "up to early Friday morning (Fri 25/0300 BST)". Then check the "highest-intensity 20km grid cells" list for each window: it holds local peak forecast values, not administrative means, and can surface a heavier pocket the region/county mean smooths away — where a cell there is meaningfully above its region/county mean (roughly 1.5x or more, or simply crosses the heavy/extreme thresholds below), name the catchment and/or council area it falls in, e.g. "a locally heavier pocket is possible across the Spey catchment in Moray (up to 28mm)". If several grid-cell entries cluster in the same council area, you may add a compass qualifier (e.g. "western Highland", "southern Perthshire") to describe roughly where within it. Never name a specific village, hamlet, or grid reference/coordinates — describe the general rainfall pattern by catchment, council area, or sub-regional area only. Close with a brief flood-risk conclusion in plain terms (no FGS levels — they don't apply to Scotland).
+
+Rainfall thresholds: 10mm/1h heavy; 30mm/1h extreme; 100mm/24h exceptional. For the 24h-window grid-cell peaks, treat individual cells at or above roughly 15-20mm/24h as locally heavy even when the wider region/county mean sits well below that. Scotland's mountainous terrain means orographic enhancement is common — mention it where the radar imagery or MSLP charts specifically support it, particularly over the Highlands and Southern Uplands.
+
+Style: professional third-person prose; no bullet points; specific place names and mm values. Gauge values are single-site point totals; UKV values are spatial area-means — keep these distinct. All times in GMT or BST — never UTC. Use natural time phrases where possible (e.g. "compared with yesterday morning", "up to early Friday"); you may bracket the precise time for verifiability. Only mention meteorological mechanisms (orographic enhancement, frontal lifting, convective instability, etc.) where the radar imagery, gauge distribution, or MSLP charts specifically support it — do not assert mechanisms without evidence. Say flood risk once, proportionately, at the end. In quiet conditions say so plainly."""
+
+
 # ── Prompt data block ─────────────────────────────────────────────────────────────
 
 def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top10, gauge_trend,
-                     cosmos, ukv_poly_text, rain_latest_time, ukv_trends_insights=None):
+                     cosmos, ukv_poly_text, rain_latest_time, ukv_trends_insights=None, region="ew"):
     L = []
     L.append(f"Generated: {now_utc().strftime('%Y-%m-%dT%H:%M UTC')}\n")
 
@@ -987,17 +1115,23 @@ def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top1
         L.append("No active Met Office warnings.")
     L.append("")
 
-    # RFG
-    L.append("=== RAPID FLOOD GUIDANCE (RFG) ===")
-    L.append(f"Status: {rfg['status']}")
-    if rfg.get("issued_at"):
-        L.append(f"Last issued: {rfg['issued_at']}")
-    L.append("")
+    if region == "ew":
+        # RFG
+        L.append("=== RAPID FLOOD GUIDANCE (RFG) ===")
+        L.append(f"Status: {rfg['status']}")
+        if rfg.get("issued_at"):
+            L.append(f"Last issued: {rfg['issued_at']}")
+        L.append("")
 
-    # FGS
-    L.append("=== FLOOD GUIDANCE STATEMENT (FGS) — 5-day flood risk outlook (last 3 days shown) ===")
-    L.append(fgs_history_text or "FGS data not available.")
-    L.append("")
+        # FGS
+        L.append("=== FLOOD GUIDANCE STATEMENT (FGS) — 5-day flood risk outlook (last 3 days shown) ===")
+        L.append(fgs_history_text or "FGS data not available.")
+        L.append("")
+    else:
+        L.append("=== FLOOD GUIDANCE (RFG/FGS) ===")
+        L.append("Not applicable — RFG and FGS are England & Wales-only Flood Forecasting Centre "
+                  "products. Scotland's flood forecasting is run separately by SEPA.")
+        L.append("")
 
     # Gauges
     L.append("=== OBSERVED RAINFALL — RAIN GAUGE NETWORK (point totals: single-site spot measurements, mm) ===")
@@ -1044,7 +1178,7 @@ def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top1
         L.append("")
 
     # UKV
-    L.append("=== UKV NWP FORECAST — POLYGON ACCUMULATIONS (spatial area-means, NOT point totals; England & Wales focus) ===")
+    L.append(f"=== UKV NWP FORECAST — POLYGON ACCUMULATIONS (spatial area-means, NOT point totals; {REGION_LABEL[region]} focus) ===")
     L.append(ukv_poly_text or "UKV numerical data not available.")
     L.append("")
 
@@ -1068,7 +1202,13 @@ def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top1
 
 # ── OpenAI call ───────────────────────────────────────────────────────────────────
 
-def call_openai(data_block, images):
+# Response budget per briefing call. Well above the ~250-300 tokens the JSON
+# response itself needs — headroom avoids truncated/malformed JSON when the
+# model reasons at length before answering.
+OPENAI_MAX_COMPLETION_TOKENS = 3000
+
+
+def call_openai(data_block, images, system_prompt):
     try:
         import openai
     except ImportError:
@@ -1088,10 +1228,10 @@ def call_openai(data_block, images):
         resp = client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user",   "content": content},
             ],
-            max_completion_tokens=800,
+            max_completion_tokens=OPENAI_MAX_COMPLETION_TOKENS,
             temperature=0.3,
         )
         return resp.choices[0].message.content.strip()
@@ -1119,7 +1259,7 @@ def parse_openai_response(text):
 # ── Context bullets ───────────────────────────────────────────────────────────────
 
 def build_bullets(warnings, rfg, fgs_text, gauge_regional, gauge_top10,
-                  gauge_trend, cosmos, images, parsed, ukv_trends_insights=None):
+                  gauge_trend, cosmos, images, parsed, ukv_trends_insights=None, region="ew"):
     B = []
 
     if warnings:
@@ -1137,10 +1277,11 @@ def build_bullets(warnings, rfg, fgs_text, gauge_regional, gauge_top10,
     else:
         B.append("No active Met Office warnings")
 
-    B.append(f"RFG: {rfg['status'][:80]}")
+    if region == "ew":
+        B.append(f"RFG: {rfg['status'][:80]}")
 
-    if fgs_text and "not available" not in fgs_text.lower():
-        B.append(f"FGS: {fgs_text.split(chr(10))[0][:80]}")
+        if fgs_text and "not available" not in fgs_text.lower():
+            B.append(f"FGS: {fgs_text.split(chr(10))[0][:80]}")
 
     if gauge_top10:
         top = gauge_top10[0]
@@ -1176,12 +1317,15 @@ def build_bullets(warnings, rfg, fgs_text, gauge_regional, gauge_top10,
 
 # ── Main ──────────────────────────────────────────────────────────────────────────
 
+# (region key, output path, R2 rolling key, R2 archive prefix, system prompt)
+_BRIEFINGS = [
+    ("ew",       OUTPUT_PATH,          "agent/summary.json",          "agent/summaries",          SYSTEM_PROMPT_EW),
+    ("scotland", OUTPUT_PATH_SCOTLAND, "agent/summary_scotland.json", "agent/summaries_scotland", SYSTEM_PROMPT_SCOTLAND),
+]
+
+
 def main():
     os.makedirs("agent", exist_ok=True)
-
-    print("Loading warnings...")
-    warnings, warnings_gen = load_warnings()
-    print(f"  {len(warnings)} active warning(s)")
 
     print("Loading RFG...")
     rfg = load_rfg()
@@ -1193,17 +1337,9 @@ def main():
     fgs_issued = (fgs_list[0].get("issued_at") or fgs_list[0].get("issuedAt", "")) if fgs_list else ""
     print(f"  {len(fgs_list)} FGS statement(s) received" if fgs_list else "  not available")
 
-    print("Loading rain gauge stats...")
-    gauge_regional, gauge_top10, gauge_trend, rain_latest = load_rain_gauge_stats()
-    print(f"  {'loaded' if gauge_regional else 'not available'}")
-
     print("Loading soil moisture...")
     cosmos = load_cosmos_moisture()
     print(f"  {'loaded' if cosmos else 'not available'}")
-
-    print("Loading UKV poly forecast data...")
-    ukv_poly_text, ukv_run_label = load_ukv_poly_text()
-    print(f"  {'loaded' if ukv_poly_text else 'not available'}")
 
     print("Loading UKV run-to-run trends...")
     ukv_trends_insights, ukv_diff_url = load_ukv_trends()
@@ -1217,70 +1353,88 @@ def main():
 
     ukv_meta = load_json("ukv_meta.json", {})
 
-    print("Building prompt...")
-    data_block = build_data_block(
-        warnings, rfg, fgs_history_text, gauge_regional, gauge_top10, gauge_trend,
-        cosmos, ukv_poly_text, rain_latest,
-        ukv_trends_insights=ukv_trends_insights,
-    )
+    # RFG/FGS are England & Wales-only Flood Forecasting Centre products —
+    # loaded once above, only ever attached to the "ew" briefing below.
+    for region, output_path, r2_key, r2_archive_prefix, system_prompt in _BRIEFINGS:
+        print(f"\n=== Building {REGION_LABEL[region]} briefing ===")
 
-    parsed = None
-    if OPENAI_API_KEY:
-        print(f"Calling OpenAI ({OPENAI_MODEL})...")
-        raw = call_openai(data_block, images)
-        if raw:
-            parsed = parse_openai_response(raw)
-            if parsed:
-                print(f"  headline={parsed.get('headline', '')[:60]}")
-    else:
-        print("OpenAI not configured — writing skeleton output")
+        print("Loading warnings...")
+        warnings, warnings_gen = load_warnings(region)
+        print(f"  {len(warnings)} active warning(s)")
 
-    bullets = build_bullets(warnings, rfg, fgs_history_text, gauge_regional, gauge_top10,
-                             gauge_trend, cosmos, images, parsed,
-                             ukv_trends_insights=ukv_trends_insights)
+        print("Loading rain gauge stats...")
+        gauge_regional, gauge_top10, gauge_trend, rain_latest = load_rain_gauge_stats(region)
+        print(f"  {'loaded' if gauge_regional else 'not available'}")
 
-    # Full prompt shown on the front end: system instructions + data + image manifest.
-    image_manifest = "\n".join(f"  {i+1}. {lbl}" for i, (lbl, _u) in enumerate(images))
-    full_prompt = (
-        "######## SYSTEM PROMPT ########\n"
-        f"{SYSTEM_PROMPT}\n\n"
-        "######## DATA (user message) ########\n"
-        f"{data_block}\n\n"
-        "######## IMAGES ATTACHED (in order) ########\n"
-        f"{image_manifest}"
-    )
+        print("Loading UKV poly forecast data...")
+        ukv_poly_text, ukv_run_label = load_ukv_poly_text(region)
+        print(f"  {'loaded' if ukv_poly_text else 'not available'}")
 
-    output = {
-        "generated_at":    now_utc().strftime("%Y-%m-%dT%H:%M:00Z"),
-        "headline":        (parsed or {}).get("headline", ""),
-        "summary":         (parsed or {}).get("summary",
-                            "Briefing not yet generated — trigger the agent_summary workflow."),
-        "context_bullets": bullets,
-        "prompt_used":     full_prompt,
-        "images_used":     [{"label": lbl, "url": url} for lbl, url in images],
-        "data_age": {
-            "warnings_generated_at": warnings_gen,
-            "rfg_generated_at":      rfg.get("generated_at", ""),
-            "fgs_issued_at":         fgs_issued,
-            "rain_latest_time":      rain_latest,
-            "ukv_run_label":         ukv_run_label or ukv_meta.get("generated_at", ""),
-        },
-    }
+        print("Building prompt...")
+        data_block = build_data_block(
+            warnings, rfg, fgs_history_text, gauge_regional, gauge_top10, gauge_trend,
+            cosmos, ukv_poly_text, rain_latest,
+            ukv_trends_insights=ukv_trends_insights, region=region,
+        )
 
-    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
-        json.dump(output, f, indent=2, ensure_ascii=False)
-    print(f"Written {OUTPUT_PATH}")
+        parsed = None
+        if OPENAI_API_KEY:
+            print(f"Calling OpenAI ({OPENAI_MODEL})...")
+            raw = call_openai(data_block, images, system_prompt)
+            if raw:
+                parsed = parse_openai_response(raw)
+                if parsed:
+                    print(f"  headline={parsed.get('headline', '')[:60]}")
+        else:
+            print("OpenAI not configured — writing skeleton output")
 
-    # Upload slim copy (without large prompt_used field) to R2.
-    # Save both a rolling latest and a dated archive for 2-week history.
-    # Set a lifecycle rule on the agent/summaries/ prefix in the R2 console
-    # (expire after 14 days) to keep storage bounded.
-    slim = {k: v for k, v in output.items() if k != "prompt_used"}
-    ts_tag = now_utc().strftime("%Y%m%d_%H%M")
-    if r2_put_json("agent/summary.json", slim):
-        print("  Uploaded agent/summary.json to R2 (rolling latest)")
-    if r2_put_json(f"agent/summaries/{ts_tag}.json", slim):
-        print(f"  Uploaded agent/summaries/{ts_tag}.json to R2 (archive)")
+        bullets = build_bullets(warnings, rfg, fgs_history_text, gauge_regional, gauge_top10,
+                                 gauge_trend, cosmos, images, parsed,
+                                 ukv_trends_insights=ukv_trends_insights, region=region)
+
+        # Full prompt shown on the front end: system instructions + data + image manifest.
+        image_manifest = "\n".join(f"  {i+1}. {lbl}" for i, (lbl, _u) in enumerate(images))
+        full_prompt = (
+            "######## SYSTEM PROMPT ########\n"
+            f"{system_prompt}\n\n"
+            "######## DATA (user message) ########\n"
+            f"{data_block}\n\n"
+            "######## IMAGES ATTACHED (in order) ########\n"
+            f"{image_manifest}"
+        )
+
+        output = {
+            "generated_at":    now_utc().strftime("%Y-%m-%dT%H:%M:00Z"),
+            "region":          region,
+            "headline":        (parsed or {}).get("headline", ""),
+            "summary":         (parsed or {}).get("summary",
+                                "Briefing not yet generated — trigger the agent_summary workflow."),
+            "context_bullets": bullets,
+            "prompt_used":     full_prompt,
+            "images_used":     [{"label": lbl, "url": url} for lbl, url in images],
+            "data_age": {
+                "warnings_generated_at": warnings_gen,
+                "rfg_generated_at":      rfg.get("generated_at", "") if region == "ew" else "",
+                "fgs_issued_at":         fgs_issued if region == "ew" else "",
+                "rain_latest_time":      rain_latest,
+                "ukv_run_label":         ukv_run_label or ukv_meta.get("generated_at", ""),
+            },
+        }
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(output, f, indent=2, ensure_ascii=False)
+        print(f"Written {output_path}")
+
+        # Upload slim copy (without large prompt_used field) to R2.
+        # Save both a rolling latest and a dated archive for 2-week history.
+        # Set a lifecycle rule on the relevant archive prefix in the R2 console
+        # (expire after 14 days) to keep storage bounded.
+        slim = {k: v for k, v in output.items() if k != "prompt_used"}
+        ts_tag = now_utc().strftime("%Y%m%d_%H%M")
+        if r2_put_json(r2_key, slim):
+            print(f"  Uploaded {r2_key} to R2 (rolling latest)")
+        if r2_put_json(f"{r2_archive_prefix}/{ts_tag}.json", slim):
+            print(f"  Uploaded {r2_archive_prefix}/{ts_tag}.json to R2 (archive)")
 
 
 if __name__ == "__main__":
