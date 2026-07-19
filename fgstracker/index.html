@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FGS tracker | Flood Forecast</title>
+<title>FGS tracker</title>
 <meta name="description" content="Compare one Flood Guidance Statement with another: five-day county risk maps for two issues, difference maps and county-by-county changes for England and Wales.">
 <meta name="theme-color" content="#0f172a">
-<link rel="icon" type="image/png" href="https://floodforecast.co.uk/static/images/avatar.png">
+<link rel="icon" type="image/png" href="../favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -31,13 +31,20 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
 .card:hover { box-shadow: var(--shadow-card-hover); }
 @media (prefers-color-scheme: dark) { .card { background: #0f172a; border-color: #1e293b; } }
 .section-label { font-family: 'Outfit', sans-serif; font-size: .625rem; font-weight: 700;
-  letter-spacing: .04em; text-transform: none; color: #64748b; }
+  letter-spacing: .04em; color: #64748b; }
 @media (prefers-color-scheme: dark) { .section-label { color: #94a3b8; } }
-select, input[type=text] { font-family: 'Roboto', sans-serif; }
 .ffsel { border: 1px solid #cbd5e1; border-radius: .5rem; background: #fff; color: #334155;
-  font-size: .8125rem; font-weight: 500; padding: .375rem 1.75rem .375rem .625rem; outline: none; cursor: pointer; }
+  font-size: .8125rem; font-weight: 500; padding: .375rem 1.75rem .375rem .625rem; outline: none; cursor: pointer;
+  font-family: 'Roboto', sans-serif; }
 .ffsel:focus { outline: 2px solid var(--brand-500); outline-offset: 2px; }
 @media (prefers-color-scheme: dark) { .ffsel { background: #0f172a; border-color: #334155; color: #cbd5e1; } }
+.dayrow { display: grid; gap: .75rem; grid-template-columns: 1fr; }
+.dayrow .ph { display: none; }
+@media (min-width: 640px) { .dayrow { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) {
+  .dayrow { grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr)); }
+  .dayrow .ph { display: block; }
+}
 .map { height: 300px; border-radius: .5rem; background: #eef3f6; border: 1px solid #e2e8f0; }
 @media (prefers-color-scheme: dark) { .map { background: #0b1526; border-color: #1e293b; } }
 .leaflet-container { background: transparent; font-family: 'Roboto', sans-serif; }
@@ -53,10 +60,7 @@ select, input[type=text] { font-family: 'Roboto', sans-serif; }
 <nav class="bg-[#293548] text-white shadow-md z-[3000] sticky top-0">
   <div class="max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
-      <a href="../menu.html" class="flex items-center gap-1.5 hover:scale-[1.02] transition-transform">
-        <img src="https://floodforecast.co.uk/static/images/avatar.png" alt="" class="w-8 h-8 rounded-full shadow-md shadow-black/10">
-        <span class="text-xl font-bold" style="font-family:'Outfit',sans-serif; word-spacing:-0.09em;">Flood Forecast</span>
-      </a>
+      <span class="text-xl font-bold" style="font-family:'Outfit',sans-serif;">FGS tracker</span>
       <div class="flex items-center gap-1 text-sm font-medium">
         <a href="../floodwarnings/index.html" class="px-3 py-2 rounded-md hover:bg-[#3a4a63] hidden sm:block">Flood warnings</a>
         <a href="../rapid_flood.html" class="px-3 py-2 rounded-md hover:bg-[#3a4a63] hidden sm:block">Rapid flood guidance</a>
@@ -69,8 +73,8 @@ select, input[type=text] { font-family: 'Roboto', sans-serif; }
 <main class="max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-6 sm:pt-6 sm:pb-10">
 
   <div class="mb-5">
-    <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">FGS tracker</h1>
-    <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Compare one Flood Guidance Statement with another, day by day, for England and Wales</p>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Flood Guidance Statement comparison</h1>
+    <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">One statement against a later issue, day by day, for England and Wales</p>
   </div>
 
   <div id="loading" class="card text-center text-slate-400 py-16">
@@ -81,7 +85,7 @@ select, input[type=text] { font-family: 'Roboto', sans-serif; }
 
   <div id="app" class="hidden space-y-5">
 
-    <!-- Row 1: statement A (latest) -->
+    <!-- Row 1: base statement -->
     <div class="card">
       <div class="flex items-center justify-between flex-wrap gap-3 mb-1">
         <div>
@@ -96,20 +100,20 @@ select, input[type=text] { font-family: 'Roboto', sans-serif; }
         </div>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-3" id="headA"></p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3" id="rowA"></div>
+      <div class="dayrow" id="rowA"></div>
     </div>
 
-    <!-- Row 2: statement B (previous) -->
+    <!-- Row 2: later comparison statement -->
     <div class="card">
       <div class="flex items-center justify-between flex-wrap gap-3 mb-1">
         <div>
-          <div class="section-label">Compared with</div>
+          <div class="section-label">Compared with a later issue</div>
           <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100" id="titleB"></h3>
         </div>
         <select id="runB" class="ffsel"></select>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-3" id="headB"></p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3" id="rowB"></div>
+      <div class="dayrow" id="rowB"></div>
       <div class="flex flex-wrap gap-4 mt-3 text-xs text-slate-500 dark:text-slate-400" id="riskLegend"></div>
     </div>
 
@@ -127,10 +131,10 @@ select, input[type=text] { font-family: 'Roboto', sans-serif; }
         </select>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-3" id="diffDesc"></p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3" id="rowDiff"></div>
+      <div class="dayrow" id="rowDiff"></div>
       <div class="flex flex-wrap gap-4 mt-3 text-xs text-slate-500 dark:text-slate-400">
-        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#D40000"></span>Upgrade</span>
-        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#2563eb"></span>Downgrade</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#D40000"></span>Upgraded in the later issue</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#2563eb"></span>Downgraded in the later issue</span>
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-200 dark:bg-slate-700"></span>No change</span>
       </div>
     </div>
@@ -143,9 +147,9 @@ select, input[type=text] { font-family: 'Roboto', sans-serif; }
           <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100">What changed, county by county</h3>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-          <input type="text" id="ctyFilter" placeholder="Filter counties…"
-            class="ffsel !cursor-text w-44" >
+          <input type="text" id="ctyFilter" placeholder="Filter counties…" class="ffsel !cursor-text w-44">
           <select id="ctySort" class="ffsel">
+            <option value="region">Group by region</option>
             <option value="changes">Sort: most changes</option>
             <option value="alpha">Sort: county A–Z</option>
           </select>
@@ -165,16 +169,11 @@ select, input[type=text] { font-family: 'Roboto', sans-serif; }
 
     <p class="text-xs text-slate-400 dark:text-slate-500">
       Data: Flood Forecasting Centre Flood Guidance Statement, per-county five-day export, archived on each issue
-      (~10:30 UK daily, occasionally twice a day). Difference maps match the two statements by valid date.
+      (~10:30 UK daily, occasionally twice a day). Columns are aligned by valid date, so each day of the later issue
+      sits directly beneath the same day of the earlier one.
     </p>
   </div>
 </main>
-
-<footer class="bg-gray-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-8">
-  <div class="max-w-[96rem] mx-auto px-4 text-sm text-slate-400 flex justify-end gap-4">
-    <a href="https://floodforecast.co.uk" class="text-slate-300 hover:text-slate-500">floodforecast.co.uk</a>
-  </div>
-</footer>
 
 <script>
 const R2 = 'https://radar.floodforecast.co.uk';
@@ -184,20 +183,23 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
 const RISK = {VL:0, L:1, M:2, H:3};
 const RISK_NAME = ['Very low', 'Low', 'Medium', 'High'];
 const RISK_COLOR = ['#90B86C', '#EBE455', '#E47012', '#D40000'];   // og FGS colours
-const IMPACT_NAME = ['', 'minimal', 'minor', 'significant', 'severe'];
+const IMPACT_NAME = ['', 'Minimal', 'Minor', 'Significant', 'Severe'];
 const LIK_NAME = ['', 'very low', 'low', 'medium', 'high'];
 const SOURCES = ['river', 'surface', 'coastal', 'ground'];
 const SOURCE_LABEL = {river:'Rivers', surface:'Surface water', coastal:'Coastal/tidal', ground:'Groundwater'};
 const UP = '#D40000', DOWN = '#2563eb';
 const ABBR = {N:'North', S:'South', E:'East', W:'West', NE:'North East', Gtr:'Greater'};
 const expandName = n => n.split(' ').map(w => ABBR[w] || w).join(' ');
+const REGION_ORDER = ['North East', 'North West', 'Yorkshire and The Humber', 'East Midlands',
+  'West Midlands', 'East of England', 'London', 'South East', 'South West', 'Wales'];
+const EW_BOUNDS = L.latLngBounds([[49.85, -6.5], [55.9, 2.1]]);
 
 let index = [];          // newest first
 let docs = {};           // id -> statement doc
-let A = null, B = null;  // selected ids (A = top row)
-let features = {};       // FGS county name -> geojson feature
-let allMaps = [];
-let basemaps = [];
+let A = null, B = null;  // A = base (earlier), B = later comparison
+let features = {};       // geojson features by expanded name
+let regions = {};        // FGS county name -> region
+let allMaps = [], basemaps = [], diffMaps = [];
 
 const fmtRun = e => new Date(e.issued_at).toLocaleDateString('en-GB',
   {weekday:'short', day:'numeric', month:'short'}) + ' ' +
@@ -206,6 +208,7 @@ const fmtDate = d => new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB',
   {weekday:'short', day:'numeric', month:'short'});
 const entry = id => index.find(e => e.id === id) || {};
 const overlap = (e1, e2) => (e1.days || []).filter(d => (e2.days || []).includes(d));
+const isForward = (base, other) => (other.issued_at || '') > (base.issued_at || '');
 
 // worst [impact, likelihood] across a county's four source cells for one day
 function worstCell(c, d){
@@ -227,13 +230,15 @@ Promise.all([
   fetchJson(R2 + '/geo/uk-counties.geojson').catch(() => fetchJson('../uk-counties.geojson'))
 ]).then(([idx, geo]) => {
   index = (idx.statements || []).slice().sort((a, b) => (b.issued_at || '').localeCompare(a.issued_at || ''));
-  const byName = {};
-  for (const f of geo.features) byName[f.properties.name] = f;
-  features = byName;
-  A = index[0] && index[0].id;
-  B = index[1] && index[1].id;
+  for (const f of geo.features) features[f.properties.name] = f;
+  A = index[1] ? index[1].id : (index[0] && index[0].id);
+  B = index[0] && index[0].id;
   return loadDocs([A, B]);
 }).then(() => {
+  for (const name of Object.keys(docs[A].counties)){
+    const f = features[expandName(name)];
+    regions[name] = f ? (f.properties.region || 'Other') : 'Other';
+  }
   document.getElementById('loading').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   renderAll();
@@ -248,20 +253,24 @@ function loadDocs(ids){
 }
 
 // ── Run selectors ────────────────────────────────────────────────────────────
+function forwardOptions(baseId){
+  const base = entry(baseId);
+  return index.filter(e => e.id !== baseId && isForward(base, e) && overlap(base, e).length)
+    .sort((x, y) => (x.issued_at || '').localeCompare(y.issued_at || ''));   // nearest first
+}
+
 function fillRunSelects(){
   const selA = document.getElementById('runA'), selB = document.getElementById('runB');
   selA.innerHTML = '';
   for (const e of index){
+    if (!forwardOptions(e.id).length) continue;   // must have at least one later overlapping run
     const o = document.createElement('option');
     o.value = e.id; o.textContent = fmtRun(e);
     if (e.id === A) o.selected = true;
     selA.appendChild(o);
   }
-  // B: any run with at least one overlapping valid day with A
   selB.innerHTML = '';
-  const ea = entry(A);
-  for (const e of index){
-    if (e.id === A || !overlap(ea, e).length) continue;
+  for (const e of forwardOptions(A)){
     const o = document.createElement('option');
     o.value = e.id; o.textContent = fmtRun(e);
     if (e.id === B) o.selected = true;
@@ -269,9 +278,8 @@ function fillRunSelects(){
   }
   selA.onchange = () => {
     A = +selA.value;
-    const ea2 = entry(A);
-    const ok = index.filter(e => e.id !== A && overlap(ea2, e).length);
-    if (!ok.find(e => e.id === B)) B = (ok[0] || {}).id ?? null;
+    const opts = forwardOptions(A);
+    if (!opts.find(e => e.id === B)) B = opts.length ? opts[0].id : null;
     loadDocs([A, B]).then(renderAll);
   };
   selB.onchange = () => { B = +selB.value; loadDocs([B]).then(renderAll); };
@@ -280,8 +288,9 @@ function fillRunSelects(){
 // ── Maps ─────────────────────────────────────────────────────────────────────
 let syncing = false;
 function makeMap(el){
-  const m = L.map(el, {attributionControl: false, zoomControl: false, preferCanvas: true})
-    .setView([52.7, -2.3], 6);
+  const m = L.map(el, {attributionControl: false, zoomControl: false, preferCanvas: true,
+    zoomSnap: 0.25, maxBounds: EW_BOUNDS.pad(0.25), maxBoundsViscosity: 0.8});
+  m.setView(EW_BOUNDS.getCenter(), 6);
   m.on('move', () => {
     if (syncing) return;
     syncing = true;
@@ -292,6 +301,24 @@ function makeMap(el){
   allMaps.push(m);
   return m;
 }
+
+// Fit England & Wales and lock that as the furthest-out zoom.
+function finalizeMaps(list){
+  requestAnimationFrame(() => {
+    syncing = true;
+    let fitted = null;
+    for (const m of list){
+      m.invalidateSize();
+      if (fitted === null){ m.fitBounds(EW_BOUNDS, {padding: [4, 4]}); fitted = {c: m.getCenter(), z: m.getZoom()}; }
+      else m.setView(fitted.c, fitted.z, {animate: false});
+      m.setMinZoom(fitted.z);
+    }
+    // keep any pre-existing maps in step
+    for (const m of allMaps) if (!list.includes(m)) m.setView(fitted.c, Math.max(m.getZoom(), fitted.z), {animate: false});
+    syncing = false;
+  });
+}
+
 function addBasemap(m){
   const t = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
     {maxZoom: 12, subdomains: 'abcd', opacity: 0.7});
@@ -311,6 +338,12 @@ function mapPanel(container, label, sub){
   return wrap.querySelector('.map');
 }
 
+function placeholder(container){
+  const ph = document.createElement('div');
+  ph.className = 'ph';
+  container.appendChild(ph);
+}
+
 function drawCounties(m, doc, dayIdx){
   const lg = L.layerGroup().addTo(m);
   for (const [name, c] of Object.entries(doc.counties)){
@@ -325,36 +358,36 @@ function drawCounties(m, doc, dayIdx){
       if (v && v !== '14') tip += '<br>' + SOURCE_LABEL[s] + ': ' + esc(v);
     }
     if (w) tip += '<br>Worst cell: ' + IMPACT_NAME[w[0]] + ' impact, ' + LIK_NAME[w[1]] + ' likelihood';
-    L.geoJSON(f, {style: {color: '#94a3b8', weight: 0.7, fillColor: RISK_COLOR[lvl], fillOpacity: 0.85}})
+    L.geoJSON(f, {style: {color: '#ffffff', weight: 1, fillColor: RISK_COLOR[lvl], fillOpacity: 0.9}})
       .bindTooltip(tip, {sticky: true}).addTo(lg);
   }
 }
 
 // ── Difference logic ─────────────────────────────────────────────────────────
-// Returns {dir: -1|0|1, from, to} for a county on one shared date, per mode.
-// Downgrade: drop in overall risk; or decrease in impact severity; or same
-// severity with reduced likelihood. Upgrades the reverse.
-function diffCounty(mode, ca, cb, da, db){
-  if (!ca || !cb) return null;
+// Change from the earlier statement (A) to the later one (B) for one shared
+// date. Downgrade: drop in overall risk; or decrease in impact severity; or
+// same severity with reduced likelihood. Upgrades the reverse.
+function diffCounty(mode, cOld, cNew, dOld, dNew){
+  if (!cOld || !cNew) return null;
   if (mode === 'risk'){
-    const va = RISK[ca.overall[da]], vb = RISK[cb.overall[db]];
-    if (va === undefined || vb === undefined) return null;
-    return {dir: Math.sign(va - vb), steps: Math.abs(va - vb),
-            from: RISK_NAME[vb], to: RISK_NAME[va]};
+    const vo = RISK[cOld.overall[dOld]], vn = RISK[cNew.overall[dNew]];
+    if (vo === undefined || vn === undefined) return null;
+    return {dir: Math.sign(vn - vo), steps: Math.abs(vn - vo),
+            from: RISK_NAME[vo], to: RISK_NAME[vn]};
   }
-  const wa = worstCell(ca, da), wb = worstCell(cb, db);
-  if (!wa || !wb) return null;
+  const wo = worstCell(cOld, dOld), wn = worstCell(cNew, dNew);
+  if (!wo || !wn) return null;
   if (mode === 'impact'){
-    return {dir: Math.sign(wa[0] - wb[0]), steps: Math.abs(wa[0] - wb[0]),
-            from: IMPACT_NAME[wb[0]], to: IMPACT_NAME[wa[0]]};
+    return {dir: Math.sign(wn[0] - wo[0]), steps: Math.abs(wn[0] - wo[0]),
+            from: IMPACT_NAME[wo[0]], to: IMPACT_NAME[wn[0]]};
   }
   // tick position: impact first, likelihood breaks ties
-  const dir = wa[0] !== wb[0] ? Math.sign(wa[0] - wb[0]) : Math.sign(wa[1] - wb[1]);
-  const steps = wa[0] !== wb[0] ? Math.abs(wa[0] - wb[0]) : Math.abs(wa[1] - wb[1]);
-  return {dir, steps, from: wb.join(''), to: wa.join('')};
+  const dir = wn[0] !== wo[0] ? Math.sign(wn[0] - wo[0]) : Math.sign(wn[1] - wo[1]);
+  const steps = wn[0] !== wo[0] ? Math.abs(wn[0] - wo[0]) : Math.abs(wn[1] - wo[1]);
+  return {dir, steps, from: wo.join(''), to: wn.join('')};
 }
 
-function drawDiff(m, mode, dA, dB, date){
+function drawDiff(m, mode, date){
   const a = docs[A], b = docs[B];
   const da = a.days.indexOf(date), db = b.days.indexOf(date);
   const lg = L.layerGroup().addTo(m);
@@ -367,25 +400,34 @@ function drawDiff(m, mode, dA, dB, date){
     const op = r.dir === 0 ? 0.25 : Math.min(0.55 + 0.18 * (r.steps - 1), 0.92);
     const tip = '<b>' + esc(name) + '</b><br>' +
       (r.dir === 0 ? 'No change (' + esc(r.to) + ')'
-        : esc(r.from) + ' → ' + esc(r.to) + (r.dir > 0 ? ' (upgrade)' : ' (downgrade)'));
+        : esc(r.from) + ' to ' + esc(r.to) + (r.dir > 0 ? ' (upgrade)' : ' (downgrade)'));
     L.geoJSON(f, {style: {color: '#94a3b8', weight: 0.7, fillColor: color, fillOpacity: op}})
       .bindTooltip(tip, {sticky: true}).addTo(lg);
   }
 }
 
 // ── Render ───────────────────────────────────────────────────────────────────
+const unionDates = () => [...new Set([...docs[A].days, ...docs[B].days])].sort();
+
 function renderRow(rowEl, titleEl, headEl, id){
   const doc = docs[id], e = entry(id);
   rowEl.innerHTML = '';
   titleEl.textContent = 'Issued ' + fmtRun(e);
   headEl.textContent = doc.headline || '';
-  doc.days.forEach((d, i) => {
+  const dates = unionDates();
+  rowEl.style.setProperty('--cols', dates.length);
+  const made = [];
+  for (const d of dates){
+    const i = doc.days.indexOf(d);
+    if (i < 0){ placeholder(rowEl); continue; }
     const el = mapPanel(rowEl, 'Day ' + (i + 1), fmtDate(d));
-    drawCounties(makeMap(el), doc, i);
-  });
+    const m = makeMap(el);
+    drawCounties(m, doc, i);
+    made.push(m);
+  }
+  return made;
 }
 
-let diffMaps = [];
 function renderDiffRow(){
   const rowEl = document.getElementById('rowDiff');
   for (const m of diffMaps){ m.remove(); allMaps = allMaps.filter(x => x !== m); }
@@ -393,21 +435,24 @@ function renderDiffRow(){
   rowEl.innerHTML = '';
   const mode = document.getElementById('diffMode').value;
   const a = docs[A], b = docs[B];
+  const dates = unionDates();
+  rowEl.style.setProperty('--cols', dates.length);
   const shared = a.days.filter(d => b.days.includes(d));
-  document.getElementById('titleDiff').textContent =
-    fmtRun(entry(B)) + ' → ' + fmtRun(entry(A));
+  document.getElementById('titleDiff').textContent = fmtRun(entry(A)) + ' to ' + fmtRun(entry(B));
   document.getElementById('diffDesc').textContent =
     {risk: 'Change in the overall county flood risk (very low / low / medium / high) between the two issues.',
      impact: 'Change in the worst impact severity across all four flood sources.',
      tick: 'Change in matrix position of the worst cell: impact severity first, likelihood as the tie-break.'}[mode] +
-    (shared.length < 5 ? ' Showing the ' + shared.length + ' overlapping day' + (shared.length === 1 ? '' : 's') + '.' : '');
-  for (const d of shared){
+    ' ' + shared.length + ' overlapping day' + (shared.length === 1 ? '' : 's') + '.';
+  for (const d of dates){
+    if (!shared.includes(d)){ placeholder(rowEl); continue; }
     const el = mapPanel(rowEl, fmtDate(d),
-      'day ' + (b.days.indexOf(d) + 1) + ' → day ' + (a.days.indexOf(d) + 1));
+      'day ' + (a.days.indexOf(d) + 1) + ' vs day ' + (b.days.indexOf(d) + 1));
     const m = makeMap(el);
     diffMaps.push(m);
-    drawDiff(m, mode, A, B, d);
+    drawDiff(m, mode, d);
   }
+  finalizeMaps(diffMaps);
 }
 
 function renderRiskLegend(){
@@ -417,6 +462,16 @@ function renderRiskLegend(){
 }
 
 // ── County table ─────────────────────────────────────────────────────────────
+function changeCell(c){
+  if (!c) return '<td class="px-4 py-2 text-center text-slate-300">–</td>';
+  if (c.dir === 0) return '<td class="px-4 py-2 text-center text-slate-400">' + esc(c.to) + '</td>';
+  const col = c.dir > 0 ? UP : DOWN;
+  const bg = c.dir > 0 ? 'rgba(212,0,0,.07)' : 'rgba(37,99,235,.08)';
+  return '<td class="px-4 py-1.5 text-center whitespace-nowrap" style="background:' + bg + '">' +
+    '<div class="text-[10px] leading-tight text-slate-400">' + esc(c.from) + '</div>' +
+    '<div class="font-semibold leading-tight" style="color:' + col + '">' + esc(c.to) + '</div></td>';
+}
+
 function renderTable(){
   const mode = document.getElementById('diffMode').value;
   const q = document.getElementById('ctyFilter').value.trim().toLowerCase();
@@ -424,10 +479,8 @@ function renderTable(){
   const showUnchanged = document.getElementById('showUnchanged').checked;
   const a = docs[A], b = docs[B];
   const shared = a.days.filter(d => b.days.includes(d));
-  const head = document.getElementById('ctyHead');
-  const body = document.getElementById('ctyBody');
 
-  head.innerHTML = '<tr>' +
+  document.getElementById('ctyHead').innerHTML = '<tr>' +
     '<th class="px-6 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-400">County</th>' +
     shared.map(d => '<th class="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-400">' + esc(fmtDate(d)) + '</th>').join('') +
     '<th class="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-400">Changes</th></tr>';
@@ -439,23 +492,38 @@ function renderTable(){
       a.days.indexOf(d), b.days.indexOf(d)));
     const n = cells.filter(c => c && c.dir !== 0).length;
     if (!n && !showUnchanged) continue;
-    rows.push({name, cells, n});
+    rows.push({name, cells, n, region: regions[name] || 'Other'});
   }
-  rows.sort(sort === 'alpha' ? (x, y) => x.name.localeCompare(y.name)
-    : (x, y) => (y.n - x.n) || x.name.localeCompare(y.name));
 
-  body.innerHTML = rows.map(r =>
+  let html = '';
+  const rowHtml = r =>
     '<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">' +
-    '<td class="px-6 py-2.5 whitespace-nowrap font-medium text-slate-800 dark:text-slate-200">' + esc(r.name) + '</td>' +
-    r.cells.map(c => {
-      if (!c) return '<td class="px-4 py-2.5 text-center text-slate-300">–</td>';
-      if (c.dir === 0) return '<td class="px-4 py-2.5 text-center text-slate-400">' + esc(c.to) + '</td>';
-      const col = c.dir > 0 ? UP : DOWN, sym = c.dir > 0 ? '▲' : '▼';
-      return '<td class="px-4 py-2.5 text-center whitespace-nowrap font-medium" style="color:' + col + '">' +
-        esc(c.from) + ' → ' + esc(c.to) + ' ' + sym + '</td>';
-    }).join('') +
-    '<td class="px-4 py-2.5 text-center font-bold ' + (r.n ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300') + '">' + r.n + '</td></tr>'
-  ).join('') || '<tr><td class="px-6 py-6 text-slate-400" colspan="' + (shared.length + 2) + '">No changes between these two statements' + (q ? ' matching "' + esc(q) + '"' : '') + '. Tick "Show unchanged" to list every county.</td></tr>';
+    '<td class="px-6 py-2 whitespace-nowrap font-medium text-slate-800 dark:text-slate-200">' + esc(r.name) + '</td>' +
+    r.cells.map(changeCell).join('') +
+    '<td class="px-4 py-2 text-center font-bold ' + (r.n ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300') + '">' + r.n + '</td></tr>';
+
+  if (sort === 'region'){
+    const order = r => { const i = REGION_ORDER.indexOf(r); return i < 0 ? 99 : i; };
+    rows.sort((x, y) => (order(x.region) - order(y.region)) || x.name.localeCompare(y.name));
+    let cur = null;
+    for (const r of rows){
+      if (r.region !== cur){
+        cur = r.region;
+        html += '<tr><td colspan="' + (shared.length + 2) +
+          '" class="px-6 py-1.5 bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400" style="font-family:\'Outfit\',sans-serif">' +
+          esc(cur) + '</td></tr>';
+      }
+      html += rowHtml(r);
+    }
+  } else {
+    rows.sort(sort === 'alpha' ? (x, y) => x.name.localeCompare(y.name)
+      : (x, y) => (y.n - x.n) || x.name.localeCompare(y.name));
+    html = rows.map(rowHtml).join('');
+  }
+
+  document.getElementById('ctyBody').innerHTML = html ||
+    '<tr><td class="px-6 py-6 text-slate-400" colspan="' + (shared.length + 2) + '">No changes between these two statements' +
+    (q ? ' matching "' + esc(q) + '"' : '') + '. Tick "Show unchanged" to list every county.</td></tr>';
 
   const nCh = rows.filter(r => r.n).length;
   document.getElementById('ctyFoot').textContent =
@@ -464,20 +532,19 @@ function renderTable(){
 }
 
 function renderAll(){
-  if (!docs[A] || !docs[B]) return;
+  if (A == null || B == null || !docs[A] || !docs[B]) return;
   for (const m of allMaps) m.remove();
   allMaps = []; basemaps = []; diffMaps = [];
   fillRunSelects();
-  renderRow(document.getElementById('rowA'), document.getElementById('titleA'), document.getElementById('headA'), A);
-  renderRow(document.getElementById('rowB'), document.getElementById('titleB'), document.getElementById('headB'), B);
+  const ma = renderRow(document.getElementById('rowA'), document.getElementById('titleA'), document.getElementById('headA'), A);
+  const mb = renderRow(document.getElementById('rowB'), document.getElementById('titleB'), document.getElementById('headB'), B);
+  finalizeMaps(ma.concat(mb));
   renderDiffRow();
   renderRiskLegend();
   renderTable();
-  requestAnimationFrame(() => { for (const m of allMaps) m.invalidateSize(); });
 }
 
-document.getElementById('diffMode').onchange = () => { renderDiffRow(); renderTable();
-  requestAnimationFrame(() => { for (const m of allMaps) m.invalidateSize(); }); };
+document.getElementById('diffMode').onchange = () => { renderDiffRow(); renderTable(); };
 document.getElementById('ctyFilter').oninput = renderTable;
 document.getElementById('ctySort').onchange = renderTable;
 document.getElementById('showUnchanged').onchange = renderTable;
