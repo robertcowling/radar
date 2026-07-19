@@ -1,0 +1,53 @@
+name: Fetch Flood Guidance Statement
+
+on:
+  workflow_dispatch:
+  schedule:
+    # FGS issues ~10:30 UK daily with occasional amendments at other times;
+    # hourly is cheap (one API GET, MD5-skipped PUTs when nothing changed).
+    - cron: '48 * * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install boto3
+
+    - name: Fetch flood guidance statements
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+        FFC_API_KEY: ${{ secrets.FFC_API_KEY }}
+        FGS_API_KEY: ${{ secrets.FGS_API_KEY }}
+      run: python fetch_fgs.py
+
+    - name: Report Job Status
+      if: always()
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        JOB_NAME: "Flood Guidance Statement"
+        JOB_STATUS: ${{ job.status }}
+      run: python report_job_status.py

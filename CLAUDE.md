@@ -61,6 +61,31 @@ script that writes to R2:
   latest run without waiting for the next one — but only once `is_run_complete`
   is also satisfied for that run.
 
+## FGS tracker (`fetch_fgs.py` / `fgstracker/index.html`)
+
+- FGS = the FFC 5-day Flood Guidance Statement (daily ~10:30 UK, occasional
+  amendments). API: `https://api.ffc-environment-agency.fgs.metoffice.gov.uk/api/public/v3/statements`
+  (header `X-Api-Key`, secret `FFC_API_KEY`/`FGS_API_KEY`; same host as RFG).
+  The API keeps only the ~50 newest statements — our archive accumulates them
+  permanently on R2.
+- Each statement links a `detailed_csv_url` ("five day export"): one row per
+  county per day (109 England & Wales counties × 5 days) with overall risk
+  (VL/L/M/H) plus a two-digit cell per source (rivers/surface/coastal/ground):
+  first digit impact 1–4, second likelihood 1–4, comma-separated when a county
+  has multiple areas of concern (e.g. `32,33`). `14` (minimal impact, high
+  likelihood) is the everywhere-default "nothing to see" value.
+- R2 keys: `fgs/index.json` (rolling index with per-day above-VL and
+  areas-of-concern county counts) and `fgs/archive/{id}.json` +
+  `fgs/archive/{id}_aoc.jpg` (parsed statement + archived area-of-concern
+  image). Statements are re-fetched when `last_modified_at` changes.
+  Workflow: `fgs_update.yml`, hourly cron.
+- `fgstracker/index.html` compares successive statements **by valid date**
+  (day 2 of yesterday's issue = day 1 of today's): change lists, county
+  choropleths (matched to `geo/uk-counties.geojson` by expanding N/S/E/W/NE/Gtr
+  abbreviations), diff map, per-source 4×4 risk matrices, county × date table.
+  Overall county risk often stays VL while all the action is in source cells,
+  so change detection always scans every source, not just the selected view.
+
 ## Gauge QC (`gauge_qc.py` / `gaugecheck.html`)
 
 - Results: `gaugecheck/results.json` (current run snapshot)

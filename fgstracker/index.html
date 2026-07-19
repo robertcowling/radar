@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FGS tracker | Flood Forecast</title>
+<meta name="description" content="Track the Flood Guidance Statement across successive issues: county-by-county 5-day flood risk, escalations and de-escalations, risk matrices and comparison maps for England and Wales.">
+<link rel="icon" type="image/png" href="../favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+:root {
+  --brand-500: #1a73e8;
+  --ink-900: #1e293b;
+  --risk-vl: #7cb342; --risk-l: #f6bf26; --risk-m: #f57c00; --risk-h: #d32f2f;
+  --esc: #d32f2f; --deesc: #1a73e8;
+}
+html { height: 100%; }
+body { margin: 0; font-family: 'Roboto', sans-serif; background: #f8f9fa; color: #3c4043; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f3f4; }
+::-webkit-scrollbar-thumb { background: #bdc1c6; border-radius: 4px; }
+
+.topbar { background: var(--ink-900); color: #f1f5f9; height: 50px; position: sticky; top: 0; z-index: 1100;
+  display: flex; align-items: center; gap: 16px; padding: 0 18px; }
+.topbar h1 { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700; margin: 0; letter-spacing: 0.3px; }
+.topbar .sub { font-size: 12px; color: #94a3b8; }
+.topbar .nav { margin-left: auto; display: flex; gap: 14px; font-size: 13px; }
+.topbar .nav a { color: #93c5fd; text-decoration: none; }
+.topbar .nav a:hover { text-decoration: underline; }
+
+.wrap { max-width: 1500px; margin: 0 auto; padding: 16px 18px 40px; }
+h2 { font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; color: #1f2937; margin: 26px 0 10px; }
+h2 .hint { font-family: 'Roboto', sans-serif; font-size: 12px; font-weight: 400; color: #94a3b8; margin-left: 8px; }
+
+.controls { background: white; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+  padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.ctl-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ctl-label { font-size: 12px; font-weight: 600; color: #64748b; min-width: 86px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 16px; padding: 4px 11px;
+  font-size: 12px; font-weight: 600; color: #475569; cursor: pointer; user-select: none;
+  display: inline-flex; align-items: center; gap: 6px; transition: background .12s, border-color .12s; }
+.chip:hover { background: #eef2f7; }
+.chip.on { background: var(--brand-500); border-color: var(--brand-500); color: white; }
+.chip .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.chip small { font-weight: 500; opacity: .8; }
+select { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit;
+  font-size: 12px; font-weight: 600; color: #475569; padding: 4px 8px; cursor: pointer; outline: none; }
+.arrow { color: #94a3b8; font-weight: 700; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 14px; }
+.scard { background: white; border-radius: 10px; padding: 14px; border-top: 4px solid #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08); display: flex; flex-direction: column; gap: 8px; }
+.scard .when { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: #1f2937;
+  display: flex; align-items: center; gap: 8px; }
+.scard .pill { font-size: 10px; font-weight: 700; color: white; padding: 2px 8px; border-radius: 10px; }
+.scard .headline { font-size: 12.5px; color: #4b5563; line-height: 1.45; }
+.scard .trend { display: flex; gap: 5px; font-size: 11px; color: #64748b; align-items: center; flex-wrap: wrap; }
+.trend .t { border-radius: 5px; padding: 2px 6px; background: #f1f5f9; font-weight: 600; }
+.trend .t.up { background: #fde7e7; color: #b71c1c; }
+.trend .t.down { background: #e3edfb; color: #1557b0; }
+.scard .links { display: flex; gap: 12px; font-size: 12px; margin-top: auto; }
+.scard .links a { color: var(--brand-500); text-decoration: none; font-weight: 600; }
+.scard .links a:hover { text-decoration: underline; }
+.scard .amend { font-size: 11.5px; color: #b45309; background: #fef3c7; border-radius: 6px; padding: 6px 8px; }
+
+.changes { background: white; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+  padding: 14px; }
+.chg-summary { font-size: 13px; color: #4b5563; margin-bottom: 10px; }
+.chg-flag { background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px; padding: 10px 12px;
+  font-size: 12.5px; color: #78350f; margin-bottom: 10px; line-height: 1.5; }
+.chg-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.chg-day { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; }
+.chg-day .d { font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px; }
+.chg-item { font-size: 12px; padding: 3px 0; display: flex; gap: 6px; align-items: baseline; }
+.chg-item .cty { font-weight: 600; color: #1f2937; }
+.chg-item .mv { font-weight: 700; }
+.chg-item .mv.up { color: var(--esc); }
+.chg-item .mv.down { color: var(--deesc); }
+.chg-item .src { color: #94a3b8; font-size: 11px; }
+.chg-none { font-size: 12px; color: #94a3b8; }
+.chg-more { font-size: 11.5px; color: var(--brand-500); cursor: pointer; font-weight: 600; padding-top: 4px; }
+
+.maps { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.mapcard { background: white; border-radius: 10px; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08); display: flex; flex-direction: column; }
+.mapcard .mhead { padding: 8px 12px; font-size: 12.5px; font-weight: 700; color: #334155;
+  display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #eef1f4; }
+.mapcard .mhead .nodata { color: #b91c1c; font-weight: 600; font-size: 11px; }
+.mapcard .m { height: 380px; background: #e8eaed; }
+.legend { display: flex; gap: 10px; padding: 6px 12px; font-size: 11px; color: #64748b; flex-wrap: wrap; }
+.legend span { display: inline-flex; align-items: center; gap: 4px; }
+.legend .sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+.matrices { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.mx { background: white; border-radius: 10px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08); }
+.mx .t { font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px; }
+.mx table { border-collapse: collapse; width: 100%; }
+.mx th { font-size: 10px; font-weight: 600; color: #94a3b8; padding: 3px; }
+.mx td { border: 1px solid #e2e8f0; text-align: center; font-size: 13px; font-weight: 700; padding: 7px 3px; color: #1f2937; }
+.mx td small { display: block; font-size: 9.5px; font-weight: 700; }
+.mx td small.plus { color: var(--esc); }
+.mx td small.minus { color: var(--deesc); }
+.mx .axis { font-size: 10px; color: #94a3b8; }
+
+.tbl-tools { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.tbl-tools input[type=text] { border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px 9px; font-size: 12px;
+  font-family: inherit; outline: none; width: 200px; }
+.tbl-tools label { font-size: 12px; color: #475569; display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+.tblwrap { background: white; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+  overflow-x: auto; max-height: 640px; overflow-y: auto; }
+table.county { border-collapse: collapse; width: 100%; font-size: 12px; }
+table.county th { position: sticky; top: 0; background: #f8fafc; z-index: 5; font-size: 11px; font-weight: 700;
+  color: #475569; padding: 7px 8px; border-bottom: 2px solid #e2e8f0; text-align: center; }
+table.county th.cty { text-align: left; left: 0; z-index: 6; }
+table.county td { padding: 4px 8px; border-bottom: 1px solid #f1f5f9; text-align: center; white-space: nowrap; }
+table.county td.cty { text-align: left; font-weight: 600; color: #1f2937; position: sticky; left: 0; background: white; }
+tr:hover td { background: #f8fafc; }
+.cellchips { display: inline-flex; gap: 3px; }
+.cc { width: 17px; height: 17px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9.5px; font-weight: 700; color: white; }
+.cc.chg { outline: 2px solid #1e293b; outline-offset: 1px; }
+.cc.na { background: #eef1f4; color: #b6bec9; }
+
+.aocs { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.aoc { background: white; border-radius: 10px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08); }
+.aoc .t { font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px; }
+.aoc img { width: 100%; border-radius: 6px; display: block; }
+
+.foot { font-size: 11px; color: #94a3b8; margin-top: 30px; line-height: 1.6; }
+.foot a { color: #60a5fa; }
+.loading { padding: 60px 20px; text-align: center; color: #94a3b8; font-size: 14px; }
+.leaflet-tooltip { font-family: 'Roboto', sans-serif; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>FGS tracker</h1>
+  <span class="sub">Flood Guidance Statement, issue by issue</span>
+  <div class="nav">
+    <a href="../floodwarnings/index.html">Flood warnings</a>
+    <a href="../rapid_flood.html">Rapid flood guidance</a>
+    <a href="/menu.html">Menu</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="loading" class="loading">Loading Flood Guidance Statements…</div>
+  <div id="app" style="display:none">
+
+    <div class="controls">
+      <div class="ctl-row">
+        <span class="ctl-label">Statements</span>
+        <div class="chips" id="stChips"></div>
+        <select id="addOlder"><option value="">Add older…</option></select>
+      </div>
+      <div class="ctl-row">
+        <span class="ctl-label">Compare</span>
+        <select id="selA"></select> <span class="arrow">→</span> <select id="selB"></select>
+        <span class="ctl-label" style="min-width:auto;margin-left:14px">View</span>
+        <select id="selSource">
+          <option value="overall">Overall risk</option>
+          <option value="river">Rivers</option>
+          <option value="surface">Surface water</option>
+          <option value="coastal">Coastal / tidal</option>
+          <option value="ground">Groundwater</option>
+        </select>
+      </div>
+      <div class="ctl-row">
+        <span class="ctl-label">Valid date</span>
+        <div class="chips" id="dateChips"></div>
+      </div>
+    </div>
+
+    <div class="cards" id="cards"></div>
+
+    <h2>What changed <span class="hint" id="chgHint"></span></h2>
+    <div class="changes" id="changes"></div>
+
+    <h2>Maps <span class="hint">one map per statement for the selected date, oldest first, plus the change between the two compared issues</span></h2>
+    <div class="maps" id="maps"></div>
+    <div class="legend" id="mapLegend"></div>
+
+    <h2>Risk matrices <span class="hint" id="mxHint"></span></h2>
+    <div class="matrices" id="matrices"></div>
+
+    <h2>Counties day by day <span class="hint">each cell shows one square per selected statement, oldest → newest; outlined squares changed from the previous issue</span></h2>
+    <div class="tbl-tools">
+      <input type="text" id="ctySearch" placeholder="Filter counties…">
+      <label><input type="checkbox" id="showAll"> Show all counties</label>
+    </div>
+    <div class="tblwrap"><table class="county" id="ctyTable"></table></div>
+
+    <h2>Official areas of concern</h2>
+    <div class="aocs" id="aocs"></div>
+
+    <div class="foot">
+      Data: Flood Forecasting Centre (Met Office / Environment Agency) Flood Guidance Statement public API, per-county
+      five-day detailed export. Per-source cells encode impact then likelihood (1–4); overall county risk is
+      very low / low / medium / high. New statements are archived automatically shortly after issue (~10:30 UK time daily,
+      plus amendments). This page compares statements by valid date, so day 2 of an older issue lines up with day 1 of the next.
+    </div>
+  </div>
+</div>
+
+<script>
+const R2 = 'https://radar.floodforecast.co.uk';
+function fetchJson(url){ return fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+const RISK = {VL:0, L:1, M:2, H:3};
+const RISK_NAME = ['Very low','Low','Medium','High'];
+const RISK_COLOR = ['#7cb342','#f6bf26','#f57c00','#d32f2f'];
+const IMPACT_NAME = ['','Minimal','Minor','Significant','Severe'];
+const IMPACT_COLOR = ['','#a5b8a0','#f6bf26','#f57c00','#d32f2f'];
+const LIK_NAME = ['','very low','low','medium','high'];
+const SOURCES = ['river','surface','coastal','ground'];
+const SOURCE_LABEL = {river:'Rivers', surface:'Surface water', coastal:'Coastal / tidal', ground:'Groundwater'};
+const AB = {N:'North', S:'South', E:'East', W:'West', NE:'North East', Gtr:'Greater'};
+const srcTag = s => s === 'overall' ? 'overall' : SOURCE_LABEL[s].toLowerCase();
+const expandName = n => n.split(' ').map(w => AB[w] || w).join(' ');
+
+let index = [];            // newest first
+let statements = {};       // id -> full statement doc
+let selectedIds = [];      // chronological (oldest first)
+let pairA = null, pairB = null;   // ids being compared (A earlier, B later)
+let curDate = null;
+let counties = null;       // geojson features by FGS name
+let maps = [], mapLayers = [];
+
+function fmtIssued(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
+}
+function fmtDate(iso){
+  const d = new Date(iso + 'T00:00:00Z');
+  return d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
+}
+
+// Worst [impact, likelihood] pair in a source cell like "32,33"; null for empty/none.
+function parseCell(v){
+  if (!v) return null;
+  let best = null;
+  for (const part of String(v).split(',')){
+    const p = part.trim();
+    if (p.length < 2) continue;
+    const imp = +p[0], lik = +p[1];
+    if (!best || imp > best[0] || (imp === best[0] && lik > best[1])) best = [imp, lik];
+  }
+  return best;
+}
+
+// Comparable severity of a county for the current view: overall level 0-3, or
+// per-source ranking imp*10+lik so escalation/de-escalation works for sources too.
+function severity(st, name, dayIdx, source){
+  const c = st.counties[name];
+  if (!c) return null;
+  if (source === 'overall'){
+    const v = RISK[c.overall[dayIdx]];
+    return v === undefined ? null : v;
+  }
+  const p = parseCell(c[source][dayIdx]);
+  return p ? p[0] * 10 + p[1] : null;
+}
+
+function cellLabel(st, name, dayIdx, source){
+  const c = st.counties[name];
+  if (!c) return '–';
+  if (source === 'overall') return c.overall[dayIdx] || '–';
+  return c[source][dayIdx] || '–';
+}
+
+function cellColor(st, name, dayIdx, source){
+  const c = st.counties[name];
+  if (!c) return null;
+  if (source === 'overall'){
+    const v = RISK[c.overall[dayIdx]];
+    return v === undefined ? null : RISK_COLOR[v];
+  }
+  const p = parseCell(c[source][dayIdx]);
+  return p ? IMPACT_COLOR[p[0]] : null;
+}
+
+// ── Data load ─────────────────────────────────────────────────────────────────
+Promise.all([
+  fetchJson(R2 + '/fgs/index.json?t=' + Date.now()).catch(() => fetchJson('../fgs/index.json')),
+  fetchJson(R2 + '/geo/uk-counties.geojson').catch(() => fetchJson('../uk-counties.geojson'))
+]).then(([idx, geo]) => {
+  index = (idx.statements || []).slice().sort((a,b) => (b.issued_at||'').localeCompare(a.issued_at||''));
+  const byName = {};
+  for (const f of geo.features) byName[f.properties.name] = f;
+  counties = {byName, geo};
+  selectedIds = index.slice(0, 4).map(e => e.id).reverse();  // oldest first
+  if (selectedIds.length >= 2){
+    pairB = selectedIds[selectedIds.length - 1];
+    pairA = selectedIds[selectedIds.length - 2];
+  } else { pairA = pairB = selectedIds[0]; }
+  return loadSelected();
+}).then(() => {
+  const latest = statements[selectedIds[selectedIds.length - 1]];
+  curDate = latest ? latest.days[0] : null;
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = '';
+  renderAll();
+}).catch(e => {
+  document.getElementById('loading').textContent = 'Could not load FGS data (' + e.message + '). The archive may not be populated yet.';
+});
+
+function loadSelected(){
+  return Promise.all(selectedIds.map(id =>
+    statements[id] ? Promise.resolve() :
+    fetchJson(R2 + '/fgs/archive/' + id + '.json').catch(() => fetchJson('../fgs/archive/' + id + '.json'))
+      .then(d => { statements[id] = d; }).catch(() => { statements[id] = null; })
+  ));
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+function renderChips(){
+  const el = document.getElementById('stChips');
+  el.innerHTML = '';
+  // newest 12 plus anything older that is currently selected
+  const shown = index.filter((e, i) => i < 12 || selectedIds.includes(e.id));
+  for (const e of shown){
+    const on = selectedIds.includes(e.id);
+    const worst = RISK[e.worst] || 0;
+    const concern = Math.max(...(e.concern || [0]));
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (on ? ' on' : '');
+    chip.innerHTML = '<span class="dot" style="background:' + RISK_COLOR[worst] + '"></span>' +
+      esc(fmtIssued(e.issued_at)) + (concern ? ' <small>' + concern + ' cty</small>' : '');
+    chip.title = 'Issued ' + e.issued_at + ' — worst overall risk ' + RISK_NAME[worst] +
+      (concern ? '; up to ' + concern + ' counties with an area of concern' : '');
+    chip.onclick = () => {
+      if (on && selectedIds.length <= 1) return;
+      selectedIds = on ? selectedIds.filter(i => i !== e.id) : selectedIds.concat(e.id);
+      selectedIds.sort((a,b) => (idOf(a).issued_at||'').localeCompare(idOf(b).issued_at||''));
+      if (!selectedIds.includes(pairA) || !selectedIds.includes(pairB) || pairA === pairB){
+        pairB = selectedIds[selectedIds.length - 1];
+        pairA = selectedIds[Math.max(0, selectedIds.length - 2)];
+      }
+      loadSelected().then(renderAll);
+    };
+    el.appendChild(chip);
+  }
+  const add = document.getElementById('addOlder');
+  add.innerHTML = '<option value="">Add older…</option>';
+  for (const e of index){
+    if (selectedIds.includes(e.id)) continue;
+    const o = document.createElement('option');
+    const concern = Math.max(...(e.concern || [0]));
+    o.value = e.id;
+    o.textContent = new Date(e.issued_at).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) +
+      ' — worst ' + RISK_NAME[RISK[e.worst] || 0].toLowerCase() + (concern ? ', ' + concern + ' cty concern' : '');
+    add.appendChild(o);
+  }
+  add.onchange = () => {
+    if (!add.value) return;
+    selectedIds = selectedIds.concat(+add.value);
+    selectedIds.sort((a,b) => (idOf(a).issued_at||'').localeCompare(idOf(b).issued_at||''));
+    loadSelected().then(renderAll);
+  };
+}
+function idOf(id){ return index.find(e => e.id === id) || {}; }
+
+function renderPairSelects(){
+  for (const [sel, cur, setter] of [['selA', pairA, v => pairA = v], ['selB', pairB, v => pairB = v]]){
+    const el = document.getElementById(sel);
+    el.innerHTML = '';
+    for (const id of selectedIds){
+      const o = document.createElement('option');
+      o.value = id; o.textContent = fmtIssued(idOf(id).issued_at) + ' (#' + id + ')';
+      if (id === cur) o.selected = true;
+      el.appendChild(o);
+    }
+    el.onchange = () => { setter(+el.value); renderAll(); };
+  }
+}
+
+function renderDateChips(){
+  const el = document.getElementById('dateChips');
+  const dates = [...new Set(selectedIds.flatMap(id => (statements[id] ? statements[id].days : [])))].sort();
+  if (!dates.includes(curDate)) curDate = dates[0];
+  el.innerHTML = '';
+  for (const d of dates){
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (d === curDate ? ' on' : '');
+    chip.textContent = fmtDate(d);
+    chip.onclick = () => { curDate = d; renderAll(); };
+    el.appendChild(chip);
+  }
+}
+
+// ── Statement cards ───────────────────────────────────────────────────────────
+function renderCards(){
+  const el = document.getElementById('cards');
+  el.innerHTML = '';
+  for (const id of selectedIds){
+    const st = statements[id];
+    if (!st) continue;
+    const worst = RISK[idOf(id).worst] || 0;
+    const trend = st.flood_risk_trend || {};
+    const tr = [1,2,3,4,5].map(i => {
+      const v = (trend['day' + i] || '').toLowerCase();
+      const cls = v === 'increasing' ? 'up' : v === 'decreasing' ? 'down' : '';
+      const sym = v === 'increasing' ? '↑' : v === 'decreasing' ? '↓' : '→';
+      return '<span class="t ' + cls + '" title="Day ' + i + ': ' + esc(v || 'stable') + '">D' + i + ' ' + sym + '</span>';
+    }).join('');
+    const card = document.createElement('div');
+    card.className = 'scard';
+    card.style.borderTopColor = RISK_COLOR[worst];
+    card.innerHTML =
+      '<div class="when">' + esc(fmtIssued(st.issued_at)) +
+        '<span class="pill" style="background:' + RISK_COLOR[worst] + '">' + esc(RISK_NAME[worst]) + '</span>' +
+        '<span style="font-weight:400;font-size:11px;color:#94a3b8">#' + id + '</span></div>' +
+      (st.amendments ? '<div class="amend">Amended: ' + esc(st.amendments) + '</div>' : '') +
+      '<div class="headline">' + esc(st.headline || '') + '</div>' +
+      '<div class="trend">' + tr + '</div>' +
+      '<div class="links">' +
+        (st.pdf_url ? '<a href="' + esc(st.pdf_url) + '" target="_blank" rel="noopener">PDF</a>' : '') +
+        (st.aoc_url ? '<a href="' + esc(st.aoc_url) + '" target="_blank" rel="noopener">Area of concern</a>' : '') +
+      '</div>';
+    el.appendChild(card);
+  }
+}
+
+// ── Changes panel ─────────────────────────────────────────────────────────────
+function computeChanges(a, b){
+  // Shared valid dates; scans overall AND every source, whatever the map view —
+  // FGS events often move only in the source cells while overall stays very low.
+  const days = b.days.filter(d => a.days.includes(d));
+  const out = [];
+  const names = [...new Set([...Object.keys(a.counties), ...Object.keys(b.counties)])].sort();
+  for (const d of days){
+    const ia = a.days.indexOf(d), ib = b.days.indexOf(d);
+    const items = [];
+    for (const n of names){
+      for (const src of ['overall', ...SOURCES]){
+        const va = severity(a, n, ia, src), vb = severity(b, n, ib, src);
+        if (va === null || vb === null || va === vb) continue;
+        const la = cellLabel(a, n, ia, src), lb = cellLabel(b, n, ib, src);
+        // was the county at medium/high overall (or significant/severe impact) before dropping?
+        const wasHigh = src === 'overall' ? va >= 2 : va >= 30;
+        items.push({county: n, source: src, up: vb > va, from: la, to: lb, wasHigh: wasHigh && vb < va});
+      }
+    }
+    out.push({date: d, items});
+  }
+  return out;
+}
+
+function renderChanges(){
+  const el = document.getElementById('changes');
+  const a = statements[pairA], b = statements[pairB];
+  document.getElementById('chgHint').textContent =
+    a && b ? fmtIssued(a.issued_at) + ' → ' + fmtIssued(b.issued_at) +
+      ' (overall risk and every source, matched by valid date)' : '';
+  if (!a || !b || pairA === pairB){ el.innerHTML = '<div class="chg-none">Pick two different statements to compare.</div>'; return; }
+  const chg = computeChanges(a, b);
+  const nUp = chg.reduce((s, d) => s + d.items.filter(i => i.up).length, 0);
+  const nDown = chg.reduce((s, d) => s + d.items.filter(i => !i.up).length, 0);
+  const flagged = chg.flatMap(d => d.items.filter(i => i.wasHigh).map(i => ({...i, date: d.date})));
+  let html = '<div class="chg-summary"><b style="color:var(--esc)">' + nUp + ' escalation' + (nUp === 1 ? '' : 's') +
+    '</b> and <b style="color:var(--deesc)">' + nDown + ' de-escalation' + (nDown === 1 ? '' : 's') +
+    '</b> across the shared valid dates.</div>';
+  if (flagged.length){
+    html += '<div class="chg-flag"><b>Stepped down from an elevated position:</b> ' +
+      flagged.map(f => esc(f.county) + ' (' + esc(fmtDate(f.date)) + ' ' + esc(srcTag(f.source)) + ': ' +
+        esc(f.from) + ' → ' + esc(f.to) + ')').join('; ') +
+      '. Worth confirming this was a conscious decision.</div>';
+  }
+  html += '<div class="chg-cols">';
+  for (const d of chg){
+    d.items.sort((x, y) => (y.wasHigh - x.wasHigh) || (y.up - x.up) || x.county.localeCompare(y.county));
+    html += '<div class="chg-day"><div class="d">' + esc(fmtDate(d.date)) + '</div>';
+    if (!d.items.length) html += '<div class="chg-none">No changes</div>';
+    const shown = d.items.slice(0, 25);
+    for (const i of shown){
+      html += '<div class="chg-item"><span class="cty">' + esc(i.county) + '</span>' +
+        '<span class="src">' + esc(srcTag(i.source)) + '</span>' +
+        '<span class="mv ' + (i.up ? 'up' : 'down') + '">' + esc(i.from) + ' → ' + esc(i.to) + ' ' + (i.up ? '▲' : '▼') + '</span></div>';
+    }
+    if (d.items.length > shown.length) html += '<div class="chg-none">…and ' + (d.items.length - shown.length) + ' more</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ── Maps ──────────────────────────────────────────────────────────────────────
+let syncing = false;
+function makeMap(container){
+  const m = L.map(container, {attributionControl: false, zoomControl: false, preferCanvas: true})
+    .setView([52.7, -1.9], 6);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    {maxZoom: 12, subdomains: 'abcd'}).addTo(m);
+  m.on('move', () => {
+    if (syncing) return;
+    syncing = true;
+    for (const o of maps) if (o !== m) o.setView(m.getCenter(), m.getZoom(), {animate: false});
+    syncing = false;
+  });
+  return m;
+}
+
+function renderMaps(){
+  const el = document.getElementById('maps');
+  for (const m of maps) m.remove();
+  maps = []; mapLayers = [];
+  el.innerHTML = '';
+  const src = document.getElementById('selSource').value;
+  const names = Object.keys(statements[selectedIds[0]] ? statements[selectedIds[0]].counties : {});
+
+  const panels = selectedIds.map(id => ({kind: 'st', id}));
+  if (pairA !== pairB) panels.push({kind: 'diff'});
+
+  for (const p of panels){
+    const card = document.createElement('div');
+    card.className = 'mapcard';
+    let title, noData = '';
+    if (p.kind === 'st'){
+      const st = statements[p.id];
+      title = 'Issued ' + fmtIssued(st.issued_at);
+      if (!st.days.includes(curDate)) noData = 'date not covered by this issue';
+    } else {
+      title = 'Change: ' + fmtIssued(statements[pairA].issued_at) + ' → ' + fmtIssued(statements[pairB].issued_at);
+      if (!statements[pairA].days.includes(curDate) || !statements[pairB].days.includes(curDate))
+        noData = 'date not covered by both issues';
+    }
+    card.innerHTML = '<div class="mhead">' + esc(title) +
+      (noData ? ' <span class="nodata">' + esc(noData) + '</span>' : '') + '</div><div class="m"></div>';
+    el.appendChild(card);
+    const m = makeMap(card.querySelector('.m'));
+    maps.push(m);
+    if (noData) continue;
+
+    const feats = [], styleFor = {};
+    for (const n of names){
+      const f = counties.byName[expandName(n)];
+      if (!f) continue;
+      let color = null, tip;
+      if (p.kind === 'st'){
+        const st = statements[p.id];
+        const di = st.days.indexOf(curDate);
+        color = cellColor(st, n, di, src);
+        tip = tipFor(st, n, di);
+      } else {
+        const a = statements[pairA], b = statements[pairB];
+        const ia = a.days.indexOf(curDate), ib = b.days.indexOf(curDate);
+        const va = severity(a, n, ia, src), vb = severity(b, n, ib, src);
+        if (va === null || vb === null || va === vb) color = '#d7dde3';
+        else color = vb > va ? 'var(--esc)' : 'var(--deesc)';
+        if (color === 'var(--esc)') color = '#d32f2f';
+        if (color === 'var(--deesc)') color = '#1a73e8';
+        tip = '<b>' + esc(n) + '</b><br>' + esc(cellLabel(a, n, ia, src)) + ' → ' + esc(cellLabel(b, n, ib, src));
+      }
+      if (!color) continue;
+      feats.push({f, color, tip, n});
+    }
+    const lg = L.layerGroup().addTo(m);
+    for (const {f, color, tip} of feats){
+      const faded = (color === RISK_COLOR[0] || color === IMPACT_COLOR[1] || color === '#d7dde3');
+      L.geoJSON(f, {style: {color: '#ffffff', weight: 1, fillColor: color, fillOpacity: faded ? 0.35 : 0.75}})
+        .bindTooltip(tip, {sticky: true}).addTo(lg);
+    }
+    mapLayers.push(lg);
+  }
+  // Each map caches its container width at creation, while the grid is still
+  // reflowing as cards are appended — re-measure once the grid is settled.
+  requestAnimationFrame(() => { for (const m of maps) m.invalidateSize(); });
+  renderMapLegend(src);
+}
+
+function tipFor(st, n, di){
+  const c = st.counties[n];
+  if (!c) return esc(n);
+  let t = '<b>' + esc(n) + '</b><br>Overall: ' + esc(c.overall[di] || '–');
+  for (const s of SOURCES){
+    const p = parseCell(c[s][di]);
+    if (p && !(p[0] === 1 && p[1] === 4)) // hide the ubiquitous minimal/high "14"
+      t += '<br>' + SOURCE_LABEL[s] + ': ' + esc(c[s][di]) + ' (' + IMPACT_NAME[p[0]] + ' impact, ' + LIK_NAME[p[1]] + ' likelihood)';
+  }
+  return t;
+}
+
+function renderMapLegend(src){
+  const el = document.getElementById('mapLegend');
+  let items;
+  if (src === 'overall')
+    items = RISK_NAME.map((n, i) => [RISK_COLOR[i], n]);
+  else
+    items = [1,2,3,4].map(i => [IMPACT_COLOR[i], IMPACT_NAME[i] + ' impact']);
+  items.push(['#d32f2f', 'Escalated (change map)'], ['#1a73e8', 'De-escalated (change map)']);
+  el.innerHTML = items.map(([c, n]) => '<span><span class="sw" style="background:' + c + '"></span>' + esc(n) + '</span>').join('');
+}
+
+// ── Risk matrices ─────────────────────────────────────────────────────────────
+function matrixCounts(st, src){
+  // counts of county-day matrix positions across all 5 days, [impact 1-4][likelihood 1-4]
+  const m = Array.from({length: 5}, () => [0,0,0,0,0]);
+  for (const c of Object.values(st.counties)){
+    for (let d = 0; d < 5; d++){
+      for (const part of String(c[src][d] || '').split(',')){
+        const p = part.trim();
+        if (p.length >= 2 && +p[0] >= 1 && +p[0] <= 4 && +p[1] >= 1 && +p[1] <= 4)
+          m[+p[0]][+p[1]]++;
+      }
+    }
+  }
+  return m;
+}
+
+function renderMatrices(){
+  const el = document.getElementById('matrices');
+  const b = statements[pairB], a = pairA !== pairB ? statements[pairA] : null;
+  document.getElementById('mxHint').textContent = b ?
+    'county-days over the five-day period for ' + fmtIssued(b.issued_at) +
+    (a ? ', with change since ' + fmtIssued(a.issued_at) : '') : '';
+  el.innerHTML = '';
+  if (!b) return;
+  for (const src of SOURCES){
+    const mb = matrixCounts(b, src);
+    const ma = a ? matrixCounts(a, src) : null;
+    let html = '<div class="t">' + SOURCE_LABEL[src] + '</div><table>' +
+      '<tr><th class="axis"></th><th colspan="4" class="axis">Impact → minimal · minor · significant · severe</th></tr>';
+    for (let lik = 4; lik >= 1; lik--){
+      html += '<tr><th class="axis" title="Likelihood">' + esc(LIK_NAME[lik]) + '</th>';
+      for (let imp = 1; imp <= 4; imp++){
+        const v = mb[imp][lik];
+        const d = ma ? v - ma[imp][lik] : 0;
+        const hot = imp >= 3 && v > 0;
+        html += '<td style="' + (hot ? 'background:#fff3e6;' : v === 0 ? 'color:#cbd5e1;' : '') + '">' + v +
+          (d ? '<small class="' + (d > 0 ? 'plus' : 'minus') + '">' + (d > 0 ? '+' : '') + d + '</small>' : '') + '</td>';
+      }
+      html += '</tr>';
+    }
+    html += '</table>';
+    const div = document.createElement('div');
+    div.className = 'mx';
+    div.innerHTML = html;
+    el.appendChild(div);
+  }
+}
+
+// ── County table ──────────────────────────────────────────────────────────────
+function renderTable(){
+  const el = document.getElementById('ctyTable');
+  const src = document.getElementById('selSource').value;
+  const showAll = document.getElementById('showAll').checked;
+  const q = document.getElementById('ctySearch').value.trim().toLowerCase();
+  const sts = selectedIds.map(id => statements[id]).filter(Boolean);
+  if (!sts.length){ el.innerHTML = ''; return; }
+  const dates = [...new Set(sts.flatMap(s => s.days))].sort();
+  const names = [...new Set(sts.flatMap(s => Object.keys(s.counties)))].sort();
+
+  const interesting = n => sts.some(s => s.days.some((d, i) =>
+    (RISK[s.counties[n] && s.counties[n].overall[i]] || 0) > 0 ||
+    SOURCES.some(sc => s.counties[n] && !['','14'].includes(s.counties[n][sc][i]))));
+
+  let rows = names.filter(n => (showAll || interesting(n)) && (!q || n.toLowerCase().includes(q)));
+  let html = '<tr><th class="cty">County</th>' + dates.map(d => '<th>' + esc(fmtDate(d)) + '</th>').join('') + '</tr>';
+  for (const n of rows){
+    html += '<tr><td class="cty">' + esc(n) + '</td>';
+    for (const d of dates){
+      html += '<td><span class="cellchips">';
+      let prev = null;
+      for (const s of sts){
+        const di = s.days.indexOf(d);
+        if (di < 0){ html += '<span class="cc na">·</span>'; continue; }
+        const col = cellColor(s, n, di, src);
+        const sev = severity(s, n, di, src);
+        const lab = cellLabel(s, n, di, src);
+        const chg = prev !== null && sev !== null && sev !== prev;
+        const short = src === 'overall' ? (lab === 'VL' ? 'V' : lab[0] || '·') : (parseCell(lab) ? parseCell(lab)[0] : '·');
+        html += '<span class="cc' + (chg ? ' chg' : '') + '" style="background:' + (col || '#eef1f4') + '" title="' +
+          esc(fmtIssued(s.issued_at)) + ': ' + esc(lab) + '">' + short + '</span>';
+        if (sev !== null) prev = sev;
+      }
+      html += '</span></td>';
+    }
+    html += '</tr>';
+  }
+  if (!rows.length) html += '<tr><td class="cty" colspan="99" style="color:#94a3b8">No counties match — everything is at very low with no areas of concern. Tick "Show all counties" to see the full list.</td></tr>';
+  el.innerHTML = html;
+}
+
+// ── Areas of concern strip ────────────────────────────────────────────────────
+function renderAocs(){
+  const el = document.getElementById('aocs');
+  el.innerHTML = '';
+  for (const id of selectedIds){
+    const st = statements[id];
+    if (!st || !st.aoc_url) continue;
+    const div = document.createElement('div');
+    div.className = 'aoc';
+    div.innerHTML = '<div class="t">' + esc(fmtIssued(st.issued_at)) + '</div>' +
+      '<a href="' + esc(st.aoc_url) + '" target="_blank" rel="noopener"><img loading="lazy" src="' + esc(st.aoc_url) + '" alt="Area of concern map, ' + esc(fmtIssued(st.issued_at)) + '"></a>';
+    el.appendChild(div);
+  }
+}
+
+function renderAll(){
+  renderChips();
+  renderPairSelects();
+  renderDateChips();
+  renderCards();
+  renderChanges();
+  renderMaps();
+  renderMatrices();
+  renderTable();
+  renderAocs();
+}
+
+document.getElementById('selSource').onchange = renderAll;
+document.getElementById('ctySearch').oninput = () => renderTable();
+document.getElementById('showAll').onchange = () => renderTable();
+</script>
+</body>
+</html>

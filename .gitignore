@@ -13,6 +13,9 @@ static/mslp/
 static/aifs_mslp/
 warnings/archive/
 rfg/archive/
+
+# FGS archive: fetch_fgs.py local mirror; canonical copy lives on R2
+fgs/
 static/radar5/
 static/radar5_gh/
 data_h5_opera/
