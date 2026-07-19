@@ -205,6 +205,7 @@ def build_statement(st, days, counties, aoc_url):
             for k in ("england_forecast", "wales_forecast_english")
         },
         "pdf_url": st.get("pdf_url") or "",
+        "csv_url": st.get("detailed_csv_url") or "",
         "aoc_url": aoc_url,
         "days": days,
         "counties": counties,
