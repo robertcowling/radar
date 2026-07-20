@@ -49,15 +49,32 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
 .map { height: 300px; border-radius: .5rem; background: #eef3f6; border: 1px solid #e2e8f0; }
 @media (prefers-color-scheme: dark) { .map { background: #0b1526; border-color: #1e293b; } }
 .leaflet-container { background: transparent; font-family: 'Roboto', sans-serif; }
-.leaflet-tooltip { font-family: 'Roboto', sans-serif; font-size: 12px; border-radius: .5rem;
-  max-width: min(260px, 70vw); max-height: 200px; overflow-y: auto; white-space: normal; line-height: 1.4; }
+.leaflet-tooltip.fgs-tip { background: transparent; border: none; box-shadow: none; padding: 0;
+  border-radius: 0; opacity: 1 !important; }
+.leaflet-tooltip.fgs-tip:before { display: none; }
+.tip-card { font-family: 'Roboto', sans-serif; background: #fff; border: 1px solid #e2e8f0; border-radius: .75rem;
+  box-shadow: var(--shadow-card-hover); max-width: min(260px, 75vw); overflow: hidden; }
+@media (prefers-color-scheme: dark) { .tip-card { background: #0f172a; border-color: #1e293b; } }
+.tip-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+  padding: .5rem .625rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+  font-family: 'Outfit', sans-serif; font-weight: 700; font-size: .75rem; color: #1e293b; }
+@media (prefers-color-scheme: dark) { .tip-head { background: #1e293b; border-color: #334155; color: #f1f5f9; } }
+.tip-pill { flex-shrink: 0; font-size: .625rem; font-weight: 700; padding: .0625rem .5rem; border-radius: 9999px;
+  color: #fff; white-space: nowrap; }
+.tip-body { padding: .4rem .625rem .5rem; max-height: 160px; overflow-y: auto; }
+.tip-row { display: flex; justify-content: space-between; gap: .75rem; font-size: .6875rem;
+  padding: .2rem 0; color: #64748b; }
+@media (prefers-color-scheme: dark) { .tip-row { color: #94a3b8; } }
+.tip-row b { color: #1e293b; font-weight: 600; text-align: right; }
+@media (prefers-color-scheme: dark) { .tip-row b { color: #e2e8f0; } }
+.tip-note { font-size: .6875rem; color: #94a3b8; padding: .1rem 0; font-style: italic; }
 .srcdd { position: relative; }
 .srcddbtn { border: 1px solid #cbd5e1; border-radius: .5rem; background: #fff; color: #334155;
   font-size: .8125rem; font-weight: 500; padding: .375rem .625rem; outline: none; cursor: pointer;
   font-family: 'Roboto', sans-serif; display: flex; align-items: center; gap: .375rem; }
 .srcddbtn:focus { outline: 2px solid var(--brand-500); outline-offset: 2px; }
 @media (prefers-color-scheme: dark) { .srcddbtn { background: #0f172a; border-color: #334155; color: #cbd5e1; } }
-.srcddpanel { position: absolute; right: 0; top: calc(100% + .25rem); z-index: 30; width: 13rem;
+.srcddpanel { position: absolute; right: 0; top: calc(100% + .25rem); z-index: 2000; width: 13rem;
   background: #fff; border: 1px solid #e2e8f0; border-radius: .625rem; box-shadow: var(--shadow-card-hover);
   padding: .375rem; }
 @media (prefers-color-scheme: dark) { .srcddpanel { background: #0f172a; border-color: #1e293b; } }
@@ -78,6 +95,17 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
 .pdfcsv-btn:hover { box-shadow: 0 2px 4px rgba(15,23,42,.08); border-color: #94a3b8; }
 .pdfcsv-btn .material-icons { font-size: 15px; }
 @media (prefers-color-scheme: dark) { .pdfcsv-btn { background: #0f172a; border-color: #334155; color: #cbd5e1; } }
+.mtx-axis { font-family: 'Outfit', sans-serif; font-size: .625rem; font-weight: 700; letter-spacing: .04em;
+  color: #64748b; text-transform: none; }
+@media (prefers-color-scheme: dark) { .mtx-axis { color: #94a3b8; } }
+.mtx-cell { border-radius: .625rem; padding: .5rem .375rem; text-align: center; min-width: 5.5rem; }
+.mtx-counts { display: flex; align-items: baseline; justify-content: center; gap: .3rem;
+  font-size: .8125rem; font-weight: 700; color: #1e293b; }
+@media (prefers-color-scheme: dark) { .mtx-counts { color: #f1f5f9; } }
+.mtx-counts .mtx-a { color: #64748b; }
+@media (prefers-color-scheme: dark) { .mtx-counts .mtx-a { color: #94a3b8; } }
+.mtx-sep { font-size: .6875rem; color: #94a3b8; }
+.mtx-delta { font-size: .6875rem; font-weight: 700; margin-top: .125rem; }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -114,14 +142,17 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
 
   <div id="app" class="hidden space-y-5">
 
-    <!-- Row 1: base statement -->
+    <!-- Row 1: later comparison statement (always shown first) -->
     <div class="card">
       <div class="flex items-center justify-between flex-wrap gap-3 mb-1">
         <div>
-          <div class="section-label">Statement</div>
-          <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100">
-            <span id="titleA"></span>
-            <span class="text-sm font-normal ml-2" id="linksA"></span>
+          <div class="section-label">Later issue</div>
+          <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2 flex-wrap">
+            <span id="titleB"></span>
+            <span id="latestBadge" class="hidden flex items-center gap-1 px-1.5 py-0.5 rounded border shadow-sm text-[9px] font-bold tracking-widest bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
+              <span class="material-icons text-[12px]">verified</span>Latest
+            </span>
+            <span class="text-sm font-normal ml-2" id="linksB"></span>
           </h3>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
@@ -133,28 +164,28 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
             <div class="srcddpanel hidden" id="srcDropdownPanel"></div>
           </div>
           <button type="button" class="dayexp hidden" id="dayExpander"></button>
-          <select id="runA" class="ffsel"></select>
+          <select id="runB" class="ffsel"></select>
         </div>
-      </div>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mb-3" id="headA"></p>
-      <div class="dayrow" id="rowA"></div>
-    </div>
-
-    <!-- Row 2: later comparison statement -->
-    <div class="card">
-      <div class="flex items-center justify-between flex-wrap gap-3 mb-1">
-        <div>
-          <div class="section-label">Later issue</div>
-          <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100">
-            <span id="titleB"></span>
-            <span class="text-sm font-normal ml-2" id="linksB"></span>
-          </h3>
-        </div>
-        <select id="runB" class="ffsel"></select>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-3" id="headB"></p>
       <div class="dayrow" id="rowB"></div>
       <div class="flex flex-wrap gap-4 mt-3 text-xs text-slate-500 dark:text-slate-400" id="riskLegend"></div>
+    </div>
+
+    <!-- Row 2: base statement -->
+    <div class="card">
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-1">
+        <div>
+          <div class="section-label">Statement</div>
+          <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100">
+            <span id="titleA"></span>
+            <span class="text-sm font-normal ml-2" id="linksA"></span>
+          </h3>
+        </div>
+        <select id="runA" class="ffsel"></select>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-3" id="headA"></p>
+      <div class="dayrow" id="rowA"></div>
     </div>
 
     <!-- Row 3: difference -->
@@ -177,20 +208,6 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#a21caf"></span>Upgraded in the later issue</span>
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#2563eb"></span>Downgraded in the later issue</span>
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-200 dark:bg-slate-700"></span>No change</span>
-      </div>
-    </div>
-
-    <!-- Matrix position summary -->
-    <div class="card">
-      <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
-        <div>
-          <div class="section-label">Matrix summary</div>
-          <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100">County-days per matrix position</h3>
-        </div>
-        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-md" id="matrixDesc"></p>
-      </div>
-      <div class="overflow-x-auto">
-        <div id="matrixGrid" class="inline-block min-w-full"></div>
       </div>
     </div>
 
@@ -222,8 +239,21 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
       </div>
       <div class="px-6 py-3 text-xs text-slate-400 border-t border-slate-100 dark:border-slate-800">
         <div id="ctyFoot"></div>
-        <div class="mt-1">Matrix cells read impact then likelihood. Impact: 1 Minimal · 2 Minor · 3 Significant · 4 Severe.
-          Likelihood: 1 very low · 2 low · 3 medium · 4 high. So 21 is Minor impact at very low likelihood, 41 is Severe impact at very low likelihood.</div>
+        <div class="mt-1">Matrix cells show impact then likelihood, e.g. "Minor/Med" is Minor impact at Medium likelihood.</div>
+      </div>
+    </div>
+
+    <!-- Matrix position summary -->
+    <div class="card !p-0 overflow-hidden">
+      <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <div class="section-label">Matrix summary</div>
+          <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100">County-days per matrix position</h3>
+        </div>
+        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-md" id="matrixDesc"></p>
+      </div>
+      <div class="px-6 py-5 overflow-x-auto">
+        <div id="matrixGrid" class="inline-block min-w-full"></div>
       </div>
     </div>
 
@@ -241,11 +271,13 @@ const fetchJson = u => fetch(u).then(r => { if (!r.ok) throw new Error(r.status)
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const RISK = {VL:0, L:1, M:2, H:3};
-const RISK_NAME = ['Very low', 'Low', 'Medium', 'High'];
+const RISK_NAME = ['Very Low', 'Low', 'Medium', 'High'];
 const RISK_COLOR = ['#90B86C', '#EBE455', '#E47012', '#D40000'];   // og FGS colours
 const IMPACT_NAME = ['', 'Minimal', 'Minor', 'Significant', 'Severe'];
+const IMPACT_SHORT = ['', 'Minimal', 'Minor', 'Sig', 'Severe'];
 const IMPACT_COLOR = ['', '#90B86C', '#EBE455', '#E47012', '#D40000'];
-const LIK_NAME = ['', 'very low', 'low', 'medium', 'high'];
+const LIK_NAME = ['', 'Very Low', 'Low', 'Medium', 'High'];
+const LIK_SHORT = ['', 'V.Low', 'Low', 'Med', 'High'];
 const SOURCES = ['river', 'surface', 'coastal', 'ground'];
 const SOURCE_LABEL = {river:'Rivers', surface:'Surface water', coastal:'Coastal/tidal', ground:'Groundwater'};
 const UP = '#a21caf', DOWN = '#2563eb';   // escalation deliberately not red (red = High risk)
@@ -276,6 +308,10 @@ const isForward = (base, other) => (other.issued_at || '') > (base.issued_at || 
 const csvUrl = doc => doc.csv_url || (doc.pdf_url ? doc.pdf_url.replace(/fgs\.pdf$/, 'detailed.csv') : '');
 const activeSources = () => srcSel.length ? srcSel : SOURCES;
 const decodeCell = p => IMPACT_NAME[p[0]] + ' impact, ' + LIK_NAME[p[1]] + ' likelihood';
+const decodeCombo = p => IMPACT_SHORT[p[0]] + '/' + LIK_SHORT[p[1]];
+// a raw FGS cell value, e.g. "32" or "31,32" for multiple areas of concern
+const decodeRaw = raw => String(raw || '').split(',').map(p => p.trim()).filter(p => p.length >= 2)
+  .map(p => decodeCombo([+p[0], +p[1]])).join(', ');
 
 // worst [impact, likelihood] across the selected sources for one day
 function worstCell(c, d, srcs){
@@ -436,6 +472,16 @@ function placeholder(container){
   container.appendChild(ph);
 }
 
+function tipCard(name, pillLabel, pillColor, rows, note){
+  return '<div class="tip-card">' +
+    '<div class="tip-head"><span>' + esc(name) + '</span>' +
+    '<span class="tip-pill" style="background:' + pillColor + '">' + esc(pillLabel) + '</span></div>' +
+    '<div class="tip-body">' +
+    rows.map(([k, v]) => '<div class="tip-row"><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>').join('') +
+    (note ? '<div class="tip-note">' + esc(note) + '</div>' : '') +
+    '</div></div>';
+}
+
 function drawCounties(m, doc, dayIdx){
   const lg = L.layerGroup().addTo(m);
   const bySources = srcSel.length > 0;
@@ -446,14 +492,16 @@ function drawCounties(m, doc, dayIdx){
     if (lvl === undefined) continue;
     const w = worstCell(c, dayIdx);
     const fill = bySources ? (w ? IMPACT_COLOR[w[0]] : '#cbd5e1') : RISK_COLOR[lvl];
-    let tip = '<b>' + esc(name) + '</b><br>Overall: ' + RISK_NAME[lvl];
+    const rows = [];
     for (const s of activeSources()){
       const v = c[s][dayIdx];
-      if (v && v !== '14') tip += '<br>' + SOURCE_LABEL[s] + ': ' + esc(v);
+      if (v && v !== '14') rows.push([SOURCE_LABEL[s], decodeRaw(v)]);
     }
-    if (w) tip += '<br>Worst cell' + (bySources ? ' (selected sources)' : '') + ': ' + decodeCell(w);
+    if (w) rows.push(['Worst cell' + (bySources ? ' (selected)' : ''), decodeCombo(w)]);
+    const tip = tipCard(name, RISK_NAME[lvl], RISK_COLOR[lvl], rows,
+      rows.length ? '' : 'No areas of concern.');
     L.geoJSON(f, {style: {color: '#ffffff', weight: 1, fillColor: fill, fillOpacity: 0.9}})
-      .bindTooltip(tip, {sticky: true}).addTo(lg);
+      .bindTooltip(tip, {sticky: true, className: 'fgs-tip'}).addTo(lg);
   }
 }
 
@@ -475,7 +523,7 @@ function diffCounty(mode, cOld, cNew, dOld, dNew){
     const likDelta = wn[1] - wo[1];
     return {dir: Math.sign(wn[0] - wo[0]), steps: Math.abs(wn[0] - wo[0]),
             from: IMPACT_NAME[wo[0]], to: IMPACT_NAME[wn[0]],
-            likDelta, likFrom: LIK_NAME[wo[1]], likTo: LIK_NAME[wn[1]]};
+            likDelta, likFrom: LIK_NAME[wo[1]], likTo: LIK_NAME[wn[1]], likToShort: LIK_SHORT[wn[1]]};
   }
   if (mode === 'sigsev'){
     // only count upgrades/downgrades that move to or from Significant/Severe
@@ -487,7 +535,7 @@ function diffCounty(mode, cOld, cNew, dOld, dNew){
   // matrix position: impact first, likelihood breaks ties
   const dir = wn[0] !== wo[0] ? Math.sign(wn[0] - wo[0]) : Math.sign(wn[1] - wo[1]);
   const steps = wn[0] !== wo[0] ? Math.abs(wn[0] - wo[0]) : Math.abs(wn[1] - wo[1]);
-  return {dir, steps, from: wo.join(''), to: wn.join(''),
+  return {dir, steps, from: decodeCombo(wo), to: decodeCombo(wn),
           fromLong: decodeCell(wo), toLong: decodeCell(wn)};
 }
 
@@ -502,12 +550,13 @@ function drawDiff(m, mode, date){
     if (!r) continue;
     const color = r.dir > 0 ? UP : r.dir < 0 ? DOWN : '#cbd5e1';
     const op = r.dir === 0 ? 0.25 : Math.min(0.55 + 0.18 * (r.steps - 1), 0.92);
-    const tip = '<b>' + esc(name) + '</b><br>' +
-      (r.dir === 0 ? 'No change (' + esc(r.to) + ')'
-        : esc(r.from) + ' to ' + esc(r.to) + (r.dir > 0 ? ' (upgrade)' : ' (downgrade)')) +
-      (r.fromLong && r.dir !== 0 ? '<br>' + esc(r.fromLong) + '<br>to ' + esc(r.toLong) : '');
+    const pillLabel = r.dir === 0 ? 'No change' : r.dir > 0 ? 'Upgraded' : 'Downgraded';
+    const pillColor = r.dir === 0 ? '#94a3b8' : color;
+    const rows = r.dir === 0 ? [['Reading', r.to]] : [['From', r.from], ['To', r.to]];
+    const note = r.fromLong && r.dir !== 0 ? r.fromLong + ' to ' + r.toLong : '';
+    const tip = tipCard(name, pillLabel, pillColor, rows, note);
     L.geoJSON(f, {style: {color: '#94a3b8', weight: 0.7, fillColor: color, fillOpacity: op}})
-      .bindTooltip(tip, {sticky: true}).addTo(lg);
+      .bindTooltip(tip, {sticky: true, className: 'fgs-tip'}).addTo(lg);
   }
 }
 
@@ -612,9 +661,9 @@ const cellChanged = c => !!c && (c.dir !== 0 || !!c.likDelta);
 
 function likBadge(c){
   if (!c || !c.likDelta) return '';
-  const up = c.likDelta > 0;
-  return '<span class="ml-1 text-[9px] font-bold" style="color:' + (up ? UP : DOWN) + '" ' +
-    'title="Likelihood: ' + esc(c.likFrom) + ' to ' + esc(c.likTo) + '">' + (up ? '▲' : '▼') + '</span>';
+  const col = c.likDelta > 0 ? UP : DOWN;
+  return '<span class="ml-1 text-[9px] font-bold px-1 py-px rounded" style="color:' + col + '; background:' + col + '1a" ' +
+    'title="Likelihood: ' + esc(c.likFrom) + ' to ' + esc(c.likTo) + '">' + esc(c.likToShort) + '</span>';
 }
 
 function changeCell(c, mode){
@@ -693,7 +742,7 @@ function renderTable(){
     nCh + (region ? ' ' + region : '') + ' count' + (nCh === 1 ? 'y' : 'ies') +
     ' changed on at least one overlapping day (' +
     {risk:'overall flood risk', impact:'impact severity or likelihood', tick:'matrix position', sigsev:'to/from Significant or Severe'}[mode] + ').' +
-    (mode === 'impact' ? ' ▲/▼ marks a likelihood-only shift within the same impact band.' : '');
+    (mode === 'impact' ? ' A coloured likelihood tag marks a likelihood-only shift within the same impact band.' : '');
 }
 
 // ── Matrix position summary ──────────────────────────────────────────────────
@@ -718,30 +767,35 @@ function renderMatrixSummary(){
   const gridB = tickCounts(docs[B], shared);
   const srcNote = srcSel.length ? ' Sources: ' + srcSel.map(s => SOURCE_LABEL[s].toLowerCase()).join(', ') + '.' : ' All sources.';
   document.getElementById('matrixDesc').textContent =
-    'Earlier issue count → later issue count, per matrix tick, across ' + shared.length +
+    'Earlier issue count vs later issue count, per matrix tick, across ' + shared.length +
     ' overlapping day' + (shared.length === 1 ? '' : 's') + '.' + srcNote;
 
-  let html = '<table class="border-separate" style="border-spacing:4px; min-width:32rem;"><tbody>';
+  let html = '<table style="border-collapse: separate; border-spacing: .5rem; min-width: 34rem;"><tbody>';
   html += '<tr><td></td>' +
-    [1, 2, 3, 4].map(l => '<td class="text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 pb-1">' +
-      esc(LIK_NAME[l]) + '<br><span class="font-normal text-slate-400">likelihood</span></td>').join('') + '</tr>';
+    [1, 2, 3, 4].map(l => '<td class="text-center mtx-axis pb-1">' + esc(LIK_NAME[l]) + '</td>').join('') + '</tr>';
   for (let imp = 4; imp >= 1; imp--){
     html += '<tr>';
-    html += '<td class="text-right text-[10px] font-bold text-slate-500 dark:text-slate-400 pr-2 whitespace-nowrap">' + esc(IMPACT_NAME[imp]) + '</td>';
+    html += '<td class="text-right mtx-axis pr-3 whitespace-nowrap">' + esc(IMPACT_NAME[imp]) + '</td>';
     for (let lik = 1; lik <= 4; lik++){
       const ca = gridA[imp][lik], cb = gridB[imp][lik];
       const delta = cb - ca;
-      const arrow = delta > 0 ? '<span style="color:' + UP + '">▲' + delta + '</span>'
-        : delta < 0 ? '<span style="color:' + DOWN + '">▼' + Math.abs(delta) + '</span>'
-        : '<span class="text-slate-300 dark:text-slate-600">–</span>';
-      html += '<td class="rounded-lg text-center px-3 py-2" style="background:' + IMPACT_COLOR[imp] + '22; border:1px solid ' + IMPACT_COLOR[imp] + '55" ' +
+      const deltaColor = delta > 0 ? UP : delta < 0 ? DOWN : '#94a3b8';
+      const deltaText = delta > 0 ? '+' + delta : delta < 0 ? String(delta) : 'No change';
+      html += '<td>' +
+        '<div class="mtx-cell" style="background:' + IMPACT_COLOR[imp] + '1f; border:1px solid ' + IMPACT_COLOR[imp] + '55" ' +
         'title="' + esc(IMPACT_NAME[imp] + ' impact, ' + LIK_NAME[lik] + ' likelihood') + '">' +
-        '<div class="text-xs font-semibold text-slate-700 dark:text-slate-200">' + ca + ' → ' + cb + '</div>' +
-        '<div class="text-[10px]">' + arrow + '</div></td>';
+        '<div class="mtx-counts"><span class="mtx-a">' + ca + '</span><span class="mtx-sep">&middot;</span><span>' + cb + '</span></div>' +
+        '<div class="mtx-delta" style="color:' + deltaColor + '">' + esc(deltaText) + '</div>' +
+        '</div></td>';
     }
     html += '</tr>';
   }
-  html += '</tbody></table>';
+  html += '</tbody></table>' +
+    '<div class="flex items-center gap-1.5 mt-3 text-xs text-slate-500 dark:text-slate-400">' +
+    '<span>Rows: impact. Columns: likelihood. Each cell:</span>' +
+    '<span class="mtx-a font-semibold">Earlier</span><span class="text-slate-300">&middot;</span>' +
+    '<span class="font-semibold text-slate-700 dark:text-slate-200">Later</span><span>county-day count, then the change.</span>' +
+    '</div>';
   document.getElementById('matrixGrid').innerHTML = html;
 }
 
@@ -756,6 +810,7 @@ function renderAll(){
     document.getElementById('linksA'), document.getElementById('headA'), A);
   const mb = renderRow(document.getElementById('rowB'), document.getElementById('titleB'),
     document.getElementById('linksB'), document.getElementById('headB'), B);
+  document.getElementById('latestBadge').classList.toggle('hidden', !index.length || B !== index[0].id);
   finalizeMaps(ma.concat(mb));
   renderDiffRow();
   renderRiskLegend();
