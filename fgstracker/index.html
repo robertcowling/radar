@@ -9,6 +9,7 @@
 <link rel="icon" type="image/png" href="../favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -38,12 +39,6 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
   font-family: 'Roboto', sans-serif; }
 .ffsel:focus { outline: 2px solid var(--brand-500); outline-offset: 2px; }
 @media (prefers-color-scheme: dark) { .ffsel { background: #0f172a; border-color: #334155; color: #cbd5e1; } }
-.srcchip { border-radius: 9999px; padding: .25rem .75rem; font-size: .75rem; font-weight: 600;
-  background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; cursor: pointer; transition: background .12s; }
-.srcchip:hover { background: #e2e8f0; }
-.srcchip.on { background: var(--brand-500); border-color: var(--brand-500); color: #fff; }
-@media (prefers-color-scheme: dark) { .srcchip { background: #1e293b; border-color: #334155; color: #94a3b8; }
-  .srcchip.on { background: var(--brand-500); border-color: var(--brand-500); color: #fff; } }
 .dayrow { display: grid; gap: .75rem; grid-template-columns: 1fr; }
 .dayrow .ph { display: none; }
 @media (min-width: 640px) { .dayrow { grid-template-columns: repeat(2, 1fr); } }
@@ -54,7 +49,35 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
 .map { height: 300px; border-radius: .5rem; background: #eef3f6; border: 1px solid #e2e8f0; }
 @media (prefers-color-scheme: dark) { .map { background: #0b1526; border-color: #1e293b; } }
 .leaflet-container { background: transparent; font-family: 'Roboto', sans-serif; }
-.leaflet-tooltip { font-family: 'Roboto', sans-serif; font-size: 12px; border-radius: .5rem; }
+.leaflet-tooltip { font-family: 'Roboto', sans-serif; font-size: 12px; border-radius: .5rem;
+  max-width: min(260px, 70vw); max-height: 200px; overflow-y: auto; white-space: normal; line-height: 1.4; }
+.srcdd { position: relative; }
+.srcddbtn { border: 1px solid #cbd5e1; border-radius: .5rem; background: #fff; color: #334155;
+  font-size: .8125rem; font-weight: 500; padding: .375rem .625rem; outline: none; cursor: pointer;
+  font-family: 'Roboto', sans-serif; display: flex; align-items: center; gap: .375rem; }
+.srcddbtn:focus { outline: 2px solid var(--brand-500); outline-offset: 2px; }
+@media (prefers-color-scheme: dark) { .srcddbtn { background: #0f172a; border-color: #334155; color: #cbd5e1; } }
+.srcddpanel { position: absolute; right: 0; top: calc(100% + .25rem); z-index: 30; width: 13rem;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: .625rem; box-shadow: var(--shadow-card-hover);
+  padding: .375rem; }
+@media (prefers-color-scheme: dark) { .srcddpanel { background: #0f172a; border-color: #1e293b; } }
+.srcddopt { display: flex; align-items: center; gap: .5rem; padding: .375rem .5rem; border-radius: .375rem;
+  font-size: .8125rem; cursor: pointer; color: #334155; }
+.srcddopt:hover { background: #f1f5f9; }
+@media (prefers-color-scheme: dark) { .srcddopt { color: #cbd5e1; } .srcddopt:hover { background: #1e293b; } }
+.srcddopt input { accent-color: var(--brand-500); }
+.srcddsep { height: 1px; background: #e2e8f0; margin: .25rem .25rem; }
+@media (prefers-color-scheme: dark) { .srcddsep { background: #1e293b; } }
+.dayexp { border: 1px dashed #cbd5e1; border-radius: .5rem; background: transparent; color: #64748b;
+  font-size: .75rem; font-weight: 500; padding: .375rem .75rem; cursor: pointer; }
+.dayexp:hover { background: #f1f5f9; }
+@media (prefers-color-scheme: dark) { .dayexp { border-color: #334155; color: #94a3b8; } .dayexp:hover { background: #1e293b; } }
+.pdfcsv-btn { display: flex; align-items: center; gap: .375rem; font-size: .6875rem; font-weight: 700;
+  color: #334155; background: #fff; border: 1px solid #cbd5e1; border-radius: .375rem; padding: .25rem .5rem;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04); transition: box-shadow .12s, border-color .12s; }
+.pdfcsv-btn:hover { box-shadow: 0 2px 4px rgba(15,23,42,.08); border-color: #94a3b8; }
+.pdfcsv-btn .material-icons { font-size: 15px; }
+@media (prefers-color-scheme: dark) { .pdfcsv-btn { background: #0f172a; border-color: #334155; color: #cbd5e1; } }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -102,7 +125,14 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
           </h3>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-          <div class="flex items-center gap-1.5 flex-wrap" id="srcChips"></div>
+          <div class="srcdd" id="srcDropdownWrap">
+            <button type="button" class="srcddbtn" id="srcDropdownBtn">
+              <span id="srcDropdownLabel"></span>
+              <span class="material-icons" style="font-size:16px;">expand_more</span>
+            </button>
+            <div class="srcddpanel hidden" id="srcDropdownPanel"></div>
+          </div>
+          <button type="button" class="dayexp hidden" id="dayExpander"></button>
           <select id="runA" class="ffsel"></select>
         </div>
       </div>
@@ -147,6 +177,20 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#a21caf"></span>Upgraded in the later issue</span>
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#2563eb"></span>Downgraded in the later issue</span>
         <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-200 dark:bg-slate-700"></span>No change</span>
+      </div>
+    </div>
+
+    <!-- Matrix position summary -->
+    <div class="card">
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+        <div>
+          <div class="section-label">Matrix summary</div>
+          <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100">County-days per matrix position</h3>
+        </div>
+        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-md" id="matrixDesc"></p>
+      </div>
+      <div class="overflow-x-auto">
+        <div id="matrixGrid" class="inline-block min-w-full"></div>
       </div>
     </div>
 
@@ -218,6 +262,7 @@ let A = null, B = null;  // A = base (earlier), B = later comparison
 let features = {};       // geojson features by expanded name
 let regions = {};        // FGS county name -> region
 let srcSel = [];         // selected sources; empty = All (overall risk)
+let showAllDays = false; // false = only overlapping days; true = full union incl. non-overlapping
 let allMaps = [], diffMaps = [];
 
 const fmtRun = e => new Date(e.issued_at).toLocaleDateString('en-GB',
@@ -308,26 +353,37 @@ function fillRunSelects(){
   selB.onchange = () => { B = +selB.value; loadDocs([B]).then(renderAll); };
 }
 
-// ── Source chips ─────────────────────────────────────────────────────────────
-function renderSrcChips(){
-  const el = document.getElementById('srcChips');
-  el.innerHTML = '';
-  const mk = (label, on, click) => {
-    const b = document.createElement('button');
-    b.className = 'srcchip' + (on ? ' on' : '');
-    b.textContent = label;
-    b.onclick = click;
-    el.appendChild(b);
-  };
-  mk('All', !srcSel.length, () => { srcSel = []; renderAll(); });
-  for (const s of SOURCES){
-    mk(SOURCE_LABEL[s], srcSel.includes(s), () => {
-      srcSel = srcSel.includes(s) ? srcSel.filter(x => x !== s) : srcSel.concat(s);
-      if (srcSel.length === SOURCES.length) srcSel = [];
-      renderAll();
-    });
-  }
+// ── Source dropdown ──────────────────────────────────────────────────────────
+function srcDropdownLabel(){
+  if (!srcSel.length) return 'All sources';
+  if (srcSel.length === 1) return SOURCE_LABEL[srcSel[0]];
+  return srcSel.length + ' sources';
 }
+
+function renderSrcChips(){
+  document.getElementById('srcDropdownLabel').textContent = srcDropdownLabel();
+  const panel = document.getElementById('srcDropdownPanel');
+  panel.innerHTML =
+    '<label class="srcddopt"><input type="checkbox" id="srcOptAll"' + (!srcSel.length ? ' checked' : '') + '> All sources</label>' +
+    '<div class="srcddsep"></div>' +
+    SOURCES.map(s => '<label class="srcddopt"><input type="checkbox" class="srcOptOne" data-src="' + s + '"' +
+      (srcSel.includes(s) ? ' checked' : '') + '> ' + esc(SOURCE_LABEL[s]) + '</label>').join('');
+  panel.querySelector('#srcOptAll').onchange = () => { srcSel = []; renderAll(); };
+  panel.querySelectorAll('.srcOptOne').forEach(cb => cb.onchange = () => {
+    const s = cb.dataset.src;
+    srcSel = cb.checked ? srcSel.concat(s) : srcSel.filter(x => x !== s);
+    if (srcSel.length === SOURCES.length) srcSel = [];
+    renderAll();
+  });
+}
+
+document.getElementById('srcDropdownBtn').onclick = () => {
+  document.getElementById('srcDropdownPanel').classList.toggle('hidden');
+};
+document.addEventListener('click', e => {
+  if (!document.getElementById('srcDropdownWrap').contains(e.target))
+    document.getElementById('srcDropdownPanel').classList.add('hidden');
+});
 
 // ── Maps ─────────────────────────────────────────────────────────────────────
 let syncing = false;
@@ -416,8 +472,10 @@ function diffCounty(mode, cOld, cNew, dOld, dNew){
   const wo = worstCell(cOld, dOld), wn = worstCell(cNew, dNew);
   if (!wo || !wn) return null;
   if (mode === 'impact'){
+    const likDelta = wn[1] - wo[1];
     return {dir: Math.sign(wn[0] - wo[0]), steps: Math.abs(wn[0] - wo[0]),
-            from: IMPACT_NAME[wo[0]], to: IMPACT_NAME[wn[0]]};
+            from: IMPACT_NAME[wo[0]], to: IMPACT_NAME[wn[0]],
+            likDelta, likFrom: LIK_NAME[wo[1]], likTo: LIK_NAME[wn[1]]};
   }
   if (mode === 'sigsev'){
     // only count upgrades/downgrades that move to or from Significant/Severe
@@ -455,17 +513,33 @@ function drawDiff(m, mode, date){
 
 // ── Render ───────────────────────────────────────────────────────────────────
 const unionDates = () => [...new Set([...docs[A].days, ...docs[B].days])].sort();
+const sharedDates = () => docs[A].days.filter(d => docs[B].days.includes(d));
+const displayDates = () => showAllDays ? unionDates() : sharedDates();
+
+function renderDayExpander(){
+  const btn = document.getElementById('dayExpander');
+  const extra = unionDates().length - sharedDates().length;
+  if (!extra){ btn.classList.add('hidden'); return; }
+  btn.classList.remove('hidden');
+  btn.textContent = showAllDays ? 'Show overlapping days only' : '+' + extra + ' non-overlapping day' + (extra === 1 ? '' : 's');
+  btn.onclick = () => { showAllDays = !showAllDays; renderAll(); };
+}
+
+function pdfCsvLinks(doc){
+  const csv = csvUrl(doc);
+  return (doc.pdf_url ? '<a class="pdfcsv-btn" href="' + esc(doc.pdf_url) + '" target="_blank" rel="noopener">' +
+      '<span class="material-icons">picture_as_pdf</span>PDF</a>' : '') +
+    (csv ? '<a class="pdfcsv-btn" href="' + esc(csv) + '" target="_blank" rel="noopener">' +
+      '<span class="material-icons">table_chart</span>CSV</a>' : '');
+}
 
 function renderRow(rowEl, titleEl, linksEl, headEl, id){
   const doc = docs[id], e = entry(id);
   rowEl.innerHTML = '';
   titleEl.textContent = fmtRun(e);
-  const csv = csvUrl(doc);
-  linksEl.innerHTML =
-    (doc.pdf_url ? '<a class="text-[var(--brand-500)] hover:underline" href="' + esc(doc.pdf_url) + '" target="_blank" rel="noopener">PDF</a>' : '') +
-    (csv ? ' <span class="text-slate-300">·</span> <a class="text-[var(--brand-500)] hover:underline" href="' + esc(csv) + '" target="_blank" rel="noopener">CSV</a>' : '');
+  linksEl.innerHTML = '<span class="flex items-center gap-1.5">' + pdfCsvLinks(doc) + '</span>';
   headEl.textContent = doc.headline || '';
-  const dates = unionDates();
+  const dates = displayDates();
   rowEl.style.setProperty('--cols', dates.length);
   const made = [];
   for (const d of dates){
@@ -486,7 +560,7 @@ function renderDiffRow(){
   rowEl.innerHTML = '';
   const mode = document.getElementById('diffMode').value;
   const a = docs[A], b = docs[B];
-  const dates = unionDates();
+  const dates = displayDates();
   rowEl.style.setProperty('--cols', dates.length);
   const shared = a.days.filter(d => b.days.includes(d));
   document.getElementById('titleDiff').textContent = fmtRun(entry(A)) + ' to ' + fmtRun(entry(B));
@@ -531,15 +605,32 @@ function fillRegionFilter(){
   el.onchange = renderTable;
 }
 
+// A cell counts as changed if the mode's primary metric moved, or (in 'impact'
+// mode) if likelihood shifted within the same impact band — that shift alone
+// doesn't change the impact reading but is still meaningful to flag.
+const cellChanged = c => !!c && (c.dir !== 0 || !!c.likDelta);
+
+function likBadge(c){
+  if (!c || !c.likDelta) return '';
+  const up = c.likDelta > 0;
+  return '<span class="ml-1 text-[9px] font-bold" style="color:' + (up ? UP : DOWN) + '" ' +
+    'title="Likelihood: ' + esc(c.likFrom) + ' to ' + esc(c.likTo) + '">' + (up ? '▲' : '▼') + '</span>';
+}
+
 function changeCell(c, mode){
   if (!c) return '<td class="px-4 py-2 text-center text-slate-300">–</td>';
-  const tt = mode === 'tick' && c.fromLong ? ' title="' + esc(c.fromLong + (c.dir ? ' to ' + c.toLong : '')) + '"' : '';
-  if (c.dir === 0) return '<td class="px-4 py-2 text-center text-slate-400"' + tt + '>' + esc(c.to) + '</td>';
+  const showLik = mode === 'impact' && !!c.likDelta;
+  const tt = mode === 'tick' && c.fromLong ? ' title="' + esc(c.fromLong + (c.dir ? ' to ' + c.toLong : '')) + '"' :
+    showLik ? ' title="Likelihood: ' + esc(c.likFrom) + ' to ' + esc(c.likTo) + '"' : '';
+  if (c.dir === 0){
+    const bg = showLik ? ' style="background:rgba(100,116,139,.06)"' : '';
+    return '<td class="px-4 py-2 text-center text-slate-400"' + bg + tt + '>' + esc(c.to) + likBadge(c) + '</td>';
+  }
   const col = c.dir > 0 ? UP : DOWN;
   const bg = c.dir > 0 ? 'rgba(162,28,175,.07)' : 'rgba(37,99,235,.08)';
   return '<td class="px-4 py-1.5 text-center whitespace-nowrap" style="background:' + bg + '"' + tt + '>' +
     '<div class="text-[10px] leading-tight text-slate-400">' + esc(c.from) + '</div>' +
-    '<div class="font-semibold leading-tight" style="color:' + col + '">' + esc(c.to) + '</div></td>';
+    '<div class="font-semibold leading-tight" style="color:' + col + '">' + esc(c.to) + likBadge(c) + '</div></td>';
 }
 
 function renderTable(){
@@ -562,7 +653,7 @@ function renderTable(){
     if (region && (regions[name] || 'Other') !== region) continue;
     const cells = shared.map(d => diffCounty(mode, a.counties[name], b.counties[name],
       a.days.indexOf(d), b.days.indexOf(d)));
-    const n = cells.filter(c => c && c.dir !== 0).length;
+    const n = cells.filter(cellChanged).length;
     if (!n && !showUnchanged) continue;
     rows.push({name, cells, n, region: regions[name] || 'Other'});
   }
@@ -601,7 +692,57 @@ function renderTable(){
   document.getElementById('ctyFoot').textContent =
     nCh + (region ? ' ' + region : '') + ' count' + (nCh === 1 ? 'y' : 'ies') +
     ' changed on at least one overlapping day (' +
-    {risk:'overall flood risk', impact:'impact severity', tick:'matrix position', sigsev:'to/from Significant or Severe'}[mode] + ').';
+    {risk:'overall flood risk', impact:'impact severity or likelihood', tick:'matrix position', sigsev:'to/from Significant or Severe'}[mode] + ').' +
+    (mode === 'impact' ? ' ▲/▼ marks a likelihood-only shift within the same impact band.' : '');
+}
+
+// ── Matrix position summary ──────────────────────────────────────────────────
+// Tally each county's worst [impact, likelihood] cell, per shared day, into a
+// 4x4 grid — one grid per statement — so the two can be compared side by side.
+function tickCounts(doc, dates){
+  const grid = Array.from({length: 5}, () => Array(5).fill(0));
+  for (const d of dates){
+    const di = doc.days.indexOf(d);
+    if (di < 0) continue;
+    for (const c of Object.values(doc.counties)){
+      const w = worstCell(c, di);
+      if (w) grid[w[0]][w[1]]++;
+    }
+  }
+  return grid;
+}
+
+function renderMatrixSummary(){
+  const shared = sharedDates();
+  const gridA = tickCounts(docs[A], shared);
+  const gridB = tickCounts(docs[B], shared);
+  const srcNote = srcSel.length ? ' Sources: ' + srcSel.map(s => SOURCE_LABEL[s].toLowerCase()).join(', ') + '.' : ' All sources.';
+  document.getElementById('matrixDesc').textContent =
+    'Earlier issue count → later issue count, per matrix tick, across ' + shared.length +
+    ' overlapping day' + (shared.length === 1 ? '' : 's') + '.' + srcNote;
+
+  let html = '<table class="border-separate" style="border-spacing:4px; min-width:32rem;"><tbody>';
+  html += '<tr><td></td>' +
+    [1, 2, 3, 4].map(l => '<td class="text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 pb-1">' +
+      esc(LIK_NAME[l]) + '<br><span class="font-normal text-slate-400">likelihood</span></td>').join('') + '</tr>';
+  for (let imp = 4; imp >= 1; imp--){
+    html += '<tr>';
+    html += '<td class="text-right text-[10px] font-bold text-slate-500 dark:text-slate-400 pr-2 whitespace-nowrap">' + esc(IMPACT_NAME[imp]) + '</td>';
+    for (let lik = 1; lik <= 4; lik++){
+      const ca = gridA[imp][lik], cb = gridB[imp][lik];
+      const delta = cb - ca;
+      const arrow = delta > 0 ? '<span style="color:' + UP + '">▲' + delta + '</span>'
+        : delta < 0 ? '<span style="color:' + DOWN + '">▼' + Math.abs(delta) + '</span>'
+        : '<span class="text-slate-300 dark:text-slate-600">–</span>';
+      html += '<td class="rounded-lg text-center px-3 py-2" style="background:' + IMPACT_COLOR[imp] + '22; border:1px solid ' + IMPACT_COLOR[imp] + '55" ' +
+        'title="' + esc(IMPACT_NAME[imp] + ' impact, ' + LIK_NAME[lik] + ' likelihood') + '">' +
+        '<div class="text-xs font-semibold text-slate-700 dark:text-slate-200">' + ca + ' → ' + cb + '</div>' +
+        '<div class="text-[10px]">' + arrow + '</div></td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  document.getElementById('matrixGrid').innerHTML = html;
 }
 
 function renderAll(){
@@ -610,6 +751,7 @@ function renderAll(){
   allMaps = []; diffMaps = [];
   fillRunSelects();
   renderSrcChips();
+  renderDayExpander();
   const ma = renderRow(document.getElementById('rowA'), document.getElementById('titleA'),
     document.getElementById('linksA'), document.getElementById('headA'), A);
   const mb = renderRow(document.getElementById('rowB'), document.getElementById('titleB'),
@@ -617,6 +759,7 @@ function renderAll(){
   finalizeMaps(ma.concat(mb));
   renderDiffRow();
   renderRiskLegend();
+  renderMatrixSummary();
   renderTable();
 }
 
