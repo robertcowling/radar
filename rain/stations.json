@@ -8046,6 +8046,12 @@
       "lon": -4.67722,
       "name": "White Clauchrie",
       "source": "sepa"
+    },
+    "sepa_776048": {
+      "lat": 55.55044,
+      "lon": -3.40937,
+      "name": "Linkumdoddie",
+      "source": "sepa"
     }
   }
 }
