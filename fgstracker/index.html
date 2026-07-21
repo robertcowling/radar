@@ -48,11 +48,8 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
 }
 .map { height: 400px; border-radius: .5rem; background: #eef3f6; border: 1px solid #e2e8f0; }
 @media (prefers-color-scheme: dark) { .map { background: #0b1526; border-color: #1e293b; } }
-.leaflet-container { background: transparent; font-family: 'Roboto', sans-serif; overflow: visible; }
-.leaflet-tooltip-pane { z-index: 3000 !important; }
-.leaflet-tooltip.fgs-tip { background: transparent; border: none; box-shadow: none; padding: 0;
-  border-radius: 0; opacity: 1 !important; transition: none !important; }
-.leaflet-tooltip.fgs-tip:before { display: none; }
+.leaflet-container { background: transparent; font-family: 'Roboto', sans-serif; }
+#floatTip { position: fixed; z-index: 9999; pointer-events: none; }
 .tip-card { font-family: 'Roboto', sans-serif; background: #fff; border: 1px solid #e2e8f0; border-radius: .75rem;
   box-shadow: var(--shadow-card-hover); max-width: min(260px, 75vw); overflow: hidden; }
 @media (prefers-color-scheme: dark) { .tip-card { background: #0f172a; border-color: #1e293b; } }
@@ -276,6 +273,8 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
   </div>
 </main>
 
+<div id="floatTip" class="tip-card" style="display:none;"></div>
+
 <script>
 const R2 = 'https://radar.floodforecast.co.uk';
 const fetchJson = u => fetch(u).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
@@ -491,14 +490,32 @@ function placeholder(container){
   container.appendChild(ph);
 }
 
-function tipCard(name, pillLabel, pillColor, rows, note){
-  return '<div class="tip-card">' +
-    '<div class="tip-head"><span>' + esc(name) + '</span>' +
+function tipContent(name, pillLabel, pillColor, rows, note){
+  return '<div class="tip-head"><span>' + esc(name) + '</span>' +
     '<span class="tip-pill" style="background:' + pillColor + '">' + esc(pillLabel) + '</span></div>' +
     '<div class="tip-body">' +
     rows.map(([k, v]) => '<div class="tip-row"><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>').join('') +
     (note ? '<div class="tip-note">' + esc(note) + '</div>' : '') +
-    '</div></div>';
+    '</div>';
+}
+
+// A body-level floating tooltip, positioned from the mouse event and immune
+// to clipping by the small map panels (Leaflet's own tooltip pane is bound
+// by its map container, which we don't want to un-clip — that would let the
+// map's own canvas/tile rendering spill out too).
+function showFloatTip(html, oe){
+  const el = document.getElementById('floatTip');
+  el.innerHTML = html;
+  el.style.display = 'block';
+  positionFloatTip(oe);
+}
+function positionFloatTip(oe){
+  if (!oe) return;
+  document.getElementById('floatTip').style.left = (oe.clientX + 14) + 'px';
+  document.getElementById('floatTip').style.top = (oe.clientY + 14) + 'px';
+}
+function hideFloatTip(){
+  document.getElementById('floatTip').style.display = 'none';
 }
 
 function drawCounties(m, doc, dayIdx){
@@ -517,10 +534,13 @@ function drawCounties(m, doc, dayIdx){
       if (v && v !== '14') rows.push([SOURCE_LABEL[s], decodeRaw(v)]);
     }
     if (w) rows.push(['Worst cell' + (bySources ? ' (selected)' : ''), decodeCombo(w)]);
-    const tip = tipCard(name, RISK_NAME[lvl], RISK_COLOR[lvl], rows,
+    const html = tipContent(name, RISK_NAME[lvl], RISK_COLOR[lvl], rows,
       rows.length ? '' : 'No areas of concern.');
     L.geoJSON(f, {style: {color: '#ffffff', weight: 1, fillColor: fill, fillOpacity: 0.9}})
-      .bindTooltip(tip, {sticky: true, className: 'fgs-tip'}).addTo(lg);
+      .on('mouseover', e => showFloatTip(html, e.originalEvent))
+      .on('mousemove', e => positionFloatTip(e.originalEvent))
+      .on('mouseout', hideFloatTip)
+      .addTo(lg);
   }
 }
 
@@ -573,9 +593,12 @@ function drawDiff(m, mode, date){
     const pillColor = r.dir === 0 ? '#94a3b8' : color;
     const rows = r.dir === 0 ? [['Reading', r.to]] : [['From', r.from], ['To', r.to]];
     const note = r.fromLong && r.dir !== 0 ? r.fromLong + ' to ' + r.toLong : '';
-    const tip = tipCard(name, pillLabel, pillColor, rows, note);
+    const html = tipContent(name, pillLabel, pillColor, rows, note);
     L.geoJSON(f, {style: {color: '#94a3b8', weight: 0.7, fillColor: color, fillOpacity: op}})
-      .bindTooltip(tip, {sticky: true, className: 'fgs-tip'}).addTo(lg);
+      .on('mouseover', e => showFloatTip(html, e.originalEvent))
+      .on('mousemove', e => positionFloatTip(e.originalEvent))
+      .on('mouseout', hideFloatTip)
+      .addTo(lg);
   }
 }
 
