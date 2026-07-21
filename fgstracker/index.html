@@ -442,7 +442,7 @@ document.addEventListener('click', e => {
 let syncing = false;
 function makeMap(el){
   const m = L.map(el, {attributionControl: false, zoomControl: false, preferCanvas: true,
-    fadeAnimation: false, zoomSnap: 0.25, maxBounds: EW_BOUNDS.pad(0.35), maxBoundsViscosity: 0.8});
+    fadeAnimation: false, zoomSnap: 0.5, wheelPxPerZoomLevel: 40, maxBounds: EW_BOUNDS.pad(0.35), maxBoundsViscosity: 0.8});
   m.setView(EW_BOUNDS.getCenter(), 5.5);
   m.on('move', () => {
     if (syncing) return;
