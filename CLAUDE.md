@@ -1,5 +1,9 @@
 # Radar / Flood Forecast — Claude notes
 
+## Workflow
+
+- **Always push committed changes to `main` on GitHub.** The user wants commits pushed, not left local — after committing, push to `origin main` (rebasing on top of the frequent automated data-update commits if the remote has moved on) without needing to be asked each time.
+
 ## UI conventions
 
 - **No block caps / all-caps in the UI.** The user dislikes `text-transform: uppercase` and writing labels in ALL CAPS. Use sentence case or title case instead. This applies to table headers, legend labels, status pills, modal text, and any UI copy.

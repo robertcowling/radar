@@ -46,11 +46,11 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
   .dayrow { grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr)); }
   .dayrow .ph { display: block; }
 }
-.map { height: 300px; border-radius: .5rem; background: #eef3f6; border: 1px solid #e2e8f0; }
+.map { height: 400px; border-radius: .5rem; background: #eef3f6; border: 1px solid #e2e8f0; }
 @media (prefers-color-scheme: dark) { .map { background: #0b1526; border-color: #1e293b; } }
 .leaflet-container { background: transparent; font-family: 'Roboto', sans-serif; }
 .leaflet-tooltip.fgs-tip { background: transparent; border: none; box-shadow: none; padding: 0;
-  border-radius: 0; opacity: 1 !important; }
+  border-radius: 0; opacity: 1 !important; transition: none !important; }
 .leaflet-tooltip.fgs-tip:before { display: none; }
 .tip-card { font-family: 'Roboto', sans-serif; background: #fff; border: 1px solid #e2e8f0; border-radius: .75rem;
   box-shadow: var(--shadow-card-hover); max-width: min(260px, 75vw); overflow: hidden; }
@@ -106,6 +106,12 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
 @media (prefers-color-scheme: dark) { .mtx-counts .mtx-a { color: #94a3b8; } }
 .mtx-sep { font-size: .6875rem; color: #94a3b8; }
 .mtx-delta { font-size: .6875rem; font-weight: 700; margin-top: .125rem; }
+.mtx-cell-sm { min-width: 3.5rem; padding: .3rem .2rem; border-radius: .5rem; }
+.mtx-cell-sm .mtx-counts { font-size: .6875rem; gap: .2rem; }
+.mtx-cell-sm .mtx-delta { font-size: .5625rem; margin-top: 0; }
+.id-pill { font-family: 'Roboto', sans-serif; font-size: .625rem; font-weight: 600; color: #94a3b8;
+  background: #f1f5f9; padding: .0625rem .5rem; border-radius: .25rem; white-space: nowrap; }
+@media (prefers-color-scheme: dark) { .id-pill { background: #1e293b; color: #64748b; } }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -142,20 +148,21 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
 
   <div id="app" class="hidden space-y-5">
 
-    <!-- Row 1: later comparison statement (always shown first) -->
+    <!-- Row 1: latest issue (always shown first) -->
     <div class="card">
       <div class="flex items-center justify-between flex-wrap gap-3 mb-1">
         <div>
-          <div class="section-label">Later issue</div>
+          <div class="section-label">Latest issue</div>
           <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2 flex-wrap">
             <span id="titleB"></span>
+            <span id="idB" class="id-pill"></span>
             <span id="latestBadge" class="hidden flex items-center gap-1 px-1.5 py-0.5 rounded border shadow-sm text-[9px] font-bold tracking-widest bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
               <span class="material-icons text-[12px]">verified</span>Latest
             </span>
-            <span class="text-sm font-normal ml-2" id="linksB"></span>
           </h3>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
+          <span class="flex items-center gap-1.5" id="linksB"></span>
           <div class="srcdd" id="srcDropdownWrap">
             <button type="button" class="srcddbtn" id="srcDropdownBtn">
               <span id="srcDropdownLabel"></span>
@@ -172,17 +179,20 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
       <div class="flex flex-wrap gap-4 mt-3 text-xs text-slate-500 dark:text-slate-400" id="riskLegend"></div>
     </div>
 
-    <!-- Row 2: base statement -->
+    <!-- Row 2: compare against -->
     <div class="card">
       <div class="flex items-center justify-between flex-wrap gap-3 mb-1">
         <div>
-          <div class="section-label">Statement</div>
-          <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100">
+          <div class="section-label">Compare against</div>
+          <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2 flex-wrap">
             <span id="titleA"></span>
-            <span class="text-sm font-normal ml-2" id="linksA"></span>
+            <span id="idA" class="id-pill"></span>
           </h3>
         </div>
-        <select id="runA" class="ffsel"></select>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="flex items-center gap-1.5" id="linksA"></span>
+          <select id="runA" class="ffsel"></select>
+        </div>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-3" id="headA"></p>
       <div class="dayrow" id="rowA"></div>
@@ -260,7 +270,7 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
     <p class="text-xs text-slate-400 dark:text-slate-500">
       Data: Flood Forecasting Centre Flood Guidance Statement, per-county five-day export, archived on each issue
       (~10:30 UK daily, occasionally twice a day). Columns are aligned by valid date, so each day of the later issue
-      sits directly beneath the same day of the earlier one. Comparisons need at least three overlapping days.
+      sits directly beneath the same day of the earlier one. Comparisons need at least two overlapping days.
     </p>
   </div>
 </main>
@@ -281,7 +291,7 @@ const LIK_SHORT = ['', 'V.Low', 'Low', 'Med', 'High'];
 const SOURCES = ['river', 'surface', 'coastal', 'ground'];
 const SOURCE_LABEL = {river:'Rivers', surface:'Surface water', coastal:'Coastal/tidal', ground:'Groundwater'};
 const UP = '#a21caf', DOWN = '#2563eb';   // escalation deliberately not red (red = High risk)
-const MIN_OVERLAP = 3;
+const MIN_OVERLAP = 2;
 const ABBR = {N:'North', S:'South', E:'East', W:'West', NE:'North East', Gtr:'Greater'};
 const expandName = n => n.split(' ').map(w => ABBR[w] || w).join(' ');
 const REGION_ORDER = ['North East', 'North West', 'Yorkshire and The Humber', 'East Midlands',
@@ -334,8 +344,9 @@ Promise.all([
 ]).then(([idx, geo]) => {
   index = (idx.statements || []).slice().sort((a, b) => (b.issued_at || '').localeCompare(a.issued_at || ''));
   for (const f of geo.features) features[f.properties.name] = f;
-  A = index[1] ? index[1].id : (index[0] && index[0].id);
   B = index[0] && index[0].id;
+  const opts = backwardOptions(B);
+  A = opts.length ? opts[0].id : (index[1] ? index[1].id : B);
   return loadDocs([A, B]);
 }).then(() => {
   for (const name of Object.keys(docs[A].counties)){
@@ -357,36 +368,37 @@ function loadDocs(ids){
 }
 
 // ── Run selectors ────────────────────────────────────────────────────────────
-function forwardOptions(baseId){
-  const base = entry(baseId);
-  return index.filter(e => e.id !== baseId && isForward(base, e) && overlap(base, e).length >= MIN_OVERLAP)
-    .sort((x, y) => (x.issued_at || '').localeCompare(y.issued_at || ''));   // nearest first
+// The top selector (latest issue) can be any statement. The bottom selector
+// (compare against) is limited to statements before it with enough overlap.
+function backwardOptions(laterId){
+  const later = entry(laterId);
+  return index.filter(e => e.id !== laterId && isForward(e, later) && overlap(e, later).length >= MIN_OVERLAP)
+    .sort((x, y) => (y.issued_at || '').localeCompare(x.issued_at || ''));   // nearest first
 }
 
 function fillRunSelects(){
   const selA = document.getElementById('runA'), selB = document.getElementById('runB');
-  selA.innerHTML = '';
-  for (const e of index){
-    if (!forwardOptions(e.id).length) continue;   // must have a later run with enough overlap
-    const o = document.createElement('option');
-    o.value = e.id; o.textContent = fmtRun(e);
-    if (e.id === A) o.selected = true;
-    selA.appendChild(o);
-  }
   selB.innerHTML = '';
-  for (const e of forwardOptions(A)){
+  for (const e of index){
     const o = document.createElement('option');
-    o.value = e.id; o.textContent = fmtRun(e);
+    o.value = e.id; o.textContent = fmtRun(e) + '  —  ID ' + e.id;
     if (e.id === B) o.selected = true;
     selB.appendChild(o);
   }
-  selA.onchange = () => {
-    A = +selA.value;
-    const opts = forwardOptions(A);
-    if (!opts.find(e => e.id === B)) B = opts.length ? opts[0].id : null;
+  selA.innerHTML = '';
+  for (const e of backwardOptions(B)){
+    const o = document.createElement('option');
+    o.value = e.id; o.textContent = fmtRun(e) + '  —  ID ' + e.id;
+    if (e.id === A) o.selected = true;
+    selA.appendChild(o);
+  }
+  selB.onchange = () => {
+    B = +selB.value;
+    const opts = backwardOptions(B);
+    if (!opts.find(e => e.id === A)) A = opts.length ? opts[0].id : null;
     loadDocs([A, B]).then(renderAll);
   };
-  selB.onchange = () => { B = +selB.value; loadDocs([B]).then(renderAll); };
+  selA.onchange = () => { A = +selA.value; loadDocs([A]).then(renderAll); };
 }
 
 // ── Source dropdown ──────────────────────────────────────────────────────────
@@ -425,7 +437,7 @@ document.addEventListener('click', e => {
 let syncing = false;
 function makeMap(el){
   const m = L.map(el, {attributionControl: false, zoomControl: false, preferCanvas: true,
-    zoomSnap: 0.25, maxBounds: EW_BOUNDS.pad(0.35), maxBoundsViscosity: 0.8});
+    fadeAnimation: false, zoomSnap: 0.25, maxBounds: EW_BOUNDS.pad(0.35), maxBoundsViscosity: 0.8});
   m.setView(EW_BOUNDS.getCenter(), 5.5);
   m.on('move', () => {
     if (syncing) return;
@@ -457,11 +469,12 @@ function finalizeMaps(list){
   }, 60);
 }
 
-function mapPanel(container, label, sub){
+function mapPanel(container, primary, secondary){
   const wrap = document.createElement('div');
-  wrap.innerHTML = '<div class="flex items-baseline justify-between mb-1.5">' +
-    '<span class="text-xs font-bold text-slate-600 dark:text-slate-300" style="font-family:\'Outfit\',sans-serif">' + esc(label) + '</span>' +
-    (sub ? '<span class="text-[10px] text-slate-400">' + esc(sub) + '</span>' : '') + '</div><div class="map"></div>';
+  wrap.innerHTML = '<div class="flex items-baseline gap-1.5 mb-1.5">' +
+    '<span class="text-xs font-bold text-slate-800 dark:text-slate-100" style="font-family:\'Outfit\',sans-serif">' + esc(primary) + '</span>' +
+    (secondary ? '<span class="text-[10px] font-medium text-slate-400 dark:text-slate-500">' + esc(secondary) + '</span>' : '') +
+    '</div><div class="map"></div>';
   container.appendChild(wrap);
   return wrap.querySelector('.map');
 }
@@ -582,11 +595,12 @@ function pdfCsvLinks(doc){
       '<span class="material-icons">table_chart</span>CSV</a>' : '');
 }
 
-function renderRow(rowEl, titleEl, linksEl, headEl, id){
+function renderRow(rowEl, titleEl, linksEl, headEl, idEl, id){
   const doc = docs[id], e = entry(id);
   rowEl.innerHTML = '';
   titleEl.textContent = fmtRun(e);
-  linksEl.innerHTML = '<span class="flex items-center gap-1.5">' + pdfCsvLinks(doc) + '</span>';
+  idEl.textContent = 'ID ' + id;
+  linksEl.innerHTML = pdfCsvLinks(doc);
   headEl.textContent = doc.headline || '';
   const dates = displayDates();
   rowEl.style.setProperty('--cols', dates.length);
@@ -594,7 +608,7 @@ function renderRow(rowEl, titleEl, linksEl, headEl, id){
   for (const d of dates){
     const i = doc.days.indexOf(d);
     if (i < 0){ placeholder(rowEl); continue; }
-    const el = mapPanel(rowEl, 'Day ' + (i + 1), fmtDate(d));
+    const el = mapPanel(rowEl, fmtDate(d), 'Day ' + (i + 1));
     const m = makeMap(el);
     drawCounties(m, doc, i);
     made.push(m);
@@ -796,7 +810,35 @@ function renderMatrixSummary(){
     '<span class="mtx-a font-semibold">Earlier</span><span class="text-slate-300">&middot;</span>' +
     '<span class="font-semibold text-slate-700 dark:text-slate-200">Later</span><span>county-day count, then the change.</span>' +
     '</div>';
+
+  html += '<div class="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800">' +
+    '<div class="mtx-axis mb-3">Day by day</div>' +
+    '<div class="flex gap-4 overflow-x-auto pb-1">' +
+    shared.map(d => renderMiniMatrix(fmtDate(d), tickCounts(docs[A], [d]), tickCounts(docs[B], [d]))).join('') +
+    '</div></div>';
   document.getElementById('matrixGrid').innerHTML = html;
+}
+
+function renderMiniMatrix(label, gridA, gridB){
+  let t = '<div class="flex-shrink-0"><div class="text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1.5" ' +
+    'style="font-family:\'Outfit\',sans-serif">' + esc(label) + '</div>' +
+    '<table style="border-collapse: separate; border-spacing: .3rem;"><tbody>';
+  for (let imp = 4; imp >= 1; imp--){
+    t += '<tr>';
+    for (let lik = 1; lik <= 4; lik++){
+      const ca = gridA[imp][lik], cb = gridB[imp][lik];
+      const delta = cb - ca;
+      const deltaColor = delta > 0 ? UP : DOWN;
+      t += '<td><div class="mtx-cell mtx-cell-sm" style="background:' + IMPACT_COLOR[imp] + '1f; border:1px solid ' + IMPACT_COLOR[imp] + '55" ' +
+        'title="' + esc(IMPACT_NAME[imp] + ' impact, ' + LIK_NAME[lik] + ' likelihood') + '">' +
+        '<div class="mtx-counts"><span class="mtx-a">' + ca + '</span><span class="mtx-sep">&middot;</span><span>' + cb + '</span></div>' +
+        (delta ? '<div class="mtx-delta" style="color:' + deltaColor + '">' + (delta > 0 ? '+' + delta : delta) + '</div>' : '') +
+        '</div></td>';
+    }
+    t += '</tr>';
+  }
+  t += '</tbody></table></div>';
+  return t;
 }
 
 function renderAll(){
@@ -807,9 +849,9 @@ function renderAll(){
   renderSrcChips();
   renderDayExpander();
   const ma = renderRow(document.getElementById('rowA'), document.getElementById('titleA'),
-    document.getElementById('linksA'), document.getElementById('headA'), A);
+    document.getElementById('linksA'), document.getElementById('headA'), document.getElementById('idA'), A);
   const mb = renderRow(document.getElementById('rowB'), document.getElementById('titleB'),
-    document.getElementById('linksB'), document.getElementById('headB'), B);
+    document.getElementById('linksB'), document.getElementById('headB'), document.getElementById('idB'), B);
   document.getElementById('latestBadge').classList.toggle('hidden', !index.length || B !== index[0].id);
   finalizeMaps(ma.concat(mb));
   renderDiffRow();
