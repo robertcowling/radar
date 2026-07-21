@@ -65,7 +65,7 @@ script that writes to R2:
   latest run without waiting for the next one — but only once `is_run_complete`
   is also satisfied for that run.
 
-## FGS tracker (`fetch_fgs.py` / `fgstracker/index.html`)
+## FGS tracker (`fetch_fgs.py` / `fgscomparison/index.html`)
 
 - FGS = the FFC 5-day Flood Guidance Statement (daily ~10:30 UK, occasional
   amendments). API: `https://api.ffc-environment-agency.fgs.metoffice.gov.uk/api/public/v3/statements`
@@ -83,7 +83,7 @@ script that writes to R2:
   `fgs/archive/{id}_aoc.jpg` (parsed statement + archived area-of-concern
   image). Statements are re-fetched when `last_modified_at` changes.
   Workflow: `fgs_update.yml`, hourly cron.
-- `fgstracker/index.html` compares successive statements **by valid date**
+- `fgscomparison/index.html` compares successive statements **by valid date**
   (day 2 of yesterday's issue = day 1 of today's): change lists, county
   choropleths (matched to `geo/uk-counties.geojson` by expanding N/S/E/W/NE/Gtr
   abbreviations), diff map, per-source 4×4 risk matrices, county × date table.
