@@ -1593,6 +1593,9 @@
   {
     "time": "Wed 22 Jul 2026 23:15 UTC",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/radar_parallel/202607222315_ODIM_ng_radar_rainrate_composite_1km_UK.png",
-    "dashboard_radar_url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202607222315.webp"
+    "sat_url_ir": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202607222315_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir.jpg",
+    "sat_url_ir_grey": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/sat_gh/202607222315_ODIM_ng_radar_rainrate_composite_1km_UK_sat_ir_grey.jpg",
+    "dashboard_radar_url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_radar_202607222315.webp",
+    "dashboard_ir_url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/dashboard_ir_202607222315.webp"
   }
 ]
