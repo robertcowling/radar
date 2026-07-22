@@ -815,11 +815,11 @@ function renderMatrixSummary(){
 
   let html = '<table style="border-collapse: separate; border-spacing: .5rem; min-width: 34rem;"><tbody>';
   html += '<tr><td></td>' +
-    [1, 2, 3, 4].map(l => '<td class="text-center mtx-axis pb-1">' + esc(LIK_NAME[l]) + '</td>').join('') + '</tr>';
-  for (let imp = 4; imp >= 1; imp--){
+    [1, 2, 3, 4].map(i => '<td class="text-center mtx-axis pb-1">' + esc(IMPACT_NAME[i]) + '</td>').join('') + '</tr>';
+  for (let lik = 4; lik >= 1; lik--){
     html += '<tr>';
-    html += '<td class="text-right mtx-axis pr-3 whitespace-nowrap">' + esc(IMPACT_NAME[imp]) + '</td>';
-    for (let lik = 1; lik <= 4; lik++){
+    html += '<td class="text-right mtx-axis pr-3 whitespace-nowrap">' + esc(LIK_NAME[lik]) + '</td>';
+    for (let imp = 1; imp <= 4; imp++){
       const ca = gridA[imp][lik], cb = gridB[imp][lik];
       const delta = cb - ca;
       const deltaColor = delta > 0 ? UP : delta < 0 ? DOWN : '#94a3b8';
@@ -840,7 +840,7 @@ function renderMatrixSummary(){
       RISK_COLOR[i] + '"></span>' + esc(n) + ' risk band</span>').join('') +
     '</div>' +
     '<div class="flex items-center gap-1.5 mt-2 text-xs text-slate-500 dark:text-slate-400">' +
-    '<span>Rows: impact. Columns: likelihood. Each cell:</span>' +
+    '<span>Rows: likelihood. Columns: impact. Each cell:</span>' +
     '<span class="mtx-a font-semibold">Earlier</span><span class="text-slate-300">&middot;</span>' +
     '<span class="font-semibold text-slate-700 dark:text-slate-200">Later</span><span>county-day count, then the change.</span>' +
     '</div>';
@@ -857,9 +857,9 @@ function renderMiniMatrix(label, gridA, gridB){
   let t = '<div class="flex-shrink-0"><div class="text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1.5" ' +
     'style="font-family:\'Outfit\',sans-serif">' + esc(label) + '</div>' +
     '<table style="border-collapse: separate; border-spacing: .3rem;"><tbody>';
-  for (let imp = 4; imp >= 1; imp--){
+  for (let lik = 4; lik >= 1; lik--){
     t += '<tr>';
-    for (let lik = 1; lik <= 4; lik++){
+    for (let imp = 1; imp <= 4; imp++){
       const ca = gridA[imp][lik], cb = gridB[imp][lik];
       const delta = cb - ca;
       const deltaColor = delta > 0 ? UP : DOWN;
