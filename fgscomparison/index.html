@@ -161,7 +161,6 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
         </div>
         <div class="flex items-center gap-2 flex-wrap">
           <span class="flex items-center gap-1.5" id="linksB"></span>
-          <button type="button" class="dayexp hidden" id="dayExpander"></button>
           <div class="srcdd" id="srcDropdownWrap">
             <button type="button" class="srcddbtn" id="srcDropdownBtn">
               <span id="srcDropdownLabel"></span>
@@ -170,6 +169,7 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
             <div class="srcddpanel hidden" id="srcDropdownPanel"></div>
           </div>
           <select id="runB" class="ffsel"></select>
+          <button type="button" class="dayexp hidden" id="dayExpander"></button>
         </div>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-3" id="headB"></p>
@@ -290,7 +290,7 @@ const LIK_NAME = ['', 'Very Low', 'Low', 'Medium', 'High'];
 const LIK_SHORT = ['', 'V.Low', 'Low', 'Med', 'High'];
 // FGS risk matrix banding: colour is diagonal (impact x likelihood), not per-row.
 // MATRIX_BAND[likelihood][impact-1] -> band 0-3 (green/yellow/amber/red), indexes into RISK_COLOR.
-const MATRIX_BAND = {1: [0, 0, 0, 0], 2: [0, 0, 1, 1], 3: [1, 1, 2, 2], 4: [1, 2, 2, 3]};
+const MATRIX_BAND = {1: [0, 0, 1, 1], 2: [0, 0, 1, 2], 3: [0, 1, 2, 2], 4: [0, 1, 2, 3]};
 const matrixColor = (imp, lik) => RISK_COLOR[MATRIX_BAND[lik][imp - 1]];
 const SOURCES = ['river', 'surface', 'coastal', 'ground'];
 const SOURCE_LABEL = {river:'Rivers', surface:'Surface water', coastal:'Coastal/tidal', ground:'Groundwater'};
@@ -612,7 +612,7 @@ function renderDayExpander(){
   const extra = unionDates().length - sharedDates().length;
   if (!extra){ btn.classList.add('hidden'); return; }
   btn.classList.remove('hidden');
-  btn.textContent = showAllDays ? 'Show overlapping days only' : '+' + extra + ' non-overlapping day' + (extra === 1 ? '' : 's');
+  btn.textContent = showAllDays ? 'Hide non-overlap days' : 'Show non-overlap days';
   btn.onclick = () => { showAllDays = !showAllDays; renderAll(); };
 }
 
@@ -814,8 +814,6 @@ function renderMatrixSummary(){
     ' overlapping day' + (shared.length === 1 ? '' : 's') + '.' + srcNote;
 
   let html = '<table style="border-collapse: separate; border-spacing: .5rem; min-width: 34rem;"><tbody>';
-  html += '<tr><td></td>' +
-    [1, 2, 3, 4].map(i => '<td class="text-center mtx-axis pb-1">' + esc(IMPACT_NAME[i]) + '</td>').join('') + '</tr>';
   for (let lik = 4; lik >= 1; lik--){
     html += '<tr>';
     html += '<td class="text-right mtx-axis pr-3 whitespace-nowrap">' + esc(LIK_NAME[lik]) + '</td>';
@@ -834,6 +832,8 @@ function renderMatrixSummary(){
     }
     html += '</tr>';
   }
+  html += '<tr><td></td>' +
+    [1, 2, 3, 4].map(i => '<td class="text-center mtx-axis pt-1">' + esc(IMPACT_NAME[i]) + '</td>').join('') + '</tr>';
   html += '</tbody></table>' +
     '<div class="flex flex-wrap items-center gap-4 mt-3 text-xs text-slate-500 dark:text-slate-400">' +
     RISK_NAME.map((n, i) => '<span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:' +
