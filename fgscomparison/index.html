@@ -689,8 +689,9 @@ function renderRiskLegend(){
   const items = dispMode === 'impact'
     ? [1, 2, 3, 4].map(i => [IMPACT_RAMP[i], IMPACT_NAME[i] + ' impact'])
     : RISK_NAME.map((n, i) => [RISK_COLOR[i], n]);
+  const border = dispMode === 'impact' ? 'border:1px solid #94a3b8;' : '';
   el.innerHTML = items.map(([c, n]) =>
-    '<span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:' + c + '"></span>' + esc(n) + '</span>').join('');
+    '<span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:' + c + ';' + border + '"></span>' + esc(n) + '</span>').join('');
 }
 
 // ── County table ─────────────────────────────────────────────────────────────
