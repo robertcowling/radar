@@ -154,20 +154,13 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
           <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2 flex-wrap">
             <span id="titleB"></span>
             <span id="idB" class="id-pill"></span>
+            <span class="flex items-center gap-1.5" id="linksB"></span>
             <span id="latestBadge" class="hidden flex items-center gap-1 px-1.5 py-0.5 rounded border shadow-sm text-[9px] font-bold tracking-widest bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
               <span class="material-icons text-[12px]">verified</span>Latest
             </span>
           </h3>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="flex items-center gap-1.5" id="linksB"></span>
-          <div class="srcdd" id="srcDropdownWrap">
-            <button type="button" class="srcddbtn" id="srcDropdownBtn">
-              <span id="srcDropdownLabel"></span>
-              <span class="material-icons" style="font-size:16px;">expand_more</span>
-            </button>
-            <div class="srcddpanel hidden" id="srcDropdownPanel"></div>
-          </div>
           <select id="runB" class="ffsel"></select>
           <button type="button" class="dayexp hidden" id="dayExpander"></button>
         </div>
@@ -176,10 +169,19 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
       <div class="dayrow" id="rowB"></div>
       <div class="flex flex-wrap items-center justify-between gap-3 mt-3">
         <div class="flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400" id="riskLegend"></div>
-        <select id="dispMode" class="ffsel">
-          <option value="risk" selected>Overall flood risk</option>
-          <option value="impact">Impact severity</option>
-        </select>
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="srcdd" id="srcDropdownWrap">
+            <button type="button" class="srcddbtn" id="srcDropdownBtn">
+              <span id="srcDropdownLabel"></span>
+              <span class="material-icons" style="font-size:16px;">expand_more</span>
+            </button>
+            <div class="srcddpanel hidden" id="srcDropdownPanel"></div>
+          </div>
+          <select id="dispMode" class="ffsel">
+            <option value="risk" selected>Overall flood risk</option>
+            <option value="impact">Impact severity</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -191,10 +193,10 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
           <h3 class="font-semibold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2 flex-wrap">
             <span id="titleA"></span>
             <span id="idA" class="id-pill"></span>
+            <span class="flex items-center gap-1.5" id="linksA"></span>
           </h3>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="flex items-center gap-1.5" id="linksA"></span>
           <select id="runA" class="ffsel"></select>
         </div>
       </div>
