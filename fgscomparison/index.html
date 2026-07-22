@@ -174,7 +174,13 @@ h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-3" id="headB"></p>
       <div class="dayrow" id="rowB"></div>
-      <div class="flex flex-wrap gap-4 mt-3 text-xs text-slate-500 dark:text-slate-400" id="riskLegend"></div>
+      <div class="flex flex-wrap items-center justify-between gap-3 mt-3">
+        <div class="flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400" id="riskLegend"></div>
+        <select id="dispMode" class="ffsel">
+          <option value="risk" selected>Overall flood risk</option>
+          <option value="impact">Impact severity</option>
+        </select>
+      </div>
     </div>
 
     <!-- Row 2: compare against -->
@@ -285,7 +291,7 @@ const RISK_NAME = ['Very Low', 'Low', 'Medium', 'High'];
 const RISK_COLOR = ['#90B86C', '#EBE455', '#E47012', '#D40000'];   // og FGS colours
 const IMPACT_NAME = ['', 'Minimal', 'Minor', 'Significant', 'Severe'];
 const IMPACT_SHORT = ['', 'Minimal', 'Minor', 'Sig', 'Severe'];
-const IMPACT_COLOR = ['', '#90B86C', '#EBE455', '#E47012', '#D40000'];
+const IMPACT_RAMP = ['', '#FFEDD5', '#FDBA74', '#F97316', '#9A3412'];   // single-hue orange ramp
 const LIK_NAME = ['', 'Very Low', 'Low', 'Medium', 'High'];
 const LIK_SHORT = ['', 'V.Low', 'Low', 'Med', 'High'];
 // FGS risk matrix banding: colour is diagonal (impact x likelihood), not per-row.
@@ -308,6 +314,7 @@ let A = null, B = null;  // A = base (earlier), B = later comparison
 let features = {};       // geojson features by expanded name
 let regions = {};        // FGS county name -> region
 let srcSel = [];         // selected sources; empty = All (overall risk)
+let dispMode = 'risk';   // 'risk' = official overall flood risk; 'impact' = worst impact severity
 let showAllDays = false; // false = only overlapping days; true = full union incl. non-overlapping
 let allMaps = [], diffMaps = [];
 
@@ -527,7 +534,7 @@ function drawCounties(m, doc, dayIdx){
     const lvl = RISK[c.overall[dayIdx]];
     if (lvl === undefined) continue;
     const w = worstCell(c, dayIdx);
-    const fill = bySources ? (w ? IMPACT_COLOR[w[0]] : '#cbd5e1') : RISK_COLOR[lvl];
+    const fill = dispMode === 'impact' ? (w ? IMPACT_RAMP[w[0]] : '#cbd5e1') : RISK_COLOR[lvl];
     const rows = [];
     for (const s of activeSources()){
       const v = c[s][dayIdx];
@@ -676,8 +683,8 @@ function renderDiffRow(){
 
 function renderRiskLegend(){
   const el = document.getElementById('riskLegend');
-  const items = srcSel.length
-    ? [1, 2, 3, 4].map(i => [IMPACT_COLOR[i], IMPACT_NAME[i] + ' impact'])
+  const items = dispMode === 'impact'
+    ? [1, 2, 3, 4].map(i => [IMPACT_RAMP[i], IMPACT_NAME[i] + ' impact'])
     : RISK_NAME.map((n, i) => [RISK_COLOR[i], n]);
   el.innerHTML = items.map(([c, n]) =>
     '<span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:' + c + '"></span>' + esc(n) + '</span>').join('');
@@ -895,6 +902,7 @@ function renderAll(){
   renderTable();
 }
 
+document.getElementById('dispMode').onchange = e => { dispMode = e.target.value; renderAll(); };
 document.getElementById('diffMode').onchange = () => { renderDiffRow(); renderTable(); };
 document.getElementById('ctyFilter').oninput = renderTable;
 document.getElementById('ctySort').onchange = renderTable;
