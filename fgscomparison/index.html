@@ -535,6 +535,7 @@ function drawCounties(m, doc, dayIdx){
     if (lvl === undefined) continue;
     const w = worstCell(c, dayIdx);
     const fill = dispMode === 'impact' ? (w ? IMPACT_RAMP[w[0]] : '#cbd5e1') : RISK_COLOR[lvl];
+    const outline = dispMode === 'impact' ? '#94a3b8' : '#ffffff';   // white fill (Minimal) needs a visible border
     const rows = [];
     for (const s of activeSources()){
       const v = c[s][dayIdx];
@@ -543,7 +544,7 @@ function drawCounties(m, doc, dayIdx){
     if (w) rows.push(['Worst cell' + (bySources ? ' (selected)' : ''), decodeCombo(w)]);
     const html = tipContent(name, RISK_NAME[lvl], RISK_COLOR[lvl], rows,
       rows.length ? '' : 'No areas of concern.');
-    L.geoJSON(f, {style: {color: '#ffffff', weight: 1, fillColor: fill, fillOpacity: 0.9}})
+    L.geoJSON(f, {style: {color: outline, weight: 1, fillColor: fill, fillOpacity: 0.9}})
       .on('mouseover', e => showFloatTip(html, e.originalEvent))
       .on('mousemove', e => positionFloatTip(e.originalEvent))
       .on('mouseout', hideFloatTip)
