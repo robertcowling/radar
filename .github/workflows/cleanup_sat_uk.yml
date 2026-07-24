@@ -1,0 +1,88 @@
+name: Cleanup Orphaned UK Satellite Images
+
+# One-off maintenance job. The short-lived UK hi-res GeoColour experiment
+# uploaded objects under sat_gh_uk/ before it was reverted. The reverted
+# retention code only scans sat_gh/, so those objects would never expire —
+# this lists (and optionally deletes) them so the rollback is clean.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'list = report only; delete = remove all sat_gh_uk/ objects'
+        required: true
+        default: 'list'
+        type: choice
+        options:
+          - list
+          - delete
+
+permissions: {}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install dependencies
+      run: pip install boto3
+
+    - name: List / delete sat_gh_uk objects
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        MODE: ${{ inputs.mode }}
+      run: |
+        python - <<'EOF'
+        import boto3, os
+
+        r2 = boto3.client(
+            's3',
+            endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
+            aws_access_key_id=os.environ['R2_ACCESS_KEY_ID'],
+            aws_secret_access_key=os.environ['R2_SECRET_ACCESS_KEY'],
+            region_name='auto',
+        )
+        bucket = os.environ['R2_BUCKET_NAME']
+        mode = os.environ.get('MODE', 'list')
+
+        paginator = r2.get_paginator('list_objects_v2')
+        keys, total = [], 0
+        for page in paginator.paginate(Bucket=bucket, Prefix='sat_gh_uk/'):
+            for obj in page.get('Contents', []):
+                keys.append(obj['Key'])
+                total += obj['Size']
+
+        print(f"MODE={mode}")
+        print(f"sat_gh_uk/ objects: {len(keys)}  total: {total:,} bytes ({total/1e6:.2f} MB)")
+        for k in keys[:15]:
+            print("  ", k)
+        if len(keys) > 15:
+            print(f"   ... and {len(keys) - 15} more")
+
+        if not keys:
+            print("Nothing under sat_gh_uk/. R2 is already clean.")
+            raise SystemExit(0)
+
+        if mode != 'delete':
+            print("List-only mode. Re-run with mode=delete to remove these objects.")
+            raise SystemExit(0)
+
+        deleted = 0
+        allk = [{'Key': k} for k in keys]
+        for i in range(0, len(allk), 1000):
+            batch = allk[i:i+1000]
+            resp = r2.delete_objects(Bucket=bucket, Delete={'Objects': batch})
+            errors = resp.get('Errors', [])
+            deleted += len(batch) - len(errors)
+            for e in errors:
+                print(f"  Delete failed: {e['Key']} — {e['Code']}: {e['Message']}")
+        print(f"Deleted {deleted} of {len(keys)} objects.")
+
+        remaining = sum(
+            len(p.get('Contents', []))
+            for p in paginator.paginate(Bucket=bucket, Prefix='sat_gh_uk/')
+        )
+        print(f"Verified remaining under sat_gh_uk/: {remaining}")
+        EOF
