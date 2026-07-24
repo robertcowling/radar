@@ -615,6 +615,17 @@
             image-rendering: crisp-edges;
             image-rendering: pixelated;
         }
+        /* UK hi-res GeoColour: feather all four edges so the tight frame blends
+           seamlessly into the wide GeoColour underneath instead of showing a
+           hard rectangular seam. */
+        .sat-uk-hires {
+            -webkit-mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 95%, transparent 100%),
+                                linear-gradient(to bottom, transparent 0, #000 5%, #000 95%, transparent 100%);
+            -webkit-mask-composite: source-in;
+                    mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 95%, transparent 100%),
+                                linear-gradient(to bottom, transparent 0, #000 5%, #000 95%, transparent 100%);
+                    mask-composite: intersect;
+        }
         .option-item {
             cursor: pointer;
             transition: background 0.15s, color 0.15s;
@@ -750,6 +761,10 @@
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
                     <input type="radio" name="satLayer" value="geo" onchange="onSatLayerChange('geo')">
                     Visible GeoColour
+                </label>
+                <label class="custom-checkbox" style="margin: 0 0 4px 22px; font-size: 12px; color: #5f6368;">
+                    <input type="checkbox" id="ukHiresToggle" checked onchange="onUkHiresToggle(this.checked)">
+                    UK hi-res detail
                 </label>
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
                     <input type="radio" name="satLayer" value="vis" onchange="onSatLayerChange('vis')">
@@ -890,6 +905,8 @@
         var bounds = PARALLEL_BOUNDS;
         // Satellite Overlay — 2× taller domain, same centre (-4.0°, 55.25°)
         var satBounds = [[37.75, -40.4], [67.5, 32.4]];
+        // UK hi-res GeoColour — tight British-Isles box, stacked over the wide frame
+        var satUkBounds = [[49.0, -11.0], [61.0, 2.0]];
         var radarOverlay = L.imageOverlay('', bounds, {
             opacity: 0.7,
             interactive: false,
@@ -1406,6 +1423,39 @@
         var satOverlays = {};
         var satUrlKeys = { geo: 'sat_url_bw', vis: 'sat_url_vis', ir: 'sat_url_ir', ir_grey: 'sat_url_ir_grey' };
 
+        // UK hi-res GeoColour — an optional tight frame stacked above the wide
+        // GeoColour layer. Additive only: frames without a UK image simply fall
+        // back to the wide frame, so it never removes frames from the timeline.
+        var SAT_UK_URL_KEY = 'sat_url_geo_uk';
+        var satUkOverlay = null;
+        var ukHiresEnabled = true;
+
+        // Add/remove/refresh the UK hi-res overlay to match the current sat layer
+        // and toggle state. Only active when GeoColour is the selected channel.
+        function updateUkOverlay() {
+            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
+            var wantUk = ukHiresEnabled && satVal === 'geo';
+            if (wantUk) {
+                if (!satUkOverlay) {
+                    satUkOverlay = L.imageOverlay('', satUkBounds, {
+                        opacity: 1.0, interactive: false, className: 'sat-uk-hires'
+                    });
+                }
+                if (!map.hasLayer(satUkOverlay)) satUkOverlay.addTo(map);
+                if (frames.length && frames[currentFrameIdx]) {
+                    satUkOverlay.setUrl(frames[currentFrameIdx][SAT_UK_URL_KEY] || TRANSPARENT_GIF);
+                }
+                enforceZOrder();
+            } else if (satUkOverlay && map.hasLayer(satUkOverlay)) {
+                map.removeLayer(satUkOverlay);
+            }
+        }
+
+        function onUkHiresToggle(checked) {
+            ukHiresEnabled = checked;
+            updateUkOverlay();
+        }
+
         // Return only frames that have both radar and (if enabled) satellite data.
         // If a satellite layer is active, the frame must have both the radar URL and the satellite URL.
         // If no satellite layer is active, the frame only needs to have the radar URL.
@@ -1479,6 +1529,7 @@
                 satOverlays[val].addTo(map);
                 enforceZOrder();
             }
+            updateUkOverlay();
             // Re-filter frames so radar and sat always share the same timesteps
             refilterFrames();
         }
@@ -1558,6 +1609,7 @@
             Object.keys(satOverlays).forEach(function(k) {
                 if (map.hasLayer(satOverlays[k])) satOverlays[k].bringToBack();
             });
+            if (satUkOverlay && map.hasLayer(satUkOverlay)) satUkOverlay.bringToFront();
             if (map.hasLayer(radarOverlay)) radarOverlay.bringToFront();
             if (mslpOverlay && map.hasLayer(mslpOverlay)) mslpOverlay.bringToFront();
             
@@ -1879,6 +1931,9 @@
             if (satKey && satOverlays[satVal] && map.hasLayer(satOverlays[satVal])) {
                 var satUrl = frameData[satKey] || TRANSPARENT_GIF;
                 satOverlays[satVal].setUrl(satUrl);
+            }
+            if (satUkOverlay && map.hasLayer(satUkOverlay)) {
+                satUkOverlay.setUrl(frameData[SAT_UK_URL_KEY] || TRANSPARENT_GIF);
             }
 
             updateMslpFrame();
