@@ -124,10 +124,19 @@ def get_r2_client():
 
 
 def list_r2_keys(r2):
-    """Return a set of all existing keys in sat_gh/."""
+    """Return a set of all existing keys under sat_gh.
+
+    Prefix is 'sat_gh' (no trailing slash) rather than 'sat_gh/' so this one
+    LIST also picks up any sat_gh_uk/ objects. Those were left behind by a
+    short-lived, reverted UK hi-res GeoColour experiment; including them here
+    lets cleanup_r2()'s normal 3-day retention expire them automatically. This
+    adds no extra Class A operations — it is the same single paginated LIST,
+    just a broader prefix. (Once sat_gh_uk/ is empty this is a harmless no-op,
+    since nothing writes that prefix any more.)
+    """
     keys = set()
     paginator = r2.get_paginator('list_objects_v2')
-    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix='sat_gh/'):
+    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix='sat_gh'):
         for obj in page.get('Contents', []):
             keys.add(obj['Key'])
     print(f"R2: {len(keys)} existing sat objects found.")
