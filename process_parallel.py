@@ -189,12 +189,10 @@ def list_r2_keys(r2):
 
 
 def list_sat_r2_keys(r2):
-    """Return the set of confirmed-uploaded sat keys. Prefix 'sat_gh' (no
-    trailing slash) covers both the wide sat_gh/ frames and the tight
-    sat_gh_uk/ hi-res frames in a single LIST."""
+    """Return the set of sat_gh/ keys that have been confirmed uploaded to R2."""
     keys = set()
     paginator = r2.get_paginator('list_objects_v2')
-    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix='sat_gh'):
+    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix='sat_gh/'):
         for obj in page.get('Contents', []):
             keys.add(obj['Key'])
     print(f"R2: {len(keys)} existing sat_gh objects found.")
@@ -293,27 +291,23 @@ def main():
         sat_url_vis = None
         sat_url_ir = None
         sat_url_ir_grey = None
-        sat_url_geo_uk = None
 
         if timestamp != "Unknown":
             sat_name_bw      = h5_name.replace(".h5", "_sat_bw.jpg")
             sat_name_vis     = h5_name.replace(".h5", "_sat_vis.jpg")
             sat_name_ir      = h5_name.replace(".h5", "_sat_ir.jpg")
             sat_name_ir_grey = h5_name.replace(".h5", "_sat_ir_grey.jpg")
-            sat_name_geo_uk  = h5_name.replace(".h5", "_sat_geo_uk.jpg")
-
+            
             if USE_R2:
-                if f"sat_gh/{sat_name_bw}"         in sat_r2_keys: sat_url_bw      = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_bw}"
-                if f"sat_gh/{sat_name_vis}"        in sat_r2_keys: sat_url_vis     = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_vis}"
-                if f"sat_gh/{sat_name_ir}"         in sat_r2_keys: sat_url_ir      = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir}"
-                if f"sat_gh/{sat_name_ir_grey}"    in sat_r2_keys: sat_url_ir_grey = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir_grey}"
-                if f"sat_gh_uk/{sat_name_geo_uk}"  in sat_r2_keys: sat_url_geo_uk  = f"{R2_PUBLIC_URL}/sat_gh_uk/{sat_name_geo_uk}"
+                if f"sat_gh/{sat_name_bw}"      in sat_r2_keys: sat_url_bw      = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_bw}"
+                if f"sat_gh/{sat_name_vis}"     in sat_r2_keys: sat_url_vis     = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_vis}"
+                if f"sat_gh/{sat_name_ir}"      in sat_r2_keys: sat_url_ir      = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir}"
+                if f"sat_gh/{sat_name_ir_grey}" in sat_r2_keys: sat_url_ir_grey = f"{R2_PUBLIC_URL}/sat_gh/{sat_name_ir_grey}"
             else:
                 sat_url_bw      = f"static/sat/{sat_name_bw}"
                 sat_url_vis     = f"static/sat/{sat_name_vis}"
                 sat_url_ir      = f"static/sat/{sat_name_ir}"
                 sat_url_ir_grey = f"static/sat/{sat_name_ir_grey}"
-                sat_url_geo_uk  = f"static/sat/{sat_name_geo_uk}"
 
         radar_url = f"{R2_PUBLIC_URL}/radar_parallel/{png_name}" if USE_R2 else f"static/radar_parallel/{png_name}"
         
@@ -326,9 +320,7 @@ def main():
             frame_data["sat_url_ir"] = sat_url_ir
         if sat_url_ir_grey:
             frame_data["sat_url_ir_grey"] = sat_url_ir_grey
-        if sat_url_geo_uk:
-            frame_data["sat_url_geo_uk"] = sat_url_geo_uk
-
+            
         frames.append(frame_data)
 
     with open("frames_parallel.json", "w") as f:
