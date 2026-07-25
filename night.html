@@ -793,12 +793,15 @@
                 </label>
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
                     <input type="radio" name="satLayer" value="li" onchange="onSatLayerChange('li')">
-                    Lightning
+                    Lightning (satellite)
                 </label>
                 <label class="custom-checkbox" style="margin-bottom: 0;">
                     <input type="radio" name="satLayer" value="cth" onchange="onSatLayerChange('cth')">
                     Cloud Top Height
                 </label>
+                <div id="satLegend" style="display: none; margin-top: 10px;">
+                    <img id="satLegendImg" src="" alt="Satellite layer legend" style="max-width: 100%; display: block; border-radius: 4px; background: #fff;">
+                </div>
             </div>
 
             <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #9ca3af; letter-spacing: 0.5px;">Navigation</p>
@@ -1492,6 +1495,14 @@
             preloadVisibleFrames();
         }
 
+        // Legend graphics rendered by EUMETSAT's own WMS for the layers whose
+        // colour scale isn't self-explanatory (lightning flash count, cloud
+        // top height in metres). Static per-style images, no time param needed.
+        var SAT_LEGEND_URLS = {
+            li:  'https://view.eumetsat.int/geoserver/ows?service=WMS&request=GetLegendGraphic&version=1.3.0&format=image/png&layer=mtg_fd:li_afa&style=mtg_li_afa',
+            cth: 'https://view.eumetsat.int/geoserver/ows?service=WMS&request=GetLegendGraphic&version=1.3.0&format=image/png&layer=msg_fes:cth&style=msg_cth'
+        };
+
         function onSatLayerChange(val) {
             // Remove all sat overlays
             Object.keys(satOverlays).forEach(function(k) {
@@ -1504,6 +1515,16 @@
                 satOverlays[val].addTo(map);
                 enforceZOrder();
             }
+
+            var legendDiv = document.getElementById('satLegend');
+            var legendImg = document.getElementById('satLegendImg');
+            if (SAT_LEGEND_URLS[val]) {
+                legendImg.src = SAT_LEGEND_URLS[val];
+                legendDiv.style.display = 'block';
+            } else {
+                legendDiv.style.display = 'none';
+            }
+
             // Re-filter frames so radar and sat always share the same timesteps
             refilterFrames();
         }
