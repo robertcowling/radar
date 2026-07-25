@@ -787,9 +787,17 @@
                     <input type="radio" name="satLayer" value="ir_grey" onchange="onSatLayerChange('ir_grey')">
                     IR Greyscale
                 </label>
-                <label class="custom-checkbox" style="margin-bottom: 0;">
+                <label class="custom-checkbox" style="margin-bottom: 4px;">
                     <input type="radio" name="satLayer" value="ir" onchange="onSatLayerChange('ir')">
                     IR False Colour
+                </label>
+                <label class="custom-checkbox" style="margin-bottom: 4px;">
+                    <input type="radio" name="satLayer" value="li" onchange="onSatLayerChange('li')">
+                    Lightning
+                </label>
+                <label class="custom-checkbox" style="margin-bottom: 0;">
+                    <input type="radio" name="satLayer" value="cth" onchange="onSatLayerChange('cth')">
+                    Cloud Top Height
                 </label>
             </div>
 
@@ -1421,7 +1429,7 @@
 
         // Satellite overlays — lazily created, keyed by radio value
         var satOverlays = {};
-        var satUrlKeys = { geo: 'sat_url_bw', vis: 'sat_url_vis', ir: 'sat_url_ir', ir_grey: 'sat_url_ir_grey' };
+        var satUrlKeys = { geo: 'sat_url_bw', vis: 'sat_url_vis', ir: 'sat_url_ir', ir_grey: 'sat_url_ir_grey', li: 'sat_url_li', cth: 'sat_url_cth' };
 
         // Return only frames that have both radar and (if enabled) satellite data.
         // If a satellite layer is active, the frame must have both the radar URL and the satellite URL.

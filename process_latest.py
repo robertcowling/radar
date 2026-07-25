@@ -208,15 +208,21 @@ def main():
         sat_name_vis     = h5_name.replace(".h5", "_sat_vis.jpg")
         sat_name_ir      = h5_name.replace(".h5", "_sat_ir.jpg")
         sat_name_ir_grey = h5_name.replace(".h5", "_sat_ir_grey.jpg")
+        sat_name_li      = h5_name.replace(".h5", "_sat_li.jpg")
+        sat_name_cth     = h5_name.replace(".h5", "_sat_cth.jpg")
         sat_path_bw      = os.path.join(SAT_DIR, sat_name_bw)
         sat_path_vis     = os.path.join(SAT_DIR, sat_name_vis)
         sat_path_ir      = os.path.join(SAT_DIR, sat_name_ir)
         sat_path_ir_grey = os.path.join(SAT_DIR, sat_name_ir_grey)
+        sat_path_li      = os.path.join(SAT_DIR, sat_name_li)
+        sat_path_cth     = os.path.join(SAT_DIR, sat_name_cth)
 
         r2_key_bw      = f"sat_gh/{sat_name_bw}"
         r2_key_vis     = f"sat_gh/{sat_name_vis}"
         r2_key_ir      = f"sat_gh/{sat_name_ir}"
         r2_key_ir_grey = f"sat_gh/{sat_name_ir_grey}"
+        r2_key_li      = f"sat_gh/{sat_name_li}"
+        r2_key_cth     = f"sat_gh/{sat_name_cth}"
 
         # GeoColour RGB (MTG FCI — seamless day/night colour blend)
         if not (USE_R2 and r2_key_bw in r2_keys):
@@ -250,6 +256,24 @@ def main():
                 download_sat_image(iso_time, "mtg_fd:ir105_hrfi", sat_path_ir_grey, grayscale=True)
             if os.path.exists(sat_path_ir_grey) and USE_R2:
                 upload_to_r2(r2, sat_path_ir_grey, r2_key_ir_grey, "image/jpeg", r2_keys)
+
+        # LI Accumulated Flash Area (MTG Lightning Imager — flash density, colour scale)
+        if not (USE_R2 and r2_key_li in r2_keys):
+            if not os.path.exists(sat_path_li):
+                print(f"Downloading LI lightning image {sat_name_li}...")
+                download_sat_image(iso_time, "mtg_fd:li_afa", sat_path_li,
+                                   style="mtg_li_afa", width=1600, height=1600)
+            if os.path.exists(sat_path_li) and USE_R2:
+                upload_to_r2(r2, sat_path_li, r2_key_li, "image/jpeg", r2_keys)
+
+        # Cloud Top Height (MSG — colour height scale)
+        if not (USE_R2 and r2_key_cth in r2_keys):
+            if not os.path.exists(sat_path_cth):
+                print(f"Downloading Cloud Top Height image {sat_name_cth}...")
+                download_sat_image(iso_time, "msg_fes:cth", sat_path_cth,
+                                   style="msg_cth", width=1600, height=1600)
+            if os.path.exists(sat_path_cth) and USE_R2:
+                upload_to_r2(r2, sat_path_cth, r2_key_cth, "image/jpeg", r2_keys)
 
     status = {
         "last_updated": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:00.000Z"),

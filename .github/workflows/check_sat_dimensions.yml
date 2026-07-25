@@ -23,8 +23,20 @@ jobs:
         import boto3, os, io
         from PIL import Image
 
-        EXPECTED_WIDTH = 3200
-        EXPECTED_HEIGHT = 3200
+        # Most sat_gh/ layers are full HRFI resolution; lightning (LI) and
+        # Cloud Top Height are coarser retrievals rendered smaller, so they
+        # get their own expected size rather than being flagged as "bad".
+        DEFAULT_SIZE = (3200, 3200)
+        SUFFIX_SIZES = {
+            '_sat_li.jpg': (1600, 1600),
+            '_sat_cth.jpg': (1600, 1600),
+        }
+
+        def expected_size(key):
+            for suffix, size in SUFFIX_SIZES.items():
+                if key.endswith(suffix):
+                    return size
+            return DEFAULT_SIZE
 
         r2 = boto3.client(
             's3',
@@ -46,18 +58,20 @@ jobs:
             print("No sat_gh objects found.")
             raise SystemExit(0)
 
-        print(f"Checking {len(keys)} sat images for {EXPECTED_WIDTH}x{EXPECTED_HEIGHT}...")
+        print(f"Checking {len(keys)} sat images ({DEFAULT_SIZE[0]}x{DEFAULT_SIZE[1]} default, "
+              f"{', '.join(f'{s}->{w}x{h}' for s, (w, h) in SUFFIX_SIZES.items())} overrides)...")
 
         bad = []
 
         for key in keys:
+            expected_w, expected_h = expected_size(key)
             try:
                 resp = r2.get_object(Bucket=bucket, Key=key)
                 data = resp['Body'].read()
                 img = Image.open(io.BytesIO(data))
                 w, h = img.size
-                if w != EXPECTED_WIDTH or h != EXPECTED_HEIGHT:
-                    print(f"  BAD: {key} — {w}x{h}")
+                if w != expected_w or h != expected_h:
+                    print(f"  BAD: {key} — {w}x{h} (expected {expected_w}x{expected_h})")
                     bad.append(key)
                 else:
                     print(f"  OK:  {key} — {w}x{h}")
@@ -66,7 +80,7 @@ jobs:
                 bad.append(key)
 
         if not bad:
-            print(f"\nAll {len(keys)} images are {EXPECTED_WIDTH}x{EXPECTED_HEIGHT}. No action needed.")
+            print(f"\nAll {len(keys)} images match their expected dimensions. No action needed.")
             raise SystemExit(0)
 
         print(f"\n{len(bad)} of {len(keys)} images have wrong dimensions. Purging ALL sat_gh/ objects...")
@@ -106,5 +120,5 @@ jobs:
         else:
             print("Verified: sat_gh/ is empty.")
 
-        print(f"Purge complete. Next radar update will re-download all sat images at {EXPECTED_WIDTH}x{EXPECTED_HEIGHT}.")
+        print("Purge complete. Next radar update will re-download all sat images at their expected dimensions.")
         EOF
