@@ -19,10 +19,17 @@
             position: relative;
             width: 100%;
         }
+
+        /* Lives in the bottom player-panel as a compact pill (like the other
+           control-group dropdowns), not a full-width panel item. */
+        #mowControlGroup { min-width: 150px; }
+        #mowControlGroup .custom-multiselect { width: max-content; min-width: 150px; }
+
         .multiselect-trigger {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 8px;
             background: #f1f3f4;
             border: none;
             padding: 8px 16px;
@@ -34,6 +41,14 @@
             transition: background 0.2s;
             user-select: none;
             box-sizing: border-box;
+            white-space: nowrap;
+        }
+
+        .trigger-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 140px;
         }
         .multiselect-trigger:hover {
             background-color: #e8eaed;
@@ -48,9 +63,9 @@
         .multiselect-options {
             display: none;
             position: absolute;
-            top: calc(100% + 4px); /* Pop downwards */
+            bottom: calc(100% + 8px); /* Lives in the bottom player-panel — pop upwards */
             left: 0;
-            right: 0;
+            min-width: 220px;
             background: white;
             border: 1px solid #dadce0;
             border-radius: 12px;
@@ -270,8 +285,45 @@
             width: 95%;
             max-width: 950px;
             display: flex;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        /* Play button + timeline + datetime share their own full-width row
+           (order:10 forces the wrap) — a consistent video-scrubber row. */
+        .tl-dt-row {
+            flex: 1 1 100%;
+            order: 10;
+            display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
+        }
+        .tl-dt-row .play-group { flex: 0 0 auto; }
+
+        #playerDateTime {
+            flex-shrink: 0;
+            width: 105px;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            padding-left: 12px;
+            border-left: 1px solid #e8eaed;
+            overflow: hidden;
+        }
+        #playerDateLine {
+            font-size: 10px;
+            color: #3c4043;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        #playerTimeLine {
+            font-size: 16px;
+            font-weight: 700;
+            color: #202124;
+            white-space: nowrap;
+            overflow: hidden;
         }
 
         .btn {
@@ -586,85 +638,131 @@
             accent-color: #202124;
         }
 
-        /* Mobile Responsiveness */
-        @media (max-width: 768px) {
-            .player-panel {
-                width: calc(100% - 20px);
-                padding: 10px 12px;
-                gap: 8px;
-                bottom: 8px;
-                box-sizing: border-box;
-                flex-wrap: wrap;
-            }
+        /* Mobile / tablet responsiveness (two-tier, matching Flood Forecast's
+           radar page: 1024px for tablet/narrow-desktop, 380px for small phones) */
+        @media (max-width: 1024px) {
+            /* Push zoom controls below the full-width collapsed key panel */
+            .leaflet-top.leaflet-left { top: 88px; }
 
-            .info-panel {
-                top: 10px;
-                right: 10px;
-                left: auto;
-                width: auto;
-                padding: 20px;
-            }
-
-            .panel-header {
-                margin: -20px -20px 16px -20px;
-            }
-
+            .info-panel,
             .info-panel.collapsed {
-                width: 200px;
-                height: auto;
-                border-radius: 18px;
-                padding: 8px 12px 10px 12px;
-                top: 15px;
-                right: 15px;
-            }
-
-            .info-panel.collapsed .collapsed-top-row {
-                margin: -8px -12px 6px -12px;
-                width: calc(100% + 24px);
-            }
-
-            .info-panel:not(.collapsed) {
-                width: calc(100% - 30px);
-                left: 15px;
-                right: 15px;
-                top: 15px;
+                top: 8px;
+                right: 8px;
+                left: 12px;
+                width: calc(100% - 24px);
                 box-sizing: border-box;
-                /* Prevent panel overlapping the player controls at bottom.
-                   Player bar is ~80px tall, 8px from bottom. */
-                max-height: calc(100vh - 120px);
+            }
+            .info-panel {
+                padding: 16px;
+                max-height: calc(100vh - 220px);
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
             }
+            .panel-header {
+                margin: -16px -16px 16px -16px;
+            }
 
-            .timeline-container {
+            .info-panel.collapsed { padding: 0; overflow: hidden; }
+            .info-panel.collapsed .collapsed-top-row { margin: 0; width: 100%; padding: 9px 14px; }
+            .info-panel.collapsed .cbar-container { padding: 6px 14px 5px; }
+
+            .player-panel {
+                bottom: 8px;
+                width: calc(100% - 16px);
+                /* Extra bottom padding: the timeline's time labels hang ~10px
+                   below the scrubber row and must stay inside the panel. */
+                padding: 7px 10px 16px;
+                gap: 4px 6px;
+                flex-wrap: wrap;
+                box-sizing: border-box;
+                align-items: flex-end;
+                border-radius: 16px;
+            }
+
+            .player-panel .control-group {
+                flex: 1 1 auto;
+                min-width: 0;
+                max-width: 130px;
+                width: auto;
+            }
+
+            .player-panel .control-group.play-group {
+                flex: 0 0 auto;
+                width: auto;
+            }
+
+            #mowControlGroup {
+                min-width: 0;
+                max-width: none;
+                flex-basis: 100%;
+            }
+            #mowControlGroup .custom-multiselect {
+                min-width: 0;
                 width: 100%;
-                order: 4;
-                /* Push slider to bottom row */
-                margin-top: 5px;
+            }
+            #mowControlGroup .multiselect-trigger {
+                width: 100%;
+                font-size: 11px;
+                padding: 5px 12px;
+            }
+            #mowControlGroup .trigger-text {
+                max-width: none;
             }
 
-            .control-group {
-                flex: 1;
+            #playerDateTime {
+                flex: 0 0 auto;
+                width: auto;
+                border-left: 1px solid #e8eaed;
+                padding-left: 8px;
+                display: flex;
+                flex-direction: column;
+                gap: 1px;
             }
+            #playerDateLine { font-size: 9px; }
+            #playerTimeLine { font-size: 13px; }
 
-            .control-group.play-group {
-                flex: 0 1 auto;
-                min-width: 80px;
+            /* Top margin reserves headroom for the day marker drawn above the
+               scrubber row, so it clears the dropdowns. */
+            .tl-dt-row { margin-top: 18px; gap: 8px; }
+            .timeline-container { height: 28px; }
+
+            .control-label {
+                font-size: 9px;
+                margin-bottom: 2px;
+                padding-left: 4px;
             }
 
             #durationSelect,
-            #speedSelect {
+            #speedSelect,
+            #boundarySelect {
                 width: 100%;
-                font-size: 13px;
-                padding: 8px 12px 8px 12px;
-                box-sizing: border-box;
+                font-size: 11px;
+                padding: 5px 22px 5px 9px;
+                background-position: right 8px center;
+                border-radius: 12px;
             }
 
             #playBtn {
-                width: 100%;
-                padding: 8px 16px;
+                width: auto;
+                padding: 5px 12px;
                 min-width: 0;
                 max-width: none;
+                font-size: 13px;
+                border-radius: 12px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .player-panel {
+                gap: 3px 4px;
+                padding: 5px 8px 14px;
+            }
+            #durationSelect, #speedSelect, #boundarySelect {
+                font-size: 10px;
+                padding: 5px 18px 5px 6px;
+            }
+            #playBtn {
+                padding: 4px 8px;
             }
         }
 
@@ -736,13 +834,6 @@
             </button>
         </div>
 
-        <div id="infoContentTop" class="hide-collapsed">
-            <div class="time-box">
-                <p id="tzLabel" style="margin: 0; font-size: 11px; font-weight: 700; color: #5f6368; letter-spacing: 0.5px;">Time (GMT)</p>
-                <div id="timeDisplay" style="font-size: 22px; font-weight: 700; color: #202124; margin-top: 4px;">Loading...</div>
-            </div>
-        </div>
-
         <div class="cbar-container">
             <p style="font-weight:500; margin-bottom:10px; font-size:12px; color: #3c4043;">Rainfall Rate (mm/hr)</p>
             <div class="cbar" id="radarCbar"></div>
@@ -750,57 +841,63 @@
         </div>
 
         <div id="infoContentBottom" class="hide-collapsed">
-            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.3px;">Weather Warnings</p>
-            <div style="margin-bottom: 24px; position: relative;">
-                <div class="custom-multiselect" id="warningsSelect">
-                    <div class="multiselect-trigger" onclick="toggleWarningsMultiselect(event)">
-                        <span class="trigger-text" id="warningsSelectText">No Warnings Overlayed</span>
-                        <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </div>
-                    <div class="multiselect-options" id="warningsOptions" style="display: none;">
-                        <div style="padding: 6px 12px; font-size: 12px; color: #5f6368; font-weight: 500;">Loading...</div>
-                    </div>
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043;">Satellite</p>
+            <div style="margin-bottom: 8px;">
+                <select id="satSelect" onchange="onSatLayerChange(this.value)">
+                    <option value="none" selected>None</option>
+                    <option value="geo">Visible GeoColour</option>
+                    <option value="vis">Visible Greyscale (day)</option>
+                    <option value="ir_grey">IR Greyscale</option>
+                    <option value="ir">IR False Colour</option>
+                    <option value="li">Lightning (satellite)</option>
+                    <option value="cth">Cloud Top Height</option>
+                </select>
+            </div>
+            <div id="satOpacityContainer" style="display:none; margin: 0 0 16px;">
+                <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; color: #3c4043;">Sat opacity</p>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <input type="range" id="satOpacitySlider" min="10" max="100" value="70" style="flex:1; cursor:pointer;">
+                    <span id="satOpacityLabel" style="font-size:12px; color:#3c4043; min-width:30px; text-align:right;">70%</span>
+                </div>
+            </div>
+            <div id="liKeyContainer" style="display:none; margin-bottom:16px;">
+                <p style="font-weight:500; margin-bottom:10px; font-size:12px; color: #3c4043;">Lightning Flash Count (per 5 min)</p>
+                <div class="cbar li-cbar"></div>
+                <div class="cbar-labels" style="height:12px; margin-top:2px;">
+                    <span class="cbar-label" style="left:0; transform:none;">1</span>
+                    <span class="cbar-label" style="left:50%;">10</span>
+                    <span class="cbar-label" style="right:0; left:auto; transform:none;">20+</span>
+                </div>
+            </div>
+            <div id="cthKeyContainer" style="display:none; margin-bottom:16px;">
+                <p style="font-weight:500; margin-bottom:10px; font-size:12px; color: #3c4043;">Cloud Top Height (m)</p>
+                <div class="cbar cth-cbar"></div>
+                <div class="cbar-labels" style="height:12px; margin-top:2px;">
+                    <span class="cbar-label" style="left:0; transform:none;">320</span>
+                    <span class="cbar-label" style="left:25%;">4240</span>
+                    <span class="cbar-label" style="left:50%;">8160</span>
+                    <span class="cbar-label" style="left:75%;">12080</span>
+                    <span class="cbar-label" style="right:0; left:auto; transform:none;">16000+</span>
                 </div>
             </div>
 
-            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.3px;">Boundaries</p>
-            <div style="margin-bottom: 24px;">
+            <p style="margin: 20px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043;">Radar, MSLP &amp; Lightning</p>
+            <div style="margin-bottom: 16px;">
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="boundaryLayer" value="none" onchange="onBoundaryChange('none')">
-                    None
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="boundaryLayer" value="regions" checked onchange="onBoundaryChange('regions')">
-                    UK Regions
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 0;">
-                    <input type="radio" name="boundaryLayer" value="counties" onchange="onBoundaryChange('counties')">
-                    Counties
-                </label>
-            </div>
-
-            <div class="opacity-control" style="margin-top: 8px;">
-                <label class="custom-checkbox">
-                    <input type="checkbox" id="radarToggle" checked onchange="toggleRadar(this.checked)">
+                    <input type="checkbox" id="radarToggle" checked onchange="toggleRadar(this.checked)" style="accent-color:#202124; width:14px; height:14px; cursor:pointer;">
                     Radar
                 </label>
-            </div>
-
-            <div class="opacity-control" style="margin-top: 8px;">
-                <label class="custom-checkbox">
-                    <input type="checkbox" id="mslpToggle" onchange="toggleMslp(this.checked)">
+                <label class="custom-checkbox" style="margin-bottom: 4px;">
+                    <input type="checkbox" id="mslpToggle" onchange="toggleMslp(this.checked)" style="accent-color:#202124; width:14px; height:14px; cursor:pointer;">
                     MSLP analysis (GFS)
                 </label>
-            </div>
-
-            <div class="opacity-control" style="margin-top: 8px;">
-                <label class="custom-checkbox">
-                    <input type="checkbox" id="lightningToggle" checked onchange="toggleLightning(this.checked)">
-                    Lightning
+                <label class="custom-checkbox" style="margin-bottom: 0;">
+                    <input type="checkbox" id="lightningToggle" checked onchange="toggleLightning(this.checked)" style="accent-color:#202124; width:14px; height:14px; cursor:pointer;">
+                    Lightning (strikes)
                 </label>
             </div>
 
-            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.3px;">Radar Feed</p>
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043;">Radar Feed</p>
             <div style="margin-bottom: 24px;">
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
                     <input type="radio" name="radarFeed" value="standard" onchange="onFeedChange('standard')">
@@ -813,58 +910,6 @@
                 <a href="radar5/" style="font-size: 11px; color: #1a73e8; text-decoration: none; margin-left: 26px; display: block; margin-top: 4px; font-weight: 500;">
                     Switch to MeteoGate 5-Min UK feed &rarr;
                 </a>
-            </div>
-
-            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.3px;">Satellite</p>
-            <div style="margin-bottom: 24px;">
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="none" checked onchange="onSatLayerChange('none')">
-                    None
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="geo" onchange="onSatLayerChange('geo')">
-                    Visible GeoColour
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="vis" onchange="onSatLayerChange('vis')">
-                    Visible Greyscale (day)
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="ir_grey" onchange="onSatLayerChange('ir_grey')">
-                    IR Greyscale
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="ir" onchange="onSatLayerChange('ir')">
-                    IR False Colour
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 4px;">
-                    <input type="radio" name="satLayer" value="li" onchange="onSatLayerChange('li')">
-                    Lightning (satellite)
-                </label>
-                <label class="custom-checkbox" style="margin-bottom: 0;">
-                    <input type="radio" name="satLayer" value="cth" onchange="onSatLayerChange('cth')">
-                    Cloud Top Height
-                </label>
-                <div id="liKeyContainer" style="display:none; margin-top:8px;">
-                    <p style="font-weight:500; margin-bottom:10px; font-size:12px; color: #3c4043;">Lightning Flash Count (per 5 min)</p>
-                    <div class="cbar li-cbar"></div>
-                    <div class="cbar-labels" style="height:12px; margin-top:2px;">
-                        <span class="cbar-label" style="left:0; transform:none;">1</span>
-                        <span class="cbar-label" style="left:50%;">10</span>
-                        <span class="cbar-label" style="right:0; left:auto; transform:none;">20+</span>
-                    </div>
-                </div>
-                <div id="cthKeyContainer" style="display:none; margin-top:8px;">
-                    <p style="font-weight:500; margin-bottom:10px; font-size:12px; color: #3c4043;">Cloud Top Height (m)</p>
-                    <div class="cbar cth-cbar"></div>
-                    <div class="cbar-labels" style="height:12px; margin-top:2px;">
-                        <span class="cbar-label" style="left:0; transform:none;">320</span>
-                        <span class="cbar-label" style="left:25%;">4240</span>
-                        <span class="cbar-label" style="left:50%;">8160</span>
-                        <span class="cbar-label" style="left:75%;">12080</span>
-                        <span class="cbar-label" style="right:0; left:auto; transform:none;">16000+</span>
-                    </div>
-                </div>
             </div>
 
             <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.3px;">Navigation</p>
@@ -911,22 +956,28 @@
 
     <!-- Controls Panel -->
     <div class="player-panel surface" id="controlsPanel">
-        <div class="control-group play-group">
-            <span class="control-label" style="opacity: 0; pointer-events: none;">Play</span>
-            <button class="btn" id="playBtn" onclick="togglePlay()">
-                <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-                <span id="playText">Play</span>
-            </button>
-        </div>
-
-        <div class="timeline-container">
-            <div class="timeline-track">
-                <div id="loadedProgress" class="loaded-progress"></div>
+        <div class="tl-dt-row">
+            <div class="control-group play-group">
+                <button class="btn" id="playBtn" onclick="togglePlay()">
+                    <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <span id="playText">Play</span>
+                </button>
             </div>
-            <div class="timeline-ticks" id="timelineTicks"></div>
-            <input type="range" id="timeSlider" min="0" oninput="onSliderChange(this.value)">
+
+            <div class="timeline-container">
+                <div class="timeline-track">
+                    <div id="loadedProgress" class="loaded-progress"></div>
+                </div>
+                <div class="timeline-ticks" id="timelineTicks"></div>
+                <input type="range" id="timeSlider" min="0" oninput="onSliderChange(this.value)">
+            </div>
+
+            <div id="playerDateTime">
+                <div id="playerDateLine">&mdash;</div>
+                <div id="playerTimeLine">&mdash;</div>
+            </div>
         </div>
 
         <div class="control-group">
@@ -948,6 +999,28 @@
                 <option value="70">Fast</option>
                 <option value="35">Turbo</option>
             </select>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Areas</span>
+            <select id="boundarySelect" onchange="onBoundaryChange(this.value)">
+                <option value="none">None</option>
+                <option value="regions" selected>UK Regions</option>
+                <option value="counties">Counties</option>
+            </select>
+        </div>
+
+        <div class="control-group" id="mowControlGroup">
+            <span class="control-label">Weather Warnings</span>
+            <div class="custom-multiselect" id="warningsSelect">
+                <div class="multiselect-trigger" onclick="toggleWarningsMultiselect(event)">
+                    <span class="trigger-text" id="warningsSelectText">No Warnings</span>
+                    <svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="multiselect-options" id="warningsOptions" style="display: none;">
+                    <div style="padding: 6px 12px; font-size: 12px; color: #5f6368; font-weight: 500;">Loading...</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1020,7 +1093,7 @@
                             style: { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
                             interactive: false
                         });
-                        if (document.querySelector('input[name="boundaryLayer"]:checked').value === 'regions') {
+                        if (document.getElementById('boundarySelect').value === 'regions') {
                             regionLayer.addTo(map);
                         }
                     })
@@ -1033,7 +1106,7 @@
                             style: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
                             interactive: false
                         });
-                        if (document.querySelector('input[name="boundaryLayer"]:checked').value === 'counties') {
+                        if (document.getElementById('boundarySelect').value === 'counties') {
                             countiesLayer.addTo(map);
                         }
                     })
@@ -1315,7 +1388,7 @@
             var textEl = document.getElementById('warningsSelectText');
             
             if (checked.length === 0) {
-                textEl.textContent = "No Warnings Overlayed";
+                textEl.textContent = "No Warnings";
             } else if (checked.length === 1) {
                 var label = checked[0].nextElementSibling.textContent;
                 var parts = label.split(' (');
@@ -1504,9 +1577,10 @@
             return str.charAt(0).toUpperCase() + str.slice(1);
         }
 
-        // Satellite overlays — lazily created, keyed by radio value
+        // Satellite overlays — lazily created, keyed by select value
         var satOverlays = {};
         var satUrlKeys = { geo: 'sat_url_bw', vis: 'sat_url_vis', ir: 'sat_url_ir', ir_grey: 'sat_url_ir_grey', li: 'sat_url_li', cth: 'sat_url_cth' };
+        var satOpacity = { geo: 0.7, vis: 0.7, ir_grey: 0.7, ir: 0.7, li: 0.7, cth: 0.7 };
 
         // Return only frames that have both radar and (if enabled) satellite data.
         // If a satellite layer is active, the frame must have both the radar URL and the satellite URL.
@@ -1514,7 +1588,7 @@
         // NOTE: This strict check only applies to "new" frames (within 30 minutes of the latest manifest time).
         // For older historical frames, we allow them to render with whatever layer is available (at least one).
         function getEffectiveFrames(sliced) {
-            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
+            var satVal = document.getElementById('satSelect').value;
             var satKey = satUrlKeys[satVal];
             
             var latestFrame = allFrames[allFrames.length - 1];
@@ -1570,13 +1644,28 @@
         }
 
         function onSatLayerChange(val) {
+            var opacityContainer = document.getElementById('satOpacityContainer');
+            var opacitySlider = document.getElementById('satOpacitySlider');
+            var opacityLabel = document.getElementById('satOpacityLabel');
+            if (val !== 'none') {
+                opacityContainer.style.display = '';
+                var pct = Math.round(satOpacity[val] * 100);
+                opacitySlider.value = pct;
+                opacityLabel.textContent = pct + '%';
+            } else {
+                opacityContainer.style.display = 'none';
+            }
+
             // Remove all sat overlays
             Object.keys(satOverlays).forEach(function(k) {
                 if (map.hasLayer(satOverlays[k])) map.removeLayer(satOverlays[k]);
             });
             if (val !== 'none') {
+                var opacity = satOpacity[val];
                 if (!satOverlays[val]) {
-                    satOverlays[val] = L.imageOverlay('', satBounds, { opacity: 1.0, interactive: false });
+                    satOverlays[val] = L.imageOverlay('', satBounds, { opacity: opacity, interactive: false });
+                } else {
+                    satOverlays[val].setOpacity(opacity);
                 }
                 satOverlays[val].addTo(map);
                 enforceZOrder();
@@ -1588,6 +1677,18 @@
             // Re-filter frames so radar and sat always share the same timesteps
             refilterFrames();
         }
+
+        document.getElementById('satOpacitySlider').addEventListener('input', function() {
+            var pct = parseInt(this.value);
+            document.getElementById('satOpacityLabel').textContent = pct + '%';
+            var val = document.getElementById('satSelect').value;
+            if (val !== 'none') {
+                satOpacity[val] = pct / 100;
+                if (satOverlays[val] && map.hasLayer(satOverlays[val])) {
+                    satOverlays[val].setOpacity(pct / 100);
+                }
+            }
+        });
 
         function onFeedChange(val) {
             currentFeed = val;
@@ -1814,7 +1915,7 @@
             if (frames.length === 0) return;
 
             var urlsToLoad = [];
-            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
+            var satVal = document.getElementById('satSelect').value;
             var satKey = satUrlKeys[satVal];
 
             frames.forEach(function(f) {
@@ -1980,7 +2081,7 @@
             
             updateFrameUI(idx);
 
-            var satVal = document.querySelector('input[name="satLayer"]:checked').value;
+            var satVal = document.getElementById('satSelect').value;
             var satKey = satUrlKeys[satVal];
             if (satKey && satOverlays[satVal] && map.hasLayer(satOverlays[satVal])) {
                 var satUrl = frameData[satKey] || TRANSPARENT_GIF;
@@ -2013,11 +2114,12 @@
             const ukDate = parseUTCStr(frames[idx].time);
             const tz = ukTzAbbr(ukDate);
             const formatted = formatUK(ukDate); // "Wed 25 Mar 2026 22:30"
-            document.getElementById('timeDisplay').innerText = formatted;
-            document.getElementById('tzLabel').innerText = `Time (${tz})`;
-
-            // Mini-display: "Wed 25 Mar 22:30"
             const parts = formatted.split(' ');
+
+            document.getElementById('playerDateLine').innerText = `${parts[0]} ${parts[1]} ${parts[2]}`;
+            document.getElementById('playerTimeLine').innerText = `${parts[4]} ${tz}`;
+
+            // Mini-display in the collapsed panel chip: "Wed 25 Mar 22:30"
             document.getElementById('collapsedTime').innerText =
                 `${parts[0]} ${parts[1]} ${parts[2]} ${parts[4]}`;
 
