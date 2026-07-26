@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>UK SYNOP Observations — Ogimet</title>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        body { padding: 0; margin: 0; font-family: 'Roboto', sans-serif; background: #f8f9fa; color: #3c4043; }
+        #map { width: 100vw; height: 100vh; }
+
+        .surface {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+            transition: box-shadow 0.3s ease;
+        }
+        .surface:hover { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.1); }
+
+        .info-panel {
+            position: absolute; top: 20px; right: 20px; padding: 22px; z-index: 1000;
+            width: 290px; max-height: calc(100vh - 40px); overflow-y: auto;
+        }
+
+        h3 { margin: 0 0 6px 0; font-size: 18px; color: #202124; font-weight: 500; letter-spacing: 0.2px; }
+        p { margin: 0 0 6px 0; font-size: 13px; color: #5f6368; }
+
+        .time-box {
+            background: #f8f9fa; border-left: 4px solid #1a73e8; padding: 10px 14px;
+            margin: 14px 0; border-radius: 8px; text-align: left;
+        }
+        .time-box .stat-value { font-size: 16px; font-weight: 700; color: #202124; }
+        .time-box .stat-label { font-size: 10px; text-transform: uppercase; font-weight: 700; color: #1a73e8; letter-spacing: 0.5px; }
+
+        .section-label { margin: 16px 0 8px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.5px; }
+
+        .custom-checkbox, .custom-radio {
+            display: flex; align-items: center; cursor: pointer; font-size: 13px;
+            font-weight: 500; color: #3c4043; margin-bottom: 6px;
+        }
+        .custom-checkbox input, .custom-radio input {
+            cursor: pointer; width: 15px; height: 15px; margin-right: 9px; accent-color: #1a73e8; flex-shrink: 0;
+        }
+
+        .qc-note {
+            font-size: 11px; color: #80868b; font-style: italic; margin-top: 4px; line-height: 1.4;
+        }
+        a { color: #1a73e8; }
+
+        .stale-badge {
+            display: inline-block; font-size: 10px; font-weight: 700; color: #80868b;
+            background: #f1f3f4; padding: 2px 6px; border-radius: 8px; margin-left: 6px; text-transform: uppercase;
+        }
+
+        /* Single-param value labels */
+        .val-label {
+            font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 12px;
+            text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff, 0 0 4px #fff;
+            white-space: nowrap; pointer-events: none;
+        }
+        .val-label.stale { opacity: 0.35; }
+
+        .leaflet-tooltip.obs-tip {
+            font-family: 'Roboto', sans-serif; font-size: 12px; border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18); border: none; padding: 10px 12px; line-height: 1.5;
+        }
+
+        #attribution {
+            position: fixed; bottom: 10px; left: 10px; z-index: 500; font-size: 11px;
+            background: rgba(255,255,255,0.9); padding: 5px 10px; border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.15); color: #5f6368;
+        }
+
+        @media (max-width: 768px) {
+            .info-panel { top: 10px; right: 10px; left: 10px; width: auto; box-sizing: border-box; max-height: calc(100vh - 20px); }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <div class="info-panel surface" id="infoPanel">
+        <h3>SYNOP Observations</h3>
+        <p>UK WMO synoptic network — hourly reports decoded from raw SYNOP bulletins via Ogimet.</p>
+
+        <div class="time-box">
+            <p class="stat-label" style="margin-bottom: 2px;">Obs valid to</p>
+            <div class="stat-value" id="validTime">Loading…</div>
+        </div>
+        <p class="qc-note" title="Ogimet republishes bulletins as they arrive on the WMO GTS — figures on the map can lag the current time by roughly an hour, and more for a station reporting less often.">
+            ⓘ Reports typically arrive within ~1h of observation time. Stations older than 2.5h are shown greyed out.
+        </p>
+
+        <p class="section-label">Render mode</p>
+        <label class="custom-radio">
+            <input type="radio" name="renderMode" value="station_plot" checked onchange="setRenderMode(this.value)">
+            Station plots (WMO)
+        </label>
+        <label class="custom-radio">
+            <input type="radio" name="renderMode" value="single_param" onchange="setRenderMode(this.value)">
+            Single parameter
+        </label>
+
+        <div id="singleParamPicker" style="display:none; margin: 8px 0 4px 22px;"></div>
+
+        <p class="section-label">Station plot legend</p>
+        <p style="font-size: 11px; line-height: 1.6;">
+            <span style="color:#c62828; font-weight:700;">Red</span> = temperature (°C) &middot;
+            <span style="color:#2e7d32; font-weight:700;">Green</span> = dew point (°C)<br>
+            Circle fill = total cloud cover (oktas) &middot; barb = wind (knots, half=5, full=10, pennant=50)<br>
+            Symbol left of circle = present weather (decoded from the SYNOP ww code)<br>
+            Top-right = MSLP, standard synoptic shorthand (last 3 digits of tenths-of-hPa, leading digit
+            dropped) — <strong>not a raw hPa reading</strong>: "209" means 1020.9 hPa, "987" means 998.7 hPa.
+            Full value is always in the tooltip.
+        </p>
+
+        <p class="section-label">Coverage note</p>
+        <p style="font-size: 11px; line-height: 1.5;">
+            ~135 UK WMO stations (03xxx block) — a mix of staffed synoptic sites, airfields, and automatic
+            weather stations, distinct from the <a href="surface_obs.html">Met Office one-minute network</a>
+            (more stations, higher time resolution, but no present-weather or cloud-oktas coding). Dew point
+            and relative humidity are as reported; where a station omits dew point but reports temperature and
+            humidity is derivable, it's calculated here (Magnus formula) and not separately flagged, unlike the
+            Met Office page. Pressure tendency (3h change) is shown in the tooltip when the station reports it.
+            Precipitation is not decoded — most UK stations carry it in a supplementary section this fetcher
+            doesn't parse.
+        </p>
+
+        <p style="font-size: 11px; margin-top: 14px; line-height: 1.5;">
+            <strong>Source:</strong> SYNOP observations via <a href="https://www.ogimet.com" target="_blank">Ogimet</a>,
+            sourced from the WMO Global Telecommunication System.<br>
+            <a href="index.html">&larr; Back to radar</a>
+        </p>
+    </div>
+
+    <div id="attribution">SYNOP observations via <a href="https://www.ogimet.com" target="_blank">Ogimet</a> / WMO GTS</div>
+
+    <script>
+        var map = L.map('map', { zoomControl: false }).setView([54.5, -3.5], 6);
+        L.control.zoom({ position: 'topleft' }).addTo(map);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        }).addTo(map);
+
+        fetch('uk_regions.geojson').then(r => r.json()).then(data => {
+            L.geoJSON(data, { style: { color: '#5f6368', weight: 1.2, fillOpacity: 0 }, interactive: false }).addTo(map);
+        }).catch(function() {});
+
+        // ── Data source ──────────────────────────────────────────────────────────
+        var OBS_URL = 'https://radar.floodforecast.co.uk/synop/latest.geojson';
+
+        var obsLayer = L.layerGroup().addTo(map);
+        var obsData = null;
+        var renderMode = 'station_plot';
+        var singleParam = 'temp_c';
+
+        // ── Single-param layer registry ─────────────────────────────────────────
+        var SINGLE_PARAM_LAYERS = [
+            { key: 'temp_c',           label: 'Air temperature',   unit: '°C',  decimals: 1, ramp: 'temp' },
+            { key: 'dewpoint_c',       label: 'Dew point',         unit: '°C',  decimals: 1, ramp: 'temp' },
+            { key: 'wind_kt',          label: 'Wind speed',        unit: 'kt',  decimals: 0, ramp: 'wind' },
+            { key: 'rh_pct',           label: 'Relative humidity', unit: '%',   decimals: 0, ramp: 'rh' },
+            { key: 'mslp_hpa',         label: 'MSLP',              unit: 'hPa', decimals: 1, ramp: 'neutral' },
+        ];
+
+        var RAMPS = {
+            temp:  [[-5,'#2166ac'],[0,'#4393c3'],[5,'#92c5de'],[10,'#d1e5f0'],[15,'#fddbc7'],[20,'#f4a582'],[25,'#d6604d'],[30,'#b2182b']],
+            wind:  [[0,'#2166ac'],[10,'#67a9cf'],[20,'#d1e5f0'],[30,'#fddbc7'],[40,'#ef8a62'],[50,'#b2182b']],
+            rh:    [[40,'#b2182b'],[55,'#ef8a62'],[70,'#fddbc7'],[80,'#d1e5f0'],[90,'#67a9cf'],[100,'#2166ac']],
+            neutral: [[0,'#616161']],
+        };
+
+        function rampColor(rampName, val) {
+            var stops = RAMPS[rampName] || RAMPS.neutral;
+            var color = stops[0][1];
+            for (var i = 0; i < stops.length; i++) {
+                if (val >= stops[i][0]) color = stops[i][1]; else break;
+            }
+            return color;
+        }
+
+        // ── WMO helpers ──────────────────────────────────────────────────────────
+        function mslpShortForm(hpa) {
+            var tenths = Math.round(hpa * 10);
+            var mod = ((tenths % 1000) + 1000) % 1000;
+            return String(mod).padStart(3, '0');
+        }
+
+        function windBarbSVG(dirDeg, kt, cx, cy) {
+            if (kt == null) return '';
+            if (kt < 3) {
+                return '<circle cx="' + cx + '" cy="' + cy + '" r="11.5" fill="none" stroke="#202124" stroke-width="1.1"/>';
+            }
+            var rounded5 = Math.round(kt / 5) * 5;
+            var pennants = Math.floor(rounded5 / 50);
+            var rem = rounded5 % 50;
+            var fullBarbs = Math.floor(rem / 10);
+            var halfBarb = (rem % 10) >= 5 ? 1 : 0;
+
+            var shaftLen = 20;
+            var rad = (dirDeg) * Math.PI / 180;
+            var dx = Math.sin(rad), dy = -Math.cos(rad);
+            var x2 = cx + dx * shaftLen, y2 = cy + dy * shaftLen;
+            var svg = '<line x1="' + cx + '" y1="' + cy + '" x2="' + x2 + '" y2="' + y2 + '" stroke="#202124" stroke-width="1.3"/>';
+
+            var px = -dy, py = dx;
+            var pos = shaftLen;
+            var step = 3.5;
+            for (var p = 0; p < pennants; p++) {
+                var bx = cx + dx * pos, by = cy + dy * pos;
+                var bx2 = cx + dx * (pos - step), by2 = cy + dy * (pos - step);
+                svg += '<polygon points="' + bx + ',' + by + ' ' + bx2 + ',' + by2 + ' ' + (bx + px * 5.7) + ',' + (by + py * 5.7) + '" fill="#202124"/>';
+                pos -= step;
+            }
+            for (var f = 0; f < fullBarbs; f++) {
+                var fx = cx + dx * pos, fy = cy + dy * pos;
+                svg += '<line x1="' + fx + '" y1="' + fy + '" x2="' + (fx + px * 6.3) + '" y2="' + (fy + py * 6.3) + '" stroke="#202124" stroke-width="1.3"/>';
+                pos -= step;
+            }
+            if (halfBarb) {
+                var hx = cx + dx * pos, hy = cy + dy * pos;
+                svg += '<line x1="' + hx + '" y1="' + hy + '" x2="' + (hx + px * 3.2) + '" y2="' + (hy + py * 3.2) + '" stroke="#202124" stroke-width="1.3"/>';
+            }
+            return svg;
+        }
+
+        function cloudFillSVG(oktas, cx, cy, r) {
+            if (oktas == null) {
+                return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="white" stroke="#202124" stroke-width="1.2"/>';
+            }
+            if (oktas >= 9) {
+                var o = r * 0.7;
+                return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="white" stroke="#202124" stroke-width="1.2"/>' +
+                    '<line x1="' + (cx-o) + '" y1="' + (cy-o) + '" x2="' + (cx+o) + '" y2="' + (cy+o) + '" stroke="#202124" stroke-width="1"/>' +
+                    '<line x1="' + (cx-o) + '" y1="' + (cy+o) + '" x2="' + (cx+o) + '" y2="' + (cy-o) + '" stroke="#202124" stroke-width="1"/>';
+            }
+            var frac = Math.max(0, Math.min(8, oktas)) / 8;
+            if (frac === 0) {
+                return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="white" stroke="#202124" stroke-width="1.2"/>';
+            }
+            if (frac === 1) {
+                return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#202124" stroke="#202124" stroke-width="1.2"/>';
+            }
+            var angle = frac * 360;
+            var rad = (angle - 90) * Math.PI / 180;
+            var x = cx + r * Math.cos(rad), y = cy + r * Math.sin(rad);
+            var largeArc = angle > 180 ? 1 : 0;
+            var path = 'M' + cx + ',' + (cy - r) + ' A' + r + ',' + r + ' 0 ' + largeArc + ' 1 ' + x + ',' + y + ' L' + cx + ',' + cy + ' Z';
+            return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="white" stroke="#202124" stroke-width="1.2"/>' +
+                   '<path d="' + path + '" fill="#202124"/>' +
+                   '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#202124" stroke-width="1.2"/>';
+        }
+
+        // ── Present weather glyph set — keyed directly by the symbol id the
+        // backend decodes from the SYNOP ww code (see synop/ww_table.py); no
+        // METAR-string lookup layer needed here, unlike surface_obs.html. ──────
+        function wxGlyphSVG(symbolId, cx, cy) {
+            var s = 2.5;
+            function dot(x, y) { return '<circle cx="' + x + '" cy="' + y + '" r="' + s + '" fill="#1a73e8"/>'; }
+            function comma(x, y) { return '<circle cx="' + x + '" cy="' + y + '" r="' + (s*0.8) + '" fill="#2e7d32"/>'; }
+            function star(x, y) {
+                return '<text x="' + x + '" y="' + (y+3) + '" font-size="10" text-anchor="middle" fill="#5f6368">*</text>';
+            }
+            switch (symbolId) {
+                case 'none': case null: case undefined: return '';
+                case 'drizzle_light':  return comma(cx, cy-3);
+                case 'drizzle_mod':    return comma(cx, cy-4) + comma(cx, cy+3);
+                case 'drizzle_heavy':
+                case 'fz_drizzle':     return comma(cx-2.5, cy-4) + comma(cx+2.5, cy-4) + comma(cx, cy+3);
+                case 'rain_light':     return dot(cx, cy-3);
+                case 'rain_mod':       return dot(cx, cy-4.5) + dot(cx, cy+3);
+                case 'rain_heavy':
+                case 'fz_rain':        return dot(cx-3, cy-4.5) + dot(cx+3, cy-4.5) + dot(cx, cy+3);
+                case 'snow_light':     return star(cx, cy-1.5);
+                case 'snow_mod':       return star(cx-3, cy-1.5) + star(cx+3, cy-1.5);
+                case 'snow_heavy':     return star(cx-4, cy-4.5) + star(cx+4, cy-4.5) + star(cx, cy+2.5);
+                case 'rasn_light':     return dot(cx-2.5, cy-1.5) + star(cx+3, cy-1.5);
+                case 'rasn_mod':
+                case 'rasn_heavy':     return dot(cx-3, cy-4.5) + star(cx+3, cy-4.5) + dot(cx, cy+3);
+                case 'shower_light':
+                case 'shower_mod':
+                case 'shower_heavy':
+                    return '<path d="M' + (cx-4) + ',' + (cy+2.5) + ' L' + cx + ',' + (cy-5.7) + ' L' + (cx+4) + ',' + (cy+2.5) + ' Z" fill="none" stroke="#1a73e8" stroke-width="1.1"/>' + dot(cx, cy+5.7);
+                case 'shower_snow':
+                    return '<path d="M' + (cx-4) + ',' + (cy+2.5) + ' L' + cx + ',' + (cy-5.7) + ' L' + (cx+4) + ',' + (cy+2.5) + ' Z" fill="none" stroke="#1a73e8" stroke-width="1.1"/>' + star(cx, cy+5.7);
+                case 'ts':
+                case 'ts_rain':
+                case 'ts_rain_heavy':
+                case 'ts_hail':
+                    return '<path d="M' + (cx-2.5) + ',' + (cy-6.5) + ' L' + (cx+2.5) + ',' + (cy-6.5) + ' L' + (cx-1.5) + ',' + cy + ' L' + (cx+3) + ',' + cy + ' L' + (cx-3) + ',' + (cy+7) + ' L' + (cx-0.8) + ',' + (cy+0.8) + ' L' + (cx-4.7) + ',' + (cy+0.8) + ' Z" fill="#f9a825" stroke="#e65100" stroke-width="0.5"/>';
+                case 'hail':
+                    return dot(cx-3, cy) + dot(cx+3, cy) + dot(cx, cy+4.5);
+                case 'small_hail':
+                    return '<circle cx="' + cx + '" cy="' + cy + '" r="2" fill="#90a4ae"/>';
+                case 'mist':
+                case 'patchy_fog':
+                    return '<line x1="' + (cx-6) + '" y1="' + (cy-2.5) + '" x2="' + (cx+6) + '" y2="' + (cy-2.5) + '" stroke="#5f6368" stroke-width="1.1"/>' +
+                           '<line x1="' + (cx-6) + '" y1="' + (cy+2.5) + '" x2="' + (cx+6) + '" y2="' + (cy+2.5) + '" stroke="#5f6368" stroke-width="1.1"/>';
+                case 'fog':
+                case 'fz_fog':
+                    return '<line x1="' + (cx-6) + '" y1="' + (cy-4) + '" x2="' + (cx+6) + '" y2="' + (cy-4) + '" stroke="#5f6368" stroke-width="1.1"/>' +
+                           '<line x1="' + (cx-6) + '" y1="' + cy + '" x2="' + (cx+6) + '" y2="' + cy + '" stroke="#5f6368" stroke-width="1.1"/>' +
+                           '<line x1="' + (cx-6) + '" y1="' + (cy+4) + '" x2="' + (cx+6) + '" y2="' + (cy+4) + '" stroke="#5f6368" stroke-width="1.1"/>';
+                case 'unknown_precip':
+                default:
+                    return '<text x="' + cx + '" y="' + (cy+3) + '" font-size="9" text-anchor="middle" fill="#5f6368">?</text>';
+            }
+        }
+
+        // ── Station plot marker ─────────────────────────────────────────────────
+        function haloText(x, y, size, weight, anchor, color, text) {
+            return '<text x="' + x + '" y="' + y + '" font-size="' + size + '" font-weight="' + weight +
+                '" text-anchor="' + anchor + '" fill="' + color + '" font-family="Roboto,sans-serif" ' +
+                'paint-order="stroke fill" stroke="#ffffff" stroke-width="2.8" stroke-linejoin="round">' + text + '</text>';
+        }
+
+        function stationPlotIcon(props) {
+            var W = 69, H = 48, cx = 25, cy = 24, r = 7;
+            var stale = !!props.stale;
+            var opacity = stale ? 0.45 : 1;
+
+            var svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="overflow:visible; opacity:' + opacity + '">';
+
+            if (props.wind_kt != null && props.wind_dir_deg != null) {
+                svg += windBarbSVG(props.wind_dir_deg, props.wind_kt, cx, cy);
+            }
+            if (props.temp_c != null) {
+                svg += haloText(cx - 9, cy - 5, 11, 700, 'end', '#c62828', Math.round(props.temp_c));
+            }
+            if (props.dewpoint_c != null) {
+                svg += haloText(cx - 9, cy + 13, 10, 700, 'end', '#2e7d32', Math.round(props.dewpoint_c));
+            }
+            if (props.mslp_hpa != null) {
+                svg += haloText(cx + 9, cy - 5, 10, 600, 'start', '#202124', mslpShortForm(props.mslp_hpa));
+            }
+            if (props.present_wx_symbol && props.present_wx_symbol !== 'none') {
+                svg += wxGlyphSVG(props.present_wx_symbol, cx - 15, cy);
+            }
+            svg += cloudFillSVG(props.cloud_oktas, cx, cy, r);
+
+            if (stale) {
+                svg += '<text x="' + cx + '" y="' + (H-1) + '" font-size="7.5" font-weight="700" text-anchor="middle" fill="#80868b" font-family="Roboto,sans-serif">STALE</text>';
+            }
+            svg += '</svg>';
+
+            return L.divIcon({ className: '', html: svg, iconSize: [W, H], iconAnchor: [cx, cy] });
+        }
+
+        // ── Single-param marker ──────────────────────────────────────────────────
+        function singleParamIcon(props, layer) {
+            var val = props[layer.key];
+            var stale = !!props.stale;
+            if (val == null) {
+                return L.divIcon({ className: '', html: '<div style="width:6px;height:6px;border-radius:50%;background:#bdc1c6;opacity:0.5;"></div>', iconSize: [6,6], iconAnchor: [3,3] });
+            }
+            var color = rampColor(layer.ramp, val);
+            var text = val.toFixed(layer.decimals);
+            if (layer.key === 'wind_kt' && props.wind_dir_deg != null) {
+                var svg = '<svg width="40" height="40" viewBox="0 0 40 40" style="overflow:visible; opacity:' + (stale?0.4:1) + '">' +
+                    windBarbSVG(props.wind_dir_deg, props.wind_kt, 20, 20) +
+                    '<text x="20" y="34" font-size="11" font-weight="700" text-anchor="middle" fill="' + color + '" class="val-label">' + text + '</text></svg>';
+                return L.divIcon({ className: '', html: svg, iconSize: [40, 40], iconAnchor: [20, 20] });
+            }
+            var html = '<div class="val-label' + (stale ? ' stale' : '') + '" style="color:' + color + ';">' + text + '</div>';
+            return L.divIcon({ className: '', html: html, iconSize: [40, 16], iconAnchor: [20, 8] });
+        }
+
+        // ── Declutter: simple deterministic stride by zoom ──────────────────────
+        function hashStr(s) {
+            var h = 0;
+            for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
+            return Math.abs(h);
+        }
+        function shouldShowAtZoom(sid, zoom) {
+            if (zoom >= 7) return true;
+            var stride = zoom <= 5 ? 4 : 2;
+            return (hashStr(sid) % stride) === 0;
+        }
+
+        function tooltipHtml(props) {
+            var rows = [];
+            function row(label, val, unit) {
+                if (val == null) return;
+                rows.push('<div><strong>' + label + ':</strong> ' + val + (unit || '') + '</div>');
+            }
+            rows.push('<div style="font-weight:700; margin-bottom:4px;">' + (props.name || props.sid) + '</div>');
+            row('Obs time', props.obs_time);
+            if (props.stale) rows.push('<div style="color:#c62828;">Stale (&gt;2.5h old)</div>');
+            row('Temp', props.temp_c, '°C');
+            row('Dew point', props.dewpoint_c, '°C');
+            row('Relative humidity', props.rh_pct, '%');
+            row('MSLP', props.mslp_hpa, ' hPa');
+            row('Pressure tendency (3h)', props.pressure_tendency_hpa3h != null ?
+                (props.pressure_tendency_hpa3h > 0 ? '+' : '') + props.pressure_tendency_hpa3h + ' hPa' +
+                (props.pressure_tendency_desc ? ' (' + props.pressure_tendency_desc + ')' : '') : null);
+            row('Station pressure', props.pressure_station_hpa, ' hPa (not sea-level corrected)');
+            row('Wind', props.wind_kt != null ? (props.wind_kt + ' kt (' + Math.round(props.wind_kt * 1.15078) + ' mph) from ' + props.wind_dir_deg + '°') : null);
+            row('Cloud cover', props.cloud_oktas, ' oktas');
+            row('Present weather', props.present_wx);
+            row('Visibility', props.vis_m, ' m');
+            row('Altitude', props.altitude_m, ' m');
+            return rows.join('');
+        }
+
+        function render() {
+            obsLayer.clearLayers();
+            if (!obsData) return;
+            var zoom = map.getZoom();
+            var layer = SINGLE_PARAM_LAYERS.find(function(l) { return l.key === singleParam; });
+            obsData.features.forEach(function(f) {
+                var props = f.properties;
+                if (!shouldShowAtZoom(props.sid, zoom)) return;
+                var latlon = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
+                var icon = renderMode === 'station_plot' ? stationPlotIcon(props) : singleParamIcon(props, layer);
+                var m = L.marker(latlon, { icon: icon });
+                m.bindTooltip(tooltipHtml(props), { className: 'obs-tip surface', direction: 'top', offset: [0, -20] });
+                obsLayer.addLayer(m);
+            });
+        }
+
+        map.on('zoomend', render);
+
+        function setRenderMode(mode) {
+            renderMode = mode;
+            document.getElementById('singleParamPicker').style.display = mode === 'single_param' ? 'block' : 'none';
+            try { localStorage.setItem('synop_render_mode', mode); } catch (e) {}
+            render();
+        }
+
+        function buildSingleParamPicker() {
+            var el = document.getElementById('singleParamPicker');
+            el.innerHTML = SINGLE_PARAM_LAYERS.map(function(l) {
+                var checked = l.key === singleParam ? 'checked' : '';
+                return '<label class="custom-radio"><input type="radio" name="singleParam" value="' + l.key + '" ' + checked +
+                    ' onchange="setSingleParam(this.value)">' + l.label + ' <span style="color:#80868b; font-size:11px; margin-left:4px;">(' + l.unit + ')</span></label>';
+            }).join('');
+        }
+
+        function setSingleParam(key) {
+            singleParam = key;
+            try { localStorage.setItem('synop_single_param', key); } catch (e) {}
+            render();
+        }
+
+        function updateValidTime() {
+            if (!obsData || !obsData.features.length) { document.getElementById('validTime').textContent = 'No data'; return; }
+            var times = obsData.features.map(function(f) { return f.properties.obs_time; }).sort();
+            var newest = times[times.length - 1];
+            var d = new Date(newest);
+            document.getElementById('validTime').textContent = d.toUTCString().replace(':00 GMT', '') + ' UTC';
+        }
+
+        function fetchObs() {
+            fetch(OBS_URL + '?_cb=' + Date.now())
+                .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .then(function(data) {
+                    obsData = data;
+                    updateValidTime();
+                    render();
+                })
+                .catch(function(e) {
+                    console.log('SYNOP obs fetch failed:', e);
+                    document.getElementById('validTime').textContent = 'Fetch failed — see console';
+                });
+        }
+
+        try {
+            var savedMode = localStorage.getItem('synop_render_mode');
+            if (savedMode) {
+                renderMode = savedMode;
+                var radio = document.querySelector('input[name="renderMode"][value="' + savedMode + '"]');
+                if (radio) radio.checked = true;
+                document.getElementById('singleParamPicker').style.display = savedMode === 'single_param' ? 'block' : 'none';
+            }
+            var savedParam = localStorage.getItem('synop_single_param');
+            if (savedParam) singleParam = savedParam;
+        } catch (e) {}
+
+        buildSingleParamPicker();
+        fetchObs();
+
+        setInterval(fetchObs, 15 * 60 * 1000);
+    </script>
+</body>
+
+</html>
