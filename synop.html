@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>UK SYNOP Observations — Ogimet</title>
+    <title>UK SYNOP / METAR / TAF — Ogimet</title>
     <meta charset="utf-8" />
     <link rel="icon" type="image/png" href="favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,7 +25,7 @@
 
         .info-panel {
             position: absolute; top: 20px; right: 20px; padding: 22px; z-index: 1000;
-            width: 290px; max-height: calc(100vh - 40px); overflow-y: auto;
+            width: 300px; max-height: calc(100vh - 40px); overflow-y: auto;
         }
 
         h3 { margin: 0 0 6px 0; font-size: 18px; color: #202124; font-weight: 500; letter-spacing: 0.2px; }
@@ -35,8 +35,9 @@
             background: #f8f9fa; border-left: 4px solid #1a73e8; padding: 10px 14px;
             margin: 14px 0; border-radius: 8px; text-align: left;
         }
-        .time-box .stat-value { font-size: 16px; font-weight: 700; color: #202124; }
+        .time-box .stat-value { font-size: 15px; font-weight: 700; color: #202124; }
         .time-box .stat-label { font-size: 10px; text-transform: uppercase; font-weight: 700; color: #1a73e8; letter-spacing: 0.5px; }
+        .time-box .stat-row + .stat-row { margin-top: 6px; }
 
         .section-label { margin: 16px 0 8px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.5px; }
 
@@ -47,18 +48,15 @@
         .custom-checkbox input, .custom-radio input {
             cursor: pointer; width: 15px; height: 15px; margin-right: 9px; accent-color: #1a73e8; flex-shrink: 0;
         }
+        .source-swatch {
+            display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; flex-shrink: 0;
+        }
 
         .qc-note {
             font-size: 11px; color: #80868b; font-style: italic; margin-top: 4px; line-height: 1.4;
         }
         a { color: #1a73e8; }
 
-        .stale-badge {
-            display: inline-block; font-size: 10px; font-weight: 700; color: #80868b;
-            background: #f1f3f4; padding: 2px 6px; border-radius: 8px; margin-left: 6px; text-transform: uppercase;
-        }
-
-        /* Single-param value labels */
         .val-label {
             font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 12px;
             text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff, 0 0 4px #fff;
@@ -70,6 +68,12 @@
             font-family: 'Roboto', sans-serif; font-size: 12px; border-radius: 8px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.18); border: none; padding: 10px 12px; line-height: 1.5;
         }
+
+        .leaflet-popup-content-wrapper.surface { border-radius: 12px; }
+        .taf-popup { font-family: 'Roboto', sans-serif; font-size: 12px; max-width: 320px; }
+        .taf-popup .taf-code { font-family: 'Roboto Mono', monospace; font-size: 11px; white-space: pre-wrap;
+            background: #f1f3f4; border-radius: 6px; padding: 8px; margin-top: 6px; line-height: 1.5; }
+        .taf-popup .taf-flag { color: #b2182b; font-weight: 700; }
 
         #attribution {
             position: fixed; bottom: 10px; left: 10px; z-index: 500; font-size: 11px;
@@ -87,15 +91,37 @@
     <div id="map"></div>
 
     <div class="info-panel surface" id="infoPanel">
-        <h3>SYNOP Observations</h3>
-        <p>UK WMO synoptic network — hourly reports decoded from raw SYNOP bulletins via Ogimet.</p>
+        <h3>SYNOP / METAR / TAF</h3>
+        <p>UK weather station reports and forecasts — decoded from raw WMO/ICAO bulletins via Ogimet.</p>
 
         <div class="time-box">
-            <p class="stat-label" style="margin-bottom: 2px;">Obs valid to</p>
-            <div class="stat-value" id="validTime">Loading…</div>
+            <div class="stat-row">
+                <p class="stat-label" style="margin-bottom: 2px;">SYNOP valid to</p>
+                <div class="stat-value" id="synopValidTime">Loading…</div>
+            </div>
+            <div class="stat-row">
+                <p class="stat-label" style="margin-bottom: 2px;">METAR valid to</p>
+                <div class="stat-value" id="metarValidTime">Loading…</div>
+            </div>
         </div>
-        <p class="qc-note" title="Ogimet republishes bulletins as they arrive on the WMO GTS — figures on the map can lag the current time by roughly an hour, and more for a station reporting less often.">
-            ⓘ Reports typically arrive within ~1h of observation time. Stations older than 2.5h are shown greyed out.
+
+        <p class="section-label">Layers (shown together)</p>
+        <label class="custom-checkbox">
+            <input type="checkbox" id="chkSynop" checked onchange="onLayerToggle()">
+            <span class="source-swatch" style="background:#0e7490;"></span> SYNOP (WMO synoptic network)
+        </label>
+        <label class="custom-checkbox">
+            <input type="checkbox" id="chkMetar" checked onchange="onLayerToggle()">
+            <span class="source-swatch" style="background:#1a73e8;"></span> METAR (aerodrome reports)
+        </label>
+        <label class="custom-checkbox">
+            <input type="checkbox" id="chkTaf" checked onchange="onLayerToggle()">
+            <span class="source-swatch" style="background:#f9a825;"></span> TAF (forecast — click a METAR station)
+        </label>
+        <p class="qc-note">
+            ⓘ SYNOP and METAR both mark the small circle top-left ("S"/"M") where a station reports to both
+            networks and markers land close together. Stations older than their network's freshness window
+            (SYNOP ~2.5h, METAR ~90min) are shown greyed out.
         </p>
 
         <p class="section-label">Render mode</p>
@@ -114,33 +140,30 @@
         <p style="font-size: 11px; line-height: 1.6;">
             <span style="color:#c62828; font-weight:700;">Red</span> = temperature (°C) &middot;
             <span style="color:#2e7d32; font-weight:700;">Green</span> = dew point (°C)<br>
-            Circle fill = total cloud cover (oktas) &middot; barb = wind (knots, half=5, full=10, pennant=50)<br>
-            Symbol left of circle = present weather (decoded from the SYNOP ww code)<br>
-            Top-right = MSLP, standard synoptic shorthand (last 3 digits of tenths-of-hPa, leading digit
-            dropped) — <strong>not a raw hPa reading</strong>: "209" means 1020.9 hPa, "987" means 998.7 hPa.
-            Full value is always in the tooltip.
+            Circle fill = cloud cover (oktas) &middot; barb = wind (knots, half=5, full=10, pennant=50)<br>
+            Symbol left of circle = present weather &middot; top-right = MSLP/QNH shorthand (last 3 digits of
+            tenths-hPa) — <strong>not raw hPa</strong>: "209" means 1020.9 hPa. Full value always in the tooltip.<br>
+            Blue "F" badge = a TAF forecast is available — click the marker to view it.
         </p>
 
         <p class="section-label">Coverage note</p>
         <p style="font-size: 11px; line-height: 1.5;">
-            ~135 UK WMO stations (03xxx block) — a mix of staffed synoptic sites, airfields, and automatic
-            weather stations, distinct from the <a href="surface_obs.html">Met Office one-minute network</a>
-            (more stations, higher time resolution, but no present-weather or cloud-oktas coding). Dew point
-            and relative humidity are as reported; where a station omits dew point but reports temperature and
-            humidity is derivable, it's calculated here (Magnus formula) and not separately flagged, unlike the
-            Met Office page. Pressure tendency (3h change) is shown in the tooltip when the station reports it.
-            Precipitation is not decoded — most UK stations carry it in a supplementary section this fetcher
-            doesn't parse.
+            SYNOP: ~135 UK WMO stations (03xxx block). METAR/TAF: ICAO-coded UK aerodromes, civil + military.
+            These overlap at major airports but are otherwise distinct networks from each other and from the
+            <a href="surface_obs.html">Met Office one-minute network</a> (a separate page). METAR cloud cover
+            is approximated from its FEW/SCT/BKN/OVC categories, not a true oktas count. TAF is a forecast, not
+            an observation — shown as raw text on click, not decoded into the station plot. Precipitation is
+            not decoded for either source.
         </p>
 
         <p style="font-size: 11px; margin-top: 14px; line-height: 1.5;">
-            <strong>Source:</strong> SYNOP observations via <a href="https://www.ogimet.com" target="_blank">Ogimet</a>,
+            <strong>Source:</strong> SYNOP/METAR/TAF via <a href="https://www.ogimet.com" target="_blank">Ogimet</a>,
             sourced from the WMO Global Telecommunication System.<br>
             <a href="index.html">&larr; Back to radar</a>
         </p>
     </div>
 
-    <div id="attribution">SYNOP observations via <a href="https://www.ogimet.com" target="_blank">Ogimet</a> / WMO GTS</div>
+    <div id="attribution">SYNOP/METAR/TAF via <a href="https://www.ogimet.com" target="_blank">Ogimet</a> / WMO GTS</div>
 
     <script>
         var map = L.map('map', { zoomControl: false }).setView([54.5, -3.5], 6);
@@ -154,21 +177,25 @@
             L.geoJSON(data, { style: { color: '#5f6368', weight: 1.2, fillOpacity: 0 }, interactive: false }).addTo(map);
         }).catch(function() {});
 
-        // ── Data source ──────────────────────────────────────────────────────────
-        var OBS_URL = 'https://radar.floodforecast.co.uk/synop/latest.geojson';
+        // ── Data sources ─────────────────────────────────────────────────────────
+        var SYNOP_URL = 'https://radar.floodforecast.co.uk/synop/latest.geojson';
+        var METAR_URL = 'https://radar.floodforecast.co.uk/metar/latest.geojson';
+        var WX_SYMBOLS_URL = 'surface_obs/wx_symbols.json';   // shared with surface_obs.html — METAR codes match its keys
 
-        var obsLayer = L.layerGroup().addTo(map);
-        var obsData = null;
+        var synopLayer = L.layerGroup().addTo(map);
+        var metarLayer = L.layerGroup().addTo(map);
+        var synopData = null, metarData = null, wxSymbols = null;
         var renderMode = 'station_plot';
         var singleParam = 'temp_c';
 
-        // ── Single-param layer registry ─────────────────────────────────────────
+        // ── Single-param layer registry — key differs between sources only for
+        // pressure (synop: mslp_hpa, metar: qnh_hpa), handled in singleParamIcon(). ──
         var SINGLE_PARAM_LAYERS = [
-            { key: 'temp_c',           label: 'Air temperature',   unit: '°C',  decimals: 1, ramp: 'temp' },
-            { key: 'dewpoint_c',       label: 'Dew point',         unit: '°C',  decimals: 1, ramp: 'temp' },
-            { key: 'wind_kt',          label: 'Wind speed',        unit: 'kt',  decimals: 0, ramp: 'wind' },
-            { key: 'rh_pct',           label: 'Relative humidity', unit: '%',   decimals: 0, ramp: 'rh' },
-            { key: 'mslp_hpa',         label: 'MSLP',              unit: 'hPa', decimals: 1, ramp: 'neutral' },
+            { key: 'temp_c',    label: 'Air temperature',   unit: '°C',  decimals: 1, ramp: 'temp' },
+            { key: 'dewpoint_c',label: 'Dew point',         unit: '°C',  decimals: 1, ramp: 'temp' },
+            { key: 'wind_kt',   label: 'Wind speed',        unit: 'kt',  decimals: 0, ramp: 'wind' },
+            { key: 'rh_pct',    label: 'Relative humidity', unit: '%',   decimals: 0, ramp: 'rh' },
+            { key: 'pressure',  label: 'MSLP / QNH',        unit: 'hPa', decimals: 1, ramp: 'neutral' },
         ];
 
         var RAMPS = {
@@ -187,6 +214,10 @@
             return color;
         }
 
+        function pressureOf(props) {
+            return props.mslp_hpa != null ? props.mslp_hpa : props.qnh_hpa;
+        }
+
         // ── WMO helpers ──────────────────────────────────────────────────────────
         function mslpShortForm(hpa) {
             var tenths = Math.round(hpa * 10);
@@ -196,6 +227,10 @@
 
         function windBarbSVG(dirDeg, kt, cx, cy) {
             if (kt == null) return '';
+            if (dirDeg == null) {
+                return '<circle cx="' + cx + '" cy="' + cy + '" r="11.5" fill="none" stroke="#202124" stroke-width="1.1"/>' +
+                    '<text x="' + cx + '" y="' + (cy+11) + '" font-size="8" text-anchor="middle" fill="#5f6368" font-family="Roboto,sans-serif">VRB</text>';
+            }
             if (kt < 3) {
                 return '<circle cx="' + cx + '" cy="' + cy + '" r="11.5" fill="none" stroke="#202124" stroke-width="1.1"/>';
             }
@@ -259,9 +294,30 @@
                    '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#202124" stroke-width="1.2"/>';
         }
 
-        // ── Present weather glyph set — keyed directly by the symbol id the
-        // backend decodes from the SYNOP ww code (see synop/ww_table.py); no
-        // METAR-string lookup layer needed here, unlike surface_obs.html. ──────
+        // ── Present weather symbol resolution — SYNOP already carries the glyph id
+        // directly (present_wx_symbol, decoded server-side from the ww code); METAR
+        // carries the raw code (e.g. "-RA") and is resolved against wx_symbols.json,
+        // the same file surface_obs.html uses (METAR codes are exactly its keys). ──
+        function resolveMetarWx(code) {
+            if (!code || !wxSymbols) return null;
+            if (wxSymbols[code]) return wxSymbols[code];
+            var stripped = code.replace(/^RE/, '');
+            if (wxSymbols[stripped]) return wxSymbols[stripped];
+            if (/^[+-]?SH/.test(code)) return /SN/.test(code) ? wxSymbols['SHSN'] : wxSymbols['SHRA'];
+            if (/^[+-]?TS/.test(code)) return wxSymbols['TSRA'] || wxSymbols['TS'];
+            if (/GR/.test(code)) return wxSymbols['GR'];
+            if (/GS/.test(code)) return wxSymbols['GS'];
+            if (/FZ/.test(code) && /FG/.test(code)) return wxSymbols['FZFG'];
+            if (/FG/.test(code)) return wxSymbols['FG'];
+            return wxSymbols['UP'] || null;
+        }
+
+        function wxSymbolFor(props, source) {
+            if (source === 'synop') return props.present_wx_symbol || null;
+            var entry = resolveMetarWx(props.present_wx);
+            return entry ? entry.symbol : null;
+        }
+
         function wxGlyphSVG(symbolId, cx, cy) {
             var s = 2.5;
             function dot(x, y) { return '<circle cx="' + x + '" cy="' + y + '" r="' + s + '" fill="#1a73e8"/>'; }
@@ -316,50 +372,66 @@
         }
 
         // ── Station plot marker ─────────────────────────────────────────────────
+        // `source` ('synop'|'metar') drives: the small corner initial (helps tell
+        // apart two markers that land on/near the same airport), the anchor nudge
+        // (small deterministic offset so co-located SYNOP+METAR markers don't sit
+        // exactly on top of each other), and which raw field feeds present weather.
         function haloText(x, y, size, weight, anchor, color, text) {
             return '<text x="' + x + '" y="' + y + '" font-size="' + size + '" font-weight="' + weight +
                 '" text-anchor="' + anchor + '" fill="' + color + '" font-family="Roboto,sans-serif" ' +
                 'paint-order="stroke fill" stroke="#ffffff" stroke-width="2.8" stroke-linejoin="round">' + text + '</text>';
         }
 
-        function stationPlotIcon(props) {
+        var SOURCE_STYLE = {
+            synop: { initial: 'S', color: '#0e7490', dx: -5, dy: -5 },
+            metar: { initial: 'M', color: '#1a73e8', dx: 5,  dy: 5  },
+        };
+
+        function stationPlotIcon(props, source, showTaf) {
             var W = 69, H = 48, cx = 25, cy = 24, r = 7;
+            var style = SOURCE_STYLE[source];
             var stale = !!props.stale;
             var opacity = stale ? 0.45 : 1;
+            var pressure = pressureOf(props);
+            var windDir = props.wind_dir_deg;
+            var windKt = props.wind_kt;
 
             var svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="overflow:visible; opacity:' + opacity + '">';
 
-            if (props.wind_kt != null && props.wind_dir_deg != null) {
-                svg += windBarbSVG(props.wind_dir_deg, props.wind_kt, cx, cy);
-            }
-            if (props.temp_c != null) {
-                svg += haloText(cx - 9, cy - 5, 11, 700, 'end', '#c62828', Math.round(props.temp_c));
-            }
-            if (props.dewpoint_c != null) {
-                svg += haloText(cx - 9, cy + 13, 10, 700, 'end', '#2e7d32', Math.round(props.dewpoint_c));
-            }
-            if (props.mslp_hpa != null) {
-                svg += haloText(cx + 9, cy - 5, 10, 600, 'start', '#202124', mslpShortForm(props.mslp_hpa));
-            }
-            if (props.present_wx_symbol && props.present_wx_symbol !== 'none') {
-                svg += wxGlyphSVG(props.present_wx_symbol, cx - 15, cy);
-            }
+            if (windKt != null) svg += windBarbSVG(windDir, windKt, cx, cy);
+            if (props.temp_c != null) svg += haloText(cx - 9, cy - 5, 11, 700, 'end', '#c62828', Math.round(props.temp_c));
+            if (props.dewpoint_c != null) svg += haloText(cx - 9, cy + 13, 10, 700, 'end', '#2e7d32', Math.round(props.dewpoint_c));
+            if (pressure != null) svg += haloText(cx + 9, cy - 5, 10, 600, 'start', '#202124', mslpShortForm(pressure));
+
+            var symbol = wxSymbolFor(props, source);
+            if (symbol && symbol !== 'none') svg += wxGlyphSVG(symbol, cx - 15, cy);
+
             svg += cloudFillSVG(props.cloud_oktas, cx, cy, r);
+
+            // Source initial, small corner badge (top-left of the plot circle).
+            svg += '<circle cx="' + (cx - 15) + '" cy="' + (cy - 13) + '" r="6" fill="' + style.color + '"/>' +
+                '<text x="' + (cx - 15) + '" y="' + (cy - 10) + '" font-size="7.5" font-weight="700" text-anchor="middle" fill="white" font-family="Roboto,sans-serif">' + style.initial + '</text>';
+
+            if (source === 'metar' && showTaf && props.taf_raw) {
+                svg += '<circle cx="' + (cx + 16) + '" cy="' + (cy + 14) + '" r="6" fill="#f9a825"/>' +
+                    '<text x="' + (cx + 16) + '" y="' + (cy + 17) + '" font-size="8" font-weight="700" text-anchor="middle" fill="white" font-family="Roboto,sans-serif">F</text>';
+            }
 
             if (stale) {
                 svg += '<text x="' + cx + '" y="' + (H-1) + '" font-size="7.5" font-weight="700" text-anchor="middle" fill="#80868b" font-family="Roboto,sans-serif">STALE</text>';
             }
             svg += '</svg>';
 
-            return L.divIcon({ className: '', html: svg, iconSize: [W, H], iconAnchor: [cx, cy] });
+            return L.divIcon({ className: '', html: svg, iconSize: [W, H], iconAnchor: [cx + style.dx, cy + style.dy] });
         }
 
         // ── Single-param marker ──────────────────────────────────────────────────
-        function singleParamIcon(props, layer) {
-            var val = props[layer.key];
+        function singleParamIcon(props, layer, source) {
+            var val = layer.key === 'pressure' ? pressureOf(props) : props[layer.key];
             var stale = !!props.stale;
+            var style = SOURCE_STYLE[source];
             if (val == null) {
-                return L.divIcon({ className: '', html: '<div style="width:6px;height:6px;border-radius:50%;background:#bdc1c6;opacity:0.5;"></div>', iconSize: [6,6], iconAnchor: [3,3] });
+                return L.divIcon({ className: '', html: '<div style="width:6px;height:6px;border-radius:50%;background:#bdc1c6;opacity:0.5;"></div>', iconSize: [6,6], iconAnchor: [3 + style.dx, 3 + style.dy] });
             }
             var color = rampColor(layer.ramp, val);
             var text = val.toFixed(layer.decimals);
@@ -367,10 +439,10 @@
                 var svg = '<svg width="40" height="40" viewBox="0 0 40 40" style="overflow:visible; opacity:' + (stale?0.4:1) + '">' +
                     windBarbSVG(props.wind_dir_deg, props.wind_kt, 20, 20) +
                     '<text x="20" y="34" font-size="11" font-weight="700" text-anchor="middle" fill="' + color + '" class="val-label">' + text + '</text></svg>';
-                return L.divIcon({ className: '', html: svg, iconSize: [40, 40], iconAnchor: [20, 20] });
+                return L.divIcon({ className: '', html: svg, iconSize: [40, 40], iconAnchor: [20 + style.dx, 20 + style.dy] });
             }
             var html = '<div class="val-label' + (stale ? ' stale' : '') + '" style="color:' + color + ';">' + text + '</div>';
-            return L.divIcon({ className: '', html: html, iconSize: [40, 16], iconAnchor: [20, 8] });
+            return L.divIcon({ className: '', html: html, iconSize: [40, 16], iconAnchor: [20 + style.dx, 8 + style.dy] });
         }
 
         // ── Declutter: simple deterministic stride by zoom ──────────────────────
@@ -379,19 +451,19 @@
             for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
             return Math.abs(h);
         }
-        function shouldShowAtZoom(sid, zoom) {
+        function shouldShowAtZoom(id, zoom) {
             if (zoom >= 7) return true;
             var stride = zoom <= 5 ? 4 : 2;
-            return (hashStr(sid) % stride) === 0;
+            return (hashStr(id) % stride) === 0;
         }
 
-        function tooltipHtml(props) {
+        function synopTooltipHtml(props) {
             var rows = [];
             function row(label, val, unit) {
                 if (val == null) return;
                 rows.push('<div><strong>' + label + ':</strong> ' + val + (unit || '') + '</div>');
             }
-            rows.push('<div style="font-weight:700; margin-bottom:4px;">' + (props.name || props.sid) + '</div>');
+            rows.push('<div style="font-weight:700; margin-bottom:4px;">SYNOP ' + (props.name || props.sid) + '</div>');
             row('Obs time', props.obs_time);
             if (props.stale) rows.push('<div style="color:#c62828;">Stale (&gt;2.5h old)</div>');
             row('Temp', props.temp_c, '°C');
@@ -410,28 +482,99 @@
             return rows.join('');
         }
 
+        function metarTooltipHtml(props, showTaf) {
+            var rows = [];
+            function row(label, val, unit) {
+                if (val == null) return;
+                rows.push('<div><strong>' + label + ':</strong> ' + val + (unit || '') + '</div>');
+            }
+            rows.push('<div style="font-weight:700; margin-bottom:4px;">METAR ' + props.icao + ' — ' + (props.name || '') + '</div>');
+            if (!props.metar_raw) {
+                rows.push('<div style="color:#c62828;">No current METAR</div>');
+            } else {
+                row('Obs time', props.metar_obs_time);
+                if (props.stale) rows.push('<div style="color:#c62828;">Stale (&gt;90 min old)</div>');
+                row('Temp', props.temp_c, '°C');
+                row('Dew point', props.dewpoint_c, '°C');
+                row('Relative humidity', props.rh_pct, '%');
+                row('QNH', props.qnh_hpa, ' hPa');
+                row('Wind', props.wind_kt != null ?
+                    (props.wind_kt + ' kt' + (props.wind_gust_kt ? ' (gust ' + props.wind_gust_kt + ' kt)' : '') +
+                     (props.wind_dir_deg != null ? ' from ' + props.wind_dir_deg + '°' : ', variable direction')) : null);
+                row('Cloud', props.cloud_oktas, ' oktas (approx.)');
+                row('Cloud base', props.cloud_base_ft, ' ft');
+                row('Present weather', props.present_wx);
+                row('Visibility', props.vis_m, ' m');
+                rows.push('<div style="margin-top:6px; font-family:monospace; font-size:10.5px; color:#5f6368;">' + props.metar_raw + '</div>');
+            }
+            if (showTaf && props.taf_raw) rows.push('<div style="margin-top:6px; color:#1a73e8; font-style:italic;">Click for TAF forecast</div>');
+            return rows.join('');
+        }
+
+        function tafPopupHtml(props) {
+            if (!props.taf_raw) return null;
+            var flag = props.taf_flag ? '<span class="taf-flag">' + props.taf_flag + '</span> ' : '';
+            return '<div class="taf-popup">' +
+                '<div style="font-weight:700;">' + props.icao + ' — ' + (props.name || '') + ' TAF</div>' +
+                '<div style="color:#5f6368; font-size:11px;">' + flag + 'Issued ' + (props.taf_issued || '?') + '</div>' +
+                '<div class="taf-code">' + props.taf_raw + '</div>' +
+                '</div>';
+        }
+
         function render() {
-            obsLayer.clearLayers();
-            if (!obsData) return;
+            synopLayer.clearLayers();
+            metarLayer.clearLayers();
             var zoom = map.getZoom();
+            var showSynop = document.getElementById('chkSynop').checked;
+            var showMetar = document.getElementById('chkMetar').checked;
+            var showTaf = document.getElementById('chkTaf').checked;
             var layer = SINGLE_PARAM_LAYERS.find(function(l) { return l.key === singleParam; });
-            obsData.features.forEach(function(f) {
-                var props = f.properties;
-                if (!shouldShowAtZoom(props.sid, zoom)) return;
-                var latlon = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
-                var icon = renderMode === 'station_plot' ? stationPlotIcon(props) : singleParamIcon(props, layer);
-                var m = L.marker(latlon, { icon: icon });
-                m.bindTooltip(tooltipHtml(props), { className: 'obs-tip surface', direction: 'top', offset: [0, -20] });
-                obsLayer.addLayer(m);
-            });
+
+            if (showSynop && synopData) {
+                synopData.features.forEach(function(f) {
+                    var props = f.properties;
+                    if (!shouldShowAtZoom('s' + props.sid, zoom)) return;
+                    var latlon = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
+                    var icon = renderMode === 'station_plot' ? stationPlotIcon(props, 'synop', false) : singleParamIcon(props, layer, 'synop');
+                    var m = L.marker(latlon, { icon: icon });
+                    m.bindTooltip(synopTooltipHtml(props), { className: 'obs-tip surface', direction: 'top', offset: [0, -20] });
+                    synopLayer.addLayer(m);
+                });
+            }
+
+            if (showMetar && metarData) {
+                metarData.features.forEach(function(f) {
+                    var props = f.properties;
+                    if (!shouldShowAtZoom('m' + props.icao, zoom)) return;
+                    var latlon = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
+                    var icon = renderMode === 'station_plot' ? stationPlotIcon(props, 'metar', showTaf) : singleParamIcon(props, layer, 'metar');
+                    var m = L.marker(latlon, { icon: icon });
+                    m.bindTooltip(metarTooltipHtml(props, showTaf), { className: 'obs-tip surface', direction: 'top', offset: [0, -20] });
+                    if (showTaf && props.taf_raw) {
+                        m.bindPopup(tafPopupHtml(props), { className: 'surface' });
+                    }
+                    metarLayer.addLayer(m);
+                });
+            }
         }
 
         map.on('zoomend', render);
 
+        function onLayerToggle() {
+            try {
+                localStorage.setItem('obs_layers', JSON.stringify({
+                    synop: document.getElementById('chkSynop').checked,
+                    metar: document.getElementById('chkMetar').checked,
+                    taf: document.getElementById('chkTaf').checked,
+                }));
+            } catch (e) {}
+            render();
+        }
+
         function setRenderMode(mode) {
             renderMode = mode;
             document.getElementById('singleParamPicker').style.display = mode === 'single_param' ? 'block' : 'none';
-            try { localStorage.setItem('synop_render_mode', mode); } catch (e) {}
+            try { localStorage.setItem('obs_render_mode', mode); } catch (e) {}
             render();
         }
 
@@ -446,48 +589,69 @@
 
         function setSingleParam(key) {
             singleParam = key;
-            try { localStorage.setItem('synop_single_param', key); } catch (e) {}
+            try { localStorage.setItem('obs_single_param', key); } catch (e) {}
             render();
         }
 
-        function updateValidTime() {
-            if (!obsData || !obsData.features.length) { document.getElementById('validTime').textContent = 'No data'; return; }
-            var times = obsData.features.map(function(f) { return f.properties.obs_time; }).sort();
-            var newest = times[times.length - 1];
-            var d = new Date(newest);
-            document.getElementById('validTime').textContent = d.toUTCString().replace(':00 GMT', '') + ' UTC';
+        function updateValidTimes() {
+            function newestTime(data, key) {
+                if (!data || !data.features.length) return null;
+                var times = data.features.map(function(f) { return f.properties[key]; }).filter(Boolean).sort();
+                return times.length ? times[times.length - 1] : null;
+            }
+            var synopT = newestTime(synopData, 'obs_time');
+            var metarT = newestTime(metarData, 'metar_obs_time');
+            document.getElementById('synopValidTime').textContent = synopT ? new Date(synopT).toUTCString().replace(':00 GMT', '') + ' UTC' : 'No data';
+            document.getElementById('metarValidTime').textContent = metarT ? new Date(metarT).toUTCString().replace(':00 GMT', '') + ' UTC' : 'No data';
         }
 
-        function fetchObs() {
-            fetch(OBS_URL + '?_cb=' + Date.now())
+        function fetchSynop() {
+            fetch(SYNOP_URL + '?_cb=' + Date.now())
                 .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-                .then(function(data) {
-                    obsData = data;
-                    updateValidTime();
-                    render();
-                })
-                .catch(function(e) {
-                    console.log('SYNOP obs fetch failed:', e);
-                    document.getElementById('validTime').textContent = 'Fetch failed — see console';
-                });
+                .then(function(data) { synopData = data; updateValidTimes(); render(); })
+                .catch(function(e) { console.log('SYNOP fetch failed:', e); document.getElementById('synopValidTime').textContent = 'Fetch failed'; });
         }
 
+        function fetchMetar() {
+            fetch(METAR_URL + '?_cb=' + Date.now())
+                .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .then(function(data) { metarData = data; updateValidTimes(); render(); })
+                .catch(function(e) { console.log('METAR/TAF fetch failed:', e); document.getElementById('metarValidTime').textContent = 'Fetch failed'; });
+        }
+
+        // Restore persisted layer / render-mode / single-param selection.
         try {
-            var savedMode = localStorage.getItem('synop_render_mode');
+            var savedLayers = JSON.parse(localStorage.getItem('obs_layers') || 'null');
+            if (savedLayers) {
+                document.getElementById('chkSynop').checked = !!savedLayers.synop;
+                document.getElementById('chkMetar').checked = !!savedLayers.metar;
+                document.getElementById('chkTaf').checked = !!savedLayers.taf;
+            }
+            var savedMode = localStorage.getItem('obs_render_mode');
             if (savedMode) {
                 renderMode = savedMode;
                 var radio = document.querySelector('input[name="renderMode"][value="' + savedMode + '"]');
                 if (radio) radio.checked = true;
                 document.getElementById('singleParamPicker').style.display = savedMode === 'single_param' ? 'block' : 'none';
             }
-            var savedParam = localStorage.getItem('synop_single_param');
+            var savedParam = localStorage.getItem('obs_single_param');
             if (savedParam) singleParam = savedParam;
         } catch (e) {}
 
         buildSingleParamPicker();
-        fetchObs();
 
-        setInterval(fetchObs, 15 * 60 * 1000);
+        fetch(WX_SYMBOLS_URL).then(function(r) { return r.json(); }).then(function(data) {
+            wxSymbols = data;
+            fetchSynop();
+            fetchMetar();
+        }).catch(function(e) {
+            console.log('wx symbols fetch failed, METAR present-weather symbols will be blank:', e);
+            wxSymbols = {};
+            fetchSynop();
+            fetchMetar();
+        });
+
+        setInterval(function() { fetchSynop(); fetchMetar(); }, 15 * 60 * 1000);
     </script>
 </body>
 
