@@ -72,7 +72,7 @@ def collect_keys(s3):
     return keys
 
 
-def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=3200, height=3200, style="", grayscale=False):
+def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=3200, height=3200, style="", grayscale=False, transparent=False):
     # Convert satellite lat/lon bounds to Web Mercator (EPSG:3857) meters.
     # We must request imagery in 3857 to match the Leaflet/OSM projection perfectly.
     # WMS 1.3.0 with EPSG:4326 would return a Plate Carree image that appears shifted
@@ -85,6 +85,8 @@ def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=3
     wms_url = (f"https://view.eumetsat.int/geoserver/ows?service=WMS&request=GetMap&version=1.3.0"
                f"&layers={layer_name}&styles={style}&format={fmt}&crs=EPSG:3857"
                f"&bbox={m_xmin},{m_ymin},{m_xmax},{m_ymax}&width={width}&height={height}&time={iso_time}")
+    if transparent:
+        wms_url += "&transparent=true"
     try:
         req = urllib.request.Request(wms_url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=60) as response:
@@ -94,7 +96,17 @@ def download_sat_image(iso_time, layer_name, sat_path, fmt="image/jpeg", width=3
                 print(f"  [{layer_name}] Sat image for {iso_time}: got error or tiny response ({len(data)} bytes, {content_type})")
                 return False
             is_png = data[:4] == b'\x89PNG'
-            if is_png or grayscale:
+            if transparent and is_png:
+                # Keep the alpha channel (no-flash areas stay transparent) instead
+                # of flattening to a background colour — lets this layer sit on
+                # top of other imagery without a white box around it.
+                img = Image.open(io.BytesIO(data)).convert("RGBA")
+                buf = io.BytesIO()
+                img.save(buf, format="PNG", optimize=True)
+                reencoded = buf.getvalue()
+                print(f"  [{layer_name}] PNG with alpha preserved ({len(data)} -> {len(reencoded)} bytes)")
+                data = reencoded
+            elif is_png or grayscale:
                 mode = "L" if grayscale else "RGB"
                 img = Image.open(io.BytesIO(data)).convert(mode)
                 buf = io.BytesIO()
@@ -208,7 +220,7 @@ def main():
         sat_name_vis     = h5_name.replace(".h5", "_sat_vis.jpg")
         sat_name_ir      = h5_name.replace(".h5", "_sat_ir.jpg")
         sat_name_ir_grey = h5_name.replace(".h5", "_sat_ir_grey.jpg")
-        sat_name_li      = h5_name.replace(".h5", "_sat_li.jpg")
+        sat_name_li      = h5_name.replace(".h5", "_sat_li.png")
         sat_name_cth     = h5_name.replace(".h5", "_sat_cth.jpg")
         sat_path_bw      = os.path.join(SAT_DIR, sat_name_bw)
         sat_path_vis     = os.path.join(SAT_DIR, sat_name_vis)
@@ -257,14 +269,17 @@ def main():
             if os.path.exists(sat_path_ir_grey) and USE_R2:
                 upload_to_r2(r2, sat_path_ir_grey, r2_key_ir_grey, "image/jpeg", r2_keys)
 
-        # LI Accumulated Flash Area (MTG Lightning Imager — flash density, colour scale)
+        # LI Accumulated Flash Area (MTG Lightning Imager — flash density, colour scale).
+        # Requested as transparent PNG (not JPEG) so no-flash areas stay see-through
+        # instead of a white box, letting this layer sit on top of other imagery.
         if not (USE_R2 and r2_key_li in r2_keys):
             if not os.path.exists(sat_path_li):
                 print(f"Downloading LI lightning image {sat_name_li}...")
                 download_sat_image(iso_time, "mtg_fd:li_afa", sat_path_li,
-                                   style="mtg_li_afa", width=1600, height=1600)
+                                   fmt="image/png", style="mtg_li_afa",
+                                   width=1600, height=1600, transparent=True)
             if os.path.exists(sat_path_li) and USE_R2:
-                upload_to_r2(r2, sat_path_li, r2_key_li, "image/jpeg", r2_keys)
+                upload_to_r2(r2, sat_path_li, r2_key_li, "image/png", r2_keys)
 
         # Cloud Top Height (MSG — colour height scale)
         if not (USE_R2 and r2_key_cth in r2_keys):

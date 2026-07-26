@@ -500,6 +500,37 @@
             flex-grow: 1;
         }
 
+        /* MTG LI Accumulated Flash Area colour scale (sampled from EUMETSAT's
+           own mtg_li_afa legend graphic) */
+        .li-cbar {
+            background: linear-gradient(to right,
+                rgb(255,255,233) 0%,   rgb(255,240,170) 8%,
+                rgb(255,228,143) 17%,  rgb(254,215,117) 25%,
+                rgb(254,191,91) 33%,   rgb(254,166,70) 42%,
+                rgb(253,142,60) 50%,   rgb(252,102,49) 58%,
+                rgb(246,66,39) 67%,    rgb(228,29,28) 75%,
+                rgb(205,11,33) 83%,    rgb(178,0,38) 92%,
+                rgb(134,0,29) 100%
+            );
+        }
+
+        /* MSG Cloud Top Height colour scale (sampled from EUMETSAT's own
+           msg_cth legend graphic) */
+        .cth-cbar {
+            background: linear-gradient(to right,
+                rgb(0,0,0) 0%,        rgb(26,11,0) 10%,
+                rgb(113,41,26) 15%,   rgb(174,9,154) 20%,
+                rgb(109,0,219) 25%,   rgb(0,19,255) 30%,
+                rgb(0,99,255) 35%,    rgb(0,194,255) 40%,
+                rgb(0,248,226) 45%,   rgb(0,199,36) 50%,
+                rgb(60,206,0) 55%,    rgb(155,230,0) 60%,
+                rgb(233,249,0) 65%,   rgb(254,184,0) 70%,
+                rgb(254,102,0) 75%,   rgb(254,22,0) 80%,
+                rgb(201,88,88) 85%,   rgb(169,169,169) 90%,
+                rgb(218,218,218) 95%, rgb(255,255,255) 100%
+            );
+        }
+
         .cbar-labels {
             position: relative;
             height: 12px;
@@ -799,8 +830,25 @@
                     <input type="radio" name="satLayer" value="cth" onchange="onSatLayerChange('cth')">
                     Cloud Top Height
                 </label>
-                <div id="satLegend" style="display: none; margin-top: 10px;">
-                    <img id="satLegendImg" src="" alt="Satellite layer legend" style="max-width: 100%; display: block; border-radius: 4px; background: #fff;">
+                <div id="liKeyContainer" style="display:none; margin-top:8px;">
+                    <p style="font-weight:500; margin-bottom:10px; font-size:12px; color: #3c4043;">Lightning Flash Count (per 5 min)</p>
+                    <div class="cbar li-cbar"></div>
+                    <div class="cbar-labels" style="height:12px; margin-top:2px;">
+                        <span class="cbar-label" style="left:0; transform:none;">1</span>
+                        <span class="cbar-label" style="left:50%;">10</span>
+                        <span class="cbar-label" style="right:0; left:auto; transform:none;">20+</span>
+                    </div>
+                </div>
+                <div id="cthKeyContainer" style="display:none; margin-top:8px;">
+                    <p style="font-weight:500; margin-bottom:10px; font-size:12px; color: #3c4043;">Cloud Top Height (m)</p>
+                    <div class="cbar cth-cbar"></div>
+                    <div class="cbar-labels" style="height:12px; margin-top:2px;">
+                        <span class="cbar-label" style="left:0; transform:none;">320</span>
+                        <span class="cbar-label" style="left:25%;">4240</span>
+                        <span class="cbar-label" style="left:50%;">8160</span>
+                        <span class="cbar-label" style="left:75%;">12080</span>
+                        <span class="cbar-label" style="right:0; left:auto; transform:none;">16000+</span>
+                    </div>
                 </div>
             </div>
 
@@ -1495,14 +1543,6 @@
             preloadVisibleFrames();
         }
 
-        // Legend graphics rendered by EUMETSAT's own WMS for the layers whose
-        // colour scale isn't self-explanatory (lightning flash count, cloud
-        // top height in metres). Static per-style images, no time param needed.
-        var SAT_LEGEND_URLS = {
-            li:  'https://view.eumetsat.int/geoserver/ows?service=WMS&request=GetLegendGraphic&version=1.3.0&format=image/png&layer=mtg_fd:li_afa&style=mtg_li_afa',
-            cth: 'https://view.eumetsat.int/geoserver/ows?service=WMS&request=GetLegendGraphic&version=1.3.0&format=image/png&layer=msg_fes:cth&style=msg_cth'
-        };
-
         function onSatLayerChange(val) {
             // Remove all sat overlays
             Object.keys(satOverlays).forEach(function(k) {
@@ -1516,14 +1556,8 @@
                 enforceZOrder();
             }
 
-            var legendDiv = document.getElementById('satLegend');
-            var legendImg = document.getElementById('satLegendImg');
-            if (SAT_LEGEND_URLS[val]) {
-                legendImg.src = SAT_LEGEND_URLS[val];
-                legendDiv.style.display = 'block';
-            } else {
-                legendDiv.style.display = 'none';
-            }
+            document.getElementById('liKeyContainer').style.display = (val === 'li') ? '' : 'none';
+            document.getElementById('cthKeyContainer').style.display = (val === 'cth') ? '' : 'none';
 
             // Re-filter frames so radar and sat always share the same timesteps
             refilterFrames();
