@@ -6,8 +6,8 @@
     <meta charset="utf-8" />
     <link rel="icon" type="image/png" href="favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Google Fonts: Roboto -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Roboto (body/UI) + Outfit (headings/labels) -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -152,20 +152,39 @@
             overflow: visible;
         }
 
+        .info-panel:not(.collapsed) .collapsed-top-row {
+            display: none;
+        }
+
         .info-panel.collapsed .collapsed-top-row {
             display: flex;
             flex-direction: row;
             align-items: center;
             width: 100%;
             justify-content: space-between;
-            gap: 4px;
+            gap: 8px;
+            background: #34435b;
+            padding: 9px 14px;
+            margin: -8px -14px 6px -14px;
+            border-radius: 20px 20px 0 0;
+            box-sizing: border-box;
+            width: calc(100% + 28px);
+        }
+
+        .collapsed-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 10px;
+            font-weight: 600;
+            color: #f1f5f9;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
         }
 
         #collapsedTime {
             display: none;
             font-size: 13px;
             font-weight: 500;
-            color: #1a73e8;
+            color: #f1f5f9;
             white-space: nowrap;
         }
 
@@ -201,7 +220,26 @@
             border-radius: 3px;
         }
 
-        #infoToggle {
+        .panel-header {
+            background: #34435b;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 20px;
+            border-radius: 12px 12px 0 0;
+            margin: -24px -24px 16px -24px;
+        }
+
+        .panel-header-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .panel-close-btn,
+        .chip-open-btn {
             background: transparent;
             border: none;
             cursor: pointer;
@@ -209,32 +247,17 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #1a73e8;
-            margin-bottom: 0;
-            transition: transform 0.2s;
+            color: #94a3b8;
+            transition: color 0.2s;
         }
 
-        #infoToggle:hover {
-            transform: scale(1.1);
+        .panel-close-btn:hover,
+        .chip-open-btn:hover {
+            color: #f1f5f9;
         }
 
         .info-panel.collapsed .hide-collapsed {
             display: none !important;
-        }
-
-        .info-panel #infoToggle {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-        }
-
-        .info-panel.collapsed #infoToggle {
-            position: static;
-        }
-
-        .info-panel h3 {
-            margin-right: 30px;
-            margin-top: 0;
         }
 
         .player-panel {
@@ -252,7 +275,7 @@
         }
 
         .btn {
-            background: #1a73e8;
+            background: #202124;
             color: white;
             border: none;
             padding: 10px 24px;
@@ -273,7 +296,7 @@
         }
 
         .btn:hover {
-            background: #1557b0;
+            background: #3c4043;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
             transform: translateY(-1px);
         }
@@ -411,7 +434,7 @@
             height: 18px;
             width: 18px;
             border-radius: 50%;
-            background: #1a73e8;
+            background: #202124;
             cursor: pointer;
             -webkit-appearance: none;
             margin-top: -6px;
@@ -441,9 +464,9 @@
 
         .time-box {
             background: #f8f9fa;
-            border-left: 4px solid #1a73e8;
+            border-left: 4px solid #202124;
             padding: 12px 16px;
-            margin: 20px 0;
+            margin: 0 0 20px;
             border-radius: 8px;
             text-align: left;
         }
@@ -537,8 +560,9 @@
         }
 
         .control-label {
-            font-size: 10px;
-            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
             color: #80868b;
             letter-spacing: 0.5px;
             padding-left: 8px;
@@ -559,7 +583,7 @@
             width: 16px;
             height: 16px;
             margin-right: 10px;
-            accent-color: #1a73e8;
+            accent-color: #202124;
         }
 
         /* Mobile Responsiveness */
@@ -581,6 +605,10 @@
                 padding: 20px;
             }
 
+            .panel-header {
+                margin: -20px -20px 16px -20px;
+            }
+
             .info-panel.collapsed {
                 width: 200px;
                 height: auto;
@@ -588,6 +616,11 @@
                 padding: 8px 12px 10px 12px;
                 top: 15px;
                 right: 15px;
+            }
+
+            .info-panel.collapsed .collapsed-top-row {
+                margin: -8px -12px 6px -12px;
+                width: calc(100% + 24px);
             }
 
             .info-panel:not(.collapsed) {
@@ -656,8 +689,7 @@
         .only-link {
             font-size: 10px;
             font-weight: 700;
-            color: #1a73e8;
-            text-transform: uppercase;
+            color: #3c4043;
             letter-spacing: 0.3px;
             padding: 2px 6px;
             border-radius: 4px;
@@ -670,8 +702,8 @@
             opacity: 1;
         }
         .only-link:hover {
-            background: #e8f0fe;
-            color: #1557b0;
+            background: #e8eaed;
+            color: #202124;
         }
     </style>
 </head>
@@ -681,21 +713,32 @@
 
     <div class="info-panel surface" id="infoPanel">
         <div class="collapsed-top-row">
+            <span class="collapsed-title">Radar &amp; Sat</span>
             <div id="collapsedTime">Loading...</div>
-            <button id="infoToggle" onclick="toggleInfo()" title="Toggle Info">
-                <svg id="infoIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            <button class="chip-open-btn" onclick="toggleInfo()" title="Open menu">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.2" stroke-linecap="round">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+
+        <div class="panel-header hide-collapsed">
+            <span class="panel-header-title">Radar &amp; Sat</span>
+            <button class="panel-close-btn" onclick="toggleInfo()" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
             </button>
         </div>
 
         <div id="infoContentTop" class="hide-collapsed">
-            <h3 style="margin-top:0;">Rainfall Radar</h3>
             <div class="time-box">
-                <p id="tzLabel" style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: 700; color: #1a73e8; letter-spacing: 0.5px;">Time (GMT)</p>
+                <p id="tzLabel" style="margin: 0; font-size: 11px; font-weight: 700; color: #5f6368; letter-spacing: 0.5px;">Time (GMT)</p>
                 <div id="timeDisplay" style="font-size: 22px; font-weight: 700; color: #202124; margin-top: 4px;">Loading...</div>
             </div>
         </div>
@@ -707,7 +750,7 @@
         </div>
 
         <div id="infoContentBottom" class="hide-collapsed">
-            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Weather Warnings</p>
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.3px;">Weather Warnings</p>
             <div style="margin-bottom: 24px; position: relative;">
                 <div class="custom-multiselect" id="warningsSelect">
                     <div class="multiselect-trigger" onclick="toggleWarningsMultiselect(event)">
@@ -720,7 +763,7 @@
                 </div>
             </div>
 
-            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Boundaries</p>
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.3px;">Boundaries</p>
             <div style="margin-bottom: 24px;">
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
                     <input type="radio" name="boundaryLayer" value="none" onchange="onBoundaryChange('none')">
@@ -757,7 +800,7 @@
                 </label>
             </div>
 
-            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Radar Feed</p>
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.3px;">Radar Feed</p>
             <div style="margin-bottom: 24px;">
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
                     <input type="radio" name="radarFeed" value="standard" onchange="onFeedChange('standard')">
@@ -772,7 +815,7 @@
                 </a>
             </div>
 
-            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Satellite</p>
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.3px;">Satellite</p>
             <div style="margin-bottom: 24px;">
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
                     <input type="radio" name="satLayer" value="none" checked onchange="onSatLayerChange('none')">
@@ -824,7 +867,7 @@
                 </div>
             </div>
 
-            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Navigation</p>
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.3px;">Navigation</p>
             <div style="margin-bottom: 24px; font-size: 13px; font-weight: 500; display: flex; flex-direction: column; gap: 8px;">
                 <a href="gaugecheck.html" style="color: #1a73e8; text-decoration: none; display: flex; align-items: center; gap: 6px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -1982,15 +2025,7 @@
         }
 
         function toggleInfo() {
-            const panel = document.getElementById('infoPanel');
-            const icon = document.getElementById('infoIcon');
-            panel.classList.toggle('collapsed');
-
-            if (panel.classList.contains('collapsed')) {
-                icon.innerHTML = '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>';
-            } else {
-                icon.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>';
-            }
+            document.getElementById('infoPanel').classList.toggle('collapsed');
         }
 
         function playStep() {

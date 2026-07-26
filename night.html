@@ -6,8 +6,8 @@
     <meta charset="utf-8" />
     <link rel="icon" type="image/png" href="favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Google Fonts: Roboto -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Roboto (body/UI) + Outfit (headings/labels) -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -184,13 +184,32 @@
             overflow: visible;
         }
 
+        .info-panel:not(.collapsed) .collapsed-top-row {
+            display: none;
+        }
+
         .info-panel.collapsed .collapsed-top-row {
             display: flex;
             flex-direction: row;
             align-items: center;
             width: 100%;
             justify-content: space-between;
-            gap: 4px;
+            gap: 8px;
+            background: #34435b;
+            padding: 9px 14px;
+            margin: -8px -14px 6px -14px;
+            border-radius: 20px 20px 0 0;
+            box-sizing: border-box;
+            width: calc(100% + 28px);
+        }
+
+        .collapsed-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 10px;
+            font-weight: 600;
+            color: #f1f5f9;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
         }
 
         #collapsedTime {
@@ -233,7 +252,26 @@
             border-radius: 3px;
         }
 
-        #infoToggle {
+        .panel-header {
+            background: #34435b;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 20px;
+            border-radius: 12px 12px 0 0;
+            margin: -24px -24px 16px -24px;
+        }
+
+        .panel-header-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .panel-close-btn,
+        .chip-open-btn {
             background: transparent;
             border: none;
             cursor: pointer;
@@ -242,33 +280,16 @@
             align-items: center;
             justify-content: center;
             color: #94a3b8;
-            margin-bottom: 0;
-            transition: transform 0.2s, color 0.2s;
+            transition: color 0.2s;
         }
 
-        #infoToggle:hover {
-            transform: scale(1.1);
+        .panel-close-btn:hover,
+        .chip-open-btn:hover {
             color: #f1f5f9;
         }
 
         .info-panel.collapsed .hide-collapsed {
             display: none !important;
-        }
-
-        .info-panel #infoToggle {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-        }
-
-        .info-panel.collapsed #infoToggle {
-            position: static;
-        }
-
-        .info-panel h3 {
-            margin-right: 30px;
-            margin-top: 0;
-            color: #f1f5f9;
         }
 
         .player-panel {
@@ -477,7 +498,7 @@
             background: rgba(255, 255, 255, 0.03);
             border-left: 4px solid #38bdf8;
             padding: 12px 16px;
-            margin: 20px 0;
+            margin: 0 0 20px;
             border-radius: 8px;
             text-align: left;
         }
@@ -571,8 +592,9 @@
         }
 
         .control-label {
-            font-size: 10px;
-            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
             color: #94a3b8;
             letter-spacing: 0.5px;
             padding-left: 8px;
@@ -615,6 +637,10 @@
                 padding: 20px;
             }
 
+            .panel-header {
+                margin: -20px -20px 16px -20px;
+            }
+
             .info-panel.collapsed {
                 width: 200px;
                 height: auto;
@@ -622,6 +648,11 @@
                 padding: 8px 12px 10px 12px;
                 top: 15px;
                 right: 15px;
+            }
+
+            .info-panel.collapsed .collapsed-top-row {
+                margin: -8px -12px 6px -12px;
+                width: calc(100% + 24px);
             }
 
             .info-panel:not(.collapsed) {
@@ -716,19 +747,30 @@
 
     <div class="info-panel surface" id="infoPanel">
         <div class="collapsed-top-row">
+            <span class="collapsed-title">Radar &amp; Sat</span>
             <div id="collapsedTime">Loading...</div>
-            <button id="infoToggle" onclick="toggleInfo()" title="Toggle Info">
-                <svg id="infoIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            <button class="chip-open-btn" onclick="toggleInfo()" title="Open menu">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.2" stroke-linecap="round">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+
+        <div class="panel-header hide-collapsed">
+            <span class="panel-header-title">Radar &amp; Sat</span>
+            <button class="panel-close-btn" onclick="toggleInfo()" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
             </button>
         </div>
 
         <div id="infoContentTop" class="hide-collapsed">
-            <h3 style="margin-top:0;">Rainfall Radar</h3>
             <div class="time-box">
                 <p id="tzLabel" style="margin: 0; font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px;">Time (GMT)</p>
                 <div id="timeDisplay" style="font-size: 22px; font-weight: 700; color: #f1f5f9; margin-top: 4px;">Loading...</div>
@@ -1925,15 +1967,7 @@
         }
 
         function toggleInfo() {
-            const panel = document.getElementById('infoPanel');
-            const icon = document.getElementById('infoIcon');
-            panel.classList.toggle('collapsed');
-
-            if (panel.classList.contains('collapsed')) {
-                icon.innerHTML = '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>';
-            } else {
-                icon.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>';
-            }
+            document.getElementById('infoPanel').classList.toggle('collapsed');
         }
 
         function playStep() {
