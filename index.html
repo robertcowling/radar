@@ -152,6 +152,11 @@
             padding: 24px;
             z-index: 1000;
             width: 270px;
+            /* Cap height and scroll internally so short/laptop viewports never
+               let the panel run down behind the bottom player-panel. */
+            max-height: calc(100vh - 250px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
@@ -244,6 +249,9 @@
             padding: 13px 20px;
             border-radius: 12px 12px 0 0;
             margin: -24px -24px 16px -24px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         .panel-header-title {
@@ -274,6 +282,10 @@
         .info-panel.collapsed .hide-collapsed {
             display: none !important;
         }
+
+        .info-panel::-webkit-scrollbar { width: 6px; }
+        .info-panel::-webkit-scrollbar-track { background: transparent; }
+        .info-panel::-webkit-scrollbar-thumb { background: #c0c4c9; border-radius: 3px; }
 
         .player-panel {
             position: absolute;
