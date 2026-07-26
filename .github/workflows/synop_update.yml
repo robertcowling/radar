@@ -1,10 +1,11 @@
-name: Fetch SYNOP Observations (Ogimet)
+name: Fetch SYNOP/METAR/TAF Observations (Ogimet)
 
 on:
   # Triggered hourly by Google Apps Script (same mechanism as
   # surface_obs_update.yml / rain_update.yml) — add this workflow's file name
   # (synop_update.yml) to the Apps Script's dispatch list. SYNOP bulletins
-  # are hourly at UK stations, so there's no benefit dispatching faster.
+  # are hourly at UK stations and METAR at most half-hourly, so there's no
+  # benefit dispatching faster than hourly.
   workflow_dispatch:
 
 # No git writes — output goes straight to R2 (latest snapshot + hourly archive),
@@ -38,6 +39,14 @@ jobs:
         R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
       run: python synop/fetch_synop.py
 
+    - name: Fetch and decode METAR/TAF observations
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+      run: python metar/fetch_metar_taf.py
+
     - name: Report Job Status
       if: always()
       env:
@@ -45,6 +54,6 @@ jobs:
         R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
         R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-        JOB_NAME: "SYNOP Observations"
+        JOB_NAME: "SYNOP/METAR/TAF Observations"
         JOB_STATUS: ${{ job.status }}
       run: python report_job_status.py
