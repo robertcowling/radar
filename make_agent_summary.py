@@ -390,6 +390,49 @@ def load_warnings(region="ew"):
     return active, data.get("generated_at", "")
 
 
+# ── EA / NRW flood warnings (river & coastal — distinct from Met Office weather warnings) ──
+
+def load_flood_warnings(region="ew"):
+    """Load active Environment Agency (England) + Natural Resources Wales flood
+    warnings/alerts, filtered to `region` ('ew' or 'scotland') by lat/long.
+
+    EA and NRW cover England & Wales only — there is no equivalent live feed
+    integrated here for Scotland (SEPA) or Northern Ireland, so this always
+    returns empty for region="scotland" (Met Office warnings still apply there).
+    Only severity levels 1-3 (Severe Flood Warning / Flood Warning / Flood
+    Alert) are treated as active; level 4 ("no longer in force") is dropped.
+    """
+    if region == "scotland":
+        return [], ""
+    ea  = r2_get_json("ea/floods/current.json")  or load_json("ea/floods/current.json", {})
+    nrw = r2_get_json("nrw/floods/current.json") or load_json("nrw/floods/current.json", {})
+    generated_at = max(
+        (ea or {}).get("generated_at", ""), (nrw or {}).get("generated_at", ""),
+    )
+    active = []
+    for src, data in (("EA", ea), ("NRW", nrw)):
+        for w in (data or {}).get("warnings", []):
+            lvl = w.get("severityLevel")
+            if lvl not in (1, 2, 3):
+                continue
+            lat, lon = w.get("lat"), w.get("long")
+            if lat is not None and lon is not None and assign_region(lat, lon) in ("Scotland", "N Ireland"):
+                continue
+            active.append({
+                "source":      w.get("source", src),
+                "severity":    w.get("severity") or {1: "Severe Flood Warning", 2: "Flood Warning", 3: "Flood Alert"}.get(lvl, ""),
+                "severityLevel": lvl,
+                "label":       w.get("label", ""),
+                "county":      w.get("county") or ", ".join(w.get("counties") or []),
+                "river":       w.get("river", ""),
+                "message":     w.get("message", ""),
+                "timeRaised":  w.get("timeRaised"),
+                "timeSeverityChanged": w.get("timeSeverityChanged"),
+            })
+    active.sort(key=lambda w: w["severityLevel"])
+    return active, generated_at
+
+
 # ── RFG ───────────────────────────────────────────────────────────────────────────
 
 def load_rfg():
@@ -1129,6 +1172,8 @@ def select_images():
 SYSTEM_PROMPT_EW = """\
 You are an expert UK operational meteorologist writing a concise weather and flood-risk briefing for Flood Forecasting Centre and emergency planning practitioners. Focus on England and Wales.
 
+Every official product referenced below (Met Office warnings, EA/NRW flood warnings, RFG, FGS) is only valid as of its own stated issue/generation time — it may since have been amended, extended, or stood down. Never describe one as the live/current state; attribute it to its issue time (e.g. "a Flood Alert issued at 09:15 on the Severn", "RFG status as of 06:00").
+
 All map images share the same geographic basemap with boundary lines — geolocate features precisely. Image order:
   • Four radar RATE composites (~6h loop) — current rainfall location and motion.
   • Five DAILY ACCUMULATION maps (today partial + 4 prior complete days) — multi-day antecedent context.
@@ -1139,7 +1184,7 @@ Respond with a JSON object inside <json> tags:
 - "headline": One sentence, max 12 words. The region/county UKV figures are area-MEANS and can look deceptively light even when a locally heavy pocket is forecast — if the grid-cell peak list (below) shows a notably heavier local pocket than its surrounding region/county mean, lead the headline with the affected catchment/county or sub-regional area (e.g. "heavier pockets over southern Cumbria and the Eden catchment") rather than a generic "quiet"/"light rain" descriptor for the whole country. Describe the general pattern and the broad area affected — do not name individual villages, hamlets, or specific grid points.
 - "summary": Three paragraphs separated by \\n\\n. Two sentences each — be direct and concise. MANDATORY structure, never merge:
     Para 1 — Synoptic scene: describe what the MSLP charts show and how the pattern has changed; name the feature driving the weather (front, low, ridge etc).
-    Para 2 — Recent observations: where the heaviest rain fell in the last 24h with gauge point-totals and region names; note antecedent context from the daily accumulation maps and any active Met Office warnings (naming any storm).
+    Para 2 — Recent observations: where the heaviest rain fell in the last 24h with gauge point-totals and region names; note antecedent context from the daily accumulation maps, any active Met Office warnings (naming any storm), and any active EA/NRW flood warnings or alerts (river/coastal flood risk — a distinct product from the Met Office weather warnings; name the affected river or area and severity, e.g. "Flood Alert", "Flood Warning", "Severe Flood Warning"). If no EA/NRW flood warnings are active, state this plainly rather than omitting it.
     Para 3 — Outlook: UKV day-1 and day-2 area-mean totals for the wettest regions and catchments, cited as "UKV (run ddd D/HHMM BST/GMT)" with natural valid-time phrases like "up to early Friday morning (Fri 25/0300 BST)". Then check the "highest-intensity 20km grid cells" list for each window: it holds local peak forecast values, not administrative means, and can surface a heavier pocket the region/county mean smooths away — where a cell there is meaningfully above its region/county mean (roughly 1.5x or more, or simply crosses the heavy/extreme thresholds below), name the catchment and/or county it falls in, e.g. "a locally heavier pocket is possible across the Eden catchment in Cumbria (up to 28mm)". If several grid-cell entries cluster in the same county, you may add a compass qualifier (e.g. "southern Cumbria", "western North Yorkshire") to describe roughly where within it. Never name a specific village, hamlet, or grid reference/coordinates — describe the general rainfall pattern by catchment, county, or sub-regional area only. Close with a brief flood-risk conclusion referencing FGS levels (block caps: VERY LOW, LOW, MEDIUM, HIGH) only if relevant.
 
 Rainfall thresholds: 10mm/1h heavy; 30mm/1h extreme; 100mm/24h exceptional. For the 24h-window grid-cell peaks, treat individual cells at or above roughly 15-20mm/24h as locally heavy even when the wider region/county mean sits well below that.
@@ -1150,7 +1195,9 @@ Style: professional third-person prose; no bullet points; specific place names a
 SYSTEM_PROMPT_SCOTLAND = """\
 You are an expert meteorologist writing a concise weather and flood-risk briefing for Scotland, for SEPA (Scottish Environment Protection Agency) and emergency planning practitioners. Focus exclusively on Scotland — do not discuss England, Wales, or Northern Ireland.
 
-There is no Rapid Flood Guidance (RFG) or Flood Guidance Statement (FGS) data for Scotland in this briefing — those are England & Wales-only Flood Forecasting Centre products; Scotland's own flood forecasting service (SEPA/Met Office Scottish Flood Forecasting Service) is not integrated here, so do not reference RFG or FGS levels for Scotland and do not imply their absence is a data gap.
+There is no Rapid Flood Guidance (RFG), Flood Guidance Statement (FGS), or EA/NRW flood warning data for Scotland in this briefing — those are England & Wales-only Flood Forecasting Centre / Environment Agency / Natural Resources Wales products; Scotland's own flood warning and forecasting service (SEPA/Met Office Scottish Flood Forecasting Service) is not integrated here, so do not reference RFG, FGS, or EA/NRW flood warning levels for Scotland and do not imply their absence is a data gap.
+
+Met Office warnings referenced below are only valid as of their own stated issue time — they may since have been amended, extended, or stood down. Never describe one as the live/current state; attribute it to its issue time.
 
 All map images share the same geographic basemap with boundary lines and cover the whole UK — geolocate and describe only the Scottish portion of each image. Image order:
   • Four radar RATE composites (~6h loop) — current rainfall location and motion.
@@ -1172,13 +1219,22 @@ Style: professional third-person prose; no bullet points; specific place names a
 
 # ── Prompt data block ─────────────────────────────────────────────────────────────
 
-def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top10, gauge_trend,
+def build_data_block(warnings, warnings_gen, rfg, fgs_history_text, flood_warnings, flood_warnings_gen,
+                     gauge_regional, gauge_top10, gauge_trend,
                      cosmos, ukv_poly_text, rain_latest_time, ukv_trends_insights=None, region="ew"):
     L = []
     L.append(f"Generated: {now_utc().strftime('%Y-%m-%dT%H:%M UTC')}\n")
+    L.append(
+        "NOTE ON CURRENCY: every official-product section below (Met Office warnings, "
+        "EA/NRW flood warnings, RFG, FGS) is a snapshot as of its own stated issue/generation "
+        "time, not necessarily this moment — each may have been amended, extended, or stood "
+        "down since. Always attribute these with their issue/generation time (e.g. 'as of', "
+        "'Met Office warning issued at...', 'RFG status as of...') rather than describing them "
+        "as the live/current state.\n"
+    )
 
     # Warnings
-    L.append("=== ACTIVE MET OFFICE WARNINGS ===")
+    L.append(f"=== ACTIVE MET OFFICE WARNINGS (snapshot as of {warnings_gen or 'unknown time'}) ===")
     if warnings:
         for w in warnings:
             L.append(f"[{w['severity'].replace('_', ' ').title()}] {w['title']}")
@@ -1194,6 +1250,30 @@ def build_data_block(warnings, rfg, fgs_history_text, gauge_regional, gauge_top1
     else:
         L.append("No active Met Office warnings.")
     L.append("")
+
+    # EA / NRW flood warnings (river & coastal — separate product from the Met
+    # Office weather warnings above; mention explicitly when present).
+    if region == "ew":
+        L.append(f"=== ACTIVE EA/NRW FLOOD WARNINGS (river & coastal flood risk; snapshot as of {flood_warnings_gen or 'unknown time'}) ===")
+        if flood_warnings:
+            for w in flood_warnings:
+                L.append(f"[{w['source']}: {w['severity']}] {w['label']}")
+                if w.get("river"):
+                    L.append(f"  River/sea: {w['river']}")
+                if w.get("county"):
+                    L.append(f"  County: {w['county']}")
+                if w.get("timeRaised"):
+                    L.append(f"  Raised: {w['timeRaised']}")
+                if w.get("message"):
+                    L.append(f"  Message: {w['message'][:200]}")
+        else:
+            L.append("No active EA/NRW flood warnings or alerts.")
+        L.append("")
+    else:
+        L.append("=== EA/NRW FLOOD WARNINGS ===")
+        L.append("Not applicable — EA (England) and NRW (Wales) flood warnings are not integrated "
+                  "for Scotland; SEPA runs Scotland's flood warning service separately.")
+        L.append("")
 
     if region == "ew":
         # RFG
@@ -1344,9 +1424,19 @@ def parse_openai_response(text):
 
 # ── Context bullets ───────────────────────────────────────────────────────────────
 
-def build_bullets(warnings, rfg, fgs_text, gauge_regional, gauge_top10,
+def build_bullets(warnings, rfg, fgs_text, flood_warnings, gauge_regional, gauge_top10,
                   gauge_trend, cosmos, images, parsed, ukv_trends_insights=None, region="ew"):
     B = []
+
+    if region == "ew":
+        if flood_warnings:
+            counts = {}
+            for w in flood_warnings:
+                counts[w["severity"]] = counts.get(w["severity"], 0) + 1
+            parts = ", ".join(f"{n} {label}" for label, n in counts.items())
+            B.append(f"{len(flood_warnings)} active EA/NRW flood warning(s)/alert(s) ({parts})")
+        else:
+            B.append("No active EA/NRW flood warnings or alerts")
 
     if warnings:
         counts = {}
@@ -1448,6 +1538,10 @@ def main():
         warnings, warnings_gen = load_warnings(region)
         print(f"  {len(warnings)} active warning(s)")
 
+        print("Loading EA/NRW flood warnings...")
+        flood_warnings, flood_warnings_gen = load_flood_warnings(region)
+        print(f"  {len(flood_warnings)} active flood warning(s)/alert(s)")
+
         print("Loading rain gauge stats...")
         gauge_regional, gauge_top10, gauge_trend, rain_latest = load_rain_gauge_stats(region)
         print(f"  {'loaded' if gauge_regional else 'not available'}")
@@ -1458,7 +1552,8 @@ def main():
 
         print("Building prompt...")
         data_block = build_data_block(
-            warnings, rfg, fgs_history_text, gauge_regional, gauge_top10, gauge_trend,
+            warnings, warnings_gen, rfg, fgs_history_text, flood_warnings, flood_warnings_gen,
+            gauge_regional, gauge_top10, gauge_trend,
             cosmos, ukv_poly_text, rain_latest,
             ukv_trends_insights=ukv_trends_insights, region=region,
         )
@@ -1491,7 +1586,7 @@ def main():
             print(f"AI generation failed for {REGION_LABEL[region]} and no prior briefing exists — "
                   "writing skeleton placeholder.")
 
-        bullets = build_bullets(warnings, rfg, fgs_history_text, gauge_regional, gauge_top10,
+        bullets = build_bullets(warnings, rfg, fgs_history_text, flood_warnings, gauge_regional, gauge_top10,
                                  gauge_trend, cosmos, images, parsed,
                                  ukv_trends_insights=ukv_trends_insights, region=region)
 
@@ -1516,6 +1611,7 @@ def main():
             "images_used":     [{"label": lbl, "url": url} for lbl, url in images],
             "data_age": {
                 "warnings_generated_at": warnings_gen,
+                "flood_warnings_generated_at": flood_warnings_gen if region == "ew" else "",
                 "rfg_generated_at":      rfg.get("generated_at", "") if region == "ew" else "",
                 "fgs_issued_at":         fgs_issued if region == "ew" else "",
                 "rain_latest_time":      rain_latest,
