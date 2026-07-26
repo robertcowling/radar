@@ -28,7 +28,7 @@ jobs:
         # get their own expected size rather than being flagged as "bad".
         DEFAULT_SIZE = (3200, 3200)
         SUFFIX_SIZES = {
-            '_sat_li.jpg': (1600, 1600),
+            '_sat_li.png': (1600, 1600),
             '_sat_cth.jpg': (1600, 1600),
         }
 

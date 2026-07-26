@@ -299,7 +299,7 @@ def main():
             sat_name_vis     = h5_name.replace(".h5", "_sat_vis.jpg")
             sat_name_ir      = h5_name.replace(".h5", "_sat_ir.jpg")
             sat_name_ir_grey = h5_name.replace(".h5", "_sat_ir_grey.jpg")
-            sat_name_li      = h5_name.replace(".h5", "_sat_li.jpg")
+            sat_name_li      = h5_name.replace(".h5", "_sat_li.png")
             sat_name_cth     = h5_name.replace(".h5", "_sat_cth.jpg")
 
             if USE_R2:
