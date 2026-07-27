@@ -67,7 +67,12 @@ def append_and_rebuild(new_events: list, r2, bucket: str) -> None:
     # ── 1. Download existing master ────────────────────────────────────────────
     print(f"  [flood_stats] Downloading master ({MASTER_KEY})…")
     obj = r2.get_object(Bucket=bucket, Key=MASTER_KEY)
-    master_raw = pd.read_csv(io.BytesIO(obj["Body"].read()))
+    # compression must be explicit: pandas' "infer" only sniffs gzip magic
+    # bytes for a real file path, not a BytesIO with no name — without this
+    # every call raises UnicodeDecodeError, which fetch_ea_warnings.py /
+    # fetch_nrw_warnings.py swallow (except-and-print), so every live update
+    # has silently no-opped since the master became gzip-compressed.
+    master_raw = pd.read_csv(io.BytesIO(obj["Body"].read()), compression="gzip")
 
     # Convert back to the raw-input column format that clean() expects.
     # The master CSV has cleaned columns (date, area, code, name, type_raw, source, …)
