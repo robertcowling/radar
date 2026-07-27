@@ -1,27 +1,26 @@
 #!/usr/bin/env python3
 """
-fetch_metar_taf.py — Fetches the latest METAR and TAF bulletins for UK
-aerodromes from Ogimet's public archive and writes a combined GeoJSON
-snapshot for metar.html.
+fetch_metar_taf.py — Fetches the latest METAR and TAF for UK aerodromes from
+NOAA's Aviation Weather Center Data API and writes a combined GeoJSON
+snapshot for synop.html.
 
-Sources (free, public, no key — one request per run, run hourly):
-  https://www.ogimet.com/ultimos_metars2.php?estado=United+K&fmt=txt
-  https://www.ogimet.com/ultimos_tafs2.php?estado=United+K&fmt=txt
+Source: https://aviationweather.gov/api/data/{metar,taf}?bbox=...&format=json
+NOAA/NWS data is U.S. government work (17 U.S.C. §105) — public domain, no
+key, no registration, no robots.txt restriction. Switched to this from
+Ogimet (which has a blanket "Disallow: /" robots.txt in tension with its own
+stated reuse terms) — this API is also less work to consume: it returns
+already-decoded fields (temp, dewpoint, wind, cloud layers, altimeter,
+present-weather string) plus station lat/lon directly, so there's no need
+for the raw-bulletin regex decoder or the static airports.json/ICAO lookup
+this module used to need.
 
-Coverage: ICAO-coded UK aerodromes (civil + military), a different set from
-both surface_obs/ (Met Office AWS one-minute network) and synop/ (WMO 03xxx
-synoptic stations) — though there's overlap, since major airports report on
-all three. Station coordinates come from metar/airports.json, a static
-reference built by build_airports.py (see that script's docstring for how
-to regenerate it when a new ICAO code starts appearing in these feeds).
-
-METAR decode is intentionally pragmatic, not full ICAO Annex 3 grammar:
-wind, visibility (incl. CAVOK), first present-weather group, worst cloud
-layer (as an oktas approximation for the station-plot glyph), temp/dewpoint,
-and QNH. RVR, trend groups (BECMG/TEMPO/NOSIG at the end of a METAR), and
-RMK free text are not parsed — not needed for a station-plot display.
-present_wx is left as the raw METAR code (e.g. "-RA", "SHRA") so metar.html
-can reuse surface_obs.html's existing wx_symbols.json lookup unchanged.
+Queried by an explicit `ids` list (UK_ICAO_CODES below), not a bbox — a bbox
+query silently truncates (tested: a UK-covering bbox returned 45 stations
+and was missing Gatwick, Luton, London City and Liverpool, all of which
+have live data when queried directly by ID). The list was seeded from every
+ICAO code seen across Ogimet's METAR+TAF feeds plus AWC's own bbox response,
+so it should already be reasonably complete; a station that starts
+reporting and isn't on this list simply won't appear here until added.
 
 TAF is not decoded into structured fields — it's a multi-line forecast, not
 a single instantaneous value, so the raw bulletin text is carried through
@@ -31,19 +30,32 @@ import json
 import math
 import os
 import re
-import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-AIRPORTS_PATH = os.path.join(os.path.dirname(__file__), "airports.json")
 OUT_DIR = os.path.join(os.path.dirname(__file__), "out")
 LATEST_KEY = "metar/latest.geojson"
 HISTORY_DIR = "metar/history"
 
-METAR_URL = "https://www.ogimet.com/ultimos_metars2.php?lang=en&estado=United+K&fmt=txt&iord=yes&Send=Send"
-TAF_URL   = "https://www.ogimet.com/ultimos_tafs2.php?lang=en&estado=United+K&fmt=txt&iord=yes&Send=Send"
+API_BASE = "https://aviationweather.gov/api/data"
 UA = {"User-Agent": "floodforecast-radar/1.0 (+https://floodforecast.co.uk; metar/taf obs page)"}
+
+# UK civil + military aerodromes — see module docstring for why this is an
+# explicit list rather than a bbox query.
+UK_ICAO_CODES = sorted({
+    "EGAA", "EGAC", "EGAE", "EGBB", "EGCC", "EGCK", "EGDB", "EGDC", "EGDL",
+    "EGDM", "EGDR", "EGDY", "EGFF", "EGGD", "EGGP", "EGGW", "EGHC", "EGHE",
+    "EGHH", "EGHI", "EGHQ", "EGJB", "EGJJ", "EGKA", "EGKB", "EGKK", "EGLC",
+    "EGLF", "EGLL", "EGMC", "EGMD", "EGNH", "EGNJ", "EGNL", "EGNM", "EGNR",
+    "EGNS", "EGNT", "EGNV", "EGNX", "EGOM", "EGOP", "EGOS", "EGOV", "EGPA",
+    "EGPB", "EGPC", "EGPD", "EGPE", "EGPF", "EGPH", "EGPI", "EGPK", "EGPL",
+    "EGPO", "EGQA", "EGQK", "EGQL", "EGQM", "EGQS", "EGSH", "EGSS", "EGSY",
+    "EGTE", "EGUB", "EGUL", "EGUN", "EGUW", "EGVA", "EGVN", "EGVO", "EGVP",
+    "EGWC", "EGWU", "EGXC", "EGXE", "EGXS", "EGXT", "EGXV", "EGXW", "EGXZ",
+    "EGYD", "EGYE", "EGYH", "EGYM",
+})
 
 FRESHNESS_MINUTES = 90   # METAR is half-hourly at most UK stations
 
@@ -83,40 +95,19 @@ def r2_put_json(r2, key, obj):
     return len(body)
 
 
-def load_airports():
-    with open(AIRPORTS_PATH, encoding="utf-8") as f:
-        return json.load(f)
-
-
 # ── Fetch ──────────────────────────────────────────────────────────────────────
 
-def fetch_ogimet_text(url, timeout=30):
+def fetch_json(endpoint, timeout=30):
+    params = {"ids": ",".join(UK_ICAO_CODES), "format": "json"}
+    url = f"{API_BASE}/{endpoint}?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        html = resp.read().decode("utf-8", errors="replace")
-    m = re.search(r"<pre>([\s\S]*?)</pre>", html)
-    return m.group(1) if m else html
+        return json.loads(resp.read().decode("utf-8"))
 
 
 # ── METAR decode ────────────────────────────────────────────────────────────────
 
-_METAR_REPORT_RE = re.compile(
-    r"^(?P<ts>\d{12}) (?:METAR|SPECI) (?P<icao>[A-Z]{4}) (?P<rest>[\s\S]*?)=",
-    re.MULTILINE,
-)
-
-_WIND_RE = re.compile(r"^(\d{3}|VRB)(\d{2,3})(?:G(\d{2,3}))?(KT|MPS)$")
-_VARWIND_RE = re.compile(r"^\d{3}V\d{3}$")
-_VIS_RE = re.compile(r"^\d{4}$")
-_CLOUD_RE = re.compile(r"^(FEW|SCT|BKN|OVC|VV)(\d{3}|///)(CB|TCU)?/{0,3}$")
-_TEMPDEW_RE = re.compile(r"^(M?\d{2})/(M?\d{2})$")
-_QNH_RE = re.compile(r"^Q(\d{4})$")
-_WX_RE = re.compile(
-    r"^(?:\+|-|VC)?(?:MI|BC|PR|DR|BL|SH|TS|FZ)?"
-    r"(?:DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PO|SQ|FC|DS|SS){1,3}$"
-)
-
-_CLOUD_RANK = {"FEW": 2, "SCT": 4, "BKN": 6, "OVC": 8, "VV": 9}
+_CLOUD_RANK = {"SKC": 0, "CLR": 0, "NSC": 0, "NCD": 0, "FEW": 2, "SCT": 4, "BKN": 6, "OVC": 8, "VV": 9}
 
 
 def _magnus_rh(temp_c, dewpoint_c):
@@ -128,83 +119,57 @@ def _magnus_rh(temp_c, dewpoint_c):
     return max(0.0, min(100.0, 100.0 * e_td / e_t))
 
 
-def _parse_tempdew(tok):
-    def val(s):
-        return -float(s[1:]) if s.startswith("M") else float(s)
-    m = _TEMPDEW_RE.match(tok)
-    if not m:
-        return None, None
-    t_str, td_str = m.groups()
-    if "/" in t_str or "/" in td_str:
-        return None, None
-    return val(t_str), (val(td_str) if td_str.replace("M", "").isdigit() else None)
+def _decode_visib(visib):
+    """AWC's `visib` is statute miles, capped at "6+" — UK reports almost
+    always mean >=10km when they hit that cap (a bare 9999 or CAVOK group),
+    so that's what's shown here rather than a literal 6-mile conversion."""
+    if visib is None:
+        return None
+    if isinstance(visib, str):
+        if visib.endswith("+"):
+            return 10000
+        try:
+            visib = float(visib)
+        except ValueError:
+            return None
+    return round(visib * 1609.34 / 100) * 100
 
 
-def decode_metar(rest_text):
-    tokens = rest_text.split()
+def decode_metar(rec):
     out = {}
-    if not tokens or tokens[0] == "NIL":
-        return out
 
-    cloud_layer = None  # highest-rank (cover, base_ft)
-    zero_cloud = False
-    for tok in tokens[1:]:  # tokens[0] is the DDHHMMZ group
-        if tok == "RMK":
-            break
-        if tok in ("AUTO", "COR", "NOSIG"):
-            continue
-        if tok == "CAVOK":
-            out["vis_m"] = 10000
-            zero_cloud = True
-            continue
-        m = _WIND_RE.match(tok)
-        if m:
-            dir_str, speed, gust, unit = m.groups()
-            speed_kt = float(speed) * (1.94384 if unit == "MPS" else 1.0)
-            out["wind_kt"] = round(speed_kt, 1)
-            out["wind_dir_deg"] = None if dir_str == "VRB" else int(dir_str)
-            if gust:
-                out["wind_gust_kt"] = round(float(gust) * (1.94384 if unit == "MPS" else 1.0), 1)
-            continue
-        if _VARWIND_RE.match(tok):
-            continue
-        if "vis_m" not in out and _VIS_RE.match(tok):
-            vis = int(tok)
-            out["vis_m"] = 10000 if vis == 9999 else vis
-            continue
-        m = _CLOUD_RE.match(tok)
-        if m:
-            cover, base, _kind = m.groups()
-            rank = _CLOUD_RANK[cover]
-            if cloud_layer is None or rank > cloud_layer[0]:
-                base_ft = None if base == "///" else int(base) * 100
-                cloud_layer = (rank, base_ft)
-            continue
-        if tok in ("NCD", "NSC"):
-            zero_cloud = True
-            continue
-        m = _TEMPDEW_RE.match(tok)
-        if m and "temp_c" not in out:
-            t, td = _parse_tempdew(tok)
-            if t is not None:
-                out["temp_c"] = t
-            if td is not None:
-                out["dewpoint_c"] = td
-            continue
-        m = _QNH_RE.match(tok)
-        if m:
-            out["qnh_hpa"] = float(m.group(1))
-            continue
-        if "present_wx" not in out and _WX_RE.match(tok):
-            out["present_wx"] = tok
-            continue
+    temp, dewp = rec.get("temp"), rec.get("dewp")
+    if isinstance(temp, (int, float)):
+        out["temp_c"] = float(temp)
+    if isinstance(dewp, (int, float)):
+        out["dewpoint_c"] = float(dewp)
 
-    if cloud_layer is not None:
-        out["cloud_oktas"] = cloud_layer[0]
-        if cloud_layer[1] is not None:
-            out["cloud_base_ft"] = cloud_layer[1]
-    elif zero_cloud:
-        out["cloud_oktas"] = 0
+    wdir, wspd, wgst = rec.get("wdir"), rec.get("wspd"), rec.get("wgst")
+    if isinstance(wspd, (int, float)):
+        out["wind_kt"] = float(wspd)
+        out["wind_dir_deg"] = wdir if isinstance(wdir, (int, float)) else None
+    if isinstance(wgst, (int, float)):
+        out["wind_gust_kt"] = float(wgst)
+
+    vis = _decode_visib(rec.get("visib"))
+    if vis is not None:
+        out["vis_m"] = vis
+
+    cover = rec.get("cover")
+    if cover in _CLOUD_RANK:
+        out["cloud_oktas"] = _CLOUD_RANK[cover]
+    clouds = rec.get("clouds") or []
+    worst = max(clouds, key=lambda c: _CLOUD_RANK.get(c.get("cover"), -1), default=None)
+    if worst and isinstance(worst.get("base"), (int, float)):
+        out["cloud_base_ft"] = worst["base"]
+
+    wx = rec.get("wxString")
+    if wx:
+        out["present_wx"] = wx.split()[0]  # first group, same scope cut as before
+
+    altim = rec.get("altim")
+    if isinstance(altim, (int, float)):
+        out["qnh_hpa"] = float(altim)
 
     if out.get("temp_c") is not None and out.get("dewpoint_c") is not None:
         rh = _magnus_rh(out["temp_c"], out["dewpoint_c"])
@@ -214,119 +179,94 @@ def decode_metar(rest_text):
     return out
 
 
-def parse_metars(text):
-    """Returns {icao: (obs_time, raw_text, decoded_fields)} — latest report
-    per station (ogimet's iord=yes already orders newest-first)."""
-    stations = {}
-    for m in _METAR_REPORT_RE.finditer(text):
-        icao = m.group("icao")
-        if icao in stations:
-            continue  # already have the newest for this station
-        ts = datetime.strptime(m.group("ts"), "%Y%m%d%H%M").replace(tzinfo=timezone.utc)
-        rest = " ".join(m.group("rest").split())
-        stations[icao] = (ts, rest, decode_metar(m.group("rest")))
-    return stations
+_TAF_FLAG_RE = re.compile(r"^TAF (AMD|COR) ")
 
 
-# ── TAF (kept as raw text, not decoded into fields) ────────────────────────────
+def build_features(metars, tafs, now):
+    metars_by_icao = {r["icaoId"]: r for r in metars}
+    tafs_by_icao = {}
+    for r in tafs:
+        icao = r["icaoId"]
+        if icao in tafs_by_icao:
+            continue  # API already orders most-recent first
+        tafs_by_icao[icao] = r
 
-_TAF_REPORT_RE = re.compile(
-    r"^(?P<ts>\d{12}) TAF(?: (?P<flag>AMD|COR))? (?P<icao>[A-Z]{4}) (?P<rest>[\s\S]*?)=",
-    re.MULTILINE,
-)
-
-
-def parse_tafs(text):
-    """Returns {icao: (issued_time, flag, raw_text)} — latest TAF per station."""
-    stations = {}
-    for m in _TAF_REPORT_RE.finditer(text):
-        icao = m.group("icao")
-        if icao in stations:
-            continue
-        ts = datetime.strptime(m.group("ts"), "%Y%m%d%H%M").replace(tzinfo=timezone.utc)
-        raw = " ".join(m.group("rest").split())
-        stations[icao] = (ts, m.group("flag"), raw)
-    return stations
-
-
-# ── Build snapshot ─────────────────────────────────────────────────────────────
-
-def build_features(metars, tafs, airports, now):
     features = []
-    unmapped = set()
-    for icao in sorted(set(metars) | set(tafs)):
-        airport = airports.get(icao)
-        if not airport:
-            unmapped.add(icao)
+    for icao in sorted(set(metars_by_icao) | set(tafs_by_icao)):
+        rec = metars_by_icao.get(icao) or tafs_by_icao[icao]
+        lat, lon = rec.get("lat"), rec.get("lon")
+        if lat is None or lon is None:
             continue
+        name = (rec.get("name") or icao).split(",")[0].strip()
 
-        props = {"icao": icao, "name": airport["name"]}
+        props = {"icao": icao, "name": name}
 
-        if icao in metars:
-            obs_time, raw, fields = metars[icao]
-            props["metar_raw"] = raw
-            props["metar_obs_time"] = obs_time.strftime("%Y-%m-%dT%H:%M:00Z")
-            props["stale"] = (now - obs_time).total_seconds() > FRESHNESS_MINUTES * 60
-            for k, v in fields.items():
+        m = metars_by_icao.get(icao)
+        if m:
+            obs_time = datetime.fromtimestamp(m["obsTime"], tz=timezone.utc) if m.get("obsTime") else None
+            props["metar_raw"] = m.get("rawOb", "")
+            if obs_time:
+                props["metar_obs_time"] = obs_time.strftime("%Y-%m-%dT%H:%M:00Z")
+                props["stale"] = (now - obs_time).total_seconds() > FRESHNESS_MINUTES * 60
+            else:
+                props["stale"] = True
+            for k, v in decode_metar(m).items():
                 props[k] = round(v, 1) if isinstance(v, float) else v
         else:
-            props["stale"] = True  # no current METAR at all
+            props["stale"] = True
 
-        if icao in tafs:
-            issued, flag, raw = tafs[icao]
+        t = tafs_by_icao.get(icao)
+        if t:
+            raw = t.get("rawTAF", "")
             props["taf_raw"] = raw
-            props["taf_issued"] = issued.strftime("%Y-%m-%dT%H:%M:00Z")
-            if flag:
-                props["taf_flag"] = flag
+            issue = t.get("issueTime")
+            if issue:
+                props["taf_issued"] = issue.replace(".000Z", "Z")
+            flag_m = _TAF_FLAG_RE.match(raw)
+            if flag_m:
+                props["taf_flag"] = flag_m.group(1)
 
         features.append({
             "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [airport["lon"], airport["lat"]]},
+            "geometry": {"type": "Point", "coordinates": [round(lon, 4), round(lat, 4)]},
             "properties": props,
         })
 
-    if unmapped:
-        print(f"  {len(unmapped)} ICAO code(s) with no entry in airports.json (skipped): {sorted(unmapped)}")
-        print("  Run metar/build_airports.py to add them.")
     return features
 
 
 def main():
     now = datetime.now(timezone.utc)
-    airports = load_airports()
 
-    print("Fetching latest METARs...")
+    print("Fetching latest METARs (Aviation Weather Center)...")
     try:
-        metar_text = fetch_ogimet_text(METAR_URL)
-    except (urllib.error.URLError, TimeoutError) as e:
+        metars = fetch_json("metar")
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as e:
         print(f"  METAR fetch failed: {e}")
-        metar_text = ""
-    metars = parse_metars(metar_text) if metar_text else {}
+        metars = []
     print(f"  {len(metars)} station(s)")
 
-    print("Fetching latest TAFs...")
+    print("Fetching latest TAFs (Aviation Weather Center)...")
     try:
-        taf_text = fetch_ogimet_text(TAF_URL)
-    except (urllib.error.URLError, TimeoutError) as e:
+        tafs = fetch_json("taf")
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as e:
         print(f"  TAF fetch failed: {e}")
-        taf_text = ""
-    tafs = parse_tafs(taf_text) if taf_text else {}
+        tafs = []
     print(f"  {len(tafs)} station(s)")
 
     if not metars and not tafs:
-        print("No data from either feed — not writing (Ogimet may be unreachable, not necessarily an error).")
+        print("No data from either feed — not writing (API may be unreachable, not necessarily an error).")
         return
 
-    features = build_features(metars, tafs, airports, now)
+    features = build_features(metars, tafs, now)
     if not features:
-        print("No stations mapped to known coordinates — nothing to write.")
+        print("No UK stations in response — nothing to write.")
         return
 
     geojson = {
         "type": "FeatureCollection",
         "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "attribution": "METAR/TAF via Ogimet (https://www.ogimet.com), sourced from the WMO Global "
-                        "Telecommunication System.",
+        "attribution": "METAR/TAF via NOAA Aviation Weather Center (https://aviationweather.gov).",
         "count": len(features),
         "features": features,
     }

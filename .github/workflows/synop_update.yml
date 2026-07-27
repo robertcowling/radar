@@ -1,4 +1,4 @@
-name: Fetch SYNOP/METAR/TAF Observations (Ogimet)
+name: Fetch SYNOP/METAR/TAF Observations
 
 on:
   # Triggered hourly by Google Apps Script (same mechanism as
@@ -6,6 +6,10 @@ on:
   # (synop_update.yml) to the Apps Script's dispatch list. SYNOP bulletins
   # are hourly at UK stations and METAR at most half-hourly, so there's no
   # benefit dispatching faster than hourly.
+  #
+  # SYNOP comes from Ogimet; METAR/TAF from NOAA's Aviation Weather Center
+  # (aviationweather.gov) — two different upstreams, one workflow, since they
+  # feed the same page (synop.html) on the same cadence.
   workflow_dispatch:
 
 # No git writes — output goes straight to R2 (latest snapshot + hourly archive),
