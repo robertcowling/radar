@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>UK SYNOP / METAR / TAF — Ogimet</title>
+    <title>UK SYNOP / METAR / TAF</title>
     <meta charset="utf-8" />
     <link rel="icon" type="image/png" href="favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -92,7 +92,7 @@
 
     <div class="info-panel surface" id="infoPanel">
         <h3>SYNOP / METAR / TAF</h3>
-        <p>UK weather station reports and forecasts — decoded from raw WMO/ICAO bulletins via Ogimet.</p>
+        <p>UK weather station reports and forecasts — SYNOP via Ogimet, METAR/TAF via NOAA Aviation Weather Center.</p>
 
         <div class="time-box">
             <div class="stat-row">
@@ -119,8 +119,8 @@
             <span class="source-swatch" style="background:#f9a825;"></span> TAF (forecast — click a METAR station)
         </label>
         <p class="qc-note">
-            ⓘ SYNOP and METAR both mark the small circle top-left ("S"/"M") where a station reports to both
-            networks and markers land close together. Stations older than their network's freshness window
+            ⓘ SYNOP and METAR markers are nudged slightly apart where a station reports to both networks and
+            would otherwise land on top of itself. Stations older than their network's freshness window
             (SYNOP ~2.5h, METAR ~90min) are shown greyed out.
         </p>
 
@@ -157,13 +157,15 @@
         </p>
 
         <p style="font-size: 11px; margin-top: 14px; line-height: 1.5;">
-            <strong>Source:</strong> SYNOP/METAR/TAF via <a href="https://www.ogimet.com" target="_blank">Ogimet</a>,
-            sourced from the WMO Global Telecommunication System.<br>
+            <strong>Sources:</strong> SYNOP via <a href="https://www.ogimet.com" target="_blank">Ogimet</a>
+            (WMO Global Telecommunication System). METAR/TAF via
+            <a href="https://aviationweather.gov" target="_blank">NOAA Aviation Weather Center</a>.<br>
             <a href="index.html">&larr; Back to radar</a>
         </p>
     </div>
 
-    <div id="attribution">SYNOP/METAR/TAF via <a href="https://www.ogimet.com" target="_blank">Ogimet</a> / WMO GTS</div>
+    <div id="attribution">SYNOP via <a href="https://www.ogimet.com" target="_blank">Ogimet</a> &middot;
+        METAR/TAF via <a href="https://aviationweather.gov" target="_blank">NOAA Aviation Weather Center</a></div>
 
     <script>
         var map = L.map('map', { zoomControl: false }).setView([54.5, -3.5], 6);
@@ -382,9 +384,11 @@
                 'paint-order="stroke fill" stroke="#ffffff" stroke-width="2.8" stroke-linejoin="round">' + text + '</text>';
         }
 
+        // dx/dy: a small deterministic pixel nudge so a SYNOP and METAR marker
+        // that land on/near the same airport don't sit exactly on top of each other.
         var SOURCE_STYLE = {
-            synop: { initial: 'S', color: '#0e7490', dx: -5, dy: -5 },
-            metar: { initial: 'M', color: '#1a73e8', dx: 5,  dy: 5  },
+            synop: { dx: -5, dy: -5 },
+            metar: { dx: 5,  dy: 5  },
         };
 
         function stationPlotIcon(props, source, showTaf) {
@@ -407,10 +411,6 @@
             if (symbol && symbol !== 'none') svg += wxGlyphSVG(symbol, cx - 15, cy);
 
             svg += cloudFillSVG(props.cloud_oktas, cx, cy, r);
-
-            // Source initial, small corner badge (top-left of the plot circle).
-            svg += '<circle cx="' + (cx - 15) + '" cy="' + (cy - 13) + '" r="6" fill="' + style.color + '"/>' +
-                '<text x="' + (cx - 15) + '" y="' + (cy - 10) + '" font-size="7.5" font-weight="700" text-anchor="middle" fill="white" font-family="Roboto,sans-serif">' + style.initial + '</text>';
 
             if (source === 'metar' && showTaf && props.taf_raw) {
                 svg += '<circle cx="' + (cx + 16) + '" cy="' + (cy + 14) + '" r="6" fill="#f9a825"/>' +
