@@ -1,9 +1,5 @@
 [
   {
-    "time": "2026-07-26T10:00:00Z",
-    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/accum_hourly_202607261000.webp"
-  },
-  {
     "time": "2026-07-26T11:00:00Z",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/accum_hourly_202607261100.webp"
   },
@@ -94,5 +90,9 @@
   {
     "time": "2026-07-27T09:00:00Z",
     "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/accum_hourly_202607270900.webp"
+  },
+  {
+    "time": "2026-07-27T10:00:00Z",
+    "url": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/composites/accum_hourly_202607271000.webp"
   }
 ]
