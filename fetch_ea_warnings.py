@@ -230,8 +230,12 @@ def main():
         write_local("ea/timeline/events.json", events_obj)
         print(f"  Appended {len(new_events)} event(s); {len(events_obj['events'])} total (≤{RETENTION_DAYS}d).")
 
-        # Update flood history stats whenever new warnings are raised
-        raised = [e for e in new_events if e.get("kind") == "raised" and (e.get("to") or 9) < 4]
+        # Update flood history stats whenever a warning is newly raised, or an
+        # already-active area escalates to a more severe level (e.g. Alert ->
+        # Warning) — that's a genuinely new issuance at that severity and was
+        # previously dropped from history because only "raised" was included.
+        raised = [e for e in new_events
+                  if e.get("kind") in ("raised", "escalated") and (e.get("to") or 9) < 4]
         if raised and r2:
             try:
                 from update_flood_stats import append_and_rebuild
