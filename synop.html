@@ -251,13 +251,15 @@
             var fullBarbs = Math.floor(rem / 10);
             var halfBarb = (rem % 10) >= 5 ? 1 : 0;
 
-            var shaftLen = 22;
+            var shaftLen = 27;
             var rad = (dirDeg) * Math.PI / 180;
             var dx = Math.sin(rad), dy = -Math.cos(rad);
             var px = -dy, py = dx;
 
             // Build the geometry once (shaft + feathers), then stroke it twice:
-            // a fat white casing first, the black ink on top.
+            // a fat white casing first, the black ink on top. Feathers start at
+            // the shaft tip (furthest from the circle) so they clear the temp /
+            // dew-point numbers that sit close in around the station circle.
             var lines = [[cx, cy, cx + dx * shaftLen, cy + dy * shaftLen]];  // shaft
             var polys = [];
             var pos = shaftLen, step = 3.9;
