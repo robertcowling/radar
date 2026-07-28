@@ -143,6 +143,8 @@
             Circle fill = cloud cover (oktas) &middot; barb = wind (knots, half=5, full=10, pennant=50)<br>
             Symbol left of circle = present weather &middot; top-right = MSLP/QNH shorthand (last 3 digits of
             tenths-hPa) — <strong>not raw hPa</strong>: "209" means 1020.9 hPa. Full value always in the tooltip.<br>
+            <span style="color:#6a1b9a; font-weight:700;">G</span>xx above the pressure = wind gust (knots) &middot;
+            <span style="color:#1565c0; font-weight:700;">↗ ↘ →</span> right of circle = 3-hour pressure tendency<br>
             Blue "F" badge = a TAF forecast is available — click the marker to view it.
         </p>
 
@@ -227,14 +229,21 @@
             return String(mod).padStart(3, '0');
         }
 
+        // Wind barb, rendered with a white casing under the black ink so it stays
+        // legible wherever it crosses the temperature / dew-point numbers — the plot
+        // draws the barb ON TOP of those, so the direction is never obscured (which
+        // it was when the numbers' halo erased the barb behind them).
         function windBarbSVG(dirDeg, kt, cx, cy) {
             if (kt == null) return '';
             if (dirDeg == null) {
-                return '<circle cx="' + cx + '" cy="' + cy + '" r="11.5" fill="none" stroke="#202124" stroke-width="1.1"/>' +
-                    '<text x="' + cx + '" y="' + (cy+11) + '" font-size="8" text-anchor="middle" fill="#5f6368" font-family="Roboto,sans-serif">VRB</text>';
+                return '<circle cx="' + cx + '" cy="' + cy + '" r="11.5" fill="none" stroke="#ffffff" stroke-width="3.4"/>' +
+                    '<circle cx="' + cx + '" cy="' + cy + '" r="11.5" fill="none" stroke="#202124" stroke-width="1.2"/>' +
+                    '<text x="' + cx + '" y="' + (cy+3) + '" font-size="8" text-anchor="middle" fill="#5f6368" font-family="Roboto,sans-serif" ' +
+                    'paint-order="stroke fill" stroke="#ffffff" stroke-width="2.6" stroke-linejoin="round">VRB</text>';
             }
             if (kt < 3) {
-                return '<circle cx="' + cx + '" cy="' + cy + '" r="11.5" fill="none" stroke="#202124" stroke-width="1.1"/>';
+                return '<circle cx="' + cx + '" cy="' + cy + '" r="11.5" fill="none" stroke="#ffffff" stroke-width="3.4"/>' +
+                    '<circle cx="' + cx + '" cy="' + cy + '" r="11.5" fill="none" stroke="#202124" stroke-width="1.2"/>';
             }
             var rounded5 = Math.round(kt / 5) * 5;
             var pennants = Math.floor(rounded5 / 50);
@@ -242,30 +251,46 @@
             var fullBarbs = Math.floor(rem / 10);
             var halfBarb = (rem % 10) >= 5 ? 1 : 0;
 
-            var shaftLen = 20;
+            var shaftLen = 22;
             var rad = (dirDeg) * Math.PI / 180;
             var dx = Math.sin(rad), dy = -Math.cos(rad);
-            var x2 = cx + dx * shaftLen, y2 = cy + dy * shaftLen;
-            var svg = '<line x1="' + cx + '" y1="' + cy + '" x2="' + x2 + '" y2="' + y2 + '" stroke="#202124" stroke-width="1.3"/>';
-
             var px = -dy, py = dx;
-            var pos = shaftLen;
-            var step = 3.5;
+
+            // Build the geometry once (shaft + feathers), then stroke it twice:
+            // a fat white casing first, the black ink on top.
+            var lines = [[cx, cy, cx + dx * shaftLen, cy + dy * shaftLen]];  // shaft
+            var polys = [];
+            var pos = shaftLen, step = 3.9;
             for (var p = 0; p < pennants; p++) {
-                var bx = cx + dx * pos, by = cy + dy * pos;
-                var bx2 = cx + dx * (pos - step), by2 = cy + dy * (pos - step);
-                svg += '<polygon points="' + bx + ',' + by + ' ' + bx2 + ',' + by2 + ' ' + (bx + px * 5.7) + ',' + (by + py * 5.7) + '" fill="#202124"/>';
+                polys.push([cx + dx * pos, cy + dy * pos,
+                            cx + dx * (pos - step), cy + dy * (pos - step),
+                            cx + dx * pos + px * 6.2, cy + dy * pos + py * 6.2]);
                 pos -= step;
             }
+            if (pennants) pos -= step * 0.4;
             for (var f = 0; f < fullBarbs; f++) {
-                var fx = cx + dx * pos, fy = cy + dy * pos;
-                svg += '<line x1="' + fx + '" y1="' + fy + '" x2="' + (fx + px * 6.3) + '" y2="' + (fy + py * 6.3) + '" stroke="#202124" stroke-width="1.3"/>';
+                lines.push([cx + dx * pos, cy + dy * pos, cx + dx * pos + px * 6.6, cy + dy * pos + py * 6.6]);
                 pos -= step;
             }
             if (halfBarb) {
-                var hx = cx + dx * pos, hy = cy + dy * pos;
-                svg += '<line x1="' + hx + '" y1="' + hy + '" x2="' + (hx + px * 3.2) + '" y2="' + (hy + py * 3.2) + '" stroke="#202124" stroke-width="1.3"/>';
+                if (!fullBarbs && !pennants) pos -= step;  // lone half-barb sits set in from the tip
+                lines.push([cx + dx * pos, cy + dy * pos, cx + dx * pos + px * 3.4, cy + dy * pos + py * 3.4]);
             }
+
+            function ln(a, col, w) {
+                return '<line x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1) + '" x2="' + a[2].toFixed(1) +
+                    '" y2="' + a[3].toFixed(1) + '" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>';
+            }
+            function pl(a, col, w) {
+                return '<polygon points="' + a[0].toFixed(1) + ',' + a[1].toFixed(1) + ' ' + a[2].toFixed(1) + ',' +
+                    a[3].toFixed(1) + ' ' + a[4].toFixed(1) + ',' + a[5].toFixed(1) + '" fill="' + col +
+                    '" stroke="' + col + '" stroke-width="' + w + '" stroke-linejoin="round"/>';
+            }
+            var svg = '';
+            lines.forEach(function (l) { svg += ln(l, '#ffffff', 3.4); });
+            polys.forEach(function (a) { svg += pl(a, '#ffffff', 3.4); });
+            lines.forEach(function (l) { svg += ln(l, '#202124', 1.5); });
+            polys.forEach(function (a) { svg += pl(a, '#202124', 0.6); });
             return svg;
         }
 
@@ -391,8 +416,15 @@
             metar: { dx: 5,  dy: 5  },
         };
 
+        // Layout follows the WMO station-model plotting positions (see the FFC
+        // reference figure): temperature upper-left, dew point lower-left, present
+        // weather directly left, MSLP upper-right, gust above it, pressure tendency
+        // to the right, sky-cover circle in the middle, wind barb off the circle.
+        // The numbers are drawn first and the (white-cased) barb on top, so a
+        // westerly/south-westerly barb — the UK norm — reads cleanly over them
+        // instead of being erased by the numbers' halo.
         function stationPlotIcon(props, source, showTaf) {
-            var W = 69, H = 48, cx = 25, cy = 24, r = 7;
+            var W = 80, H = 62, cx = 37, cy = 31, r = 8;
             var style = SOURCE_STYLE[source];
             var stale = !!props.stale;
             var opacity = stale ? 0.45 : 1;
@@ -402,19 +434,28 @@
 
             var svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="overflow:visible; opacity:' + opacity + '">';
 
-            if (windKt != null) svg += windBarbSVG(windDir, windKt, cx, cy);
-            if (props.temp_c != null) svg += haloText(cx - 9, cy - 5, 11, 700, 'end', '#c62828', Math.round(props.temp_c));
-            if (props.dewpoint_c != null) svg += haloText(cx - 9, cy + 13, 10, 700, 'end', '#2e7d32', Math.round(props.dewpoint_c));
-            if (pressure != null) svg += haloText(cx + 9, cy - 5, 10, 600, 'start', '#202124', mslpShortForm(pressure));
-
+            // Present weather, directly left of the circle.
             var symbol = wxSymbolFor(props, source);
-            if (symbol && symbol !== 'none') svg += wxGlyphSVG(symbol, cx - 15, cy);
+            if (symbol && symbol !== 'none') svg += wxGlyphSVG(symbol, cx - 16, cy);
 
+            // Numeric fields at their station-model positions (drawn under the barb).
+            if (props.temp_c != null) svg += haloText(cx - 12, cy - 8, 11.5, 700, 'end', '#c62828', Math.round(props.temp_c));
+            if (props.dewpoint_c != null) svg += haloText(cx - 12, cy + 18, 10.5, 700, 'end', '#2e7d32', Math.round(props.dewpoint_c));
+            if (pressure != null) svg += haloText(cx + 13, cy - 8, 10, 600, 'start', '#202124', mslpShortForm(pressure));
+            if (props.wind_gust_kt != null) svg += haloText(cx + 13, cy - 20, 8.5, 700, 'start', '#6a1b9a', 'G' + Math.round(props.wind_gust_kt));
+            if (props.pressure_tendency_hpa3h != null) {
+                var t = props.pressure_tendency_hpa3h;
+                var arrow = t > 0.1 ? '↗' : (t < -0.1 ? '↘' : '→');
+                svg += haloText(cx + 13, cy + 8, 11, 700, 'start', '#1565c0', arrow);
+            }
+
+            // Wind barb on top (white-cased), then the sky-cover circle over its root.
+            if (windKt != null) svg += windBarbSVG(windDir, windKt, cx, cy);
             svg += cloudFillSVG(props.cloud_oktas, cx, cy, r);
 
             if (source === 'metar' && showTaf && props.taf_raw) {
-                svg += '<circle cx="' + (cx + 16) + '" cy="' + (cy + 14) + '" r="6" fill="#f9a825"/>' +
-                    '<text x="' + (cx + 16) + '" y="' + (cy + 17) + '" font-size="8" font-weight="700" text-anchor="middle" fill="white" font-family="Roboto,sans-serif">F</text>';
+                svg += '<circle cx="' + (cx + 18) + '" cy="' + (cy + 16) + '" r="6" fill="#f9a825"/>' +
+                    '<text x="' + (cx + 18) + '" y="' + (cy + 19) + '" font-size="8" font-weight="700" text-anchor="middle" fill="white" font-family="Roboto,sans-serif">F</text>';
             }
 
             if (stale) {
