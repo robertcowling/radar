@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rain Gauge Table | Flood Forecast</title>
-<meta name="description" content="Sortable, filterable, searchable table of UK rain gauges (EA, NRW, SEPA) with duration totals and heavy/extreme thresholds.">
+<meta name="description" content="Sortable, filterable, searchable table of UK rain gauges (EA, NRW, SEPA) with duration totals, threshold exceedances and Met Office color scaling.">
 
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -37,10 +37,10 @@
     --text-main: #f1f5f9;
     --text-muted: #94a3b8;
     --text-dark: #64748b;
-    --heavy-bg: rgba(245, 158, 11, 0.12);
+    --heavy-bg: rgba(245, 158, 11, 0.16);
     --heavy-text: #fbbf24;
     --heavy-border: #f59e0b;
-    --extreme-bg: rgba(239, 68, 68, 0.12);
+    --extreme-bg: rgba(239, 68, 68, 0.16);
     --extreme-text: #f87171;
     --extreme-border: #ef4444;
   }
@@ -173,31 +173,173 @@ nav {
 .refresh-button:hover { background: var(--bg-surface-hover); border-color: var(--text-dark); }
 .refresh-time { font-size: 0.8rem; color: var(--text-muted); }
 
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-bottom: 1rem;
+/* Controls Card - Flood Forecast Design Ethos */
+.controls-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 0.85rem 1rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  border-radius: 16px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
-.controls input[type="text"], .controls select {
+.controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.controls-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: 0.25rem;
+}
+
+/* Flood Forecast Segmented Controls */
+.segmented-control {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-base);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.segmented-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-family);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.4rem 0.95rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.segmented-btn:hover {
+  color: var(--text-main);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  .segmented-btn:hover { background: rgba(255, 255, 255, 0.06); }
+}
+
+.segmented-btn.active {
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  .segmented-btn.active {
+    background: #3b82f6;
+    color: #ffffff;
+  }
+}
+
+/* Inputs & Selects - Flood Forecast Pill Design */
+.form-input, .form-select {
   font-family: var(--font-family);
   font-size: 0.85rem;
   color: var(--text-main);
   background: var(--bg-base);
   border: 1px solid var(--border-color);
   border-radius: 20px;
-  padding: 0.45rem 0.9rem;
+  padding: 0.45rem 0.95rem;
+  transition: all 0.15s ease;
+  outline: none;
 }
 
-.controls input[type="text"] { flex: 1 1 220px; min-width: 180px; }
+.form-input { flex: 1 1 200px; min-width: 160px; }
+
+.form-input:focus, .form-select:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+}
+
+/* Active filter highlight */
+.filter-active {
+  border-color: var(--brand-500) !important;
+  background-color: rgba(26, 115, 232, 0.08) !important;
+  font-weight: 600;
+}
+
+.clear-filters-btn {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 20px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.clear-filters-btn:hover { background: rgba(239, 68, 68, 0.2); }
 
 .results-count { font-size: 0.8rem; color: var(--text-muted); align-self: center; margin-left: auto; }
+
+/* Threshold Modal & Info */
+.info-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 50%;
+}
+.info-icon-btn:hover { color: var(--brand-500); }
+
+.threshold-info-box {
+  background: var(--bg-base);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  font-size: 0.78rem;
+  margin-top: 0.4rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+.threshold-info-box table { width: 100%; border-collapse: collapse; margin-top: 0.4rem; }
+.threshold-info-box td { padding: 0.25rem 0.5rem; font-size: 0.78rem; }
+
+/* Badges for Threshold Exceedances */
+.threshold-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.threshold-badge.heavy {
+  background: var(--heavy-bg);
+  color: var(--heavy-text);
+  border: 1px solid var(--heavy-border);
+}
+.threshold-badge.extreme {
+  background: var(--extreme-bg);
+  color: var(--extreme-text);
+  border: 1px solid var(--extreme-border);
+}
 
 .table-wrap {
   background: var(--bg-surface);
@@ -224,10 +366,12 @@ thead th {
 
 thead th:hover { color: var(--text-main); }
 thead th .sort-arrow { font-size: 0.7rem; margin-left: 3px; opacity: 0.6; }
+thead th.num-col { text-align: right; }
 
 tbody td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border-color); }
 tbody tr:hover { background: var(--bg-surface-hover); }
 tbody tr:last-child td { border-bottom: none; }
+tbody td.num-col { text-align: right; }
 
 .gauge-link { color: var(--text-main); text-decoration: none; font-weight: 500; }
 .gauge-link:hover { color: var(--brand-500); text-decoration: underline; }
@@ -242,18 +386,6 @@ tbody tr:last-child td { border-bottom: none; }
   background: var(--bg-surface-hover);
   color: var(--text-muted);
 }
-
-.threshold-pill {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 2px 9px;
-  border-radius: 10px;
-}
-
-.threshold-pill.normal { background: var(--bg-surface-hover); color: var(--text-muted); }
-.threshold-pill.heavy { background: var(--heavy-bg); color: var(--heavy-text); border: 1px solid var(--heavy-border); }
-.threshold-pill.extreme { background: var(--extreme-bg); color: var(--extreme-text); border: 1px solid var(--extreme-border); }
 
 .pagination {
   display: flex;
@@ -279,8 +411,6 @@ tbody tr:last-child td { border-bottom: none; }
 .pagination button:disabled { opacity: 0.4; cursor: default; }
 
 .empty-state { padding: 2.5rem; text-align: center; color: var(--text-muted); }
-/* Gauges whose network publishes no historical archive (NRW). */
-.no-record { color: var(--text-dark); font-style: italic; font-size: 0.78rem; }
 
 footer {
   background-color: var(--bg-base);
@@ -347,47 +477,76 @@ footer {
   </div>
 
   <div id="summaryWarning" style="display:none;background:var(--heavy-bg);color:var(--heavy-text);border:1px solid var(--heavy-border);border-radius:8px;padding:0.6rem 0.9rem;font-size:0.8rem;margin-bottom:0.75rem;">
-    Duration totals aren't available yet &mdash; the gauge summary job runs every 15 minutes; totals below default to 0.0mm until it completes. Names, counties and networks are still accurate.
+    Duration totals aren't available yet &mdash; the gauge summary job runs every 15 minutes; totals below default to 0.0mm until it completes. Names, counties and orgs are still accurate.
   </div>
 
-  <div class="controls">
-    <input type="text" id="searchInput" placeholder="Search name, ref or county&hellip;">
-    <select id="networkFilter">
-      <option value="all">All networks</option>
-      <option value="EA">EA</option>
-      <option value="NRW">NRW</option>
-      <option value="SEPA">SEPA</option>
-    </select>
-    <select id="countyFilter"><option value="all">All counties</option></select>
-    <select id="thresholdFilter">
-      <option value="all">Any threshold</option>
-      <option value="extreme">Extreme only</option>
-      <option value="heavy">Heavy or extreme</option>
-    </select>
-    <select id="pageSizeSelect">
-      <option value="25">25 / page</option>
-      <option value="50" selected>50 / page</option>
-      <option value="100">100 / page</option>
-    </select>
-    <span class="results-count" id="resultsCount"></span>
+  <!-- Controls Card: Flood Forecast Design Ethos -->
+  <div class="controls-card">
+    <!-- Row 1: Segmented Toggles (Table View & Time Window) -->
+    <div class="controls-row">
+      <span class="controls-label">Table:</span>
+      <div class="segmented-control" id="tableModeToggle">
+        <button type="button" class="segmented-btn active" data-tablemode="all">All Gauges</button>
+        <button type="button" class="segmented-btn" data-tablemode="thresholds">Threshold Exceedances</button>
+      </div>
+
+      <button type="button" class="info-icon-btn" id="threshInfoBtn" title="Threshold rules info">
+        <span class="material-icons" style="font-size:18px;">info</span>
+      </button>
+
+      <span class="controls-label" style="margin-left:0.75rem;">Window:</span>
+      <div class="segmented-control" id="timeModeToggle">
+        <button type="button" class="segmented-btn active" data-timemode="24h">Latest 24 hrs</button>
+        <button type="button" class="segmented-btn" data-timemode="latest">Latest Data</button>
+        <button type="button" class="segmented-btn" data-timemode="yesterday">Yesterday</button>
+      </div>
+    </div>
+
+    <!-- Threshold Info Expansion Box -->
+    <div class="threshold-info-box" id="threshInfoBox" style="display:none;">
+      <strong>Operational Rainfall Thresholds:</strong>
+      <table>
+        <tr><td><strong>1 hr:</strong> &gt;10 mm (Heavy), &gt;30 mm (Extreme)</td></tr>
+        <tr><td><strong>3 hr:</strong> &gt;20 mm (Heavy), &gt;40 mm (Extreme)</td></tr>
+        <tr><td><strong>6 hr:</strong> &gt;30 mm (Heavy), &gt;50 mm (Extreme)</td></tr>
+      </table>
+    </div>
+
+    <!-- Row 2: Filters, Search, and Page Controls -->
+    <div class="controls-row">
+      <input type="text" id="searchInput" class="form-input" placeholder="Search name, ref or county&hellip;">
+      
+      <select id="networkFilter" class="form-select">
+        <option value="all">All orgs</option>
+        <option value="EA">EA</option>
+        <option value="NRW">NRW</option>
+        <option value="SEPA">SEPA</option>
+      </select>
+      
+      <select id="countyFilter" class="form-select"><option value="all">All counties</option></select>
+      
+      <select id="thresholdFilter" class="form-select">
+        <option value="all">Any threshold</option>
+        <option value="extreme">Extreme only</option>
+        <option value="heavy">Heavy or extreme</option>
+      </select>
+      
+      <select id="pageSizeSelect" class="form-select">
+        <option value="25">25 / page</option>
+        <option value="50" selected>50 / page</option>
+        <option value="100">100 / page</option>
+      </select>
+
+      <button type="button" id="clearFiltersBtn" class="clear-filters-btn" style="display:none;">Clear filters</button>
+
+      <span class="results-count" id="resultsCount"></span>
+    </div>
   </div>
 
   <div class="table-wrap">
     <table id="gaugeTable">
-      <thead>
-        <tr>
-          <th data-key="name">Gauge <span class="sort-arrow"></span></th>
-          <th data-key="county">County <span class="sort-arrow"></span></th>
-          <th data-key="network">Network <span class="sort-arrow"></span></th>
-          <th data-key="last1h">1 hr <span class="sort-arrow"></span></th>
-          <th data-key="last6h">6 hr <span class="sort-arrow"></span></th>
-          <th data-key="last24h">24 hr <span class="sort-arrow"></span></th>
-          <th data-key="last7d">7 day <span class="sort-arrow"></span></th>
-          <th data-key="monthTotal"><span id="monthColLabel">Month</span> <span class="sort-arrow"></span></th>
-          <th data-key="yearTotal"><span id="yearColLabel">Year</span> <span class="sort-arrow"></span></th>
-          <th data-key="recordYears">Record <span class="sort-arrow"></span></th>
-          <th data-key="thresholdLevel">Threshold <span class="sort-arrow"></span></th>
-        </tr>
+      <thead id="tableHead">
+        <!-- Rendered dynamically depending on table mode -->
       </thead>
       <tbody id="tableBody"></tbody>
     </table>
@@ -404,7 +563,7 @@ footer {
 <footer>
   <div class="footer-container">
     <p>Data provided by Environment Agency, Natural Resources Wales &amp; SEPA.</p>
-    <p>Duration totals &amp; records computed by Flood Forecast &bull; <a href="/" class="footer-link">Back to home</a></p>
+    <p>Duration totals computed by Flood Forecast &bull; <a href="/" class="footer-link">Back to home</a></p>
   </div>
 </footer>
 
@@ -413,18 +572,37 @@ var R2_CDN = 'https://radar.floodforecast.co.uk';
 
 var stations = {};
 var summary = {};
-var climIndex = {};   // merged EA + SEPA climatology index (record length per station)
+var climIndex = {};
+var yesterdayReadings = null;
 var countyData = [];
 var rows = [];
 var filteredRows = [];
-var sortKey = 'name';
-var sortDir = 1;
+
+var tableMode = 'all';     // 'all' or 'thresholds'
+var timeMode = '24h';       // '24h', 'latest', 'yesterday'
+var sortKey = 'last24h';
+var sortDir = -1; // default sort descending
 var page = 1;
 var pageSize = 50;
 var _stationsReady = false;
 var _countiesReady = false;
 var _summaryReady = false;
 var _climReady = false;
+var _yesterdayLoading = false;
+
+// Met Office Alternative Colour Palette & Breaks
+var MET_COLORS = ['#3a6cff', '#00ff00', '#ffff95', '#ffd563', '#ff9618', '#e86100', '#ba2000', '#cc537d', '#db92dc', '#ff02ff', '#ffffff', '#c8c8c8', '#bfbf00'];
+var MET_BREAKS = [0.03, 1, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160, 180];
+var MET_TEXT   = ['#ffffff', '#003300', '#333300', '#332500', '#331e00', '#ffffff', '#ffffff', '#ffffff', '#330033', '#ffffff', '#3c4043', '#3c4043', '#3c4043'];
+
+function getAccumCellCss(val) {
+    if (!val || val < 0.03) return '';
+    var idx = 0;
+    for (var i = 0; i < MET_BREAKS.length; i++) {
+        if (val >= MET_BREAKS[i]) idx = i; else break;
+    }
+    return 'background-color:' + MET_COLORS[idx] + ';color:' + MET_TEXT[idx] + ';font-weight:600;';
+}
 
 function pointInRing(pt, ring) {
     var x = pt[0], y = pt[1], inside = false;
@@ -461,6 +639,49 @@ function networkOf(s) {
     return 'EA';
 }
 
+function getYesterdayDateKey() {
+    var d = new Date();
+    d.setUTCDate(d.getUTCDate() - 1);
+    var yyyy = d.getUTCFullYear();
+    var mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    var dd = String(d.getUTCDate()).padStart(2, '0');
+    return yyyy + mm + dd;
+}
+
+function loadYesterdayData(cb) {
+    if (yesterdayReadings) { if (cb) cb(); return; }
+    if (_yesterdayLoading) return;
+    _yesterdayLoading = true;
+    var dateKey = getYesterdayDateKey();
+    fetch(R2_CDN + '/rain/readings/' + dateKey + '.json')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            yesterdayReadings = {};
+            if (data && data.readings) {
+                Object.keys(data.readings).forEach(function(sid) {
+                    var slots = data.readings[sid];
+                    var total = 0;
+                    Object.keys(slots).forEach(function(k) {
+                        var v = slots[k];
+                        if (typeof v === 'number' && v > 0) total += v;
+                    });
+                    yesterdayReadings[sid] = roundVal(total, 2);
+                });
+            }
+        })
+        .catch(function() { yesterdayReadings = {}; })
+        .then(function() {
+            _yesterdayLoading = false;
+            buildRows();
+            if (cb) cb();
+        });
+}
+
+function roundVal(v, dp) {
+    var p = Math.pow(10, dp);
+    return Math.round(v * p) / p;
+}
+
 function buildRows() {
     if (!_stationsReady || !_summaryReady || !_countiesReady || !_climReady) return;
     document.getElementById('summaryWarning').style.display = summaryLoaded ? 'none' : 'block';
@@ -469,9 +690,8 @@ function buildRows() {
         var s = stations[ref];
         var sum = summary[ref] || {};
         var clim = climIndex[ref] || {};
+        var yestVal = yesterdayReadings ? (yesterdayReadings[ref] || 0) : 0;
         return {
-            recordYears: clim.recordYears != null ? clim.recordYears : null,
-            recordStart: clim.recordStart || null,
             ref: ref,
             name: s.name || ref,
             county: s.county || 'Unknown',
@@ -480,10 +700,12 @@ function buildRows() {
             last1h: sum.last1h || 0,
             last6h: sum.last6h || 0,
             last24h: sum.last24h || 0,
-            last7d: sum.last7d || 0,
+            last48h: sum.last48h || sum.last7d || 0,
+            yesterdayTotal: yestVal,
             monthTotal: sum.monthTotal || 0,
             yearTotal: sum.yearTotal || 0,
-            thresholdLevel: sum.thresholdLevel || 'normal'
+            thresholdLevel: sum.thresholdLevel || 'normal',
+            clim: clim
         };
     });
     populateCountyFilter();
@@ -502,12 +724,37 @@ function populateCountyFilter() {
 }
 
 function applyFilters() {
-    var search = document.getElementById('searchInput').value.trim().toLowerCase();
-    var network = document.getElementById('networkFilter').value;
-    var county = document.getElementById('countyFilter').value;
-    var threshold = document.getElementById('thresholdFilter').value;
+    var searchInput = document.getElementById('searchInput');
+    var networkSelect = document.getElementById('networkFilter');
+    var countySelect = document.getElementById('countyFilter');
+    var thresholdSelect = document.getElementById('thresholdFilter');
+    var clearBtn = document.getElementById('clearFiltersBtn');
+
+    var search = searchInput.value.trim().toLowerCase();
+    var network = networkSelect.value;
+    var county = countySelect.value;
+    var threshold = thresholdSelect.value;
+
+    // Highlight active filters with Flood Forecast styling
+    if (search) searchInput.classList.add('filter-active');
+    else searchInput.classList.remove('filter-active');
+
+    if (network !== 'all') networkSelect.classList.add('filter-active');
+    else networkSelect.classList.remove('filter-active');
+
+    if (county !== 'all') countySelect.classList.add('filter-active');
+    else countySelect.classList.remove('filter-active');
+
+    if (threshold !== 'all') thresholdSelect.classList.add('filter-active');
+    else thresholdSelect.classList.remove('filter-active');
+
+    var isAnyFilterActive = (search !== '' || network !== 'all' || county !== 'all' || threshold !== 'all');
+    clearBtn.style.display = isAnyFilterActive ? 'inline-block' : 'none';
 
     filteredRows = rows.filter(function(r) {
+        // Filter by table mode toggle (All Gauges vs Threshold Exceedances)
+        if (tableMode === 'thresholds' && r.thresholdLevel === 'normal') return false;
+
         if (network !== 'all' && r.network !== network) return false;
         if (county !== 'all' && r.county !== county) return false;
         if (threshold === 'extreme' && r.thresholdLevel !== 'extreme') return false;
@@ -530,8 +777,6 @@ function sortRows() {
     filteredRows.sort(function(a, b) {
         var av = a[sortKey], bv = b[sortKey];
         if (sortKey === 'thresholdLevel') { av = THRESHOLD_RANK[av]; bv = THRESHOLD_RANK[bv]; }
-        // Stations with no published record sort last either way, rather than
-        // being treated as a zero-length record.
         if (av == null && bv == null) return 0;
         if (av == null) return 1;
         if (bv == null) return -1;
@@ -548,9 +793,71 @@ function htmlEsc(s) {
     });
 }
 
-function fmtMm(v) { return v.toFixed(1) + ' mm'; }
+function fmtMm(v) { return (v || 0).toFixed(1) + ' mm'; }
+
+function renderMonthCellHtml(monthTotal, clim) {
+    var now = new Date();
+    var dayOfMonth = now.getDate();
+    var daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    var monthProgress = dayOfMonth / daysInMonth;
+    var monthlyNormal = (clim && clim.annualNormal) ? (clim.annualNormal / 12) : 75.0;
+    var expectedToDate = monthlyNormal * monthProgress;
+    var pctToDate = expectedToDate > 0 ? Math.round((monthTotal / expectedToDate) * 100) : 0;
+    var barPct = Math.min(100, Math.max(0, pctToDate));
+    
+    // Light brown shading bar representing monthly anomaly progress
+    var barColor = 'rgba(180, 83, 9, 0.28)';
+    var bgStyle = 'background: linear-gradient(90deg, ' + barColor + ' ' + barPct + '%, transparent ' + barPct + '%);';
+    var titleText = monthTotal.toFixed(1) + ' mm (' + pctToDate + '% of expected to date)';
+    
+    return '<td class="num-col" style="' + bgStyle + '" title="' + htmlEsc(titleText) + '">' + fmtMm(monthTotal) + '</td>';
+}
+
+function renderTableHeader() {
+    var thead = document.getElementById('tableHead');
+    var now = new Date();
+    var monthName = now.toLocaleDateString([], {month: 'short'});
+    var yearStr = now.getFullYear();
+
+    var html = '<tr>';
+    html += '<th data-key="name">Gauge <span class="sort-arrow"></span></th>';
+    html += '<th data-key="county">County <span class="sort-arrow"></span></th>';
+    html += '<th data-key="network">Org <span class="sort-arrow"></span></th>';
+
+    if (tableMode === 'thresholds') {
+        html += '<th data-key="thresholdLevel">Threshold Status <span class="sort-arrow"></span></th>';
+    }
+
+    if (timeMode === 'yesterday') {
+        html += '<th data-key="yesterdayTotal" class="num-col" title="Yesterday 24hr total">Yesterday <span class="sort-arrow"></span></th>';
+    } else {
+        html += '<th data-key="last1h" class="num-col" title="Rolling 1hr total up to now">1 hr <span class="sort-arrow"></span></th>';
+        html += '<th data-key="last6h" class="num-col" title="Rolling 6hr total up to now">6 hr <span class="sort-arrow"></span></th>';
+        html += '<th data-key="last24h" class="num-col" title="Rolling 24hr total up to now">24 hr <span class="sort-arrow"></span></th>';
+    }
+
+    html += '<th data-key="last48h" class="num-col" title="Rolling 48hr total up to now">48 hr <span class="sort-arrow"></span></th>';
+    html += '<th data-key="monthTotal" class="num-col">' + monthName + ' so far <span class="sort-arrow"></span></th>';
+    html += '<th data-key="yearTotal" class="num-col">' + yearStr + ' so far <span class="sort-arrow"></span></th>';
+    html += '</tr>';
+
+    thead.innerHTML = html;
+
+    // Attach sort listeners
+    thead.querySelectorAll('th').forEach(function(th) {
+        th.addEventListener('click', function() {
+            var key = th.dataset.key;
+            if (sortKey === key) sortDir *= -1;
+            else { sortKey = key; sortDir = -1; }
+            sortRows();
+            render();
+        });
+    });
+}
 
 function render() {
+    renderTableHeader();
+
     var tbody = document.getElementById('tableBody');
     var totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
     if (page > totalPages) page = totalPages;
@@ -562,20 +869,34 @@ function render() {
 
     var html = '';
     pageRows.forEach(function(r) {
+        var cell1h = getAccumCellCss(r.last1h);
+        var cell6h = getAccumCellCss(r.last6h);
+        var cell24h = getAccumCellCss(r.last24h);
+        var cell48h = getAccumCellCss(r.last48h);
+        var cellYest = getAccumCellCss(r.yesterdayTotal);
+
         html += '<tr>';
         html += '<td><a class="gauge-link" href="gauge.html?ref=' + encodeURIComponent(r.ref) + '">' + htmlEsc(r.name) + '</a></td>';
         html += '<td class="county-label">' + htmlEsc(r.county) + '</td>';
         html += '<td><span class="network-pill">' + r.network + '</span></td>';
-        html += '<td>' + fmtMm(r.last1h) + '</td>';
-        html += '<td>' + fmtMm(r.last6h) + '</td>';
-        html += '<td>' + fmtMm(r.last24h) + '</td>';
-        html += '<td>' + fmtMm(r.last7d) + '</td>';
-        html += '<td>' + fmtMm(r.monthTotal) + '</td>';
-        html += '<td>' + fmtMm(r.yearTotal) + '</td>';
-        html += '<td>' + (r.recordYears != null
-            ? '<span title="Record from ' + r.recordStart + '">' + r.recordYears.toFixed(0) + ' yr</span>'
-            : '<span class="no-record" title="No published historical archive for this network">Live only</span>') + '</td>';
-        html += '<td><span class="threshold-pill ' + r.thresholdLevel + '">' + r.thresholdLevel.charAt(0).toUpperCase() + r.thresholdLevel.slice(1) + '</span></td>';
+
+        if (tableMode === 'thresholds') {
+            var badgeClass = r.thresholdLevel === 'extreme' ? 'extreme' : 'heavy';
+            var badgeText = r.thresholdLevel === 'extreme' ? 'EXTREME' : 'HEAVY';
+            html += '<td><span class="threshold-badge ' + badgeClass + '">' + badgeText + '</span></td>';
+        }
+
+        if (timeMode === 'yesterday') {
+            html += '<td class="num-col" style="' + cellYest + '">' + fmtMm(r.yesterdayTotal) + '</td>';
+        } else {
+            html += '<td class="num-col" style="' + cell1h + '">' + fmtMm(r.last1h) + '</td>';
+            html += '<td class="num-col" style="' + cell6h + '">' + fmtMm(r.last6h) + '</td>';
+            html += '<td class="num-col" style="' + cell24h + '">' + fmtMm(r.last24h) + '</td>';
+        }
+
+        html += '<td class="num-col" style="' + cell48h + '">' + fmtMm(r.last48h) + '</td>';
+        html += renderMonthCellHtml(r.monthTotal, r.clim);
+        html += '<td class="num-col">' + fmtMm(r.yearTotal) + '</td>';
         html += '</tr>';
     });
     tbody.innerHTML = html;
@@ -594,25 +915,74 @@ function render() {
     });
 }
 
-document.querySelectorAll('#gaugeTable thead th').forEach(function(th) {
-    th.addEventListener('click', function() {
-        var key = th.dataset.key;
-        if (sortKey === key) sortDir *= -1;
-        else { sortKey = key; sortDir = 1; }
-        sortRows();
-        render();
+// Table Mode Toggle (All Gauges vs Threshold Exceedances)
+document.querySelectorAll('#tableModeToggle .segmented-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('#tableModeToggle .segmented-btn').forEach(function(b) { b.classList.remove('active'); });
+        this.classList.add('active');
+        tableMode = this.dataset.tablemode;
+
+        if (tableMode === 'thresholds') {
+            sortKey = 'thresholdLevel';
+            sortDir = -1;
+        } else {
+            sortKey = (timeMode === 'latest') ? 'last1h' : (timeMode === 'yesterday' ? 'yesterdayTotal' : 'last24h');
+            sortDir = -1;
+        }
+        applyFilters();
     });
+});
+
+// Time Mode Toggle (Latest 24 hrs, Latest Data, Yesterday)
+document.querySelectorAll('#timeModeToggle .segmented-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('#timeModeToggle .segmented-btn').forEach(function(b) { b.classList.remove('active'); });
+        this.classList.add('active');
+        timeMode = this.dataset.timemode;
+
+        if (timeMode === '24h') {
+            if (tableMode !== 'thresholds') sortKey = 'last24h';
+            sortDir = -1;
+            applyFilters();
+        } else if (timeMode === 'latest') {
+            if (tableMode !== 'thresholds') sortKey = 'last1h';
+            sortDir = -1;
+            applyFilters();
+        } else if (timeMode === 'yesterday') {
+            if (tableMode !== 'thresholds') sortKey = 'yesterdayTotal';
+            sortDir = -1;
+            loadYesterdayData(function() {
+                applyFilters();
+            });
+        }
+    });
+});
+
+// Threshold Info Modal Toggle
+document.getElementById('threshInfoBtn').addEventListener('click', function() {
+    var box = document.getElementById('threshInfoBox');
+    box.style.display = (box.style.display === 'none') ? 'block' : 'none';
 });
 
 document.getElementById('searchInput').addEventListener('input', applyFilters);
 document.getElementById('networkFilter').addEventListener('change', applyFilters);
 document.getElementById('countyFilter').addEventListener('change', applyFilters);
 document.getElementById('thresholdFilter').addEventListener('change', applyFilters);
+
+document.getElementById('clearFiltersBtn').addEventListener('click', function() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('networkFilter').value = 'all';
+    document.getElementById('countyFilter').value = 'all';
+    document.getElementById('thresholdFilter').value = 'all';
+    applyFilters();
+});
+
 document.getElementById('pageSizeSelect').addEventListener('change', function() {
     pageSize = parseInt(this.value, 10);
     page = 1;
     render();
 });
+
 document.getElementById('prevPage').addEventListener('click', function() { if (page > 1) { page--; render(); } });
 document.getElementById('nextPage').addEventListener('click', function() {
     var totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
@@ -627,13 +997,6 @@ function setRefreshLabel(ts) {
     var d = new Date(ts);
     document.getElementById('refreshLabel').textContent = 'Updated ' + d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
 }
-
-(function setDynamicColumnLabels() {
-    var now = new Date();
-    var monthName = now.toLocaleDateString([], {month: 'short'});
-    document.getElementById('monthColLabel').textContent = monthName + ' so far';
-    document.getElementById('yearColLabel').textContent = now.getFullYear() + ' so far';
-})();
 
 function loadAll() {
     _stationsReady = false; _summaryReady = false; _countiesReady = false; _climReady = false;
@@ -651,8 +1014,6 @@ function loadAll() {
         .catch(function() { stations = {}; })
         .then(function() { _stationsReady = true; buildRows(); });
 
-    // Two index files, one per network — the builders run as separate jobs
-    // and a shared index raced.
     Promise.all(['ea', 'sepa'].map(function(net) {
         return fetch(R2_CDN + '/rain/climatology_index_' + net + '.json?_cb=' + Date.now())
             .then(function(r) { if (!r.ok) throw 0; return r.json(); })
