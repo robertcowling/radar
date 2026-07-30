@@ -192,9 +192,9 @@ def finalize_yesterday(stations, r2, now, archives, day_cache):
     return changed
 
 
-def compute_records(stations, archives, now):
+def compute_records(stations, archives, now, rolling_totals=None):
     """Per-station month/year totals + all-time (within loaded archive
-    years) records, from the persisted daily-total archive."""
+    years) records, from the persisted daily-total archive plus today's live rainfall."""
     this_month = now.strftime("%Y-%m")
     this_year = now.strftime("%Y")
     records = {}
@@ -203,16 +203,23 @@ def compute_records(stations, archives, now):
         days = {}
         for year_archive in archives.values():
             days.update(year_archive.get(sid, {}))
+        
+        last24h = (rolling_totals.get(sid, {}).get("last24h", 0.0)) if rolling_totals else 0.0
+        
         if not days:
             records[sid] = {
-                "monthTotal": 0.0, "yearTotal": 0.0,
+                "monthTotal": round(last24h, 2), "yearTotal": round(last24h, 2),
                 "wettestDay": None, "wettestMonth": None, "driestMonth": None,
                 "longestDrySpell": None, "recordsSince": None,
             }
             continue
 
-        month_total = round(sum(v for d, v in days.items() if d.startswith(this_month)), 2)
-        year_total = round(sum(v for d, v in days.items() if d.startswith(this_year)), 2)
+        archived_month = sum(v for d, v in days.items() if d.startswith(this_month))
+        archived_year = sum(v for d, v in days.items() if d.startswith(this_year))
+        
+        # Ensure monthTotal and yearTotal include current 24hr live rainfall
+        month_total = round(max(archived_month + last24h, last24h), 2)
+        year_total = round(max(archived_year + last24h, month_total), 2)
 
         wettest_date, wettest_mm = max(days.items(), key=lambda kv: kv[1])
 
@@ -289,7 +296,7 @@ def main():
     if (now.hour == 0 and now.minute < 30) or yest_missing:
         archives_changed = finalize_yesterday(stations, r2, now, archives, day_cache)
 
-    records_by_station = compute_records(stations, archives, now)
+    records_by_station = compute_records(stations, archives, now, totals_by_station)
 
     out_stations = {}
     for sid in stations:
