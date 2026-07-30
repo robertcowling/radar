@@ -45,7 +45,7 @@ def fetch_day_rainfall(session, date_str):
     url = (f"{HYDRO_BASE}/data/readings.json"
            f"?observedProperty=rainfall&period=900&date={date_str}&_limit=200000")
     try:
-        r = session.get(url, timeout=120)
+        r = session.get(url, timeout=(10, 45))
         if r.status_code == 404:
             return []
         r.raise_for_status()
