@@ -43,4 +43,4 @@ jobs:
         R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
         BACKFILL_DAYS: ${{ github.event.inputs.backfill_days }}
-      run: python backfill_rain_archive.py
+      run: python -u backfill_rain_archive.py

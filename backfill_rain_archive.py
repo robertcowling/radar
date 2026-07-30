@@ -106,6 +106,13 @@ def main():
     session = requests.Session()
     session.mount(HYDRO_BASE, requests.adapters.HTTPAdapter(pool_connections=MAX_WORKERS, pool_maxsize=MAX_WORKERS))
 
+    def checkpoint():
+        for y, archive in archives.items():
+            if not archive:
+                continue
+            changed = r2_put_json(r2, archive, f"{ARCHIVE_PFX}/daily_{y}.json")
+            print(f"  checkpoint: daily_{y}.json {'uploaded' if changed else 'unchanged'} ({len(archive)} stations)")
+
     filled, done = 0, 0
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
         futures = {pool.submit(fetch_day_rainfall, session, d): d for d in todo}
@@ -122,14 +129,12 @@ def main():
                             continue
                         archive.setdefault(sid, {})[date_str] = mm
                     filled += 1
-            if done % 20 == 0 or done == len(todo):
+            if done % 10 == 0 or done == len(todo):
                 print(f"  {done}/{len(todo)} days fetched ({filled} with data)")
+            if done % 50 == 0:
+                checkpoint()
 
-    for y, archive in archives.items():
-        if not archive:
-            continue
-        changed = r2_put_json(r2, archive, f"{ARCHIVE_PFX}/daily_{y}.json")
-        print(f"daily_{y}.json: {'uploaded' if changed else 'unchanged'} ({len(archive)} stations)")
+    checkpoint()
 
     print(f"\nBackfill complete: {filled}/{len(todo)} attempted days had data "
           f"({len(dates) - len(todo)} days were already archived).")
