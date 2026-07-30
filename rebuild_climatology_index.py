@@ -23,6 +23,7 @@ from fetch_rain import get_r2, R2_BUCKET, USE_R2
 from make_rain_summary import r2_get_json, r2_put_json
 from build_rain_climatology import CLIMATOLOGY_PFX, INDEX_KEY as EA_INDEX_KEY
 from build_sepa_climatology import INDEX_KEY as SEPA_INDEX_KEY
+from build_nrw_climatology import INDEX_KEY as NRW_INDEX_KEY
 
 
 def index_entry(stats):
@@ -51,23 +52,29 @@ def main():
                 keys.append(obj["Key"])
     print(f"{len(keys)} per-station climatology objects found")
 
-    ea, sepa, skipped = {}, {}, 0
+    ea, sepa, nrw, skipped = {}, {}, {}, 0
     for i, key in enumerate(keys, 1):
         ref = key.rsplit("/", 1)[-1][:-len(".json")]
         stats = r2_get_json(r2, key, None)
         if not stats or not stats.get("recordStart"):
             skipped += 1
             continue
-        (sepa if ref.startswith("sepa_") else ea)[ref] = index_entry(stats)
+        entry = index_entry(stats)
+        if ref.startswith("sepa_"):
+            sepa[ref] = entry
+        elif ref.startswith("nrw_"):
+            nrw[ref] = entry
+        else:
+            ea[ref] = entry
         if i % 200 == 0:
             print(f"  read {i}/{len(keys)}")
 
-    print(f"EA entries: {len(ea)} | SEPA entries: {len(sepa)} | skipped: {skipped}")
-    if not ea and not sepa:
+    print(f"EA entries: {len(ea)} | SEPA entries: {len(sepa)} | NRW entries: {len(nrw)} | skipped: {skipped}")
+    if not ea and not sepa and not nrw:
         print("Error: nothing to write — refusing to overwrite indexes with empty data")
         sys.exit(1)
 
-    for name, data, key in (("EA", ea, EA_INDEX_KEY), ("SEPA", sepa, SEPA_INDEX_KEY)):
+    for name, data, key in (("EA", ea, EA_INDEX_KEY), ("SEPA", sepa, SEPA_INDEX_KEY), ("NRW", nrw, NRW_INDEX_KEY)):
         if not data:
             print(f"{name}: no entries, leaving {key} untouched")
             continue
