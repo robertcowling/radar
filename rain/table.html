@@ -418,6 +418,12 @@ nav {
   opacity: 0.9;
 }
 
+.no-record {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.78rem;
+}
+
 .table-legend-note {
   margin-top: 0.6rem;
   font-size: 0.78rem;
@@ -589,16 +595,16 @@ footer {
 
       <span class="controls-label" style="margin-left:0.75rem;">Window:</span>
       <div class="segmented-control" id="timeModeToggle">
-        <button type="button" class="segmented-btn active" data-timemode="24h" title="Rolling 24-hour total accumulation">Rolling 24hr</button>
-        <button type="button" class="segmented-btn" data-timemode="today" title="Today's total since midnight 00:00 UTC">Today</button>
-        <button type="button" class="segmented-btn" data-timemode="yesterday" title="Full-day total for yesterday (00:00 - 24:00 UTC)">Yesterday</button>
+        <button type="button" class="segmented-btn active" data-timemode="24h" title="Rolling duration totals up to now">Rolling 24hr</button>
+        <button type="button" class="segmented-btn" data-timemode="today" title="Highest duration totals for today so far (since 00:00 UTC)">Today so far</button>
+        <button type="button" class="segmented-btn" data-timemode="yesterday" title="Highest duration totals for yesterday (00:00 - 24:00 UTC)">Yesterday</button>
       </div>
     </div>
 
     <!-- Window Mode Explanatory Subtitle -->
     <div class="window-explain-banner" id="windowExplainBanner">
       <span class="material-icons" style="font-size:16px;color:var(--brand-500);">info</span>
-      <span id="windowExplainText">Showing rolling 24-hour rainfall totals up to now. Sorted by highest 24hr accumulation.</span>
+      <span id="windowExplainText">Showing rolling duration rainfall totals up to now. Sorted by highest 24hr accumulation.</span>
     </div>
 
     <!-- Threshold Info Expansion Box -->
@@ -669,8 +675,8 @@ var R2_CDN = 'https://radar.floodforecast.co.uk';
 var stations = {};
 var summary = {};
 var climIndex = {};
-var todayReadings = null;
-var yesterdayReadings = null;
+var todayRawData = null;
+var yesterdayRawData = null;
 var countyData = [];
 var rows = [];
 var filteredRows = [];
@@ -714,12 +720,18 @@ var MET_TEXT   = [
 ];
 
 function getAccumCellCss(val) {
-    if (!val || val < 0.03) return '';
+    if (val == null || val < 0.03) return '';
     var idx = 0;
     for (var i = 0; i < MET_BREAKS.length; i++) {
         if (val >= MET_BREAKS[i]) idx = i; else break;
     }
     return 'background-color:' + MET_COLORS[idx] + ';color:' + MET_TEXT[idx] + ';font-weight:600;';
+}
+
+function renderDurationVal(val) {
+    if (val == null) return '<span class="no-record" title="Period has not yet elapsed today">n/a</span>';
+    var css = getAccumCellCss(val);
+    return '<td class="num-col" style="' + css + '">' + fmtMm(val) + '</td>';
 }
 
 function pointInRing(pt, ring) {
@@ -774,28 +786,52 @@ function getYesterdayDateKey() {
     return yyyy + mm + dd;
 }
 
+function getMaxRollingSum(arr, windowSlots) {
+    if (!arr || arr.length < windowSlots) return null;
+    var currentSum = 0;
+    for (var i = 0; i < windowSlots; i++) {
+        currentSum += arr[i];
+    }
+    var maxSum = currentSum;
+    for (var i = windowSlots; i < arr.length; i++) {
+        currentSum += arr[i] - arr[i - windowSlots];
+        if (currentSum > maxSum) maxSum = currentSum;
+    }
+    return roundVal(maxSum, 2);
+}
+
+function parseStationSlotsDetails(slotsDict) {
+    if (!slotsDict) return { total: 0, max1h: null, max3h: null, max6h: null, max12h: null };
+    var keys = Object.keys(slotsDict).sort();
+    var arr = [];
+    var total = 0;
+    keys.forEach(function(k) {
+        var v = slotsDict[k];
+        if (typeof v === 'number' && v >= 0) {
+            arr.push(v);
+            total += v;
+        }
+    });
+    return {
+        total: roundVal(total, 2),
+        max1h: getMaxRollingSum(arr, 4),
+        max3h: getMaxRollingSum(arr, 12),
+        max6h: getMaxRollingSum(arr, 24),
+        max12h: getMaxRollingSum(arr, 48)
+    };
+}
+
 function loadTodayData(cb) {
-    if (todayReadings) { if (cb) cb(); return; }
+    if (todayRawData) { if (cb) cb(); return; }
     if (_todayLoading) return;
     _todayLoading = true;
     var dateKey = getTodayDateKey();
     fetch(R2_CDN + '/rain/readings/' + dateKey + '.json?_cb=' + Date.now())
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            todayReadings = {};
-            if (data && data.readings) {
-                Object.keys(data.readings).forEach(function(sid) {
-                    var slots = data.readings[sid];
-                    var total = 0;
-                    Object.keys(slots).forEach(function(k) {
-                        var v = slots[k];
-                        if (typeof v === 'number' && v > 0) total += v;
-                    });
-                    todayReadings[sid] = roundVal(total, 2);
-                });
-            }
+            todayRawData = (data && data.readings) ? data.readings : {};
         })
-        .catch(function() { todayReadings = {}; })
+        .catch(function() { todayRawData = {}; })
         .then(function() {
             _todayLoading = false;
             buildRows();
@@ -804,27 +840,16 @@ function loadTodayData(cb) {
 }
 
 function loadYesterdayData(cb) {
-    if (yesterdayReadings) { if (cb) cb(); return; }
+    if (yesterdayRawData) { if (cb) cb(); return; }
     if (_yesterdayLoading) return;
     _yesterdayLoading = true;
     var dateKey = getYesterdayDateKey();
     fetch(R2_CDN + '/rain/readings/' + dateKey + '.json?_cb=' + Date.now())
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            yesterdayReadings = {};
-            if (data && data.readings) {
-                Object.keys(data.readings).forEach(function(sid) {
-                    var slots = data.readings[sid];
-                    var total = 0;
-                    Object.keys(slots).forEach(function(k) {
-                        var v = slots[k];
-                        if (typeof v === 'number' && v > 0) total += v;
-                    });
-                    yesterdayReadings[sid] = roundVal(total, 2);
-                });
-            }
+            yesterdayRawData = (data && data.readings) ? data.readings : {};
         })
-        .catch(function() { yesterdayReadings = {}; })
+        .catch(function() { yesterdayRawData = {}; })
         .then(function() {
             _yesterdayLoading = false;
             buildRows();
@@ -845,19 +870,38 @@ function buildRows() {
         var s = stations[ref];
         var sum = summary[ref] || {};
         var clim = climIndex[ref] || {};
-        var todayVal = todayReadings ? (todayReadings[ref] || 0) : (sum.last24h || 0);
-        var yestVal = yesterdayReadings ? (yesterdayReadings[ref] || 0) : 0;
+
+        var todayInfo = todayRawData ? parseStationSlotsDetails(todayRawData[ref]) : { total: sum.last24h || 0, max1h: sum.last1h || 0, max3h: sum.last3h || 0, max6h: sum.last6h || 0, max12h: sum.last12h || 0 };
+        var yestInfo = yesterdayRawData ? parseStationSlotsDetails(yesterdayRawData[ref]) : { total: 0, max1h: null, max3h: null, max6h: null, max12h: null };
+
         return {
             ref: ref,
             name: s.name || ref,
             county: s.county || 'Unknown',
             network: networkOf(s),
             lat: s.lat, lon: s.lon,
+            
+            // Rolling 24hr window metrics
             last1h: sum.last1h || 0,
+            last3h: sum.last3h || 0,
             last6h: sum.last6h || 0,
+            last12h: sum.last12h || 0,
             last24h: sum.last24h || 0,
-            todayTotal: todayVal,
-            yesterdayTotal: yestVal,
+            
+            // Today so far metrics
+            todayTotal: todayInfo.total,
+            todayMax1h: todayInfo.max1h,
+            todayMax3h: todayInfo.max3h,
+            todayMax6h: todayInfo.max6h,
+            todayMax12h: todayInfo.max12h,
+
+            // Yesterday metrics
+            yesterdayTotal: yestInfo.total,
+            yesterdayMax1h: yestInfo.max1h,
+            yesterdayMax3h: yestInfo.max3h,
+            yesterdayMax6h: yestInfo.max6h,
+            yesterdayMax12h: yestInfo.max12h,
+
             monthTotal: Math.max(sum.monthTotal || 0, sum.last24h || 0),
             yearTotal: Math.max(sum.yearTotal || 0, Math.max(sum.monthTotal || 0, sum.last24h || 0)),
             thresholdLevel: sum.thresholdLevel || 'normal',
@@ -1011,12 +1055,22 @@ function renderTableHeader() {
     }
 
     if (timeMode === 'today') {
-        html += '<th data-key="todayTotal" class="num-col" title="Today\'s total since 00:00 UTC">Today <span class="sort-arrow"></span></th>';
+        html += '<th data-key="todayMax1h" class="num-col" title="Highest 1hr total today so far">Max 1 hr <span class="sort-arrow"></span></th>';
+        html += '<th data-key="todayMax3h" class="num-col" title="Highest 3hr total today so far">Max 3 hr <span class="sort-arrow"></span></th>';
+        html += '<th data-key="todayMax6h" class="num-col" title="Highest 6hr total today so far">Max 6 hr <span class="sort-arrow"></span></th>';
+        html += '<th data-key="todayMax12h" class="num-col" title="Highest 12hr total today so far">Max 12 hr <span class="sort-arrow"></span></th>';
+        html += '<th data-key="todayTotal" class="num-col" title="Total rainfall today so far (since 00:00 UTC)">Today so far <span class="sort-arrow"></span></th>';
     } else if (timeMode === 'yesterday') {
-        html += '<th data-key="yesterdayTotal" class="num-col" title="Yesterday 24hr total (00:00-24:00 UTC)">Yesterday <span class="sort-arrow"></span></th>';
+        html += '<th data-key="yesterdayMax1h" class="num-col" title="Highest 1hr total yesterday">Max 1 hr <span class="sort-arrow"></span></th>';
+        html += '<th data-key="yesterdayMax3h" class="num-col" title="Highest 3hr total yesterday">Max 3 hr <span class="sort-arrow"></span></th>';
+        html += '<th data-key="yesterdayMax6h" class="num-col" title="Highest 6hr total yesterday">Max 6 hr <span class="sort-arrow"></span></th>';
+        html += '<th data-key="yesterdayMax12h" class="num-col" title="Highest 12hr total yesterday">Max 12 hr <span class="sort-arrow"></span></th>';
+        html += '<th data-key="yesterdayTotal" class="num-col" title="Total rainfall yesterday (00:00-24:00 UTC)">Yesterday <span class="sort-arrow"></span></th>';
     } else {
-        html += '<th data-key="last1h" class="num-col" title="1hr rainfall intensity to now">1 hr <span class="sort-arrow"></span></th>';
+        html += '<th data-key="last1h" class="num-col" title="Rolling 1hr total to now">1 hr <span class="sort-arrow"></span></th>';
+        html += '<th data-key="last3h" class="num-col" title="Rolling 3hr total to now">3 hr <span class="sort-arrow"></span></th>';
         html += '<th data-key="last6h" class="num-col" title="Rolling 6hr total to now">6 hr <span class="sort-arrow"></span></th>';
+        html += '<th data-key="last12h" class="num-col" title="Rolling 12hr total to now">12 hr <span class="sort-arrow"></span></th>';
         html += '<th data-key="last24h" class="num-col" title="Rolling 24hr accumulation to now">24 hr <span class="sort-arrow"></span></th>';
     }
 
@@ -1088,12 +1142,6 @@ function render() {
 
     var html = '';
     pageRows.forEach(function(r) {
-        var cell1h = getAccumCellCss(r.last1h);
-        var cell6h = getAccumCellCss(r.last6h);
-        var cell24h = getAccumCellCss(r.last24h);
-        var cellToday = getAccumCellCss(r.todayTotal);
-        var cellYest = getAccumCellCss(r.yesterdayTotal);
-
         html += '<tr>';
         html += '<td><a class="gauge-link" href="gauge.html?ref=' + encodeURIComponent(r.ref) + '">' + htmlEsc(r.name) + '</a></td>';
         html += '<td class="county-label">' + htmlEsc(r.county) + '</td>';
@@ -1106,13 +1154,23 @@ function render() {
         }
 
         if (timeMode === 'today') {
-            html += '<td class="num-col" style="' + cellToday + '">' + fmtMm(r.todayTotal) + '</td>';
+            html += renderDurationVal(r.todayMax1h);
+            html += renderDurationVal(r.todayMax3h);
+            html += renderDurationVal(r.todayMax6h);
+            html += renderDurationVal(r.todayMax12h);
+            html += renderDurationVal(r.todayTotal);
         } else if (timeMode === 'yesterday') {
-            html += '<td class="num-col" style="' + cellYest + '">' + fmtMm(r.yesterdayTotal) + '</td>';
+            html += renderDurationVal(r.yesterdayMax1h);
+            html += renderDurationVal(r.yesterdayMax3h);
+            html += renderDurationVal(r.yesterdayMax6h);
+            html += renderDurationVal(r.yesterdayMax12h);
+            html += renderDurationVal(r.yesterdayTotal);
         } else {
-            html += '<td class="num-col" style="' + cell1h + '">' + fmtMm(r.last1h) + '</td>';
-            html += '<td class="num-col" style="' + cell6h + '">' + fmtMm(r.last6h) + '</td>';
-            html += '<td class="num-col" style="' + cell24h + '">' + fmtMm(r.last24h) + '</td>';
+            html += renderDurationVal(r.last1h);
+            html += renderDurationVal(r.last3h);
+            html += renderDurationVal(r.last6h);
+            html += renderDurationVal(r.last12h);
+            html += renderDurationVal(r.last24h);
         }
 
         html += renderMonthCellHtml(r.monthTotal, r.clim, r.network);
@@ -1168,19 +1226,19 @@ document.querySelectorAll('#timeModeToggle .segmented-btn').forEach(function(btn
 
         var explainText = document.getElementById('windowExplainText');
         if (timeMode === '24h') {
-            explainText.textContent = 'Showing rolling 24-hour rainfall totals up to now. Sorted by highest 24hr accumulation.';
+            explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by highest 24hr accumulation.';
             if (tableMode !== 'thresholds') sortKey = 'last24h';
             sortDir = -1;
             applyFilters();
         } else if (timeMode === 'today') {
-            explainText.textContent = 'Showing today\'s calendar rainfall total (since midnight 00:00 UTC). Sorted by today\'s total.';
+            explainText.textContent = 'Showing highest 1, 3, 6, 12hr duration accumulations and total rain for today so far.';
             if (tableMode !== 'thresholds') sortKey = 'todayTotal';
             sortDir = -1;
             loadTodayData(function() {
                 applyFilters();
             });
         } else if (timeMode === 'yesterday') {
-            explainText.textContent = 'Showing full-day rainfall totals for yesterday (00:00 to 24:00 UTC). Sorted by yesterday\'s total.';
+            explainText.textContent = 'Showing highest 1, 3, 6, 12hr duration accumulations and total rain for yesterday (00:00 to 24:00 UTC).';
             if (tableMode !== 'thresholds') sortKey = 'yesterdayTotal';
             sortDir = -1;
             loadYesterdayData(function() {
@@ -1255,7 +1313,7 @@ function loadAll() {
       .then(function() { _climReady = true; buildRows(); });
 
     fetch(R2_CDN + '/rain/summary.json?_cb=' + Date.now())
-        .then(function(r) { return r.json(); })
+        .then(function(r) { if (!r.ok) throw 0; return r.json(); })
         .then(function(data) {
             summary = data.stations || {};
             summaryLoaded = true;
