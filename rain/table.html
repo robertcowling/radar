@@ -249,6 +249,42 @@ nav {
   }
 }
 
+/* Sort Pill Selector Row */
+.sort-pill-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.sort-pill-btn {
+  border: 1px solid var(--border-color);
+  background: var(--bg-base);
+  color: var(--text-muted);
+  font-family: var(--font-family);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.sort-pill-btn:hover {
+  border-color: var(--brand-500);
+  color: var(--text-main);
+}
+.sort-pill-btn.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  font-weight: 700;
+}
+@media (prefers-color-scheme: dark) {
+  .sort-pill-btn.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #ffffff;
+  }
+}
+
 /* Window Mode Description Banner */
 .window-explain-banner {
   font-size: 0.78rem;
@@ -409,6 +445,17 @@ nav {
   border: 1px solid var(--extreme-border);
 }
 
+/* Rounded Cell Background Badges (matching Flood Forecast UI) */
+.cell-pill {
+  display: inline-block;
+  min-width: 46px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  text-align: right;
+  box-sizing: border-box;
+}
+
 .month-pct-badge {
   display: inline-block;
   font-size: 0.7rem;
@@ -472,9 +519,9 @@ tbody tr:hover { background: var(--bg-surface-hover); }
 tbody tr:last-child td { border-bottom: none; }
 tbody td.num-col { text-align: right; }
 
-.gauge-link { color: var(--text-main); text-decoration: none; font-weight: 500; }
+.gauge-link { color: var(--text-main); text-decoration: none; font-weight: 600; display: block; line-height: 1.2; }
 .gauge-link:hover { color: var(--brand-500); text-decoration: underline; }
-.county-label { color: var(--text-muted); font-size: 0.78rem; }
+.county-label { color: var(--text-muted); font-size: 0.76rem; margin-top: 1px; }
 
 .network-pill {
   display: inline-block;
@@ -581,34 +628,45 @@ footer {
 
   <!-- Controls Card: Flood Forecast Design Ethos -->
   <div class="controls-card">
-    <!-- Row 1: Segmented Toggles (Table View & Explicit Time Window) -->
-    <div class="controls-row">
-      <span class="controls-label">Table:</span>
-      <div class="segmented-control" id="tableModeToggle">
-        <button type="button" class="segmented-btn active" data-tablemode="all">All Gauges</button>
-        <button type="button" class="segmented-btn" data-tablemode="thresholds">Threshold Exceedances</button>
+    <!-- Row 1: Segmented Toggles (Table Mode & Window Toggle on right) -->
+    <div class="controls-row" style="justify-content: space-between;">
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <span class="controls-label">Table:</span>
+        <div class="segmented-control" id="tableModeToggle">
+          <button type="button" class="segmented-btn active" data-tablemode="all">All Gauges</button>
+          <button type="button" class="segmented-btn" data-tablemode="thresholds">Threshold Exceedances</button>
+        </div>
+
+        <button type="button" class="info-icon-btn" id="threshInfoBtn" title="Threshold rules info">
+          <span class="material-icons" style="font-size:18px;">info</span>
+        </button>
       </div>
 
-      <button type="button" class="info-icon-btn" id="threshInfoBtn" title="Threshold rules info">
-        <span class="material-icons" style="font-size:18px;">info</span>
-      </button>
-
-      <span class="controls-label" style="margin-left:0.75rem;">Window:</span>
-      <div class="segmented-control" id="timeModeToggle">
-        <button type="button" class="segmented-btn active" data-timemode="24h" title="Rolling 24hr total accumulation">24 hr</button>
-        <button type="button" class="segmented-btn" data-timemode="12h" title="Rolling 12hr total accumulation">12 hr</button>
-        <button type="button" class="segmented-btn" data-timemode="6h" title="Rolling 6hr total accumulation">6 hr</button>
-        <button type="button" class="segmented-btn" data-timemode="3h" title="Rolling 3hr total accumulation">3 hr</button>
-        <button type="button" class="segmented-btn" data-timemode="1h" title="Rolling 1hr total accumulation">1 hr</button>
-        <button type="button" class="segmented-btn" data-timemode="today" title="Highest duration totals for today so far (since 00:00 UTC)">Today so far</button>
-        <button type="button" class="segmented-btn" data-timemode="yesterday" title="Highest duration totals for yesterday (00:00 - 24:00 UTC)">Yesterday</button>
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span class="controls-label">Window:</span>
+        <div class="segmented-control" id="timeModeToggle">
+          <button type="button" class="segmented-btn active" data-timemode="rolling" title="Rolling duration totals up to now">Rolling</button>
+          <button type="button" class="segmented-btn" data-timemode="today" title="Highest duration totals for today so far">Today</button>
+          <button type="button" class="segmented-btn" data-timemode="yesterday" title="Highest duration totals for yesterday">Yesterday</button>
+        </div>
       </div>
     </div>
 
-    <!-- Window Mode Explanatory Subtitle -->
-    <div class="window-explain-banner" id="windowExplainBanner">
-      <span class="material-icons" style="font-size:16px;color:var(--brand-500);">info</span>
-      <span id="windowExplainText">Showing rolling 24-hour rainfall totals up to now. Sorted by highest 24hr accumulation.</span>
+    <!-- Row 2: Separate Sort Pill Selector Row -->
+    <div class="controls-row">
+      <span class="controls-label">Sort:</span>
+      <div class="sort-pill-group" id="sortPillGroup">
+        <button type="button" class="sort-pill-btn" data-sortkey="1h">1h</button>
+        <button type="button" class="sort-pill-btn active" data-sortkey="3h">3h</button>
+        <button type="button" class="sort-pill-btn" data-sortkey="6h">6h</button>
+        <button type="button" class="sort-pill-btn" data-sortkey="12h">12h</button>
+        <button type="button" class="sort-pill-btn" data-sortkey="24h">24h</button>
+      </div>
+
+      <span class="window-explain-banner" id="windowExplainBanner" style="flex:1; margin-left:0.5rem;">
+        <span class="material-icons" style="font-size:16px;color:var(--brand-500);">info</span>
+        <span id="windowExplainText">Showing rolling duration rainfall totals up to now. Sorted by 3h accumulation.</span>
+      </span>
     </div>
 
     <!-- Threshold Info Expansion Box -->
@@ -621,7 +679,7 @@ footer {
       </table>
     </div>
 
-    <!-- Row 2: Search and Page Filters -->
+    <!-- Row 3: Filters, Search, Max Gaps & Page Controls -->
     <div class="controls-row">
       <input type="text" id="searchInput" class="form-input" placeholder="Search name, ref or county&hellip;">
       
@@ -631,6 +689,13 @@ footer {
         <option value="all">Any threshold</option>
         <option value="extreme">Extreme only</option>
         <option value="heavy">Heavy or extreme</option>
+      </select>
+
+      <select id="dataGapsSelect" class="form-select" title="Data completeness filter">
+        <option value="90" selected>Max 10% gaps</option>
+        <option value="80">Max 20% gaps</option>
+        <option value="50">Max 50% gaps</option>
+        <option value="0">Any data gaps</option>
       </select>
       
       <select id="pageSizeSelect" class="form-select">
@@ -686,10 +751,12 @@ var rows = [];
 var filteredRows = [];
 
 var tableMode = 'all';     // 'all' or 'thresholds'
-var timeMode = '24h';       // '24h', '12h', '6h', '3h', '1h', 'today', 'yesterday'
+var timeMode = 'rolling';  // 'rolling', 'today', 'yesterday'
+var activeSortDuration = '3h'; // '1h', '3h', '6h', '12h', '24h'
 var selectedOrgs = { EA: true, NRW: false, SEPA: false }; // Default: EA ON only
+var dataGapThreshold = 90; // Default: Max 10% gaps (90% completeness)
 
-var sortKey = 'last24h';
+var sortKey = 'last3h';
 var sortDir = -1; // default sort descending
 var page = 1;
 var pageSize = 50;
@@ -729,13 +796,13 @@ function getAccumCellCss(val) {
     for (var i = 0; i < MET_BREAKS.length; i++) {
         if (val >= MET_BREAKS[i]) idx = i; else break;
     }
-    return 'background-color:' + MET_COLORS[idx] + ';color:' + MET_TEXT[idx] + ';font-weight:600;';
+    return 'background-color:' + MET_COLORS[idx] + ';color:' + MET_TEXT[idx] + ';';
 }
 
 function renderDurationVal(val) {
-    if (val == null) return '<td class="num-col"><span class="no-record" title="Period has not yet elapsed today">n/a</span></td>';
+    if (val == null) return '<td class="num-col"><span class="no-record" title="Period has not yet elapsed today">&mdash;</span></td>';
     var css = getAccumCellCss(val);
-    return '<td class="num-col" style="' + css + '">' + fmtMm(val) + '</td>';
+    return '<td class="num-col"><span class="cell-pill" style="' + css + '">' + (val || 0).toFixed(1) + '</span></td>';
 }
 
 function pointInRing(pt, ring) {
@@ -805,23 +872,28 @@ function getMaxRollingSum(arr, windowSlots) {
 }
 
 function parseStationSlotsDetails(slotsDict) {
-    if (!slotsDict) return { total: 0, max1h: null, max3h: null, max6h: null, max12h: null };
+    if (!slotsDict) return { total: 0, max1h: null, max3h: null, max6h: null, max12h: null, max24h: 0, completeness: 0 };
     var keys = Object.keys(slotsDict).sort();
     var arr = [];
     var total = 0;
+    var validCount = 0;
     keys.forEach(function(k) {
         var v = slotsDict[k];
         if (typeof v === 'number' && v >= 0) {
             arr.push(v);
             total += v;
+            validCount++;
         }
     });
+    var completeness = (keys.length > 0) ? (validCount / keys.length) : 1.0;
     return {
         total: roundVal(total, 2),
         max1h: getMaxRollingSum(arr, 4),
         max3h: getMaxRollingSum(arr, 12),
         max6h: getMaxRollingSum(arr, 24),
-        max12h: getMaxRollingSum(arr, 48)
+        max12h: getMaxRollingSum(arr, 48),
+        max24h: getMaxRollingSum(arr, 96) || roundVal(total, 2),
+        completeness: completeness
     };
 }
 
@@ -875,8 +947,8 @@ function buildRows() {
         var sum = summary[ref] || {};
         var clim = climIndex[ref] || {};
 
-        var todayInfo = todayRawData ? parseStationSlotsDetails(todayRawData[ref]) : { total: sum.last24h || 0, max1h: sum.last1h || 0, max3h: sum.last3h || 0, max6h: sum.last6h || 0, max12h: sum.last12h || 0 };
-        var yestInfo = yesterdayRawData ? parseStationSlotsDetails(yesterdayRawData[ref]) : { total: 0, max1h: null, max3h: null, max6h: null, max12h: null };
+        var todayInfo = todayRawData ? parseStationSlotsDetails(todayRawData[ref]) : { total: sum.last24h || 0, max1h: sum.last1h || 0, max3h: sum.last3h || 0, max6h: sum.last6h || 0, max12h: sum.last12h || 0, max24h: sum.last24h || 0, completeness: 1.0 };
+        var yestInfo = yesterdayRawData ? parseStationSlotsDetails(yesterdayRawData[ref]) : { total: 0, max1h: null, max3h: null, max6h: null, max12h: null, max24h: 0, completeness: 1.0 };
 
         return {
             ref: ref,
@@ -884,6 +956,7 @@ function buildRows() {
             county: s.county || 'Unknown',
             network: networkOf(s),
             lat: s.lat, lon: s.lon,
+            completeness: sum.completeness != null ? sum.completeness : 1.0,
             
             // Rolling window metrics
             last1h: sum.last1h || 0,
@@ -898,6 +971,7 @@ function buildRows() {
             todayMax3h: todayInfo.max3h,
             todayMax6h: todayInfo.max6h,
             todayMax12h: todayInfo.max12h,
+            todayMax24h: todayInfo.max24h,
 
             // Yesterday metrics
             yesterdayTotal: yestInfo.total,
@@ -905,6 +979,7 @@ function buildRows() {
             yesterdayMax3h: yestInfo.max3h,
             yesterdayMax6h: yestInfo.max6h,
             yesterdayMax12h: yestInfo.max12h,
+            yesterdayMax24h: yestInfo.max24h,
 
             monthTotal: Math.max(sum.monthTotal || 0, sum.last24h || 0),
             yearTotal: Math.max(sum.yearTotal || 0, Math.max(sum.monthTotal || 0, sum.last24h || 0)),
@@ -931,11 +1006,13 @@ function applyFilters() {
     var searchInput = document.getElementById('searchInput');
     var countySelect = document.getElementById('countyFilter');
     var thresholdSelect = document.getElementById('thresholdFilter');
+    var dataGapsSelect = document.getElementById('dataGapsSelect');
     var clearBtn = document.getElementById('clearFiltersBtn');
 
     var search = searchInput.value.trim().toLowerCase();
     var county = countySelect.value;
     var threshold = thresholdSelect.value;
+    dataGapThreshold = parseInt(dataGapsSelect.value, 10);
 
     // Highlight active filters with Flood Forecast styling
     if (search) searchInput.classList.add('filter-active');
@@ -947,11 +1024,19 @@ function applyFilters() {
     if (threshold !== 'all') thresholdSelect.classList.add('filter-active');
     else thresholdSelect.classList.remove('filter-active');
 
+    if (dataGapThreshold !== 90) dataGapsSelect.classList.add('filter-active');
+    else dataGapsSelect.classList.remove('filter-active');
+
     var isAnyOrgFilterActive = !(selectedOrgs.EA && !selectedOrgs.NRW && !selectedOrgs.SEPA);
-    var isAnyFilterActive = (search !== '' || county !== 'all' || threshold !== 'all' || isAnyOrgFilterActive);
+    var isAnyFilterActive = (search !== '' || county !== 'all' || threshold !== 'all' || isAnyOrgFilterActive || dataGapThreshold !== 90);
     clearBtn.style.display = isAnyFilterActive ? 'inline-block' : 'none';
 
     filteredRows = rows.filter(function(r) {
+        // Data gaps filter (completeness %)
+        if (dataGapThreshold > 0 && r.completeness != null && (r.completeness * 100) < dataGapThreshold) {
+            return false;
+        }
+
         // Org checkboxes filter
         if (!selectedOrgs[r.network]) return false;
 
@@ -967,6 +1052,29 @@ function applyFilters() {
         }
         return true;
     });
+
+    // Derive active sort key based on timeMode and activeSortDuration
+    if (tableMode !== 'thresholds') {
+        if (timeMode === 'today') {
+            if (activeSortDuration === '1h') sortKey = 'todayMax1h';
+            else if (activeSortDuration === '3h') sortKey = 'todayMax3h';
+            else if (activeSortDuration === '6h') sortKey = 'todayMax6h';
+            else if (activeSortDuration === '12h') sortKey = 'todayMax12h';
+            else sortKey = 'todayTotal';
+        } else if (timeMode === 'yesterday') {
+            if (activeSortDuration === '1h') sortKey = 'yesterdayMax1h';
+            else if (activeSortDuration === '3h') sortKey = 'yesterdayMax3h';
+            else if (activeSortDuration === '6h') sortKey = 'yesterdayMax6h';
+            else if (activeSortDuration === '12h') sortKey = 'yesterdayMax12h';
+            else sortKey = 'yesterdayTotal';
+        } else {
+            if (activeSortDuration === '1h') sortKey = 'last1h';
+            else if (activeSortDuration === '3h') sortKey = 'last3h';
+            else if (activeSortDuration === '6h') sortKey = 'last6h';
+            else if (activeSortDuration === '12h') sortKey = 'last12h';
+            else sortKey = 'last24h';
+        }
+    }
 
     sortRows();
     page = 1;
@@ -1037,8 +1145,8 @@ function renderTableHeader() {
     var yearStr = now.getFullYear();
 
     var html = '<tr>';
-    html += '<th data-key="name">Gauge <span class="sort-arrow"></span></th>';
-    html += '<th data-key="county">County <span class="sort-arrow"></span></th>';
+    html += '<th>Gauge</th>';
+    html += '<th>County</th>';
     
     // Org Header with Checkbox Dropdown Selector
     html += '<th class="org-header-cell" style="cursor:default;">';
@@ -1058,25 +1166,17 @@ function renderTableHeader() {
         html += '<th data-key="thresholdLevel">Threshold Status <span class="sort-arrow"></span></th>';
     }
 
-    if (timeMode === 'today') {
-        html += '<th data-key="todayMax1h" class="num-col" title="Highest 1hr total today so far">Max 1 hr <span class="sort-arrow"></span></th>';
-        html += '<th data-key="todayMax3h" class="num-col" title="Highest 3hr total today so far">Max 3 hr <span class="sort-arrow"></span></th>';
-        html += '<th data-key="todayMax6h" class="num-col" title="Highest 6hr total today so far">Max 6 hr <span class="sort-arrow"></span></th>';
-        html += '<th data-key="todayMax12h" class="num-col" title="Highest 12hr total today so far">Max 12 hr <span class="sort-arrow"></span></th>';
-        html += '<th data-key="todayTotal" class="num-col" title="Total rainfall today so far (since 00:00 UTC)">Today so far <span class="sort-arrow"></span></th>';
-    } else if (timeMode === 'yesterday') {
-        html += '<th data-key="yesterdayMax1h" class="num-col" title="Highest 1hr total yesterday">Max 1 hr <span class="sort-arrow"></span></th>';
-        html += '<th data-key="yesterdayMax3h" class="num-col" title="Highest 3hr total yesterday">Max 3 hr <span class="sort-arrow"></span></th>';
-        html += '<th data-key="yesterdayMax6h" class="num-col" title="Highest 6hr total yesterday">Max 6 hr <span class="sort-arrow"></span></th>';
-        html += '<th data-key="yesterdayMax12h" class="num-col" title="Highest 12hr total yesterday">Max 12 hr <span class="sort-arrow"></span></th>';
-        html += '<th data-key="yesterdayTotal" class="num-col" title="Total rainfall yesterday (00:00-24:00 UTC)">Yesterday <span class="sort-arrow"></span></th>';
-    } else {
-        html += '<th data-key="last1h" class="num-col" title="Rolling 1hr total to now">1 hr <span class="sort-arrow"></span></th>';
-        html += '<th data-key="last3h" class="num-col" title="Rolling 3hr total to now">3 hr <span class="sort-arrow"></span></th>';
-        html += '<th data-key="last6h" class="num-col" title="Rolling 6hr total to now">6 hr <span class="sort-arrow"></span></th>';
-        html += '<th data-key="last12h" class="num-col" title="Rolling 12hr total to now">12 hr <span class="sort-arrow"></span></th>';
-        html += '<th data-key="last24h" class="num-col" title="Rolling 24hr accumulation to now">24 hr <span class="sort-arrow"></span></th>';
-    }
+    var dur1Key = (timeMode === 'today' ? 'todayMax1h' : (timeMode === 'yesterday' ? 'yesterdayMax1h' : 'last1h'));
+    var dur3Key = (timeMode === 'today' ? 'todayMax3h' : (timeMode === 'yesterday' ? 'yesterdayMax3h' : 'last3h'));
+    var dur6Key = (timeMode === 'today' ? 'todayMax6h' : (timeMode === 'yesterday' ? 'yesterdayMax6h' : 'last6h'));
+    var dur12Key = (timeMode === 'today' ? 'todayMax12h' : (timeMode === 'yesterday' ? 'yesterdayMax12h' : 'last12h'));
+    var dur24Key = (timeMode === 'today' ? 'todayTotal' : (timeMode === 'yesterday' ? 'yesterdayTotal' : 'last24h'));
+
+    html += '<th data-key="' + dur1Key + '" class="num-col">1h <span class="sort-arrow"></span></th>';
+    html += '<th data-key="' + dur3Key + '" class="num-col">3h <span class="sort-arrow"></span></th>';
+    html += '<th data-key="' + dur6Key + '" class="num-col">6h <span class="sort-arrow"></span></th>';
+    html += '<th data-key="' + dur12Key + '" class="num-col">12h <span class="sort-arrow"></span></th>';
+    html += '<th data-key="' + dur24Key + '" class="num-col">24h <span class="sort-arrow"></span></th>';
 
     html += '<th data-key="monthTotal" class="num-col" title="Month to date total and % of expected monthly normal">' + monthName + ' so far <span class="header-sublabel">% exp</span> <span class="sort-arrow"></span></th>';
     html += '<th data-key="yearTotal" class="num-col">' + yearStr + ' so far <span class="sort-arrow"></span></th>';
@@ -1115,11 +1215,26 @@ function renderTableHeader() {
     thead.querySelectorAll('th[data-key]').forEach(function(th) {
         th.addEventListener('click', function() {
             var key = th.dataset.key;
+            if (key === dur1Key) activeSortDuration = '1h';
+            else if (key === dur3Key) activeSortDuration = '3h';
+            else if (key === dur6Key) activeSortDuration = '6h';
+            else if (key === dur12Key) activeSortDuration = '12h';
+            else if (key === dur24Key) activeSortDuration = '24h';
+            
+            updateSortPillUI();
+
             if (sortKey === key) sortDir *= -1;
             else { sortKey = key; sortDir = -1; }
             sortRows();
             render();
         });
+    });
+}
+
+function updateSortPillUI() {
+    document.querySelectorAll('#sortPillGroup .sort-pill-btn').forEach(function(btn) {
+        if (btn.dataset.sortkey === activeSortDuration) btn.classList.add('active');
+        else btn.classList.remove('active');
     });
 }
 
@@ -1134,6 +1249,7 @@ document.addEventListener('click', function(e) {
 
 function render() {
     renderTableHeader();
+    updateSortPillUI();
 
     var tbody = document.getElementById('tableBody');
     var totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
@@ -1147,7 +1263,7 @@ function render() {
     var html = '';
     pageRows.forEach(function(r) {
         html += '<tr>';
-        html += '<td><a class="gauge-link" href="gauge.html?ref=' + encodeURIComponent(r.ref) + '">' + htmlEsc(r.name) + '</a></td>';
+        html += '<td><a class="gauge-link" href="gauge.html?ref=' + encodeURIComponent(r.ref) + '">' + htmlEsc(r.name) + '</a><div class="county-label">' + htmlEsc(r.county) + '</div></td>';
         html += '<td class="county-label">' + htmlEsc(r.county) + '</td>';
         html += '<td><span class="network-pill">' + r.network + '</span></td>';
 
@@ -1169,32 +1285,7 @@ function render() {
             html += renderDurationVal(r.yesterdayMax6h);
             html += renderDurationVal(r.yesterdayMax12h);
             html += renderDurationVal(r.yesterdayTotal);
-        } else if (timeMode === '12h') {
-            html += renderDurationVal(r.last1h);
-            html += renderDurationVal(r.last3h);
-            html += renderDurationVal(r.last6h);
-            html += renderDurationVal(r.last12h);
-            html += renderDurationVal(r.last24h);
-        } else if (timeMode === '6h') {
-            html += renderDurationVal(r.last1h);
-            html += renderDurationVal(r.last3h);
-            html += renderDurationVal(r.last6h);
-            html += renderDurationVal(r.last12h);
-            html += renderDurationVal(r.last24h);
-        } else if (timeMode === '3h') {
-            html += renderDurationVal(r.last1h);
-            html += renderDurationVal(r.last3h);
-            html += renderDurationVal(r.last6h);
-            html += renderDurationVal(r.last12h);
-            html += renderDurationVal(r.last24h);
-        } else if (timeMode === '1h') {
-            html += renderDurationVal(r.last1h);
-            html += renderDurationVal(r.last3h);
-            html += renderDurationVal(r.last6h);
-            html += renderDurationVal(r.last12h);
-            html += renderDurationVal(r.last24h);
         } else {
-            // Default 24h
             html += renderDurationVal(r.last1h);
             html += renderDurationVal(r.last3h);
             html += renderDurationVal(r.last6h);
@@ -1239,20 +1330,13 @@ document.querySelectorAll('#tableModeToggle .segmented-btn').forEach(function(bt
             sortKey = 'thresholdLevel';
             sortDir = -1;
         } else {
-            if (timeMode === 'today') sortKey = 'todayTotal';
-            else if (timeMode === 'yesterday') sortKey = 'yesterdayTotal';
-            else if (timeMode === '12h') sortKey = 'last12h';
-            else if (timeMode === '6h') sortKey = 'last6h';
-            else if (timeMode === '3h') sortKey = 'last3h';
-            else if (timeMode === '1h') sortKey = 'last1h';
-            else sortKey = 'last24h';
             sortDir = -1;
         }
         applyFilters();
     });
 });
 
-// Time Mode Toggle with Clear Explanations
+// Time Window Mode Toggle (Rolling, Today, Yesterday)
 document.querySelectorAll('#timeModeToggle .segmented-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
         document.querySelectorAll('#timeModeToggle .segmented-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -1260,46 +1344,35 @@ document.querySelectorAll('#timeModeToggle .segmented-btn').forEach(function(btn
         timeMode = this.dataset.timemode;
 
         var explainText = document.getElementById('windowExplainText');
-        if (timeMode === '24h') {
-            explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by highest 24hr accumulation.';
-            if (tableMode !== 'thresholds') sortKey = 'last24h';
-            sortDir = -1;
-            applyFilters();
-        } else if (timeMode === '12h') {
-            explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by highest 12hr accumulation.';
-            if (tableMode !== 'thresholds') sortKey = 'last12h';
-            sortDir = -1;
-            applyFilters();
-        } else if (timeMode === '6h') {
-            explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by highest 6hr accumulation.';
-            if (tableMode !== 'thresholds') sortKey = 'last6h';
-            sortDir = -1;
-            applyFilters();
-        } else if (timeMode === '3h') {
-            explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by highest 3hr accumulation.';
-            if (tableMode !== 'thresholds') sortKey = 'last3h';
-            sortDir = -1;
-            applyFilters();
-        } else if (timeMode === '1h') {
-            explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by highest 1hr accumulation.';
-            if (tableMode !== 'thresholds') sortKey = 'last1h';
+        if (timeMode === 'rolling') {
+            explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by ' + activeSortDuration + ' accumulation.';
             sortDir = -1;
             applyFilters();
         } else if (timeMode === 'today') {
             explainText.textContent = 'Showing highest 1, 3, 6, 12hr duration accumulations and total rain for today so far.';
-            if (tableMode !== 'thresholds') sortKey = 'todayTotal';
             sortDir = -1;
             loadTodayData(function() {
                 applyFilters();
             });
         } else if (timeMode === 'yesterday') {
             explainText.textContent = 'Showing highest 1, 3, 6, 12hr duration accumulations and total rain for yesterday (00:00 to 24:00 UTC).';
-            if (tableMode !== 'thresholds') sortKey = 'yesterdayTotal';
             sortDir = -1;
             loadYesterdayData(function() {
                 applyFilters();
             });
         }
+    });
+});
+
+// Sort Pill Group Listener
+document.querySelectorAll('#sortPillGroup .sort-pill-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        activeSortDuration = this.dataset.sortkey;
+        updateSortPillUI();
+        var explainText = document.getElementById('windowExplainText');
+        if (timeMode === 'rolling') explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by ' + activeSortDuration + ' accumulation.';
+        sortDir = -1;
+        applyFilters();
     });
 });
 
@@ -1312,12 +1385,15 @@ document.getElementById('threshInfoBtn').addEventListener('click', function() {
 document.getElementById('searchInput').addEventListener('input', applyFilters);
 document.getElementById('countyFilter').addEventListener('change', applyFilters);
 document.getElementById('thresholdFilter').addEventListener('change', applyFilters);
+document.getElementById('dataGapsSelect').addEventListener('change', applyFilters);
 
 document.getElementById('clearFiltersBtn').addEventListener('click', function() {
     document.getElementById('searchInput').value = '';
     document.getElementById('countyFilter').value = 'all';
     document.getElementById('thresholdFilter').value = 'all';
+    document.getElementById('dataGapsSelect').value = '90';
     selectedOrgs = { EA: true, NRW: false, SEPA: false };
+    activeSortDuration = '3h';
     applyFilters();
 });
 
