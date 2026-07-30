@@ -595,7 +595,11 @@ footer {
 
       <span class="controls-label" style="margin-left:0.75rem;">Window:</span>
       <div class="segmented-control" id="timeModeToggle">
-        <button type="button" class="segmented-btn active" data-timemode="24h" title="Rolling duration totals up to now">Rolling 24hr</button>
+        <button type="button" class="segmented-btn active" data-timemode="24h" title="Rolling 24hr total accumulation">24 hr</button>
+        <button type="button" class="segmented-btn" data-timemode="12h" title="Rolling 12hr total accumulation">12 hr</button>
+        <button type="button" class="segmented-btn" data-timemode="6h" title="Rolling 6hr total accumulation">6 hr</button>
+        <button type="button" class="segmented-btn" data-timemode="3h" title="Rolling 3hr total accumulation">3 hr</button>
+        <button type="button" class="segmented-btn" data-timemode="1h" title="Rolling 1hr total accumulation">1 hr</button>
         <button type="button" class="segmented-btn" data-timemode="today" title="Highest duration totals for today so far (since 00:00 UTC)">Today so far</button>
         <button type="button" class="segmented-btn" data-timemode="yesterday" title="Highest duration totals for yesterday (00:00 - 24:00 UTC)">Yesterday</button>
       </div>
@@ -604,7 +608,7 @@ footer {
     <!-- Window Mode Explanatory Subtitle -->
     <div class="window-explain-banner" id="windowExplainBanner">
       <span class="material-icons" style="font-size:16px;color:var(--brand-500);">info</span>
-      <span id="windowExplainText">Showing rolling duration rainfall totals up to now. Sorted by highest 24hr accumulation.</span>
+      <span id="windowExplainText">Showing rolling 24-hour rainfall totals up to now. Sorted by highest 24hr accumulation.</span>
     </div>
 
     <!-- Threshold Info Expansion Box -->
@@ -682,7 +686,7 @@ var rows = [];
 var filteredRows = [];
 
 var tableMode = 'all';     // 'all' or 'thresholds'
-var timeMode = '24h';       // '24h', 'today', 'yesterday'
+var timeMode = '24h';       // '24h', '12h', '6h', '3h', '1h', 'today', 'yesterday'
 var selectedOrgs = { EA: true, NRW: false, SEPA: false }; // Default: EA ON only
 
 var sortKey = 'last24h';
@@ -729,7 +733,7 @@ function getAccumCellCss(val) {
 }
 
 function renderDurationVal(val) {
-    if (val == null) return '<span class="no-record" title="Period has not yet elapsed today">n/a</span>';
+    if (val == null) return '<td class="num-col"><span class="no-record" title="Period has not yet elapsed today">n/a</span></td>';
     var css = getAccumCellCss(val);
     return '<td class="num-col" style="' + css + '">' + fmtMm(val) + '</td>';
 }
@@ -881,7 +885,7 @@ function buildRows() {
             network: networkOf(s),
             lat: s.lat, lon: s.lon,
             
-            // Rolling 24hr window metrics
+            // Rolling window metrics
             last1h: sum.last1h || 0,
             last3h: sum.last3h || 0,
             last6h: sum.last6h || 0,
@@ -1165,7 +1169,32 @@ function render() {
             html += renderDurationVal(r.yesterdayMax6h);
             html += renderDurationVal(r.yesterdayMax12h);
             html += renderDurationVal(r.yesterdayTotal);
+        } else if (timeMode === '12h') {
+            html += renderDurationVal(r.last1h);
+            html += renderDurationVal(r.last3h);
+            html += renderDurationVal(r.last6h);
+            html += renderDurationVal(r.last12h);
+            html += renderDurationVal(r.last24h);
+        } else if (timeMode === '6h') {
+            html += renderDurationVal(r.last1h);
+            html += renderDurationVal(r.last3h);
+            html += renderDurationVal(r.last6h);
+            html += renderDurationVal(r.last12h);
+            html += renderDurationVal(r.last24h);
+        } else if (timeMode === '3h') {
+            html += renderDurationVal(r.last1h);
+            html += renderDurationVal(r.last3h);
+            html += renderDurationVal(r.last6h);
+            html += renderDurationVal(r.last12h);
+            html += renderDurationVal(r.last24h);
+        } else if (timeMode === '1h') {
+            html += renderDurationVal(r.last1h);
+            html += renderDurationVal(r.last3h);
+            html += renderDurationVal(r.last6h);
+            html += renderDurationVal(r.last12h);
+            html += renderDurationVal(r.last24h);
         } else {
+            // Default 24h
             html += renderDurationVal(r.last1h);
             html += renderDurationVal(r.last3h);
             html += renderDurationVal(r.last6h);
@@ -1210,7 +1239,13 @@ document.querySelectorAll('#tableModeToggle .segmented-btn').forEach(function(bt
             sortKey = 'thresholdLevel';
             sortDir = -1;
         } else {
-            sortKey = (timeMode === 'today') ? 'todayTotal' : (timeMode === 'yesterday' ? 'yesterdayTotal' : 'last24h');
+            if (timeMode === 'today') sortKey = 'todayTotal';
+            else if (timeMode === 'yesterday') sortKey = 'yesterdayTotal';
+            else if (timeMode === '12h') sortKey = 'last12h';
+            else if (timeMode === '6h') sortKey = 'last6h';
+            else if (timeMode === '3h') sortKey = 'last3h';
+            else if (timeMode === '1h') sortKey = 'last1h';
+            else sortKey = 'last24h';
             sortDir = -1;
         }
         applyFilters();
@@ -1228,6 +1263,26 @@ document.querySelectorAll('#timeModeToggle .segmented-btn').forEach(function(btn
         if (timeMode === '24h') {
             explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by highest 24hr accumulation.';
             if (tableMode !== 'thresholds') sortKey = 'last24h';
+            sortDir = -1;
+            applyFilters();
+        } else if (timeMode === '12h') {
+            explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by highest 12hr accumulation.';
+            if (tableMode !== 'thresholds') sortKey = 'last12h';
+            sortDir = -1;
+            applyFilters();
+        } else if (timeMode === '6h') {
+            explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by highest 6hr accumulation.';
+            if (tableMode !== 'thresholds') sortKey = 'last6h';
+            sortDir = -1;
+            applyFilters();
+        } else if (timeMode === '3h') {
+            explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by highest 3hr accumulation.';
+            if (tableMode !== 'thresholds') sortKey = 'last3h';
+            sortDir = -1;
+            applyFilters();
+        } else if (timeMode === '1h') {
+            explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by highest 1hr accumulation.';
+            if (tableMode !== 'thresholds') sortKey = 'last1h';
             sortDir = -1;
             applyFilters();
         } else if (timeMode === 'today') {
@@ -1313,7 +1368,7 @@ function loadAll() {
       .then(function() { _climReady = true; buildRows(); });
 
     fetch(R2_CDN + '/rain/summary.json?_cb=' + Date.now())
-        .then(function(r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function(r) { return r.json(); })
         .then(function(data) {
             summary = data.stations || {};
             summaryLoaded = true;
