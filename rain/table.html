@@ -135,24 +135,6 @@ nav {
 
 .page-title-section h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em; }
 
-.view-toggle {
-  display: inline-flex;
-  border: 1px solid var(--border-color);
-  border-radius: 24px;
-  overflow: hidden;
-  margin-top: 0.4rem;
-}
-
-.view-toggle a {
-  padding: 0.3rem 0.9rem;
-  font-size: 0.8rem;
-  font-weight: 500;
-  text-decoration: none;
-  color: var(--text-muted);
-}
-
-.view-toggle a.active { background: var(--brand-500); color: #fff; }
-
 .header-actions { display: flex; align-items: center; gap: 1rem; }
 
 .refresh-button {
@@ -497,7 +479,7 @@ thead th {
   background: var(--bg-surface);
   border-bottom: 2px solid var(--border-color);
   text-align: left;
-  padding: 0.6rem 0.75rem;
+  padding: 0.65rem 0.85rem;
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
@@ -506,29 +488,37 @@ thead th {
 
 thead th:hover { color: var(--text-main); }
 thead th .sort-arrow { font-size: 0.7rem; margin-left: 3px; opacity: 0.6; }
-thead th.num-col { text-align: right; }
+thead th.num-col { text-align: center; }
+
+/* Dedicated Column Redistribution */
+thead th:first-child, tbody td:first-child {
+  width: 32%;
+  min-width: 220px;
+  padding-left: 1.25rem;
+}
 
 tbody td {
-  padding: 0.4rem 0.5rem;
+  padding: 0.45rem 0.6rem;
   border-bottom: 1px solid var(--border-color);
 }
 tbody tr:hover { background: var(--bg-surface-hover); }
 tbody tr:last-child td { border-bottom: none; }
-tbody td.num-col { text-align: right; }
+tbody td.num-col { text-align: center; }
 
-/* Inset Box inside table cell with white edging & slightly rounded corners */
+/* Inset Box inside table cell centered with white edging & rounded corners */
 .accum-cell-box {
   border-radius: 6px;
   padding: 5px 8px;
   font-weight: 600;
-  text-align: right;
-  display: block;
+  text-align: center;
+  display: inline-block;
+  min-width: 52px;
   box-sizing: border-box;
 }
 
-.gauge-link { color: var(--text-main); text-decoration: none; font-weight: 600; display: block; line-height: 1.2; }
+.gauge-link { color: var(--text-main); text-decoration: none; font-weight: 600; display: block; line-height: 1.2; font-size: 0.88rem; }
 .gauge-link:hover { color: var(--brand-500); text-decoration: underline; }
-.county-label { color: var(--text-muted); font-size: 0.76rem; margin-top: 1px; }
+.county-label { color: var(--text-muted); font-size: 0.76rem; margin-top: 2px; }
 
 .network-pill {
   display: inline-block;
@@ -615,10 +605,6 @@ footer {
   <div class="page-title-section">
     <div>
       <h1>Rain gauge table</h1>
-      <div class="view-toggle">
-        <a href="index.html">Map</a>
-        <a href="table.html" class="active">Table</a>
-      </div>
     </div>
     <div class="header-actions">
       <span id="refreshLabel" class="refresh-time">Loading&hellip;</span>
@@ -796,10 +782,10 @@ function renderDurationVal(val, isSortActive) {
     var st = accumStyle(val);
     var fontWt = isSortActive ? 'font-weight:700;' : 'font-weight:600;';
     if (st) {
-        var boxStyle = 'background:' + st.fill + ';color:' + st.text + ';border-radius:6px;padding:5px 8px;text-align:right;' + fontWt;
+        var boxStyle = 'background:' + st.fill + ';color:' + st.text + ';border-radius:6px;padding:5px 8px;text-align:center;' + fontWt;
         return '<td class="num-col" style="padding:3px 4px;"><div class="accum-cell-box" style="' + boxStyle + '">' + (val || 0).toFixed(1) + '</div></td>';
     }
-    return '<td class="num-col" style="padding:4px 5px; color:var(--text-muted); ' + fontWt + '">' + (val || 0).toFixed(1) + '</td>';
+    return '<td class="num-col" style="padding:4px 5px; color:var(--text-muted); text-align:center; ' + fontWt + '">' + (val || 0).toFixed(1) + '</td>';
 }
 
 function pointInRing(pt, ring) {
