@@ -257,7 +257,7 @@ nav {
   background: var(--bg-base);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  padding: 0.4rem 0.85rem;
+  padding: 0.45rem 0.85rem;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -332,7 +332,7 @@ nav {
 .threshold-info-box table { width: 100%; border-collapse: collapse; margin-top: 0.4rem; }
 .threshold-info-box td { padding: 0.25rem 0.5rem; font-size: 0.78rem; }
 
-/* Org Dropdown in Table Header */
+/* Org Dropdown in Table Header - Enhanced Height & Padding */
 .org-dropdown-container {
   position: relative;
   display: inline-block;
@@ -340,16 +340,16 @@ nav {
 .org-dropdown-trigger {
   background: var(--bg-base);
   border: 1px solid var(--border-color);
-  border-radius: 14px;
-  padding: 2px 8px;
+  border-radius: 16px;
+  padding: 0.35rem 0.85rem;
   font-family: var(--font-family);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--text-main);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 .org-dropdown-trigger:hover {
   border-color: var(--brand-500);
@@ -358,27 +358,34 @@ nav {
   position: absolute;
   top: 100%;
   left: 0;
-  margin-top: 4px;
+  margin-top: 6px;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 8px 12px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
   z-index: 1050;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-width: 145px;
+  gap: 10px;
+  min-width: 160px;
 }
 .org-checkbox-label {
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-main);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
-  white-space: nowrap;
+  padding: 2px 0;
+  user-select: none;
+}
+.org-checkbox-label input {
+  accent-color: var(--brand-500);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
 }
 
 /* Badges for Threshold Exceedances */
@@ -405,18 +412,21 @@ nav {
 
 .month-pct-badge {
   display: inline-block;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: #78350f;
   margin-left: 4px;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .table-legend-note {
   margin-top: 0.6rem;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
   padding: 0.4rem 0.6rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
 }
 
 .header-sublabel {
@@ -667,7 +677,7 @@ var filteredRows = [];
 
 var tableMode = 'all';     // 'all' or 'thresholds'
 var timeMode = '24h';       // '24h', 'latest', 'yesterday'
-var selectedOrgs = { EA: true, NRW: true, SEPA: true };
+var selectedOrgs = { EA: true, NRW: false, SEPA: false }; // Default: EA ON only
 
 var sortKey = 'last24h';
 var sortDir = -1; // default sort descending
@@ -679,27 +689,27 @@ var _summaryReady = false;
 var _climReady = false;
 var _yesterdayLoading = false;
 
-// Met Office Colour Palette lightened by 2 notches (softer pastel tints with crisp dark text)
+// Met Office Palette — smidge lighter than original solid colors, rich vibrant fill with dark/white text contrast
 var MET_COLORS = [
-  'rgba(58, 108, 255, 0.14)',  // >0.03mm (light blue tint)
-  'rgba(34, 197, 94, 0.16)',   // >1mm (light green tint)
-  'rgba(234, 179, 8, 0.18)',   // >5mm (light yellow tint)
-  'rgba(245, 158, 11, 0.20)',  // >10mm (light amber tint)
-  'rgba(249, 115, 22, 0.22)',  // >20mm (light orange tint)
-  'rgba(239, 68, 68, 0.24)',   // >40mm (light red tint)
-  'rgba(185, 28, 28, 0.26)',   // >60mm (light crimson tint)
-  'rgba(219, 39, 119, 0.26)',  // >80mm (light pink tint)
-  'rgba(168, 85, 247, 0.26)',  // >100mm (light purple tint)
-  'rgba(236, 72, 153, 0.28)',  // >120mm (light magenta tint)
-  'rgba(148, 163, 184, 0.24)', // >140mm (light slate tint)
-  'rgba(203, 213, 225, 0.26)', // >160mm (light grey tint)
-  'rgba(234, 179, 8, 0.28)'    // >180mm (light gold tint)
+  '#4d7cff', // >0.03mm (rich light blue)
+  '#22e622', // >1mm (rich light green)
+  '#ffffaa', // >5mm (light yellow)
+  '#ffe082', // >10mm (light amber)
+  '#ffaa44', // >20mm (light orange)
+  '#f07030', // >40mm (deep orange)
+  '#d63333', // >60mm (rich red)
+  '#e06699', // >80mm (rich crimson/pink)
+  '#e599e5', // >100mm (rich violet)
+  '#ff44ff', // >120mm (bright magenta/pink)
+  '#ffffff', // >140mm (white)
+  '#dcdcdc', // >160mm (light grey)
+  '#d4d400'  // >180mm (rich gold)
 ];
 var MET_BREAKS = [0.03, 1, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160, 180];
 var MET_TEXT   = [
-  '#1e40af', '#15803d', '#854d0e', '#92400e', '#9a3412',
-  '#991b1b', '#991b1b', '#831843', '#6b21a8', '#831843',
-  '#334155', '#334155', '#713f12'
+  '#ffffff', '#003300', '#333300', '#332500', '#331e00',
+  '#ffffff', '#ffffff', '#ffffff', '#330033', '#ffffff',
+  '#3c4043', '#3c4043', '#3c4043'
 ];
 
 function getAccumCellCss(val) {
@@ -807,7 +817,6 @@ function buildRows() {
             last1h: sum.last1h || 0,
             last6h: sum.last6h || 0,
             last24h: sum.last24h || 0,
-            last48h: sum.last48h || sum.last7d || 0,
             yesterdayTotal: yestVal,
             monthTotal: Math.max(sum.monthTotal || 0, sum.last24h || 0),
             yearTotal: Math.max(sum.yearTotal || 0, Math.max(sum.monthTotal || 0, sum.last24h || 0)),
@@ -850,7 +859,7 @@ function applyFilters() {
     if (threshold !== 'all') thresholdSelect.classList.add('filter-active');
     else thresholdSelect.classList.remove('filter-active');
 
-    var isAnyOrgFilterActive = !(selectedOrgs.EA && selectedOrgs.NRW && selectedOrgs.SEPA);
+    var isAnyOrgFilterActive = !(selectedOrgs.EA && !selectedOrgs.NRW && !selectedOrgs.SEPA);
     var isAnyFilterActive = (search !== '' || county !== 'all' || threshold !== 'all' || isAnyOrgFilterActive);
     clearBtn.style.display = isAnyFilterActive ? 'inline-block' : 'none';
 
@@ -947,7 +956,7 @@ function renderTableHeader() {
     html += '<th class="org-header-cell" style="cursor:default;">';
     html += '  <div class="org-dropdown-container">';
     html += '    <button type="button" class="org-dropdown-trigger" id="orgDropdownBtn">';
-    html += '      Org: <span id="orgTriggerLabel">All</span> <span class="material-icons" style="font-size:14px;vertical-align:middle;">arrow_drop_down</span>';
+    html += '      Org: <span id="orgTriggerLabel">EA</span> <span class="material-icons" style="font-size:14px;vertical-align:middle;">arrow_drop_down</span>';
     html += '    </button>';
     html += '    <div class="org-dropdown-menu" id="orgDropdownMenu" style="display:none;">';
     html += '      <label class="org-checkbox-label"><input type="checkbox" id="chkEA" ' + (selectedOrgs.EA ? 'checked' : '') + '> EA (England)</label>';
@@ -969,7 +978,6 @@ function renderTableHeader() {
         html += '<th data-key="last24h" class="num-col" title="Rolling 24hr accumulation to now">24 hr <span class="sort-arrow"></span></th>';
     }
 
-    html += '<th data-key="last48h" class="num-col" title="Rolling 48hr accumulation to now">48 hr <span class="sort-arrow"></span></th>';
     html += '<th data-key="monthTotal" class="num-col" title="Month to date total and % of expected monthly normal">' + monthName + ' so far <span class="header-sublabel">% exp</span> <span class="sort-arrow"></span></th>';
     html += '<th data-key="yearTotal" class="num-col">' + yearStr + ' so far <span class="sort-arrow"></span></th>';
     html += '</tr>';
@@ -977,13 +985,18 @@ function renderTableHeader() {
     thead.innerHTML = html;
     updateOrgTriggerLabel();
 
-    // Org Header Dropdown Toggle Event
+    // Org Header Dropdown Toggle Event & Stop Click Propagation
     var dropdownBtn = document.getElementById('orgDropdownBtn');
     var dropdownMenu = document.getElementById('orgDropdownMenu');
     if (dropdownBtn && dropdownMenu) {
         dropdownBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             dropdownMenu.style.display = (dropdownMenu.style.display === 'none') ? 'flex' : 'none';
+        });
+
+        // Stay open until user clicks off!
+        dropdownMenu.addEventListener('click', function(e) {
+            e.stopPropagation();
         });
     }
 
@@ -1036,7 +1049,6 @@ function render() {
         var cell1h = getAccumCellCss(r.last1h);
         var cell6h = getAccumCellCss(r.last6h);
         var cell24h = getAccumCellCss(r.last24h);
-        var cell48h = getAccumCellCss(r.last48h);
         var cellYest = getAccumCellCss(r.yesterdayTotal);
 
         html += '<tr>';
@@ -1058,7 +1070,6 @@ function render() {
             html += '<td class="num-col" style="' + cell24h + '">' + fmtMm(r.last24h) + '</td>';
         }
 
-        html += '<td class="num-col" style="' + cell48h + '">' + fmtMm(r.last48h) + '</td>';
         html += renderMonthCellHtml(r.monthTotal, r.clim, r.network);
         if (r.network === 'SEPA' || r.network === 'NRW') {
             html += '<td class="num-col"><span class="no-record" title="No published historical archive for this network">&mdash;</span></td>';
@@ -1146,7 +1157,7 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
     document.getElementById('searchInput').value = '';
     document.getElementById('countyFilter').value = 'all';
     document.getElementById('thresholdFilter').value = 'all';
-    selectedOrgs = { EA: true, NRW: true, SEPA: true };
+    selectedOrgs = { EA: true, NRW: false, SEPA: false };
     applyFilters();
 });
 
