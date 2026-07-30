@@ -795,7 +795,10 @@ function htmlEsc(s) {
 
 function fmtMm(v) { return (v || 0).toFixed(1) + ' mm'; }
 
-function renderMonthCellHtml(monthTotal, clim) {
+function renderMonthCellHtml(monthTotal, clim, network) {
+    if (network === 'SEPA' || network === 'NRW') {
+        return '<td class="num-col"><span class="no-record" title="No published historical archive for this network">&mdash;</span></td>';
+    }
     var now = new Date();
     var dayOfMonth = now.getDate();
     var daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -895,8 +898,12 @@ function render() {
         }
 
         html += '<td class="num-col" style="' + cell48h + '">' + fmtMm(r.last48h) + '</td>';
-        html += renderMonthCellHtml(r.monthTotal, r.clim);
-        html += '<td class="num-col">' + fmtMm(r.yearTotal) + '</td>';
+        html += renderMonthCellHtml(r.monthTotal, r.clim, r.network);
+        if (r.network === 'SEPA' || r.network === 'NRW') {
+            html += '<td class="num-col"><span class="no-record" title="No published historical archive for this network">&mdash;</span></td>';
+        } else {
+            html += '<td class="num-col">' + fmtMm(r.yearTotal) + '</td>';
+        }
         html += '</tr>';
     });
     tbody.innerHTML = html;
