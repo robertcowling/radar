@@ -313,9 +313,12 @@ function renderHeader(s, sum) {
 }
 
 function renderStatTiles(sum) {
+    var now = new Date();
+    var monthLabel = now.toLocaleDateString([], {month: 'long'}) + ' so far';
+    var yearLabel = now.getFullYear() + ' so far';
     var tiles = [
         ['Last Hour', sum.last1h], ['Last 6 Hours', sum.last6h], ['Last 24 Hours', sum.last24h],
-        ['Last 7 Days', sum.last7d], ['Month to Date', sum.monthTotal], ['Year to Date', sum.yearTotal]
+        ['Last 7 Days', sum.last7d], [monthLabel, sum.monthTotal], [yearLabel, sum.yearTotal]
     ];
     var html = '<div class="section"><h2>Rainfall totals</h2><div class="stat-grid">';
     tiles.forEach(function(t) {

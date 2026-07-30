@@ -1,0 +1,46 @@
+name: Backfill Rain Gauge Archive
+
+# One-time (re-runnable) historical backfill of rain/archive/daily_{YYYY}.json
+# from the EA Hydrology API's ~15-month rolling archive, so gauge stats/records
+# don't have to build up from scratch after deploying make_rain_summary.py.
+# Manual trigger only — not part of the normal 15-min data pipeline.
+
+on:
+  workflow_dispatch:
+    inputs:
+      backfill_days:
+        description: 'Days back to backfill (EA archive currently holds ~455-460 days)'
+        required: false
+        default: '470'
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Backfill historical daily archive
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+        BACKFILL_DAYS: ${{ github.event.inputs.backfill_days }}
+      run: python backfill_rain_archive.py

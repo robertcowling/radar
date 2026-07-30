@@ -381,8 +381,8 @@ footer {
           <th data-key="last6h">6 hr <span class="sort-arrow"></span></th>
           <th data-key="last24h">24 hr <span class="sort-arrow"></span></th>
           <th data-key="last7d">7 day <span class="sort-arrow"></span></th>
-          <th data-key="monthTotal">Month <span class="sort-arrow"></span></th>
-          <th data-key="yearTotal">Year <span class="sort-arrow"></span></th>
+          <th data-key="monthTotal"><span id="monthColLabel">Month</span> <span class="sort-arrow"></span></th>
+          <th data-key="yearTotal"><span id="yearColLabel">Year</span> <span class="sort-arrow"></span></th>
           <th data-key="thresholdLevel">Threshold <span class="sort-arrow"></span></th>
         </tr>
       </thead>
@@ -611,6 +611,13 @@ function setRefreshLabel(ts) {
     var d = new Date(ts);
     document.getElementById('refreshLabel').textContent = 'Updated ' + d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
 }
+
+(function setDynamicColumnLabels() {
+    var now = new Date();
+    var monthName = now.toLocaleDateString([], {month: 'short'});
+    document.getElementById('monthColLabel').textContent = monthName + ' so far';
+    document.getElementById('yearColLabel').textContent = now.getFullYear() + ' so far';
+})();
 
 function loadAll() {
     _stationsReady = false; _summaryReady = false; _countiesReady = false;
