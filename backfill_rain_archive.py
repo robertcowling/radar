@@ -28,6 +28,7 @@ re-run: skips any calendar day that's already substantially archived.
 
 import os
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 
@@ -36,7 +37,15 @@ import requests
 from fetch_rain import HYDRO_BASE, get_r2, parse_readings, USE_R2
 from make_rain_summary import ARCHIVE_PFX, r2_get_json, r2_put_json
 
-MAX_WORKERS = 6
+# The first two backfill attempts at MAX_WORKERS=6 tripped the EA Hydrology
+# API's rate limiting after ~150-200 rapid requests (an explicit 429, then a
+# multi-minute stretch where further requests just never returned — throttling
+# without a clean error). 2 workers plus 429 backoff is far gentler and, since
+# this is a one-time job with resumable checkpointing, slower-but-reliable
+# beats fast-but-needs-manual-resuming-every-few-hundred-days.
+MAX_WORKERS = 2
+RATE_LIMIT_RETRIES = 4
+RATE_LIMIT_BACKOFF_S = 20  # 20s, 40s, 60s, 80s
 DEFAULT_LOOKBACK_DAYS = 470  # headroom past the confirmed ~455-460 day EA archive window
 
 
@@ -44,15 +53,25 @@ def fetch_day_rainfall(session, date_str):
     """date_str: YYYY-MM-DD. Returns raw items (fetch_rain.parse_readings shape), or [] if unavailable."""
     url = (f"{HYDRO_BASE}/data/readings.json"
            f"?observedProperty=rainfall&period=900&date={date_str}&_limit=200000")
-    try:
-        r = session.get(url, timeout=(10, 45))
-        if r.status_code == 404:
+    for attempt in range(RATE_LIMIT_RETRIES + 1):
+        try:
+            r = session.get(url, timeout=(10, 45))
+            if r.status_code == 404:
+                return []
+            if r.status_code == 429:
+                if attempt == RATE_LIMIT_RETRIES:
+                    print(f"  Warning: {date_str} still rate-limited after {RATE_LIMIT_RETRIES} retries — skipping this run")
+                    return []
+                wait = RATE_LIMIT_BACKOFF_S * (attempt + 1)
+                print(f"  429 for {date_str} — backing off {wait}s (attempt {attempt + 1}/{RATE_LIMIT_RETRIES})")
+                time.sleep(wait)
+                continue
+            r.raise_for_status()
+            return r.json().get("items", [])
+        except Exception as e:
+            print(f"  Warning: fetch failed for {date_str}: {e}")
             return []
-        r.raise_for_status()
-        return r.json().get("items", [])
-    except Exception as e:
-        print(f"  Warning: fetch failed for {date_str}: {e}")
-        return []
+    return []
 
 
 def daily_totals_from_items(items, suid_to_ref):
@@ -129,9 +148,9 @@ def main():
                             continue
                         archive.setdefault(sid, {})[date_str] = mm
                     filled += 1
-            if done % 10 == 0 or done == len(todo):
+            if done % 5 == 0 or done == len(todo):
                 print(f"  {done}/{len(todo)} days fetched ({filled} with data)")
-            if done % 50 == 0:
+            if done % 25 == 0:
                 checkpoint()
 
     checkpoint()
