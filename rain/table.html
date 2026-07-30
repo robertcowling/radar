@@ -702,8 +702,8 @@ function buildRows() {
             last24h: sum.last24h || 0,
             last48h: sum.last48h || sum.last7d || 0,
             yesterdayTotal: yestVal,
-            monthTotal: sum.monthTotal || 0,
-            yearTotal: sum.yearTotal || 0,
+            monthTotal: Math.max(sum.monthTotal || 0, sum.last24h || 0),
+            yearTotal: Math.max(sum.yearTotal || 0, Math.max(sum.monthTotal || 0, sum.last24h || 0)),
             thresholdLevel: sum.thresholdLevel || 'normal',
             clim: clim
         };
