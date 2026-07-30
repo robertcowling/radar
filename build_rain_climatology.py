@@ -58,7 +58,11 @@ from fetch_rain import HYDRO_BASE, get_r2, USE_R2
 from make_rain_summary import DRY_DAY_MM, r2_get_json, r2_put_json
 
 CLIMATOLOGY_PFX = "rain/climatology"
-INDEX_KEY = "rain/climatology_index.json"
+# Per-network index files. The EA and SEPA builders run as independent jobs
+# writing concurrently; a single shared index raced, with the last writer
+# silently dropping the other network's entries. Per-station files were never
+# affected (distinct keys) — only the index. The frontend loads both.
+INDEX_KEY = "rain/climatology_index_ea.json"
 
 # EA rate-limits aggressive pulls (a 6-worker backfill tripped 429s after
 # ~150-200 requests), so stay gentle: these are big responses.
