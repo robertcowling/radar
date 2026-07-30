@@ -15,11 +15,11 @@
   --bg-base: #f8f9fa;
   --bg-surface: #ffffff;
   --bg-surface-hover: #f1f3f4;
-  --border-color: #dde1e7;
-  --text-main: #202124;
-  --text-muted: #5f6368;
-  --text-dark: #80868b;
-  --brand-500: #1a73e8;
+  --border-color: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-dark: #475569;
+  --brand-500: #3b82f6;
   --heavy-bg: #fff3e0;
   --heavy-text: #b06000;
   --heavy-border: #ef6c00;
@@ -315,13 +315,13 @@ nav {
 
 .form-input:focus, .form-select:focus {
   border-color: var(--brand-500);
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 /* Active filter highlight */
 .filter-active {
   border-color: var(--brand-500) !important;
-  background-color: rgba(26, 115, 232, 0.08) !important;
+  background-color: rgba(59, 130, 246, 0.08) !important;
   font-weight: 600;
 }
 
@@ -484,7 +484,12 @@ nav {
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
-table { width: 100%; border-collapse: separate; border-spacing: 0 2px; font-size: 0.82rem; white-space: nowrap; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
 
 thead th {
   position: sticky;
@@ -503,10 +508,23 @@ thead th:hover { color: var(--text-main); }
 thead th .sort-arrow { font-size: 0.7rem; margin-left: 3px; opacity: 0.6; }
 thead th.num-col { text-align: right; }
 
-tbody td { padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border-color); }
+tbody td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
 tbody tr:hover { background: var(--bg-surface-hover); }
 tbody tr:last-child td { border-bottom: none; }
 tbody td.num-col { text-align: right; }
+
+/* Inset Box inside table cell with white edging & slightly rounded corners */
+.accum-cell-box {
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-weight: 600;
+  text-align: right;
+  display: block;
+  box-sizing: border-box;
+}
 
 .gauge-link { color: var(--text-main); text-decoration: none; font-weight: 600; display: block; line-height: 1.2; }
 .gauge-link:hover { color: var(--brand-500); text-decoration: underline; }
@@ -772,14 +790,16 @@ function accumStyle(v) {
 }
 
 function renderDurationVal(val, isSortActive) {
-    if (val == null) return '<td class="num-col"><span class="no-record" title="Period has not yet elapsed today">&mdash;</span></td>';
-    var st = accumStyle(val);
-    var boldClass = isSortActive ? ' font-weight:700;' : '';
-    if (st) {
-        var style = 'background:' + st.fill + ';color:' + st.text + ';border-radius:5px;' + boldClass;
-        return '<td class="num-col" style="padding:3px 4px;"><div style="' + style + 'padding:4px 6px;text-align:right;">' + (val || 0).toFixed(1) + '</div></td>';
+    if (val == null) {
+        return '<td class="num-col" style="padding:4px 5px;"><span class="no-record" title="Period has not yet elapsed today">&mdash;</span></td>';
     }
-    return '<td class="num-col" style="color:var(--text-muted);' + boldClass + '">' + (val || 0).toFixed(1) + '</td>';
+    var st = accumStyle(val);
+    var fontWt = isSortActive ? 'font-weight:700;' : 'font-weight:600;';
+    if (st) {
+        var boxStyle = 'background:' + st.fill + ';color:' + st.text + ';border-radius:6px;padding:5px 8px;text-align:right;' + fontWt;
+        return '<td class="num-col" style="padding:3px 4px;"><div class="accum-cell-box" style="' + boxStyle + '">' + (val || 0).toFixed(1) + '</div></td>';
+    }
+    return '<td class="num-col" style="padding:4px 5px; color:var(--text-muted); ' + fontWt + '">' + (val || 0).toFixed(1) + '</td>';
 }
 
 function pointInRing(pt, ring) {
@@ -1126,7 +1146,6 @@ function renderTableHeader() {
 
     var html = '<tr>';
     html += '<th>Gauge</th>';
-    html += '<th>County</th>';
     
     // Org Header with Checkbox Dropdown Selector
     html += '<th class="org-header-cell" style="cursor:default;">';
@@ -1244,7 +1263,6 @@ function render() {
     pageRows.forEach(function(r) {
         html += '<tr>';
         html += '<td><a class="gauge-link" href="gauge.html?ref=' + encodeURIComponent(r.ref) + '">' + htmlEsc(r.name) + '</a><div class="county-label">' + htmlEsc(r.county) + '</div></td>';
-        html += '<td class="county-label">' + htmlEsc(r.county) + '</td>';
         html += '<td><span class="network-pill">' + r.network + '</span></td>';
 
         if (tableMode === 'thresholds') {
