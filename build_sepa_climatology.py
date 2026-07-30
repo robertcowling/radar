@@ -54,7 +54,11 @@ import requests
 
 from fetch_rain import get_r2, USE_R2
 from make_rain_summary import r2_get_json, r2_put_json
-from build_rain_climatology import CLIMATOLOGY_PFX, INDEX_KEY, compute_climatology
+from build_rain_climatology import CLIMATOLOGY_PFX, compute_climatology
+
+# Deliberately not the EA builder's index: the two jobs run concurrently and
+# a shared index raced, last writer silently dropping the other's entries.
+INDEX_KEY = "rain/climatology_index_sepa.json"
 
 KIWIS = "https://timeseries.sepa.org.uk/KiWIS/KiWIS"
 BASE_PARAMS = {
