@@ -37,6 +37,15 @@ jobs:
         NRW_KEY: ${{ secrets.NRW_KEY }}
       run: python fetch_rain.py
 
+    - name: Compute per-gauge summary & duration totals
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+      run: python make_rain_summary.py
+
     - name: Commit manifest
       run: |
         git config --global user.name "Radar Automator"
