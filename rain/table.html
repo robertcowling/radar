@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rain Gauge Table | Flood Forecast</title>
+<meta name="description" content="Sortable, filterable, searchable table of UK rain gauges (EA, NRW, SEPA) with duration totals and heavy/extreme thresholds.">
+
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+<style>
+:root {
+  --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --bg-base: #f8f9fa;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f1f3f4;
+  --border-color: #dde1e7;
+  --text-main: #202124;
+  --text-muted: #5f6368;
+  --text-dark: #80868b;
+  --brand-500: #1a73e8;
+  --heavy-bg: #fff3e0;
+  --heavy-text: #b06000;
+  --heavy-border: #ef6c00;
+  --extreme-bg: #fce8e6;
+  --extreme-text: #c5221f;
+  --extreme-border: #c62828;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-base: #0f172a;
+    --bg-surface: #1e293b;
+    --bg-surface-hover: #334155;
+    --border-color: #334155;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-dark: #64748b;
+    --heavy-bg: rgba(245, 158, 11, 0.12);
+    --heavy-text: #fbbf24;
+    --heavy-border: #f59e0b;
+    --extreme-bg: rgba(239, 68, 68, 0.12);
+    --extreme-text: #f87171;
+    --extreme-border: #ef4444;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-base);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+nav {
+  background-color: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  position: sticky;
+  top: 0;
+  z-index: 1001;
+  height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.nav-container {
+  max-width: 96rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.brand-logo-fallback {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.nav-links { display: flex; gap: 0.5rem; }
+
+.nav-link {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover { background-color: #1e293b; color: #ffffff; }
+.nav-link.active { background-color: #1e293b; color: #ffffff; font-weight: 700; }
+
+.main-wrap {
+  flex: 1;
+  padding: 2rem 1.5rem 3rem;
+  width: 100%;
+  max-width: 96rem;
+  margin: 0 auto;
+}
+
+.page-title-section {
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.page-title-section h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em; }
+
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  overflow: hidden;
+  margin-top: 0.4rem;
+}
+
+.view-toggle a {
+  padding: 0.3rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--text-muted);
+}
+
+.view-toggle a.active { background: var(--brand-500); color: #fff; }
+
+.header-actions { display: flex; align-items: center; gap: 1rem; }
+
+.refresh-button {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.5rem 1rem;
+  border-radius: 24px;
+  font-size: 0.825rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.refresh-button:hover { background: var(--bg-surface-hover); border-color: var(--text-dark); }
+.refresh-time { font-size: 0.8rem; color: var(--text-muted); }
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.controls input[type="text"], .controls select {
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  color: var(--text-main);
+  background: var(--bg-base);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 0.45rem 0.9rem;
+}
+
+.controls input[type="text"] { flex: 1 1 220px; min-width: 180px; }
+
+.results-count { font-size: 0.8rem; color: var(--text-muted); align-self: center; margin-left: auto; }
+
+.table-wrap {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: auto;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 0.82rem; white-space: nowrap; }
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-surface);
+  border-bottom: 2px solid var(--border-color);
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+thead th:hover { color: var(--text-main); }
+thead th .sort-arrow { font-size: 0.7rem; margin-left: 3px; opacity: 0.6; }
+
+tbody td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border-color); }
+tbody tr:hover { background: var(--bg-surface-hover); }
+tbody tr:last-child td { border-bottom: none; }
+
+.gauge-link { color: var(--text-main); text-decoration: none; font-weight: 500; }
+.gauge-link:hover { color: var(--brand-500); text-decoration: underline; }
+.county-label { color: var(--text-muted); font-size: 0.78rem; }
+
+.network-pill {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: var(--bg-surface-hover);
+  color: var(--text-muted);
+}
+
+.threshold-pill {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 10px;
+}
+
+.threshold-pill.normal { background: var(--bg-surface-hover); color: var(--text-muted); }
+.threshold-pill.heavy { background: var(--heavy-bg); color: var(--heavy-text); border: 1px solid var(--heavy-border); }
+.threshold-pill.extreme { background: var(--extreme-bg); color: var(--extreme-text); border: 1px solid var(--extreme-border); }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding: 0.85rem 0.25rem 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.pagination button {
+  font-family: var(--font-family);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  border-radius: 16px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.pagination button:disabled { opacity: 0.4; cursor: default; }
+
+.empty-state { padding: 2.5rem; text-align: center; color: var(--text-muted); }
+
+footer {
+  background-color: var(--bg-base);
+  border-top: 1px solid var(--border-color);
+  padding: 2rem 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.footer-container {
+  max-width: 96rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.footer-link { color: var(--text-muted); text-decoration: none; }
+.footer-link:hover { color: var(--text-main); }
+
+@media (max-width: 700px) {
+  .results-count { margin-left: 0; width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-container">
+    <a href="/" class="nav-brand">
+      <div class="brand-logo-fallback"><span class="material-icons" style="font-size:18px;">water</span></div>
+      <span style="word-spacing:-0.09em;">Flood Forecast</span>
+    </a>
+    <div class="nav-links">
+      <a href="/" class="nav-link">FGS</a>
+      <a href="/radar" class="nav-link">Radar</a>
+      <a href="/rain" class="nav-link active">Obs</a>
+      <a href="/ukv" class="nav-link">NWP</a>
+      <a href="/status/" class="nav-link">Status</a>
+    </div>
+  </div>
+</nav>
+
+<main class="main-wrap">
+  <div class="page-title-section">
+    <div>
+      <h1>Rain gauge table</h1>
+      <div class="view-toggle">
+        <a href="index.html">Map</a>
+        <a href="table.html" class="active">Table</a>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span id="refreshLabel" class="refresh-time">Loading&hellip;</span>
+      <button id="refreshBtn" class="refresh-button">
+        <span class="material-icons" style="font-size:16px;">refresh</span>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="searchInput" placeholder="Search name, ref or county&hellip;">
+    <select id="networkFilter">
+      <option value="all">All networks</option>
+      <option value="EA">EA</option>
+      <option value="NRW">NRW</option>
+      <option value="SEPA">SEPA</option>
+    </select>
+    <select id="countyFilter"><option value="all">All counties</option></select>
+    <select id="thresholdFilter">
+      <option value="all">Any threshold</option>
+      <option value="extreme">Extreme only</option>
+      <option value="heavy">Heavy or extreme</option>
+    </select>
+    <select id="pageSizeSelect">
+      <option value="25">25 / page</option>
+      <option value="50" selected>50 / page</option>
+      <option value="100">100 / page</option>
+    </select>
+    <span class="results-count" id="resultsCount"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table id="gaugeTable">
+      <thead>
+        <tr>
+          <th data-key="name">Gauge <span class="sort-arrow"></span></th>
+          <th data-key="county">County <span class="sort-arrow"></span></th>
+          <th data-key="network">Network <span class="sort-arrow"></span></th>
+          <th data-key="last1h">1 hr <span class="sort-arrow"></span></th>
+          <th data-key="last6h">6 hr <span class="sort-arrow"></span></th>
+          <th data-key="last24h">24 hr <span class="sort-arrow"></span></th>
+          <th data-key="last7d">7 day <span class="sort-arrow"></span></th>
+          <th data-key="monthTotal">Month <span class="sort-arrow"></span></th>
+          <th data-key="yearTotal">Year <span class="sort-arrow"></span></th>
+          <th data-key="thresholdLevel">Threshold <span class="sort-arrow"></span></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none;">No gauges match these filters.</div>
+  </div>
+
+  <div class="pagination">
+    <span id="pageLabel"></span>
+    <button id="prevPage">&larr; Prev</button>
+    <button id="nextPage">Next &rarr;</button>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-container">
+    <p>Data provided by Environment Agency, Natural Resources Wales &amp; SEPA.</p>
+    <p>Duration totals &amp; records computed by Flood Forecast &bull; <a href="/" class="footer-link">Back to home</a></p>
+  </div>
+</footer>
+
+<script>
+var R2_CDN = 'https://radar.floodforecast.co.uk';
+
+var stations = {};
+var summary = {};
+var countyData = [];
+var rows = [];
+var filteredRows = [];
+var sortKey = 'name';
+var sortDir = 1;
+var page = 1;
+var pageSize = 50;
+var _stationsReady = false;
+var _countiesReady = false;
+var _summaryReady = false;
+
+function pointInRing(pt, ring) {
+    var x = pt[0], y = pt[1], inside = false;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+        if (((yi > y) !== (yj > y)) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+}
+
+function assignCounties() {
+    Object.keys(stations).forEach(function(id) {
+        var s = stations[id];
+        if (!s || s.county !== undefined) return;
+        var pt = [s.lon, s.lat];
+        s.county = null;
+        for (var i = 0; i < countyData.length; i++) {
+            var g = countyData[i].geometry;
+            var polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+            for (var p = 0; p < polys.length; p++) {
+                if (pointInRing(pt, polys[p][0])) {
+                    s.county = countyData[i].properties.name || countyData[i].properties.public_name;
+                    break;
+                }
+            }
+            if (s.county) break;
+        }
+    });
+}
+
+function networkOf(s) {
+    if (s.source === 'nrw') return 'NRW';
+    if (s.source === 'sepa') return 'SEPA';
+    return 'EA';
+}
+
+function buildRows() {
+    if (!_stationsReady || !_summaryReady || !_countiesReady) return;
+    assignCounties();
+    rows = Object.keys(stations).map(function(ref) {
+        var s = stations[ref];
+        var sum = summary[ref] || {};
+        return {
+            ref: ref,
+            name: s.name || ref,
+            county: s.county || 'Unknown',
+            network: networkOf(s),
+            lat: s.lat, lon: s.lon,
+            last1h: sum.last1h || 0,
+            last6h: sum.last6h || 0,
+            last24h: sum.last24h || 0,
+            last7d: sum.last7d || 0,
+            monthTotal: sum.monthTotal || 0,
+            yearTotal: sum.yearTotal || 0,
+            thresholdLevel: sum.thresholdLevel || 'normal'
+        };
+    });
+    populateCountyFilter();
+    applyFilters();
+}
+
+function populateCountyFilter() {
+    var sel = document.getElementById('countyFilter');
+    if (sel.options.length > 1) return;
+    var counties = Array.from(new Set(rows.map(function(r) { return r.county; }))).sort();
+    counties.forEach(function(c) {
+        var opt = document.createElement('option');
+        opt.value = c; opt.textContent = c;
+        sel.appendChild(opt);
+    });
+}
+
+function applyFilters() {
+    var search = document.getElementById('searchInput').value.trim().toLowerCase();
+    var network = document.getElementById('networkFilter').value;
+    var county = document.getElementById('countyFilter').value;
+    var threshold = document.getElementById('thresholdFilter').value;
+
+    filteredRows = rows.filter(function(r) {
+        if (network !== 'all' && r.network !== network) return false;
+        if (county !== 'all' && r.county !== county) return false;
+        if (threshold === 'extreme' && r.thresholdLevel !== 'extreme') return false;
+        if (threshold === 'heavy' && r.thresholdLevel === 'normal') return false;
+        if (search) {
+            var hay = (r.name + ' ' + r.ref + ' ' + r.county).toLowerCase();
+            if (hay.indexOf(search) === -1) return false;
+        }
+        return true;
+    });
+
+    sortRows();
+    page = 1;
+    render();
+}
+
+var THRESHOLD_RANK = {normal: 0, heavy: 1, extreme: 2};
+
+function sortRows() {
+    filteredRows.sort(function(a, b) {
+        var av = a[sortKey], bv = b[sortKey];
+        if (sortKey === 'thresholdLevel') { av = THRESHOLD_RANK[av]; bv = THRESHOLD_RANK[bv]; }
+        if (typeof av === 'string') { av = av.toLowerCase(); bv = bv.toLowerCase(); }
+        if (av < bv) return -1 * sortDir;
+        if (av > bv) return 1 * sortDir;
+        return 0;
+    });
+}
+
+function htmlEsc(s) {
+    return String(s).replace(/[&<>"']/g, function(c) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+}
+
+function fmtMm(v) { return v.toFixed(1) + ' mm'; }
+
+function render() {
+    var tbody = document.getElementById('tableBody');
+    var totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+    if (page > totalPages) page = totalPages;
+    var start = (page - 1) * pageSize;
+    var pageRows = filteredRows.slice(start, start + pageSize);
+
+    document.getElementById('emptyState').style.display = filteredRows.length ? 'none' : 'block';
+    document.getElementById('gaugeTable').style.display = filteredRows.length ? '' : 'none';
+
+    var html = '';
+    pageRows.forEach(function(r) {
+        html += '<tr>';
+        html += '<td><a class="gauge-link" href="gauge.html?ref=' + encodeURIComponent(r.ref) + '">' + htmlEsc(r.name) + '</a></td>';
+        html += '<td class="county-label">' + htmlEsc(r.county) + '</td>';
+        html += '<td><span class="network-pill">' + r.network + '</span></td>';
+        html += '<td>' + fmtMm(r.last1h) + '</td>';
+        html += '<td>' + fmtMm(r.last6h) + '</td>';
+        html += '<td>' + fmtMm(r.last24h) + '</td>';
+        html += '<td>' + fmtMm(r.last7d) + '</td>';
+        html += '<td>' + fmtMm(r.monthTotal) + '</td>';
+        html += '<td>' + fmtMm(r.yearTotal) + '</td>';
+        html += '<td><span class="threshold-pill ' + r.thresholdLevel + '">' + r.thresholdLevel.charAt(0).toUpperCase() + r.thresholdLevel.slice(1) + '</span></td>';
+        html += '</tr>';
+    });
+    tbody.innerHTML = html;
+
+    document.getElementById('resultsCount').textContent = filteredRows.length + ' of ' + rows.length + ' gauges';
+    document.getElementById('pageLabel').textContent = filteredRows.length
+        ? ('Page ' + page + ' of ' + totalPages)
+        : '';
+    document.getElementById('prevPage').disabled = page <= 1;
+    document.getElementById('nextPage').disabled = page >= totalPages;
+
+    document.querySelectorAll('#gaugeTable thead th').forEach(function(th) {
+        var arrow = th.querySelector('.sort-arrow');
+        if (th.dataset.key === sortKey) arrow.textContent = sortDir === 1 ? '▲' : '▼';
+        else arrow.textContent = '';
+    });
+}
+
+document.querySelectorAll('#gaugeTable thead th').forEach(function(th) {
+    th.addEventListener('click', function() {
+        var key = th.dataset.key;
+        if (sortKey === key) sortDir *= -1;
+        else { sortKey = key; sortDir = 1; }
+        sortRows();
+        render();
+    });
+});
+
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('networkFilter').addEventListener('change', applyFilters);
+document.getElementById('countyFilter').addEventListener('change', applyFilters);
+document.getElementById('thresholdFilter').addEventListener('change', applyFilters);
+document.getElementById('pageSizeSelect').addEventListener('change', function() {
+    pageSize = parseInt(this.value, 10);
+    page = 1;
+    render();
+});
+document.getElementById('prevPage').addEventListener('click', function() { if (page > 1) { page--; render(); } });
+document.getElementById('nextPage').addEventListener('click', function() {
+    var totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+    if (page < totalPages) { page++; render(); }
+});
+document.getElementById('refreshBtn').addEventListener('click', loadAll);
+
+function setRefreshLabel(ts) {
+    if (!ts) { document.getElementById('refreshLabel').textContent = ''; return; }
+    var d = new Date(ts);
+    document.getElementById('refreshLabel').textContent = 'Updated ' + d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+}
+
+function loadAll() {
+    _stationsReady = false; _summaryReady = false; _countiesReady = false;
+
+    fetch(R2_CDN + '/geo/uk-counties.geojson').then(function(r) { if (!r.ok) throw 0; return r.json(); })
+        .catch(function() { return fetch('../uk-counties.geojson').then(function(r) { return r.json(); }); })
+        .then(function(gj) { countyData = gj.features || []; })
+        .catch(function() { countyData = []; })
+        .then(function() { _countiesReady = true; buildRows(); });
+
+    fetch('stations.json?_cb=' + Date.now())
+        .then(function(r) { return r.json(); })
+        .then(function(data) { stations = data.stations || data || {}; })
+        .catch(function() { stations = {}; })
+        .then(function() { _stationsReady = true; buildRows(); });
+
+    fetch(R2_CDN + '/rain/summary.json?_cb=' + Date.now())
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            summary = data.stations || {};
+            setRefreshLabel(data.generated_at);
+        })
+        .catch(function() { summary = {}; })
+        .then(function() { _summaryReady = true; buildRows(); });
+}
+
+loadAll();
+setInterval(loadAll, 5 * 60 * 1000);
+</script>
+</body>
+</html>
