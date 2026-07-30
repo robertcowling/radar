@@ -214,17 +214,20 @@ def compute_records(stations, archives, now, rolling_totals=None):
             }
             continue
 
-        archived_month = sum(v for d, v in days.items() if d.startswith(this_month))
-        archived_year = sum(v for d, v in days.items() if d.startswith(this_year))
+        # Exclude unphysical corrupted daily gauge spikes (>250mm/day)
+        valid_days = {d: v for d, v in days.items() if 0.0 <= v <= 250.0} or days
+
+        archived_month = sum(v for d, v in valid_days.items() if d.startswith(this_month))
+        archived_year = sum(v for d, v in valid_days.items() if d.startswith(this_year))
         
         # Ensure monthTotal and yearTotal include current 24hr live rainfall
         month_total = round(max(archived_month + last24h, last24h), 2)
         year_total = round(max(archived_year + last24h, month_total), 2)
 
-        wettest_date, wettest_mm = max(days.items(), key=lambda kv: kv[1])
+        wettest_date, wettest_mm = max(valid_days.items(), key=lambda kv: kv[1])
 
         by_month = {}
-        for d, v in days.items():
+        for d, v in valid_days.items():
             by_month.setdefault(d[:7], 0.0)
             by_month[d[:7]] += v
         by_month = {m: round(v, 2) for m, v in by_month.items()}
@@ -235,13 +238,13 @@ def compute_records(stations, archives, now, rolling_totals=None):
 
         # Longest run of *consecutive calendar days* (no gaps — a gap means
         # the gauge was offline, not confirmed dry) below DRY_DAY_MM.
-        sorted_dates = sorted(days)
+        sorted_dates = sorted(valid_days)
         best_len, best_start = 0, None
         run_len, run_start = 0, None
         prev_date = None
         for d in sorted_dates:
             cur = datetime.strptime(d, "%Y-%m-%d")
-            is_dry = days[d] < DRY_DAY_MM
+            is_dry = valid_days[d] < DRY_DAY_MM
             contiguous = prev_date is not None and (cur - prev_date).days == 1
             if is_dry:
                 run_len = run_len + 1 if contiguous else 1
