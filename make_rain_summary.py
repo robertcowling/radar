@@ -46,7 +46,7 @@ ARCHIVE_PFX   = "rain/archive"
 
 # Rolling-window totals used both for the table/detail pages and for the
 # heavy/extreme threshold check.
-WINDOWS_HOURS = {"last1h": 1, "last3h": 3, "last6h": 6, "last24h": 24}
+WINDOWS_HOURS = {"last1h": 1, "last3h": 3, "last6h": 6, "last24h": 24, "last48h": 48}
 WINDOW_7D_DAYS = 7
 
 # Heavy/extreme accumulation bands — agreed set, ported verbatim from the
