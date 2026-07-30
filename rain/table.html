@@ -279,6 +279,8 @@ tbody tr:last-child td { border-bottom: none; }
 .pagination button:disabled { opacity: 0.4; cursor: default; }
 
 .empty-state { padding: 2.5rem; text-align: center; color: var(--text-muted); }
+/* Gauges whose network publishes no historical archive (NRW). */
+.no-record { color: var(--text-dark); font-style: italic; font-size: 0.78rem; }
 
 footer {
   background-color: var(--bg-base);
@@ -383,6 +385,7 @@ footer {
           <th data-key="last7d">7 day <span class="sort-arrow"></span></th>
           <th data-key="monthTotal"><span id="monthColLabel">Month</span> <span class="sort-arrow"></span></th>
           <th data-key="yearTotal"><span id="yearColLabel">Year</span> <span class="sort-arrow"></span></th>
+          <th data-key="recordYears">Record <span class="sort-arrow"></span></th>
           <th data-key="thresholdLevel">Threshold <span class="sort-arrow"></span></th>
         </tr>
       </thead>
@@ -410,6 +413,7 @@ var R2_CDN = 'https://radar.floodforecast.co.uk';
 
 var stations = {};
 var summary = {};
+var climIndex = {};   // merged EA + SEPA climatology index (record length per station)
 var countyData = [];
 var rows = [];
 var filteredRows = [];
@@ -420,6 +424,7 @@ var pageSize = 50;
 var _stationsReady = false;
 var _countiesReady = false;
 var _summaryReady = false;
+var _climReady = false;
 
 function pointInRing(pt, ring) {
     var x = pt[0], y = pt[1], inside = false;
@@ -457,13 +462,16 @@ function networkOf(s) {
 }
 
 function buildRows() {
-    if (!_stationsReady || !_summaryReady || !_countiesReady) return;
+    if (!_stationsReady || !_summaryReady || !_countiesReady || !_climReady) return;
     document.getElementById('summaryWarning').style.display = summaryLoaded ? 'none' : 'block';
     assignCounties();
     rows = Object.keys(stations).map(function(ref) {
         var s = stations[ref];
         var sum = summary[ref] || {};
+        var clim = climIndex[ref] || {};
         return {
+            recordYears: clim.recordYears != null ? clim.recordYears : null,
+            recordStart: clim.recordStart || null,
             ref: ref,
             name: s.name || ref,
             county: s.county || 'Unknown',
@@ -522,6 +530,11 @@ function sortRows() {
     filteredRows.sort(function(a, b) {
         var av = a[sortKey], bv = b[sortKey];
         if (sortKey === 'thresholdLevel') { av = THRESHOLD_RANK[av]; bv = THRESHOLD_RANK[bv]; }
+        // Stations with no published record sort last either way, rather than
+        // being treated as a zero-length record.
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
         if (typeof av === 'string') { av = av.toLowerCase(); bv = bv.toLowerCase(); }
         if (av < bv) return -1 * sortDir;
         if (av > bv) return 1 * sortDir;
@@ -559,6 +572,9 @@ function render() {
         html += '<td>' + fmtMm(r.last7d) + '</td>';
         html += '<td>' + fmtMm(r.monthTotal) + '</td>';
         html += '<td>' + fmtMm(r.yearTotal) + '</td>';
+        html += '<td>' + (r.recordYears != null
+            ? '<span title="Record from ' + r.recordStart + '">' + r.recordYears.toFixed(0) + ' yr</span>'
+            : '<span class="no-record" title="No published historical archive for this network">Live only</span>') + '</td>';
         html += '<td><span class="threshold-pill ' + r.thresholdLevel + '">' + r.thresholdLevel.charAt(0).toUpperCase() + r.thresholdLevel.slice(1) + '</span></td>';
         html += '</tr>';
     });
@@ -620,7 +636,7 @@ function setRefreshLabel(ts) {
 })();
 
 function loadAll() {
-    _stationsReady = false; _summaryReady = false; _countiesReady = false;
+    _stationsReady = false; _summaryReady = false; _countiesReady = false; _climReady = false;
     document.getElementById('refreshLabel').textContent = 'Loading…';
 
     fetch(R2_CDN + '/geo/uk-counties.geojson').then(function(r) { if (!r.ok) throw 0; return r.json(); })
@@ -634,6 +650,17 @@ function loadAll() {
         .then(function(data) { stations = data.stations || data || {}; })
         .catch(function() { stations = {}; })
         .then(function() { _stationsReady = true; buildRows(); });
+
+    // Two index files, one per network — the builders run as separate jobs
+    // and a shared index raced.
+    Promise.all(['ea', 'sepa'].map(function(net) {
+        return fetch(R2_CDN + '/rain/climatology_index_' + net + '.json?_cb=' + Date.now())
+            .then(function(r) { if (!r.ok) throw 0; return r.json(); })
+            .catch(function() { return {}; });
+    })).then(function(parts) {
+        climIndex = Object.assign({}, parts[0], parts[1]);
+    }).catch(function() { climIndex = {}; })
+      .then(function() { _climReady = true; buildRows(); });
 
     fetch(R2_CDN + '/rain/summary.json?_cb=' + Date.now())
         .then(function(r) { if (!r.ok) throw 0; return r.json(); })

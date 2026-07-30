@@ -126,9 +126,32 @@ nav {
 .monthly-scroll { display: flex; gap: 0.6rem; overflow-x: auto; padding-bottom: 0.4rem; }
 .month-tile { flex: 0 0 auto; width: 78px; text-align: center; }
 .month-tile .month-label { font-size: 0.72rem; color: var(--text-muted); }
-.month-bar-track { height: 90px; display: flex; align-items: flex-end; justify-content: center; margin: 4px 0; }
-.month-bar { width: 22px; background: var(--brand-500); border-radius: 3px 3px 0 0; min-height: 2px; }
+.month-bar-track { height: 90px; display: flex; align-items: flex-end; justify-content: center; margin: 4px 0; position: relative; }
+.month-bar { width: 22px; background: var(--brand-500); border-radius: 3px 3px 0 0; min-height: 2px; position: relative; z-index: 1; }
+.month-bar.above { background: #1557b0; }
+.month-bar.below { background: #b07d2a; }
 .month-tile .month-mm { font-size: 0.72rem; font-weight: 600; }
+.month-tile .month-mm.above { color: #1557b0; }
+.month-tile .month-mm.below { color: #b07d2a; }
+.month-tile .month-avg { font-size: 0.64rem; color: var(--text-dark); }
+/* Incomplete/in-progress months: shown, but never judged against a normal. */
+.month-bar.partial { background: var(--text-dark); opacity: 0.45; }
+.month-tile .month-mm.partial { color: var(--text-muted); font-weight: 400; }
+/* Normal range (P10-P90) for that calendar month, drawn behind the bar. */
+.norm-band {
+  position: absolute; left: 4px; right: 4px; z-index: 0;
+  background: rgba(26,115,232,0.10);
+  border-top: 1px dashed rgba(26,115,232,0.55);
+  border-bottom: 1px dashed rgba(26,115,232,0.55);
+}
+.norm-mean { position: absolute; left: 2px; right: 2px; height: 0; border-top: 1px solid var(--text-dark); opacity: 0.55; z-index: 2; }
+@media (prefers-color-scheme: dark) {
+  .month-bar.above { background: #8ab4f8; }
+  .month-bar.below { background: #fbbf24; }
+  .month-tile .month-mm.above { color: #8ab4f8; }
+  .month-tile .month-mm.below { color: #fbbf24; }
+  .norm-band { background: rgba(138,180,248,0.12); border-color: rgba(138,180,248,0.5); }
+}
 
 .records-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.85rem; }
 .record-tile { background: var(--bg-base); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.85rem 1rem; }
@@ -207,6 +230,7 @@ var archiveDays = {};   // {date: mm} for this station, merged across fetched ye
 var rawByDate = {};     // {dateKey(YYYYMMDD): {readings: {stationId: {slot: mm}}}}
 var chartTab = '24h';
 var summaryGeneratedAt = null;
+var climatology = null;   // rain/climatology/{ref}.json — decades deep, EA/SEPA only
 
 function htmlEsc(s) { return String(s).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function fmtMm(v) { return (v == null ? 0 : v).toFixed(1) + ' mm'; }
@@ -257,7 +281,7 @@ function loadAll() {
         renderMap(s);
         renderMeta(s, sum);
 
-        loadArchive(sum).then(function() {
+        Promise.all([loadArchive(sum), loadClimatology()]).then(function() {
             renderMonthlyOverview();
             renderRecords(sum);
             renderChart();
@@ -393,6 +417,15 @@ function renderMeta(s, sum) {
     document.getElementById('content').insertAdjacentHTML('beforeend', html);
 }
 
+// Absent for NRW gauges (no public historical source) — a 404 is expected
+// there and simply leaves the page on its short rolling record.
+function loadClimatology() {
+    return fetch(R2_CDN + '/rain/climatology/' + encodeURIComponent(ref) + '.json?_cb=' + Date.now())
+        .then(function(r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function(data) { climatology = data; })
+        .catch(function() { climatology = null; });
+}
+
 function loadArchive(sum) {
     var years = [];
     var currentYear = new Date().getUTCFullYear();
@@ -408,50 +441,126 @@ function loadArchive(sum) {
     }));
 }
 
-function renderMonthlyOverview() {
+// Monthly totals come from the deep climatology series when this gauge has
+// one (EA/SEPA, decades), otherwise from the short rolling archive (NRW —
+// no historical source is publicly available for that network).
+function monthlySeries() {
+    if (climatology && climatology.monthly && Object.keys(climatology.monthly).length) {
+        return {months: climatology.monthly, deep: true};
+    }
     var byMonth = {};
     Object.keys(archiveDays).forEach(function(d) {
         var m = d.slice(0, 7);
         byMonth[m] = (byMonth[m] || 0) + archiveDays[d];
     });
+    return {months: byMonth, deep: false};
+}
+
+function renderMonthlyOverview() {
+    var series = monthlySeries();
+    var byMonth = series.months;
     var months = Object.keys(byMonth).sort();
-    var maxVal = Math.max.apply(null, months.map(function(m) { return byMonth[m]; }).concat([1]));
+    var norms = (climatology && climatology.climatology) || {};
+
+    // Scale bars against the P90 band top too, so an average month doesn't
+    // render taller than the band it is supposed to sit inside.
+    var peak = months.reduce(function(a, m) { return Math.max(a, byMonth[m]); }, 1);
+    Object.keys(norms).forEach(function(k) { peak = Math.max(peak, norms[k].p90); });
 
     var html = '<div class="section"><h2>Monthly rainfall overview</h2>';
     if (!months.length) {
         html += '<div style="color:var(--text-muted);font-size:0.85rem">No completed months recorded yet for this gauge.</div>';
     } else {
-        html += '<div class="subtitle">Actual monthly totals since records began for this gauge &mdash; no long-term climatological average is available.</div>';
+        if (series.deep && Object.keys(norms).length) {
+            html += '<div class="subtitle">Monthly totals against this gauge\'s own long-term average. '
+                 + 'The shaded band is the normal range (P10&ndash;P90) for that calendar month.</div>';
+        } else if (series.deep) {
+            html += '<div class="subtitle">Monthly totals from this gauge\'s full record. Too few complete years to publish monthly normals.</div>';
+        } else {
+            html += '<div class="subtitle">Recent monthly totals only &mdash; no long-term record is published for this gauge\'s network.</div>';
+        }
         html += '<div class="monthly-scroll">';
         months.forEach(function(m) {
             var v = byMonth[m];
-            var h = Math.max(4, Math.round((v / maxVal) * 86));
+            var n = norms[m.slice(5, 7)];
+            var h = Math.max(4, Math.round((v / peak) * 86));
             var d = new Date(m + '-01T00:00:00Z');
             var label = d.toLocaleDateString([], {month: 'short', year: 'numeric', timeZone: 'UTC'});
-            html += '<div class="month-tile"><div class="month-mm">' + v.toFixed(0) + 'mm</div>'
-                + '<div class="month-bar-track"><div class="month-bar" style="height:' + h + 'px"></div></div>'
-                + '<div class="month-label">' + label + '</div></div>';
+            var band = '';
+            if (n) {
+                var bTop = Math.round((n.p90 / peak) * 86);
+                var bBot = Math.round((n.p10 / peak) * 86);
+                band = '<div class="norm-band" style="bottom:' + bBot + 'px;height:' + Math.max(bTop - bBot, 2) + 'px"></div>'
+                     + '<div class="norm-mean" style="bottom:' + Math.round((n.mean / peak) * 86) + 'px"></div>';
+            }
+            // A month missing days (or still running) must not be judged
+            // against a full-month normal — it would read as "below average"
+            // purely for being incomplete.
+            var dayCounts = (climatology && climatology.monthDayCounts) || {};
+            var dim = new Date(Date.UTC(+m.slice(0, 4), +m.slice(5, 7), 0)).getUTCDate();
+            var partial = dayCounts[m] != null && dayCounts[m] / dim < 0.9;
+            var vs = (n && !partial) ? (v > n.p90 ? ' above' : v < n.p10 ? ' below' : '')
+                                     : (partial ? ' partial' : '');
+            html += '<div class="month-tile"><div class="month-mm' + vs + '">' + v.toFixed(0) + 'mm</div>'
+                + '<div class="month-bar-track">' + band
+                + '<div class="month-bar' + vs + '" style="height:' + h + 'px"></div></div>'
+                + '<div class="month-label">' + label + '</div>'
+                + (partial ? '<div class="month-avg">partial month</div>'
+                           : n ? '<div class="month-avg">avg ' + n.mean.toFixed(0) + 'mm</div>' : '')
+                + '</div>';
         });
         html += '</div>';
+        if (series.deep && Object.keys(norms).length) {
+            html += '<div class="records-caption">Normals from ' + climatology.recordStart.slice(0, 4)
+                 + '&ndash;' + climatology.recordEnd.slice(0, 4) + ', calendar months with at least 5 complete years of record.</div>';
+        }
     }
     html += '</div>';
     document.getElementById('content').insertAdjacentHTML('beforeend', html);
 }
 
 function renderRecords(sum) {
+    // Prefer the deep record (decades) over the short rolling archive.
+    var deep = climatology && climatology.records;
+    var r = deep ? climatology.records : sum;
+
     var html = '<div class="section"><h2>Rainfall records</h2><div class="records-grid">';
     var tiles = [
-        ['Wettest day', sum.wettestDay ? fmtMm(sum.wettestDay.mm) : '&ndash;', sum.wettestDay ? sum.wettestDay.date : ''],
-        ['Wettest month', sum.wettestMonth ? fmtMm(sum.wettestMonth.mm) : '&ndash;', sum.wettestMonth ? sum.wettestMonth.month : ''],
-        ['Driest month', sum.driestMonth ? fmtMm(sum.driestMonth.mm) : '&ndash;', sum.driestMonth ? sum.driestMonth.month : ''],
-        ['Longest dry spell', sum.longestDrySpell ? sum.longestDrySpell.days + ' days' : '&ndash;', sum.longestDrySpell ? ('from ' + sum.longestDrySpell.from) : '']
+        ['Wettest day', r.wettestDay ? fmtMm(r.wettestDay.mm) : '&ndash;', r.wettestDay ? r.wettestDay.date : ''],
+        ['Wettest month', r.wettestMonth ? fmtMm(r.wettestMonth.mm) : '&ndash;', r.wettestMonth ? r.wettestMonth.month : ''],
+        ['Driest month', r.driestMonth ? fmtMm(r.driestMonth.mm) : '&ndash;', r.driestMonth ? r.driestMonth.month : ''],
+        ['Longest dry spell', r.longestDrySpell ? r.longestDrySpell.days + ' days' : '&ndash;', r.longestDrySpell ? ('from ' + r.longestDrySpell.from) : '']
     ];
     tiles.forEach(function(t) {
         html += '<div class="record-tile"><div class="record-value">' + t[1] + '</div>'
             + '<div class="record-label">' + t[0] + '</div>'
             + (t[2] ? '<div class="record-date">' + t[2] + '</div>' : '') + '</div>';
     });
-    html += '</div><div class="records-caption">Records since ' + (sum.recordsSince || 'this gauge was added to the table') + ' &mdash; not a multi-decade climatological record.</div></div>';
+    html += '</div>';
+
+    if (deep) {
+        var c = climatology;
+        var caption = 'Records from this gauge\'s full published record, ' + c.recordStart + ' to '
+            + c.recordEnd + ' (' + c.recordYears + ' years).';
+        if (c.completeMonths != null && c.totalMonths) {
+            caption += ' ' + c.completeMonths + ' of ' + c.totalMonths
+                + ' months have enough valid days to count as complete totals.';
+        }
+        if (c.qualityGoodPct != null) {
+            caption += ' ' + c.qualityGoodPct + '% of daily values are flagged Good by the Environment Agency; '
+                + 'the rest are estimated, unchecked or suspect but still included.';
+        }
+        if (c.source === 'sepa') {
+            caption += ' SEPA daily totals are labelled by the start of the 09:00 accumulation window, '
+                + 'so a single-day attribution can differ by one day from Met Office convention.';
+        }
+        html += '<div class="records-caption">' + caption + '</div>';
+    } else {
+        html += '<div class="records-caption">Records since ' + (sum.recordsSince || 'this gauge was added to the table')
+            + ' &mdash; a short rolling record, not a multi-decade climatology. '
+            + 'No historical archive is publicly available for this gauge\'s network.</div>';
+    }
+    html += '</div>';
     document.getElementById('content').insertAdjacentHTML('beforeend', html);
 }
 
