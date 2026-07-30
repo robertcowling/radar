@@ -1,0 +1,52 @@
+name: Build Rain Climatology
+
+# One-time (re-runnable, resumable) build of multi-decade per-gauge rainfall
+# climatology from the EA Hydrology API's daily measure — monthly normals,
+# P10/P90 bands, all-time records. Fetches one station's full record at a
+# time, reduces it to ~15 KB of derived stats, discards the raw data, moves on.
+# Manual trigger only; not part of the 15-min data pipeline.
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit_stations:
+        description: 'Process only N stations (0 = all, for smoke tests)'
+        required: false
+        default: '0'
+      force:
+        description: 'Set to 1 to recompute stations already in the index'
+        required: false
+        default: '0'
+
+permissions:
+  contents: read
+
+jobs:
+  climatology:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Build per-gauge climatology
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+        LIMIT_STATIONS: ${{ github.event.inputs.limit_stations }}
+        FORCE: ${{ github.event.inputs.force }}
+      run: python -u build_rain_climatology.py
