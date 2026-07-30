@@ -29,12 +29,9 @@ Requires R2 env vars (same set as fetch_rain.py).
 """
 
 import csv
-import io
-import json
 import math
 import os
 import sys
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 
@@ -49,12 +46,6 @@ INDEX_KEY = "rain/climatology_index_nrw.json"
 CEDA_BASE = "https://dap.ceda.ac.uk/badc/ukmo-midas-open/data/uk-daily-rain-obs"
 DATASET_VERSION = "dataset-version-202607"
 METADATA_URL = f"{CEDA_BASE}/{DATASET_VERSION}/midas-open_uk-daily-rain-obs_dv-202607_station-metadata.csv"
-
-# Welsh historic county directories with daily rainfall data (as of 202607)
-WELSH_COUNTIES = ["gwynedd", "dyfed", "clwyd", "powys", "powys-north", "powys-south",
-                  "glamorganshire", "mid-glamorgan", "south-glamorgan", "west-glamorgan",
-                  "carmarthenshire", "cardiganshire", "ceredigion", "pembrokeshire",
-                  "monmouthshire", "denbighshire", "flintshire", "gwent"]
 
 MAX_WORKERS = 2
 CEDA_TOKEN = os.environ.get("CEDA_TOKEN")
@@ -89,41 +80,47 @@ def fetch_midas_metadata():
         print(f"Error fetching MIDAS metadata: {e}")
         return None
 
+    # Station names can contain commas (e.g. "NORTH RONALDSAY, GERBO") and are
+    # CSV-quoted, so this needs a real CSV parser rather than naive .split(",").
     metadata = {}
+    data_lines = []
     in_data = False
-    header_row = None
     for line in r.text.split("\n"):
         if line.startswith("data"):
             in_data = True
             continue
         if line.startswith("end data"):
             break
-        if not in_data:
+        if not in_data or not line.strip():
             continue
-        if not line.strip():
-            continue
+        data_lines.append(line)
 
+    reader = csv.reader(data_lines)
+    header_row = None
+    for parts in reader:
         if header_row is None:
-            header_row = line.split(",")
+            header_row = [p.strip() for p in parts]
             continue
-
-        parts = [p.strip() for p in line.split(",")]
         if len(parts) < len(header_row):
             continue
         try:
-            row = dict(zip(header_row, parts))
+            row = dict(zip(header_row, [p.strip() for p in parts]))
             src_id = row.get("src_id", "").strip()
             lat = float(row.get("station_latitude", 0))
             lon = float(row.get("station_longitude", 0))
             name = row.get("station_name", "").strip()
+            file_name = row.get("station_file_name", "").strip()
+            county = row.get("historic_county", "").strip()
             first_year = int(row.get("first_year", 1961))
             last_year = int(row.get("last_year", 2026))
-            if not src_id or not lat or not lon:
+            if not src_id or not lat or not lon or not file_name or not county:
                 continue
             metadata[src_id] = {
                 "lat": lat,
                 "lon": lon,
                 "name": name,
+                "file_name": file_name,
+                "county": county,
                 "first_year": first_year,
                 "last_year": last_year,
             }
@@ -133,30 +130,50 @@ def fetch_midas_metadata():
     return metadata if metadata else None
 
 
-def fetch_midas_csv(station_slug, year):
-    """Fetch a BADC-CSV file from MIDAS for a station-year. Returns CSV text or None."""
-    path = f"{CEDA_BASE}/{DATASET_VERSION}/{station_slug}/qc-version-1/{year}.csv"
+def fetch_midas_csv(county, src_id, file_name, year):
+    """Fetch a BADC-CSV file from MIDAS for a station-year. Returns CSV text or None.
+
+    Path/filename convention confirmed by directory listing:
+    {county}/{src_id}_{file_name}/qc-version-1/
+      midas-open_uk-daily-rain-obs_dv-202607_{county}_{src_id}_{file_name}_qcv-1_{year}.csv
+    """
+    fname = f"midas-open_uk-daily-rain-obs_dv-202607_{county}_{src_id}_{file_name}_qcv-1_{year}.csv"
+    path = f"{CEDA_BASE}/{DATASET_VERSION}/{county}/{src_id}_{file_name}/qc-version-1/{fname}"
     headers = {}
     if CEDA_TOKEN:
         headers["Authorization"] = f"Bearer {CEDA_TOKEN}"
     try:
         r = requests.get(path, timeout=30, headers=headers)
         if r.status_code == 401:
-            print(f"    401 Unauthorized fetching {station_slug}/{year}")
+            print(f"    401 Unauthorized fetching {county}/{src_id}/{year}")
             return None
         if r.status_code == 404:
             return None
         r.raise_for_status()
         return r.text
     except Exception as e:
-        print(f"    fetch failed for {station_slug}/{year}: {e}")
+        print(f"    fetch failed for {county}/{src_id}/{year}: {e}")
         return None
 
 
 def parse_badc_csv(text):
-    """Parse BADC-CSV format. -> {YYYY-MM-DD: mm}"""
+    """Parse BADC-CSV format (header block, then 'data'/'end data' block with a
+    CSV header row naming columns — ob_date, prcp_amt, etc). -> {YYYY-MM-DD: mm}
+
+    Missing values are flagged 'NA' in prcp_amt per the file's own G-block
+    (missing_value,G,NA) and are excluded rather than treated as zero rainfall.
+
+    ob_day_cnt is the number of days the reading accumulates (usually 1, i.e.
+    a true daily total). When a gauge isn't visited for a while MIDAS records
+    the backlog as one multi-day "catch-up" total with ob_day_cnt > 1 on the
+    day it was finally read (confirmed against a real row: Bala 2025-01-01,
+    ob_day_cnt=31, prcp_amt=243.6mm). Attributing that whole total to a single
+    date would fabricate an extreme "wettest day" record and corrupt dry-spell
+    detection, so only ob_day_cnt == 1 rows are treated as daily totals.
+    """
     days = {}
     in_data = False
+    header = None
     for line in text.split("\n"):
         if line.startswith("data"):
             in_data = True
@@ -165,16 +182,25 @@ def parse_badc_csv(text):
             break
         if not in_data or not line.strip():
             continue
-        parts = [p.strip() for p in line.split(",")]
-        if len(parts) < 2:
+        if header is None:
+            header = line.split(",")
+            continue
+        parts = line.split(",")
+        if len(parts) < len(header):
+            continue
+        row = dict(zip(header, parts))
+        raw_date = row.get("ob_date", "")
+        raw_val = row.get("prcp_amt", "NA")
+        if not raw_date or raw_val == "NA":
+            continue
+        if row.get("ob_day_cnt", "1") != "1":
             continue
         try:
-            d = parts[0]
-            v = float(parts[1])
+            v = float(raw_val)
             if v < 0:
                 continue
-            days[d] = v
-        except (ValueError, IndexError):
+            days[raw_date[:10]] = v
+        except (ValueError, TypeError):
             continue
     return days
 
@@ -231,12 +257,15 @@ def main():
                 best_src_id = src_id
 
         if best_src_id and best_dist < MATCH_RADIUS_KM:
+            m = midas_meta[best_src_id]
             matches[ref] = {
                 "src_id": best_src_id,
                 "dist_km": round(best_dist, 2),
-                "midas_name": midas_meta[best_src_id]["name"],
-                "first_year": midas_meta[best_src_id]["first_year"],
-                "last_year": midas_meta[best_src_id]["last_year"],
+                "midas_name": m["name"],
+                "file_name": m["file_name"],
+                "county": m["county"],
+                "first_year": m["first_year"],
+                "last_year": m["last_year"],
             }
         else:
             unmatched.append(ref)
@@ -254,19 +283,18 @@ def main():
     index = r2_get_json(r2, INDEX_KEY, {}) or {}
     todo = list(matches.items())
     if not force:
-        todo = [(ref, m) for ref, m in todo if f"nrw_{ref.split('_')[-1]}" not in index]
+        todo = [(ref, m) for ref, m in todo if ref not in index]
         print(f"{len(todo)} still to process ({len(matches) - len(todo)} already in index)")
     if limit:
         todo = todo[:limit]
         print(f"LIMIT_STATIONS={limit} — processing {len(todo)}")
 
-    today_str = date.today().strftime("%Y-%m-%d")
-
     def process(ref_match):
         ref, match_info = ref_match
         src_id = match_info["src_id"]
-        station_no = ref.split("_")[-1]
-        nrw_sid = f"nrw_{station_no}"
+        county = match_info["county"]
+        file_name = match_info["file_name"]
+        nrw_sid = ref
         nrw_name = nrw_stations[ref].get("name", nrw_sid)
 
         first_year = match_info["first_year"]
@@ -275,8 +303,7 @@ def main():
         # Fetch all years for this station from MIDAS.
         all_days = {}
         for year in range(first_year, last_year + 1):
-            year_str = str(year)
-            csv_text = fetch_midas_csv(f"{src_id}", year_str)
+            csv_text = fetch_midas_csv(county, src_id, file_name, year)
             if csv_text:
                 days = parse_badc_csv(csv_text)
                 all_days.update(days)

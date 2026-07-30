@@ -1,38 +1,53 @@
 name: Build NRW Climatology
 
+# One-time (re-runnable, resumable) build of multi-decade per-gauge rainfall
+# climatology for NRW/Welsh gauges, matched by lat/lon to MIDAS Open on CEDA
+# (NRW's own telemetry has no historical archive). Fetches one station's full
+# record at a time, reduces it to derived stats, discards the raw data, moves on.
+# Manual trigger only; not part of the 15-min data pipeline.
+
 on:
-  schedule:
-    - cron: "0 * * * *"  # hourly at :00
   workflow_dispatch:
     inputs:
       limit_stations:
-        description: Limit to N stations (smoke test)
+        description: 'Process only N stations (0 = all, for smoke tests)'
         required: false
-      force_rerun:
-        description: Reprocess all stations (bypass index)
+        default: '0'
+      force:
+        description: 'Set to 1 to recompute stations already in the index'
         required: false
+        default: '0'
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  climatology:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
+
     steps:
-      - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install boto3 requests
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      - name: Build NRW climatology
-        env:
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY: ${{ secrets.R2_ACCESS_KEY }}
-          R2_SECRET_KEY: ${{ secrets.R2_SECRET_KEY }}
-          CEDA_TOKEN: ${{ secrets.CEDA_TOKEN }}
-          LIMIT_STATIONS: ${{ github.event.inputs.limit_stations }}
-          FORCE: ${{ github.event.inputs.force_rerun && '1' || '0' }}
-        run: |
-          python3 build_nrw_climatology.py
+    - name: Build per-gauge climatology
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+        CEDA_TOKEN: ${{ secrets.CEDA_TOKEN }}
+        LIMIT_STATIONS: ${{ github.event.inputs.limit_stations }}
+        FORCE: ${{ github.event.inputs.force }}
+      run: python -u build_nrw_climatology.py
