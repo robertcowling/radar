@@ -137,10 +137,20 @@ def parse_daily_csv(text):
     return days, n_good, n_valid
 
 
-def compute_climatology(days):
+def month_fully_elapsed(month_key, today):
+    """True only once the calendar month has completely finished. An
+    in-progress month must never be treated as a monthly total: with a 90%
+    day threshold, day 28 of a 31-day month passes, so a dry start to the
+    current month would otherwise land as the station's all-time driest."""
+    y, mo = int(month_key[:4]), int(month_key[5:7])
+    return date(y, mo, days_in_month(y, mo)) < today
+
+
+def compute_climatology(days, today=None):
     """days: {YYYY-MM-DD: mm} -> derived stats dict (no raw days retained)."""
     if not days:
         return None
+    today = today or date.today()
 
     monthly = defaultdict(float)
     month_day_counts = defaultdict(int)
@@ -153,10 +163,14 @@ def compute_climatology(days):
     monthly = {m: round(v, 2) for m, v in monthly.items()}
     annual = {y: round(v, 2) for y, v in annual.items()}
 
-    # Months complete enough to represent a real monthly total.
+    # A month counts as a real monthly total only if it has both fully
+    # elapsed and enough valid days, so in-progress and gap-ridden months
+    # are never compared against finished ones.
     complete_months = {}
     for m, total in monthly.items():
         y, mo = int(m[:4]), int(m[5:7])
+        if not month_fully_elapsed(m, today):
+            continue
         if month_day_counts[m] / days_in_month(y, mo) >= MIN_MONTH_COMPLETENESS:
             complete_months[m] = total
 
