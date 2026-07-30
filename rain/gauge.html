@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">Rain Gauge | Flood Forecast</title>
+<meta name="description" content="Rainfall totals, records and history for a UK rain gauge.">
+
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+:root {
+  --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --bg-base: #f8f9fa;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f1f3f4;
+  --border-color: #dde1e7;
+  --text-main: #202124;
+  --text-muted: #5f6368;
+  --text-dark: #80868b;
+  --brand-500: #1a73e8;
+  --heavy-bg: #fff3e0; --heavy-text: #b06000; --heavy-border: #ef6c00;
+  --extreme-bg: #fce8e6; --extreme-text: #c5221f; --extreme-border: #c62828;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-base: #0f172a;
+    --bg-surface: #1e293b;
+    --bg-surface-hover: #334155;
+    --border-color: #334155;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-dark: #64748b;
+    --heavy-bg: rgba(245,158,11,0.12); --heavy-text: #fbbf24; --heavy-border: #f59e0b;
+    --extreme-bg: rgba(239,68,68,0.12); --extreme-text: #f87171; --extreme-border: #ef4444;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-base);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+nav {
+  background-color: #0f172a; color: #fff;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  position: sticky; top: 0; z-index: 1001; height: 64px;
+  display: flex; align-items: center;
+}
+.nav-container { max-width: 96rem; width: 100%; margin: 0 auto; padding: 0 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+.nav-brand { display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: #fff; font-weight: 700; font-size: 1.25rem; }
+.brand-logo-fallback { width: 32px; height: 32px; border-radius: 50%; background-color: #3b82f6; display: flex; align-items: center; justify-content: center; color: #fff; }
+.nav-links { display: flex; gap: 0.5rem; }
+.nav-link { padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.875rem; font-weight: 500; color: #cbd5e1; text-decoration: none; }
+.nav-link:hover { background-color: #1e293b; color: #fff; }
+.nav-link.active { background-color: #1e293b; color: #fff; font-weight: 700; }
+
+.main-wrap { flex: 1; padding: 2rem 1.5rem 3rem; width: 100%; max-width: 72rem; margin: 0 auto; }
+
+.back-link { display: inline-block; font-size: 0.82rem; color: var(--text-muted); text-decoration: none; margin-bottom: 0.75rem; }
+.back-link:hover { color: var(--brand-500); }
+
+.header-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.header-card h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.2rem; }
+.header-meta { font-size: 0.85rem; color: var(--text-muted); }
+.header-meta .network-pill {
+  display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 1px 8px;
+  border-radius: 10px; background: var(--bg-surface-hover); color: var(--text-muted); margin-right: 6px;
+}
+.rate-block { text-align: right; }
+.rate-value { font-size: 2rem; font-weight: 700; line-height: 1; }
+.rate-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+.updated-label { font-size: 0.75rem; color: var(--text-dark); margin-top: 6px; }
+.refresh-button {
+  background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main);
+  padding: 0.4rem 0.85rem; border-radius: 20px; font-size: 0.78rem; font-weight: 500; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 6px;
+}
+.refresh-button:hover { background: var(--bg-surface-hover); }
+
+.section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.section h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.9rem; }
+.section .subtitle { font-size: 0.78rem; color: var(--text-muted); margin-top: -0.6rem; margin-bottom: 0.9rem; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.85rem; }
+.stat-tile { background: var(--bg-base); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 0.9rem; }
+.stat-tile .stat-value { font-size: 1.25rem; font-weight: 700; }
+.stat-tile .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+.chart-tabs { display: flex; gap: 0.4rem; margin-bottom: 0.9rem; }
+.chart-tabs button {
+  font-family: var(--font-family); font-size: 0.78rem; font-weight: 500; padding: 0.35rem 0.85rem;
+  border-radius: 16px; border: 1px solid var(--border-color); background: var(--bg-base); color: var(--text-muted); cursor: pointer;
+}
+.chart-tabs button.active { background: var(--brand-500); border-color: var(--brand-500); color: #fff; }
+.chart-wrap { overflow-x: auto; }
+
+.monthly-scroll { display: flex; gap: 0.6rem; overflow-x: auto; padding-bottom: 0.4rem; }
+.month-tile { flex: 0 0 auto; width: 78px; text-align: center; }
+.month-tile .month-label { font-size: 0.72rem; color: var(--text-muted); }
+.month-bar-track { height: 90px; display: flex; align-items: flex-end; justify-content: center; margin: 4px 0; }
+.month-bar { width: 22px; background: var(--brand-500); border-radius: 3px 3px 0 0; min-height: 2px; }
+.month-tile .month-mm { font-size: 0.72rem; font-weight: 600; }
+
+.records-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.85rem; }
+.record-tile { background: var(--bg-base); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.85rem 1rem; }
+.record-tile .record-value { font-size: 1.3rem; font-weight: 700; }
+.record-tile .record-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+.record-tile .record-date { font-size: 0.72rem; color: var(--text-dark); margin-top: 1px; }
+.records-caption { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.75rem; }
+
+.threshold-rows { display: flex; flex-direction: column; gap: 0.5rem; }
+.threshold-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; }
+.threshold-pill { font-size: 0.7rem; font-weight: 700; padding: 2px 9px; border-radius: 10px; }
+.threshold-pill.normal { background: var(--bg-surface-hover); color: var(--text-muted); }
+.threshold-pill.heavy { background: var(--heavy-bg); color: var(--heavy-text); border: 1px solid var(--heavy-border); }
+.threshold-pill.extreme { background: var(--extreme-bg); color: var(--extreme-text); border: 1px solid var(--extreme-border); }
+
+.nearby-list { display: flex; flex-direction: column; }
+.nearby-row { display: flex; justify-content: space-between; align-items: center; padding: 0.55rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; text-decoration: none; color: var(--text-main); }
+.nearby-row:last-child { border-bottom: none; }
+.nearby-row:hover { color: var(--brand-500); }
+.nearby-row .nearby-dist { color: var(--text-muted); font-size: 0.78rem; }
+.nearby-row .nearby-total { font-weight: 600; }
+
+#miniMap { height: 260px; border-radius: 10px; }
+
+.meta-table { width: 100%; font-size: 0.82rem; border-collapse: collapse; }
+.meta-table td { padding: 0.3rem 0.5rem 0.3rem 0; color: var(--text-muted); }
+.meta-table td:last-child { color: var(--text-main); font-weight: 500; text-align: right; }
+
+footer {
+  background-color: var(--bg-base); border-top: 1px solid var(--border-color);
+  padding: 2rem 0; color: var(--text-muted); font-size: 0.875rem;
+}
+.footer-container { max-width: 96rem; width: 100%; margin: 0 auto; padding: 0 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+.footer-link { color: var(--text-muted); text-decoration: none; }
+.footer-link:hover { color: var(--text-main); }
+
+.not-found { text-align: center; padding: 3rem; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-container">
+    <a href="/" class="nav-brand">
+      <div class="brand-logo-fallback"><span class="material-icons" style="font-size:18px;">water</span></div>
+      <span style="word-spacing:-0.09em;">Flood Forecast</span>
+    </a>
+    <div class="nav-links">
+      <a href="/" class="nav-link">FGS</a>
+      <a href="/radar" class="nav-link">Radar</a>
+      <a href="/rain" class="nav-link active">Obs</a>
+      <a href="/ukv" class="nav-link">NWP</a>
+      <a href="/status/" class="nav-link">Status</a>
+    </div>
+  </div>
+</nav>
+
+<main class="main-wrap">
+  <a href="table.html" class="back-link">&larr; Back to gauge table</a>
+  <div id="content"></div>
+</main>
+
+<footer>
+  <div class="footer-container">
+    <p>Data provided by Environment Agency, Natural Resources Wales &amp; SEPA.</p>
+    <p>Duration totals &amp; records computed by Flood Forecast &bull; <a href="/" class="footer-link">Back to home</a></p>
+  </div>
+</footer>
+
+<script>
+var R2_CDN = 'https://radar.floodforecast.co.uk';
+var ref = new URLSearchParams(location.search).get('ref');
+var stations = {};
+var summaryStations = {};
+var archiveDays = {};   // {date: mm} for this station, merged across fetched years
+var rawByDate = {};     // {dateKey(YYYYMMDD): {readings: {stationId: {slot: mm}}}}
+var chartTab = '24h';
+var summaryGeneratedAt = null;
+
+function htmlEsc(s) { return String(s).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function fmtMm(v) { return (v == null ? 0 : v).toFixed(1) + ' mm'; }
+function pad2(n) { return String(n).padStart(2, '0'); }
+function dateKeyOf(d) { return d.getUTCFullYear() + pad2(d.getUTCMonth()+1) + pad2(d.getUTCDate()); }
+
+function networkOf(s) {
+    if (s.source === 'nrw') return 'NRW';
+    if (s.source === 'sepa') return 'SEPA';
+    return 'EA';
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+    var R = 6371;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+        Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+if (!ref) {
+    document.getElementById('content').innerHTML = '<div class="not-found">No gauge specified. <a href="table.html">Back to table</a></div>';
+} else {
+    loadAll();
+}
+
+function loadAll() {
+    Promise.all([
+        fetch('stations.json?_cb=' + Date.now()).then(function(r) { return r.json(); }).catch(function() { return {}; }),
+        fetch(R2_CDN + '/rain/summary.json?_cb=' + Date.now()).then(function(r) { return r.json(); }).catch(function() { return {}; })
+    ]).then(function(results) {
+        stations = (results[0] && results[0].stations) || {};
+        summaryStations = (results[1] && results[1].stations) || {};
+        summaryGeneratedAt = (results[1] && results[1].generated_at) || null;
+
+        var s = stations[ref];
+        if (!s) {
+            document.getElementById('content').innerHTML = '<div class="not-found">Gauge "' + htmlEsc(ref) + '" not found. <a href="table.html">Back to table</a></div>';
+            return;
+        }
+
+        var sum = summaryStations[ref] || {};
+        renderHeader(s, sum);
+        renderStatTiles(sum);
+        renderThresholds(sum);
+        renderNearby(s);
+        renderMap(s);
+        renderMeta(s, sum);
+
+        loadArchive(sum).then(function() {
+            renderMonthlyOverview();
+            renderRecords(sum);
+            renderChart();
+        });
+        loadTodayReadings();
+    });
+}
+
+function loadTodayReadings() {
+    var now = new Date();
+    var days = [now, new Date(now - 86400000)];
+    Promise.all(days.map(function(d) {
+        var dk = dateKeyOf(d);
+        return fetch(R2_CDN + '/rain/readings/' + dk + '.json?_cb=' + Date.now())
+            .then(function(r) { if (!r.ok) throw 0; return r.json(); })
+            .then(function(data) { rawByDate[dk] = data; })
+            .catch(function() {});
+    })).then(function() {
+        updateCurrentRate();
+        if (chartTab === '24h') renderChart();
+    });
+}
+
+function updateCurrentRate() {
+    var now = new Date();
+    for (var back = 0; back < 8; back++) {
+        var t = new Date(now - back * 900000);
+        var dk = dateKeyOf(t);
+        var slot = String(Math.floor((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15));
+        var day = rawByDate[dk];
+        var v = day && day.readings && day.readings[ref] && day.readings[ref][slot];
+        if (typeof v === 'number') {
+            var el = document.getElementById('rateValue');
+            if (el) el.textContent = (v * 4).toFixed(1) + ' mm/hr';
+            return;
+        }
+    }
+}
+
+function renderHeader(s, sum) {
+    document.title = s.name + ' | Flood Forecast';
+    document.getElementById('pageTitle').textContent = s.name + ' | Flood Forecast';
+    var html = ''
+        + '<div class="header-card">'
+        + '<div><h1>' + htmlEsc(s.name) + '</h1>'
+        + '<div class="header-meta"><span class="network-pill">' + networkOf(s) + '</span>' + (s.county ? htmlEsc(s.county) : '') + '</div></div>'
+        + '<div class="rate-block"><div class="rate-value" id="rateValue">&ndash;</div>'
+        + '<div class="rate-label">Current rate</div>'
+        + '<div class="updated-label" id="updatedLabel">' + (summaryGeneratedAt ? 'Updated ' + new Date(summaryGeneratedAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '') + '</div>'
+        + '<button class="refresh-button" onclick="loadAll()"><span class="material-icons" style="font-size:14px;">refresh</span> Refresh</button>'
+        + '</div></div>';
+    document.getElementById('content').insertAdjacentHTML('beforeend', html);
+}
+
+function renderStatTiles(sum) {
+    var tiles = [
+        ['Last Hour', sum.last1h], ['Last 6 Hours', sum.last6h], ['Last 24 Hours', sum.last24h],
+        ['Last 7 Days', sum.last7d], ['Month to Date', sum.monthTotal], ['Year to Date', sum.yearTotal]
+    ];
+    var html = '<div class="section"><h2>Rainfall totals</h2><div class="stat-grid">';
+    tiles.forEach(function(t) {
+        html += '<div class="stat-tile"><div class="stat-value">' + fmtMm(t[1]) + '</div><div class="stat-label">' + t[0] + '</div></div>';
+    });
+    html += '</div></div>';
+    document.getElementById('content').insertAdjacentHTML('beforeend', html);
+}
+
+function renderThresholds(sum) {
+    var bands = [[1, 10, 30], [3, 20, 40], [6, 30, 50]];
+    var html = '<div class="section"><h2>Threshold status</h2>'
+        + '<div class="subtitle">Heavy/extreme accumulation bands agreed for the Flood Forecast gauge network.</div>'
+        + '<div class="threshold-rows">';
+    bands.forEach(function(b) {
+        var hrs = b[0], heavy = b[1], extreme = b[2];
+        var val = sum['last' + hrs + 'h'] || 0;
+        var level = val > extreme ? 'extreme' : val > heavy ? 'heavy' : 'normal';
+        html += '<div class="threshold-row"><span>' + hrs + ' hr total: <strong>' + fmtMm(val) + '</strong>'
+            + ' <span style="color:var(--text-muted);font-size:0.78rem">(heavy &gt;' + heavy + 'mm, extreme &gt;' + extreme + 'mm)</span></span>'
+            + '<span class="threshold-pill ' + level + '">' + level.charAt(0).toUpperCase() + level.slice(1) + '</span></div>';
+    });
+    html += '</div></div>';
+    document.getElementById('content').insertAdjacentHTML('beforeend', html);
+}
+
+function renderNearby(s) {
+    var others = Object.keys(stations)
+        .filter(function(id) { return id !== ref; })
+        .map(function(id) {
+            var o = stations[id];
+            return {id: id, name: o.name, dist: haversineKm(s.lat, s.lon, o.lat, o.lon)};
+        })
+        .sort(function(a, b) { return a.dist - b.dist; })
+        .slice(0, 8);
+
+    var html = '<div class="section"><h2>Nearby rain gauges</h2><div class="nearby-list">';
+    if (!others.length) {
+        html += '<div style="color:var(--text-muted);font-size:0.85rem">No nearby gauges found.</div>';
+    }
+    others.forEach(function(o) {
+        var sum = summaryStations[o.id] || {};
+        html += '<a class="nearby-row" href="gauge.html?ref=' + encodeURIComponent(o.id) + '">'
+            + '<span>' + htmlEsc(o.name) + ' <span class="nearby-dist">&middot; ' + o.dist.toFixed(1) + 'km</span></span>'
+            + '<span class="nearby-total">' + fmtMm(sum.last24h) + ' <span class="nearby-dist">24h</span></span></a>';
+    });
+    html += '</div></div>';
+    document.getElementById('content').insertAdjacentHTML('beforeend', html);
+}
+
+function renderMap(s) {
+    var html = '<div class="section"><h2>Location</h2><div id="miniMap"></div></div>';
+    document.getElementById('content').insertAdjacentHTML('beforeend', html);
+    var map = L.map('miniMap', {scrollWheelZoom: false}).setView([s.lat, s.lon], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    L.marker([s.lat, s.lon]).addTo(map);
+}
+
+function renderMeta(s, sum) {
+    var rows = [
+        ['Station ref', ref],
+        ['Network', networkOf(s)],
+        ['County', s.county || 'Unknown'],
+        ['Lat / Lng', s.lat.toFixed(5) + ', ' + s.lon.toFixed(5)],
+        ['Records from', sum.recordsSince || 'No records yet']
+    ];
+    var html = '<div class="section"><h2>Station details</h2><table class="meta-table">';
+    rows.forEach(function(r) { html += '<tr><td>' + r[0] + '</td><td>' + htmlEsc(r[1]) + '</td></tr>'; });
+    html += '</table></div>';
+    document.getElementById('content').insertAdjacentHTML('beforeend', html);
+}
+
+function loadArchive(sum) {
+    var years = [];
+    var currentYear = new Date().getUTCFullYear();
+    var startYear = sum.recordsSince ? parseInt(sum.recordsSince.slice(0, 4), 10) : currentYear;
+    startYear = Math.max(startYear, currentYear - 3);
+    for (var y = startYear; y <= currentYear; y++) years.push(y);
+
+    return Promise.all(years.map(function(y) {
+        return fetch(R2_CDN + '/rain/archive/daily_' + y + '.json?_cb=' + Date.now())
+            .then(function(r) { if (!r.ok) throw 0; return r.json(); })
+            .then(function(data) { Object.assign(archiveDays, (data && data[ref]) || {}); })
+            .catch(function() {});
+    }));
+}
+
+function renderMonthlyOverview() {
+    var byMonth = {};
+    Object.keys(archiveDays).forEach(function(d) {
+        var m = d.slice(0, 7);
+        byMonth[m] = (byMonth[m] || 0) + archiveDays[d];
+    });
+    var months = Object.keys(byMonth).sort();
+    var maxVal = Math.max.apply(null, months.map(function(m) { return byMonth[m]; }).concat([1]));
+
+    var html = '<div class="section"><h2>Monthly rainfall overview</h2>';
+    if (!months.length) {
+        html += '<div style="color:var(--text-muted);font-size:0.85rem">No completed months recorded yet for this gauge.</div>';
+    } else {
+        html += '<div class="subtitle">Actual monthly totals since records began for this gauge &mdash; no long-term climatological average is available.</div>';
+        html += '<div class="monthly-scroll">';
+        months.forEach(function(m) {
+            var v = byMonth[m];
+            var h = Math.max(4, Math.round((v / maxVal) * 86));
+            var d = new Date(m + '-01T00:00:00Z');
+            var label = d.toLocaleDateString([], {month: 'short', year: 'numeric', timeZone: 'UTC'});
+            html += '<div class="month-tile"><div class="month-mm">' + v.toFixed(0) + 'mm</div>'
+                + '<div class="month-bar-track"><div class="month-bar" style="height:' + h + 'px"></div></div>'
+                + '<div class="month-label">' + label + '</div></div>';
+        });
+        html += '</div>';
+    }
+    html += '</div>';
+    document.getElementById('content').insertAdjacentHTML('beforeend', html);
+}
+
+function renderRecords(sum) {
+    var html = '<div class="section"><h2>Rainfall records</h2><div class="records-grid">';
+    var tiles = [
+        ['Wettest day', sum.wettestDay ? fmtMm(sum.wettestDay.mm) : '&ndash;', sum.wettestDay ? sum.wettestDay.date : ''],
+        ['Wettest month', sum.wettestMonth ? fmtMm(sum.wettestMonth.mm) : '&ndash;', sum.wettestMonth ? sum.wettestMonth.month : ''],
+        ['Driest month', sum.driestMonth ? fmtMm(sum.driestMonth.mm) : '&ndash;', sum.driestMonth ? sum.driestMonth.month : ''],
+        ['Longest dry spell', sum.longestDrySpell ? sum.longestDrySpell.days + ' days' : '&ndash;', sum.longestDrySpell ? ('from ' + sum.longestDrySpell.from) : '']
+    ];
+    tiles.forEach(function(t) {
+        html += '<div class="record-tile"><div class="record-value">' + t[1] + '</div>'
+            + '<div class="record-label">' + t[0] + '</div>'
+            + (t[2] ? '<div class="record-date">' + t[2] + '</div>' : '') + '</div>';
+    });
+    html += '</div><div class="records-caption">Records since ' + (sum.recordsSince || 'this gauge was added to the table') + ' &mdash; not a multi-decade climatological record.</div></div>';
+    document.getElementById('content').insertAdjacentHTML('beforeend', html);
+}
+
+function barChartSVG(points, W, H) {
+    var padL = 30, padB = 20, padT = 6, padR = 4;
+    var cW = W - padL - padR, cH = H - padT - padB;
+    var maxV = Math.max.apply(null, points.map(function(p) { return p.v; }).concat([1]));
+    var barW = cW / Math.max(points.length, 1);
+    var svg = '<svg width="' + W + '" height="' + H + '">';
+    var yStep = maxV <= 5 ? 1 : maxV <= 20 ? 5 : maxV <= 60 ? 10 : 20;
+    for (var gv = yStep; gv < maxV; gv += yStep) {
+        var gy = (padT + cH - (gv / maxV) * cH).toFixed(1);
+        svg += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="#dde1e7" stroke-width="0.7"/>';
+        svg += '<text x="' + (padL - 4) + '" y="' + (+gy + 3) + '" fill="#9aa0a6" font-size="8" text-anchor="end">' + gv + '</text>';
+    }
+    points.forEach(function(p, i) {
+        var bh = Math.max((p.v / maxV) * cH, p.v > 0 ? 1 : 0);
+        var bx = padL + i * barW;
+        var by = padT + cH - bh;
+        svg += '<rect x="' + (bx + 0.5).toFixed(1) + '" y="' + by.toFixed(1) + '" width="' + Math.max(barW - 1, 0.5).toFixed(1)
+            + '" height="' + bh.toFixed(1) + '" fill="' + (p.v >= 30 ? '#c62828' : p.v >= 10 ? '#ef6c00' : '#1a73e8') + '"><title>' + p.label + ': ' + p.v.toFixed(1) + 'mm</title></rect>';
+        if (i % Math.ceil(points.length / 10 || 1) === 0) {
+            svg += '<text x="' + (bx + barW/2).toFixed(1) + '" y="' + (H - 4) + '" fill="#80868b" font-size="7.5" text-anchor="middle">' + p.tick + '</text>';
+        }
+    });
+    svg += '<line x1="' + padL + '" y1="' + (padT + cH) + '" x2="' + (W - padR) + '" y2="' + (padT + cH) + '" stroke="#bdc1c6"/>';
+    svg += '</svg>';
+    return svg;
+}
+
+function render24hChart() {
+    var now = new Date();
+    var points = [];
+    for (var back = 95; back >= 0; back--) {
+        var t = new Date(now - back * 900000);
+        var dk = dateKeyOf(t);
+        var slot = String(Math.floor((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15));
+        var day = rawByDate[dk];
+        var v = (day && day.readings && day.readings[ref] && day.readings[ref][slot]) || 0;
+        points.push({v: v, label: t.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}), tick: pad2(t.getHours()) + ':00'});
+    }
+    return barChartSVG(points, 640, 160);
+}
+
+function renderDailyChart(nDays) {
+    var dates = Object.keys(archiveDays).sort().slice(-nDays);
+    var points = dates.map(function(d) {
+        return {v: archiveDays[d], label: d, tick: d.slice(5)};
+    });
+    if (!points.length) return '<div style="color:var(--text-muted);font-size:0.85rem;padding:1rem 0">No archived daily totals yet for this period.</div>';
+    return barChartSVG(points, Math.max(640, points.length * 14), 160);
+}
+
+function renderChart() {
+    var html = '<div class="section"><h2>Rainfall chart</h2><div class="chart-tabs">'
+        + ['24h', '7 Days', '30 Days', 'Historical'].map(function(t) {
+            return '<button class="' + (chartTab === t ? 'active' : '') + '" onclick="setChartTab(\'' + t + '\')">' + t + '</button>';
+        }).join('')
+        + '</div><div class="chart-wrap" id="chartWrap"></div></div>';
+    var existing = document.getElementById('chartSection');
+    var wrapper = document.createElement('div');
+    wrapper.id = 'chartSection';
+    wrapper.innerHTML = html;
+    if (existing) existing.replaceWith(wrapper);
+    else {
+        var statsSection = document.querySelectorAll('.section')[0];
+        statsSection.insertAdjacentElement('afterend', wrapper);
+    }
+    var target = document.getElementById('chartWrap');
+    if (chartTab === '24h') target.innerHTML = render24hChart();
+    else if (chartTab === '7 Days') target.innerHTML = renderDailyChart(7);
+    else if (chartTab === '30 Days') target.innerHTML = renderDailyChart(30);
+    else target.innerHTML = renderDailyChart(100000);
+}
+
+function setChartTab(t) { chartTab = t; renderChart(); }
+</script>
+</body>
+</html>
