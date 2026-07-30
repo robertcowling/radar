@@ -344,6 +344,10 @@ footer {
     </div>
   </div>
 
+  <div id="summaryWarning" style="display:none;background:var(--heavy-bg);color:var(--heavy-text);border:1px solid var(--heavy-border);border-radius:8px;padding:0.6rem 0.9rem;font-size:0.8rem;margin-bottom:0.75rem;">
+    Duration totals aren't available yet &mdash; the gauge summary job runs every 15 minutes; totals below default to 0.0mm until it completes. Names, counties and networks are still accurate.
+  </div>
+
   <div class="controls">
     <input type="text" id="searchInput" placeholder="Search name, ref or county&hellip;">
     <select id="networkFilter">
@@ -454,6 +458,7 @@ function networkOf(s) {
 
 function buildRows() {
     if (!_stationsReady || !_summaryReady || !_countiesReady) return;
+    document.getElementById('summaryWarning').style.display = summaryLoaded ? 'none' : 'block';
     assignCounties();
     rows = Object.keys(stations).map(function(ref) {
         var s = stations[ref];
@@ -599,14 +604,17 @@ document.getElementById('nextPage').addEventListener('click', function() {
 });
 document.getElementById('refreshBtn').addEventListener('click', loadAll);
 
+var summaryLoaded = false;
+
 function setRefreshLabel(ts) {
-    if (!ts) { document.getElementById('refreshLabel').textContent = ''; return; }
+    if (!ts) { document.getElementById('refreshLabel').textContent = 'Totals not available yet'; return; }
     var d = new Date(ts);
     document.getElementById('refreshLabel').textContent = 'Updated ' + d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
 }
 
 function loadAll() {
     _stationsReady = false; _summaryReady = false; _countiesReady = false;
+    document.getElementById('refreshLabel').textContent = 'Loading…';
 
     fetch(R2_CDN + '/geo/uk-counties.geojson').then(function(r) { if (!r.ok) throw 0; return r.json(); })
         .catch(function() { return fetch('../uk-counties.geojson').then(function(r) { return r.json(); }); })
@@ -621,12 +629,17 @@ function loadAll() {
         .then(function() { _stationsReady = true; buildRows(); });
 
     fetch(R2_CDN + '/rain/summary.json?_cb=' + Date.now())
-        .then(function(r) { return r.json(); })
+        .then(function(r) { if (!r.ok) throw 0; return r.json(); })
         .then(function(data) {
             summary = data.stations || {};
+            summaryLoaded = true;
             setRefreshLabel(data.generated_at);
         })
-        .catch(function() { summary = {}; })
+        .catch(function() {
+            summary = {};
+            summaryLoaded = false;
+            setRefreshLabel(null);
+        })
         .then(function() { _summaryReady = true; buildRows(); });
 }
 
