@@ -6,12 +6,17 @@
 <title>Rain Gauge Table | Flood Forecast</title>
 <meta name="description" content="Sortable, filterable, searchable table of UK rain gauges (EA, NRW, SEPA) with duration totals, threshold exceedances and Met Office color scaling.">
 
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
 <style>
+/* Brand tokens mirror the Flood Forecast project's tailwind.config brand
+   ramp 1:1 (see Flood Forecast/templates/base.html) — porting this page
+   into that project later is a mechanical brand-50..900 var()->class swap
+   rather than a re-theme. */
 :root {
   --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: 'Outfit', var(--font-family);
   --bg-base: #f8f9fa;
   --bg-surface: #ffffff;
   --bg-surface-hover: #f1f3f4;
@@ -19,7 +24,16 @@
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-dark: #475569;
-  --brand-500: #3b82f6;
+  --brand-50:  #f0fbfb;
+  --brand-100: #d6f4f4;
+  --brand-200: #AFEAE9;
+  --brand-300: #79D6DA;
+  --brand-400: #44BBC8;
+  --brand-500: #2F8696;
+  --brand-600: #266b78;
+  --brand-700: #1f555f;
+  --brand-focus-ring: rgba(47, 134, 150, 0.15);
+  --brand-active-tint: rgba(47, 134, 150, 0.08);
   --heavy-bg: #fff3e0;
   --heavy-text: #b06000;
   --heavy-border: #ef6c00;
@@ -37,6 +51,11 @@
     --text-main: #f1f5f9;
     --text-muted: #94a3b8;
     --text-dark: #64748b;
+    /* brand-400, not brand-500 — same lighten-for-dark-bg override the
+       Flood Forecast project itself uses (see base.html's .spinner rule) */
+    --brand-500: #44BBC8;
+    --brand-focus-ring: rgba(68, 187, 200, 0.18);
+    --brand-active-tint: rgba(68, 187, 200, 0.1);
     --heavy-bg: rgba(245, 158, 11, 0.16);
     --heavy-text: #fbbf24;
     --heavy-border: #f59e0b;
@@ -86,6 +105,7 @@ nav {
   gap: 0.5rem;
   text-decoration: none;
   color: #ffffff;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.25rem;
 }
@@ -94,7 +114,7 @@ nav {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: #3b82f6;
+  background-color: var(--brand-500);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -133,7 +153,7 @@ nav {
   gap: 1rem;
 }
 
-.page-title-section h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em; }
+.page-title-section h1 { font-family: var(--font-display); font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em; }
 
 .header-actions { display: flex; align-items: center; gap: 1rem; }
 
@@ -226,7 +246,7 @@ nav {
 
 @media (prefers-color-scheme: dark) {
   .segmented-btn.active {
-    background: #3b82f6;
+    background: var(--brand-500);
     color: #ffffff;
   }
 }
@@ -261,8 +281,8 @@ nav {
 }
 @media (prefers-color-scheme: dark) {
   .sort-pill-btn.active {
-    background: #3b82f6;
-    border-color: #3b82f6;
+    background: var(--brand-500);
+    border-color: var(--brand-500);
     color: #ffffff;
   }
 }
@@ -297,13 +317,13 @@ nav {
 
 .form-input:focus, .form-select:focus {
   border-color: var(--brand-500);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px var(--brand-focus-ring);
 }
 
 /* Active filter highlight */
 .filter-active {
   border-color: var(--brand-500) !important;
-  background-color: rgba(59, 130, 246, 0.08) !important;
+  background-color: var(--brand-active-tint) !important;
   font-weight: 600;
 }
 
@@ -450,6 +470,9 @@ nav {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .header-sublabel {
@@ -503,18 +526,7 @@ tbody td {
 }
 tbody tr:hover { background: var(--bg-surface-hover); }
 tbody tr:last-child td { border-bottom: none; }
-tbody td.num-col { text-align: center; }
-
-/* Inset Box inside table cell centered with white edging & rounded corners */
-.accum-cell-box {
-  border-radius: 6px;
-  padding: 5px 8px;
-  font-weight: 600;
-  text-align: center;
-  display: inline-block;
-  min-width: 52px;
-  box-sizing: border-box;
-}
+tbody td.num-col { text-align: center; font-variant-numeric: tabular-nums; }
 
 .gauge-link { color: var(--text-main); text-decoration: none; font-weight: 600; display: block; line-height: 1.2; font-size: 0.88rem; }
 .gauge-link:hover { color: var(--brand-500); text-decoration: underline; }
@@ -549,8 +561,10 @@ tbody td.num-col { text-align: center; }
   padding: 0.35rem 0.9rem;
   font-size: 0.8rem;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
+.pagination button:hover:not(:disabled) { border-color: var(--brand-500); color: var(--brand-500); }
 .pagination button:disabled { opacity: 0.4; cursor: default; }
 
 .empty-state { padding: 2.5rem; text-align: center; color: var(--text-muted); }
@@ -626,8 +640,8 @@ footer {
       <div style="display:flex; align-items:center; gap:0.75rem;">
         <span class="controls-label">Table:</span>
         <div class="segmented-control" id="tableModeToggle">
-          <button type="button" class="segmented-btn active" data-tablemode="all">All Gauges</button>
-          <button type="button" class="segmented-btn" data-tablemode="thresholds">Threshold Exceedances</button>
+          <button type="button" class="segmented-btn active" data-tablemode="all">All gauges</button>
+          <button type="button" class="segmented-btn" data-tablemode="thresholds">Threshold exceedances</button>
         </div>
 
         <button type="button" class="info-icon-btn" id="threshInfoBtn" title="Threshold rules info">
@@ -664,7 +678,7 @@ footer {
 
     <!-- Threshold Info Expansion Box -->
     <div class="threshold-info-box" id="threshInfoBox" style="display:none;">
-      <strong>Operational Rainfall Thresholds:</strong>
+      <strong>Operational rainfall thresholds:</strong>
       <table>
         <tr><td><strong>1 hr:</strong> &gt;10 mm (Heavy), &gt;30 mm (Extreme)</td></tr>
         <tr><td><strong>3 hr:</strong> &gt;20 mm (Heavy), &gt;40 mm (Extreme)</td></tr>
@@ -715,7 +729,8 @@ footer {
   </div>
 
   <div class="table-legend-note">
-    📊 <strong>Month so far bar chart:</strong> Shaded brown bar &amp; percentage show actual rainfall received to date vs climatological monthly normal (100% = on pace with full month's expected rain).
+    <span class="material-icons" style="font-size:16px;color:var(--brand-500);">bar_chart</span>
+    <span><strong>Month so far bar chart:</strong> Shaded brown bar &amp; percentage show actual rainfall received to date vs climatological monthly normal (100% = on pace with full month's expected rain).</span>
   </div>
 
   <div class="pagination">
@@ -775,17 +790,20 @@ function accumStyle(v) {
     return { fill: ACCUM_FILL[idx], text: ACCUM_TEXT[idx] };
 }
 
+// Fill applied directly to the <td> (Flood Forecast's own home.html pattern
+// for this same accumulation scale — background/color/border-radius inline
+// on the cell itself) rather than a separate inset box, so a colored cell
+// reads as "this cell is heavy rain" not "there's a chip floating in here".
 function renderDurationVal(val, isSortActive) {
     if (val == null) {
-        return '<td class="num-col" style="padding:4px 5px;"><span class="no-record" title="Period has not yet elapsed today">&mdash;</span></td>';
+        return '<td class="num-col"><span class="no-record" title="Period has not yet elapsed today">&mdash;</span></td>';
     }
     var st = accumStyle(val);
     var fontWt = isSortActive ? 'font-weight:700;' : 'font-weight:600;';
-    if (st) {
-        var boxStyle = 'background:' + st.fill + ';color:' + st.text + ';border-radius:6px;padding:5px 8px;text-align:center;' + fontWt;
-        return '<td class="num-col" style="padding:3px 4px;"><div class="accum-cell-box" style="' + boxStyle + '">' + (val || 0).toFixed(1) + '</div></td>';
-    }
-    return '<td class="num-col" style="padding:4px 5px; color:var(--text-muted); text-align:center; ' + fontWt + '">' + (val || 0).toFixed(1) + '</td>';
+    var style = st
+        ? 'background:' + st.fill + ';color:' + st.text + ';border-radius:5px;' + fontWt
+        : 'color:var(--text-muted);' + fontWt;
+    return '<td class="num-col" style="' + style + '">' + (val || 0).toFixed(1) + '</td>';
 }
 
 function pointInRing(pt, ring) {
