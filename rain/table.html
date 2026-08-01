@@ -99,28 +99,6 @@ nav {
   align-items: center;
 }
 
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  text-decoration: none;
-  color: #ffffff;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.25rem;
-}
-
-.brand-logo-fallback {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background-color: var(--brand-500);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-}
-
 .nav-links { display: flex; gap: 0.5rem; }
 
 .nav-link {
@@ -287,45 +265,135 @@ nav {
   }
 }
 
-/* Window Mode Description Banner */
-.window-explain-banner {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  background: var(--bg-base);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 0.45rem 0.85rem;
+/* Info modal — same pattern as the Flood Forecast project's own rain.html
+   (.info-modal-backdrop / .info-modal), used for anything that would
+   otherwise be a persistent explanatory banner taking up layout space. */
+.info-modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 3000;
+  align-items: center;
+  justify-content: center;
+}
+.info-modal-backdrop.open { display: flex; }
+.info-modal {
+  background: var(--bg-surface);
+  border-radius: 14px;
+  padding: 22px 24px 18px;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  position: relative;
+}
+.info-modal h3 {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 0.7rem;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
+.info-modal p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
+.info-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.info-modal-close:hover { color: var(--text-main); }
 
-/* Inputs & Selects - Flood Forecast Pill Design */
-.form-input, .form-select {
+/* Search — a feature in its own right, not a plain filter input
+   (Flood Forecast /warningexplorer's .map-search treatment) */
+.search-feature {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+.search-feature-icon {
+  position: absolute;
+  left: 1.1rem;
+  color: var(--text-muted);
+  font-size: 20px;
+  pointer-events: none;
+}
+.search-feature-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-family);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+  background: var(--bg-surface);
+  border: 2px solid var(--bg-surface);
+  border-radius: 30px;
+  padding: 0.85rem 2.75rem;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.06);
+  outline: none;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.search-feature-input::placeholder { color: var(--text-muted); font-weight: 500; }
+.search-feature-input:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08), 0 0 0 3px var(--brand-focus-ring);
+}
+.search-feature-clear {
+  position: absolute;
+  right: 0.9rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+}
+.search-feature-clear:hover { color: var(--text-main); background: var(--bg-surface-hover); }
+.search-feature-clear.show { display: flex; }
+
+/* Selects — Flood Forecast's bottom-bar pill treatment (no border, custom
+   chevron, light fill) rather than a bordered native-look dropdown. */
+.form-select {
   font-family: var(--font-family);
   font-size: 0.85rem;
+  font-weight: 500;
   color: var(--text-main);
-  background: var(--bg-base);
-  border: 1px solid var(--border-color);
+  background-color: var(--bg-base);
+  border: none;
   border-radius: 20px;
-  padding: 0.45rem 0.95rem;
+  padding: 0.5rem 2.1rem 0.5rem 1rem;
   transition: all 0.15s ease;
   outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  cursor: pointer;
 }
-
-.form-input { flex: 1 1 200px; min-width: 160px; }
-
-.form-input:focus, .form-select:focus {
-  border-color: var(--brand-500);
+.form-select:hover { background-color: var(--bg-surface-hover); }
+.form-select:focus {
   box-shadow: 0 0 0 3px var(--brand-focus-ring);
 }
 
 /* Active filter highlight */
 .filter-active {
-  border-color: var(--brand-500) !important;
   background-color: var(--brand-active-tint) !important;
-  font-weight: 600;
+  color: var(--brand-500) !important;
+  font-weight: 700 !important;
 }
+.search-feature-input.filter-active { border-color: var(--brand-500) !important; }
 
 .clear-filters-btn {
   background: rgba(239, 68, 68, 0.1);
@@ -491,16 +559,30 @@ nav {
 
 table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.82rem;
   white-space: nowrap;
 }
+
+/* Deliberate column proportions instead of leaving auto-layout to guess —
+   the gauge name/county column gets real room, duration columns are equal
+   width, and Month/Year (which carry extra badge/bar content) get more
+   than a plain number column would. Widths are on <th> only: table-layout
+   fixed derives the whole column's width from its header cell. */
+.col-gauge { width: 22%; min-width: 170px; }
+.col-org { width: 9%; }
+.col-thresh { width: 11%; }
+.col-dur { width: 7.6%; }
+.col-month { width: 15%; }
+.col-year { width: 9%; }
 
 thead th {
   position: sticky;
   top: 0;
   background: var(--bg-surface);
   border-bottom: 2px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
   text-align: left;
   padding: 0.65rem 0.85rem;
   font-weight: 600;
@@ -508,22 +590,41 @@ thead th {
   cursor: pointer;
   user-select: none;
 }
+thead th:last-child { border-right: none; }
 
 thead th:hover { color: var(--text-main); }
 thead th .sort-arrow { font-size: 0.7rem; margin-left: 3px; opacity: 0.6; }
 thead th.num-col { text-align: center; }
 
-/* Dedicated Column Redistribution */
+/* Strong, persistent marker for whichever duration column is driving the
+   current sort — not just the bold cell values, which was too subtle to
+   notice which column filtering/sorting actually applied to. Runs the full
+   height of the table as a "lane": tinted, bold header, brand-colored side
+   borders on every cell in that column. */
+thead th.th-sort-active {
+  color: var(--brand-500);
+  font-weight: 800;
+  background: var(--brand-active-tint);
+  border-left: 2px solid var(--brand-500) !important;
+  border-right: 2px solid var(--brand-500) !important;
+}
+thead th.th-sort-active .sort-arrow { opacity: 1; color: var(--brand-500); }
+tbody td.td-sort-active {
+  background: var(--brand-active-tint);
+  border-left: 2px solid var(--brand-500);
+  border-right: 2px solid var(--brand-500);
+}
+
 thead th:first-child, tbody td:first-child {
-  width: 32%;
-  min-width: 220px;
   padding-left: 1.25rem;
 }
 
 tbody td {
   padding: 0.45rem 0.6rem;
   border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
 }
+tbody td:last-child { border-right: none; }
 tbody tr:hover { background: var(--bg-surface-hover); }
 tbody tr:last-child td { border-bottom: none; }
 tbody td.num-col { text-align: center; font-variant-numeric: tabular-nums; }
@@ -601,10 +702,6 @@ footer {
 
 <nav>
   <div class="nav-container">
-    <a href="/" class="nav-brand">
-      <div class="brand-logo-fallback"><span class="material-icons" style="font-size:18px;">water</span></div>
-      <span style="word-spacing:-0.09em;">Flood Forecast</span>
-    </a>
     <div class="nav-links">
       <a href="/" class="nav-link">FGS</a>
       <a href="/radar" class="nav-link">Radar</a>
@@ -633,12 +730,21 @@ footer {
     Duration totals aren't available yet &mdash; the gauge summary job runs every 15 minutes; totals below default to 0.0mm until it completes. Names, counties and orgs are still accurate.
   </div>
 
+  <!-- Search: a feature in its own right, not a plain filter input -->
+  <div class="search-feature">
+    <span class="material-icons search-feature-icon">search</span>
+    <input type="text" id="searchInput" class="search-feature-input" placeholder="Search gauge name, reference or county&hellip;">
+    <button type="button" id="searchClearBtn" class="search-feature-clear" title="Clear search">
+      <span class="material-icons" style="font-size:18px;">close</span>
+    </button>
+  </div>
+
   <!-- Controls Card: Flood Forecast Design Ethos -->
   <div class="controls-card">
     <!-- Row 1: Segmented Toggles (Table Mode & Window Toggle on right) -->
     <div class="controls-row" style="justify-content: space-between;">
       <div style="display:flex; align-items:center; gap:0.75rem;">
-        <span class="controls-label">Table:</span>
+        <span class="controls-label">Table</span>
         <div class="segmented-control" id="tableModeToggle">
           <button type="button" class="segmented-btn active" data-tablemode="all">All gauges</button>
           <button type="button" class="segmented-btn" data-tablemode="thresholds">Threshold exceedances</button>
@@ -650,30 +756,28 @@ footer {
       </div>
 
       <div style="display:flex; align-items:center; gap:0.5rem;">
-        <span class="controls-label">Window:</span>
+        <span class="controls-label">Window</span>
         <div class="segmented-control" id="timeModeToggle">
           <button type="button" class="segmented-btn active" data-timemode="rolling" title="Rolling duration totals up to now">Rolling</button>
           <button type="button" class="segmented-btn" data-timemode="today" title="Highest duration totals for today so far">Today</button>
           <button type="button" class="segmented-btn" data-timemode="yesterday" title="Highest duration totals for yesterday">Yesterday</button>
         </div>
+        <button type="button" class="info-icon-btn" id="windowInfoBtn" title="What does this view show?">
+          <span class="material-icons" style="font-size:18px;">info</span>
+        </button>
       </div>
     </div>
 
     <!-- Row 2: Separate Sort Pill Selector Row -->
     <div class="controls-row">
-      <span class="controls-label">Sort:</span>
+      <span class="controls-label">Sort</span>
       <div class="sort-pill-group" id="sortPillGroup">
         <button type="button" class="sort-pill-btn" data-sortkey="1h">1h</button>
-        <button type="button" class="sort-pill-btn active" data-sortkey="3h">3h</button>
+        <button type="button" class="sort-pill-btn" data-sortkey="3h">3h</button>
         <button type="button" class="sort-pill-btn" data-sortkey="6h">6h</button>
         <button type="button" class="sort-pill-btn" data-sortkey="12h">12h</button>
-        <button type="button" class="sort-pill-btn" data-sortkey="24h">24h</button>
+        <button type="button" class="sort-pill-btn active" data-sortkey="24h">24h</button>
       </div>
-
-      <span class="window-explain-banner" id="windowExplainBanner" style="flex:1; margin-left:0.5rem;">
-        <span class="material-icons" style="font-size:16px;color:var(--brand-500);">info</span>
-        <span id="windowExplainText">Showing rolling duration rainfall totals up to now. Sorted by 3h accumulation.</span>
-      </span>
     </div>
 
     <!-- Threshold Info Expansion Box -->
@@ -686,10 +790,8 @@ footer {
       </table>
     </div>
 
-    <!-- Row 3: Filters, Search, Max Gaps & Page Controls -->
+    <!-- Row 3: Filters, Max Gaps & Page Controls -->
     <div class="controls-row">
-      <input type="text" id="searchInput" class="form-input" placeholder="Search name, ref or county&hellip;">
-      
       <select id="countyFilter" class="form-select"><option value="all">All counties</option></select>
       
       <select id="thresholdFilter" class="form-select" style="display:none;">
@@ -715,6 +817,15 @@ footer {
       <button type="button" id="clearFiltersBtn" class="clear-filters-btn" style="display:none;">Clear filters</button>
 
       <span class="results-count" id="resultsCount"></span>
+    </div>
+  </div>
+
+  <!-- Window info modal -->
+  <div id="windowInfoBackdrop" class="info-modal-backdrop">
+    <div class="info-modal">
+      <button class="info-modal-close" id="windowInfoCloseBtn" title="Close">&times;</button>
+      <h3><span class="material-icons" style="font-size:18px;color:var(--brand-500);">info</span> Current view</h3>
+      <p id="windowExplainText">Showing rolling duration rainfall totals up to now. Sorted by 24h accumulation.</p>
     </div>
   </div>
 
@@ -761,11 +872,11 @@ var filteredRows = [];
 
 var tableMode = 'all';     // 'all' or 'thresholds'
 var timeMode = 'rolling';  // 'rolling', 'today', 'yesterday'
-var activeSortDuration = '3h'; // '1h', '3h', '6h', '12h', '24h'
+var activeSortDuration = '24h'; // '1h', '3h', '6h', '12h', '24h'
 var selectedOrgs = { EA: true, NRW: false, SEPA: false }; // Default: EA ON only
 var dataGapThreshold = 90; // Default: Max 10% gaps (90% completeness)
 
-var sortKey = 'last3h';
+var sortKey = 'last24h';
 var sortDir = -1; // default sort descending
 var page = 1;
 var pageSize = 50;
@@ -795,15 +906,16 @@ function accumStyle(v) {
 // on the cell itself) rather than a separate inset box, so a colored cell
 // reads as "this cell is heavy rain" not "there's a chip floating in here".
 function renderDurationVal(val, isSortActive) {
+    var cls = 'num-col' + (isSortActive ? ' td-sort-active' : '');
     if (val == null) {
-        return '<td class="num-col"><span class="no-record" title="Period has not yet elapsed today">&mdash;</span></td>';
+        return '<td class="' + cls + '"><span class="no-record" title="Period has not yet elapsed today">&mdash;</span></td>';
     }
     var st = accumStyle(val);
     var fontWt = isSortActive ? 'font-weight:700;' : 'font-weight:600;';
     var style = st
         ? 'background:' + st.fill + ';color:' + st.text + ';border-radius:5px;' + fontWt
         : 'color:var(--text-muted);' + fontWt;
-    return '<td class="num-col" style="' + style + '">' + (val || 0).toFixed(1) + '</td>';
+    return '<td class="' + cls + '" style="' + style + '">' + (val || 0).toFixed(1) + '</td>';
 }
 
 function pointInRing(pt, ring) {
@@ -1019,8 +1131,14 @@ function applyFilters() {
     thresholdSelect.style.display = (tableMode === 'thresholds') ? 'inline-block' : 'none';
 
     // Highlight active filters with Flood Forecast styling
-    if (search) searchInput.classList.add('filter-active');
-    else searchInput.classList.remove('filter-active');
+    var searchClearBtn = document.getElementById('searchClearBtn');
+    if (search) {
+        searchInput.classList.add('filter-active');
+        searchClearBtn.classList.add('show');
+    } else {
+        searchInput.classList.remove('filter-active');
+        searchClearBtn.classList.remove('show');
+    }
 
     if (county !== 'all') countySelect.classList.add('filter-active');
     else countySelect.classList.remove('filter-active');
@@ -1118,13 +1236,14 @@ function renderMonthCellHtml(monthTotal, clim, network) {
     var expectedToDate = monthlyNormal * monthProgress;
     var pctToDate = expectedToDate > 0 ? Math.round((monthTotal / expectedToDate) * 100) : 0;
     var barPct = Math.min(100, Math.max(0, pctToDate));
-    
+
     // Light brown shading bar representing monthly anomaly progress
     var barColor = 'rgba(180, 83, 9, 0.22)';
     var bgStyle = 'background: linear-gradient(90deg, ' + barColor + ' ' + barPct + '%, transparent ' + barPct + '%);';
     var titleText = monthTotal.toFixed(1) + ' mm (' + pctToDate + '% of expected monthly normal to date)';
-    
-    return '<td class="num-col" style="' + bgStyle + '" title="' + htmlEsc(titleText) + '">'
+    var cls = 'num-col' + (sortKey === 'monthTotal' ? ' td-sort-active' : '');
+
+    return '<td class="' + cls + '" style="' + bgStyle + '" title="' + htmlEsc(titleText) + '">'
         + fmtMm(monthTotal) + ' <span class="month-pct-badge">' + pctToDate + '%</span></td>';
 }
 
@@ -1145,11 +1264,13 @@ function renderTableHeader() {
     var monthName = now.toLocaleDateString([], {month: 'short'});
     var yearStr = now.getFullYear();
 
+    function sortCls(key) { return key === sortKey ? ' th-sort-active' : ''; }
+
     var html = '<tr>';
-    html += '<th>Gauge</th>';
-    
+    html += '<th class="col-gauge">Gauge</th>';
+
     // Org Header with Checkbox Dropdown Selector
-    html += '<th class="org-header-cell" style="cursor:default;">';
+    html += '<th class="col-org org-header-cell" style="cursor:default;">';
     html += '  <div class="org-dropdown-container">';
     html += '    <button type="button" class="org-dropdown-trigger" id="orgDropdownBtn">';
     html += '      Org: <span id="orgTriggerLabel">EA</span> <span class="material-icons" style="font-size:14px;vertical-align:middle;">arrow_drop_down</span>';
@@ -1163,7 +1284,7 @@ function renderTableHeader() {
     html += '</th>';
 
     if (tableMode === 'thresholds') {
-        html += '<th data-key="thresholdLevel">Threshold Status <span class="sort-arrow"></span></th>';
+        html += '<th class="col-thresh' + sortCls('thresholdLevel') + '" data-key="thresholdLevel">Threshold status <span class="sort-arrow"></span></th>';
     }
 
     var dur1Key = (timeMode === 'today' ? 'todayMax1h' : (timeMode === 'yesterday' ? 'yesterdayMax1h' : 'last1h'));
@@ -1172,14 +1293,14 @@ function renderTableHeader() {
     var dur12Key = (timeMode === 'today' ? 'todayMax12h' : (timeMode === 'yesterday' ? 'yesterdayMax12h' : 'last12h'));
     var dur24Key = (timeMode === 'today' ? 'todayTotal' : (timeMode === 'yesterday' ? 'yesterdayTotal' : 'last24h'));
 
-    html += '<th data-key="' + dur1Key + '" class="num-col">1h <span class="sort-arrow"></span></th>';
-    html += '<th data-key="' + dur3Key + '" class="num-col">3h <span class="sort-arrow"></span></th>';
-    html += '<th data-key="' + dur6Key + '" class="num-col">6h <span class="sort-arrow"></span></th>';
-    html += '<th data-key="' + dur12Key + '" class="num-col">12h <span class="sort-arrow"></span></th>';
-    html += '<th data-key="' + dur24Key + '" class="num-col">24h <span class="sort-arrow"></span></th>';
+    html += '<th data-key="' + dur1Key + '" class="num-col col-dur' + sortCls(dur1Key) + '">1h <span class="sort-arrow"></span></th>';
+    html += '<th data-key="' + dur3Key + '" class="num-col col-dur' + sortCls(dur3Key) + '">3h <span class="sort-arrow"></span></th>';
+    html += '<th data-key="' + dur6Key + '" class="num-col col-dur' + sortCls(dur6Key) + '">6h <span class="sort-arrow"></span></th>';
+    html += '<th data-key="' + dur12Key + '" class="num-col col-dur' + sortCls(dur12Key) + '">12h <span class="sort-arrow"></span></th>';
+    html += '<th data-key="' + dur24Key + '" class="num-col col-dur' + sortCls(dur24Key) + '">24h <span class="sort-arrow"></span></th>';
 
-    html += '<th data-key="monthTotal" class="num-col" title="Month to date total and % of expected monthly normal">' + monthName + ' so far <span class="header-sublabel">% exp</span> <span class="sort-arrow"></span></th>';
-    html += '<th data-key="yearTotal" class="num-col">' + yearStr + ' so far <span class="sort-arrow"></span></th>';
+    html += '<th data-key="monthTotal" class="num-col col-month' + sortCls('monthTotal') + '" title="Month to date total and % of expected monthly normal">' + monthName + ' so far <span class="header-sublabel">% exp</span> <span class="sort-arrow"></span></th>';
+    html += '<th data-key="yearTotal" class="num-col col-year' + sortCls('yearTotal') + '">' + yearStr + ' so far <span class="sort-arrow"></span></th>';
     html += '</tr>';
 
     thead.innerHTML = html;
@@ -1269,7 +1390,8 @@ function render() {
         if (tableMode === 'thresholds') {
             var badgeClass = r.thresholdLevel === 'extreme' ? 'extreme' : 'heavy';
             var badgeText = r.thresholdLevel === 'extreme' ? 'Extreme' : 'Heavy';
-            html += '<td><span class="threshold-badge ' + badgeClass + '">' + badgeText + '</span></td>';
+            var threshCls = sortKey === 'thresholdLevel' ? ' td-sort-active' : '';
+            html += '<td class="' + threshCls + '"><span class="threshold-badge ' + badgeClass + '">' + badgeText + '</span></td>';
         }
 
         if (timeMode === 'today') {
@@ -1293,10 +1415,11 @@ function render() {
         }
 
         html += renderMonthCellHtml(r.monthTotal, r.clim, r.network);
+        var yearCls = 'num-col' + (sortKey === 'yearTotal' ? ' td-sort-active' : '');
         if (r.network === 'SEPA' || r.network === 'NRW') {
-            html += '<td class="num-col"><span class="no-record" title="No published historical archive for this network">&mdash;</span></td>';
+            html += '<td class="' + yearCls + '"><span class="no-record" title="No published historical archive for this network">&mdash;</span></td>';
         } else {
-            html += '<td class="num-col">' + fmtMm(r.yearTotal) + '</td>';
+            html += '<td class="' + yearCls + '">' + fmtMm(r.yearTotal) + '</td>';
         }
         html += '</tr>';
     });
@@ -1381,6 +1504,25 @@ document.getElementById('threshInfoBtn').addEventListener('click', function() {
     box.style.display = (box.style.display === 'none') ? 'block' : 'none';
 });
 
+// Window Info Modal (what does "Rolling"/"Today"/"Yesterday" actually show)
+var windowInfoBackdrop = document.getElementById('windowInfoBackdrop');
+document.getElementById('windowInfoBtn').addEventListener('click', function() {
+    windowInfoBackdrop.classList.add('open');
+});
+document.getElementById('windowInfoCloseBtn').addEventListener('click', function() {
+    windowInfoBackdrop.classList.remove('open');
+});
+windowInfoBackdrop.addEventListener('click', function(e) {
+    if (e.target === windowInfoBackdrop) windowInfoBackdrop.classList.remove('open');
+});
+
+document.getElementById('searchClearBtn').addEventListener('click', function() {
+    var input = document.getElementById('searchInput');
+    input.value = '';
+    input.focus();
+    applyFilters();
+});
+
 document.getElementById('searchInput').addEventListener('input', applyFilters);
 document.getElementById('countyFilter').addEventListener('change', applyFilters);
 document.getElementById('thresholdFilter').addEventListener('change', applyFilters);
@@ -1392,7 +1534,10 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
     document.getElementById('thresholdFilter').value = 'all';
     document.getElementById('dataGapsSelect').value = '90';
     selectedOrgs = { EA: true, NRW: false, SEPA: false };
-    activeSortDuration = '3h';
+    activeSortDuration = '24h';
+    sortKey = 'last24h';
+    sortDir = -1;
+    updateSortPillUI();
     applyFilters();
 });
 
@@ -1433,12 +1578,12 @@ function loadAll() {
         .catch(function() { stations = {}; })
         .then(function() { _stationsReady = true; buildRows(); });
 
-    Promise.all(['ea', 'sepa'].map(function(net) {
+    Promise.all(['ea', 'sepa', 'nrw'].map(function(net) {
         return fetch(R2_CDN + '/rain/climatology_index_' + net + '.json?_cb=' + Date.now())
             .then(function(r) { if (!r.ok) throw 0; return r.json(); })
             .catch(function() { return {}; });
     })).then(function(parts) {
-        climIndex = Object.assign({}, parts[0], parts[1]);
+        climIndex = Object.assign({}, parts[0], parts[1], parts[2]);
     }).catch(function() { climIndex = {}; })
       .then(function() { _climReady = true; buildRows(); });
 
