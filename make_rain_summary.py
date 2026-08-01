@@ -48,6 +48,12 @@ ARCHIVE_PFX   = "rain/archive"
 # heavy/extreme threshold check.
 WINDOWS_HOURS = {"last1h": 1, "last3h": 3, "last6h": 6, "last12h": 12, "last24h": 24, "last48h": 48}
 WINDOW_7D_DAYS = 7
+# Matches fetch_rain.py's RETENTION_DAYS — the longest window raw readings
+# support. Not surfaced in the UI; used only as an internal floor for
+# month/year-to-date so a station whose own daily archive hasn't accumulated
+# much history yet can't show a year-to-date total smaller than a shorter,
+# more complete rolling window (see compute_records).
+WINDOW_14D_DAYS = 14
 
 # Heavy/extreme accumulation bands — agreed set, ported verbatim from the
 # Flood Forecast project's templates/rain.html THRESHOLDS object.
@@ -111,13 +117,15 @@ def load_day_file(r2, date_key, cache):
 
 
 def compute_rolling_totals(stations, r2, now, day_cache):
-    """Per-station last1h/3h/6h/24h/7d totals, summed slot-by-slot across
-    the day files needed to cover a 7-day lookback."""
-    totals = {sid: {k: 0.0 for k in list(WINDOWS_HOURS) + ["last7d"]} for sid in stations}
+    """Per-station last1h/3h/6h/24h/7d/14d totals, summed slot-by-slot across
+    the day files needed to cover a 14-day lookback (14d is internal-only,
+    see WINDOW_14D_DAYS)."""
+    totals = {sid: {k: 0.0 for k in list(WINDOWS_HOURS) + ["last7d", "last14d"]} for sid in stations}
     cutoffs = {k: now - timedelta(hours=h) for k, h in WINDOWS_HOURS.items()}
     cutoffs["last7d"] = now - timedelta(days=WINDOW_7D_DAYS)
+    cutoffs["last14d"] = now - timedelta(days=WINDOW_14D_DAYS)
 
-    for days_ago in range(WINDOW_7D_DAYS + 1):
+    for days_ago in range(WINDOW_14D_DAYS + 1):
         date = now - timedelta(days=days_ago)
         date_key = date.strftime("%Y%m%d")
         day_obj = load_day_file(r2, date_key, day_cache)
@@ -205,10 +213,22 @@ def compute_records(stations, archives, now, rolling_totals=None):
             days.update(year_archive.get(sid, {}))
         
         last24h = (rolling_totals.get(sid, {}).get("last24h", 0.0)) if rolling_totals else 0.0
-        
+        last7d = (rolling_totals.get(sid, {}).get("last7d", 0.0)) if rolling_totals else 0.0
+        last14d = (rolling_totals.get(sid, {}).get("last14d", 0.0)) if rolling_totals else 0.0
+
+        # The largest rolling window guaranteed to sit fully inside the
+        # current month/year (skip the first few days of either, when the
+        # window can legitimately span the boundary and a floor would be
+        # wrong) — prefer the longer 14d window, fall back to 7d.
+        month_floor = last14d if now.day > WINDOW_14D_DAYS else (last7d if now.day > WINDOW_7D_DAYS else 0.0)
+        year_floor = (last14d if now.timetuple().tm_yday > WINDOW_14D_DAYS
+                      else (last7d if now.timetuple().tm_yday > WINDOW_7D_DAYS else 0.0))
+
         if not days:
+            month_total = round(max(last24h, month_floor), 2)
+            year_total = round(max(last24h, year_floor, month_total), 2)
             records[sid] = {
-                "monthTotal": round(last24h, 2), "yearTotal": round(last24h, 2),
+                "monthTotal": month_total, "yearTotal": year_total,
                 "wettestDay": None, "wettestMonth": None, "driestMonth": None,
                 "longestDrySpell": None, "recordsSince": None,
             }
@@ -219,10 +239,18 @@ def compute_records(stations, archives, now, rolling_totals=None):
 
         archived_month = sum(v for d, v in valid_days.items() if d.startswith(this_month))
         archived_year = sum(v for d, v in valid_days.items() if d.startswith(this_year))
-        
+
         # Ensure monthTotal and yearTotal include current 24hr live rainfall
         month_total = round(max(archived_month + last24h, last24h), 2)
         year_total = round(max(archived_year + last24h, month_total), 2)
+
+        # The daily archive can under-report vs. the raw-reading-based rolling
+        # totals (gaps, or a station whose archive only recently started) —
+        # confirmed live on Bethesda Quarry (NRW): "2026 so far" showed 14.8mm
+        # while "Last 7 Days" showed 21.0mm, which is impossible since the
+        # last 7 days are always a subset of this year.
+        month_total = round(max(month_total, month_floor), 2)
+        year_total = round(max(year_total, year_floor, month_total), 2)
 
         wettest_date, wettest_mm = max(valid_days.items(), key=lambda kv: kv[1])
 
