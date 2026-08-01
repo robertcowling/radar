@@ -15,12 +15,15 @@ EA archive holds a rolling ~15 months (~455-460 days) before returning 404
 for older dates — DEFAULT_LOOKBACK_DAYS is set with headroom past that; any
 date outside the real window just 404s per-day and is skipped harmlessly.
 
-NRW and SEPA have no equivalent historical bulk-readings endpoint (NRW's
-Telemetry API only exposes ~24hr rolling windows per station; SEPA's public
-API exposes a rolling ~3-4 day window — see fetch_rain.py's fetch_nrw_data /
-fetch_sepa_data docstrings), so their archives keep building up day by day
-from make_rain_summary.py's normal daily finalisation instead — there's no
-equivalent bulk-history source to backfill from for those two networks.
+NRW's live telemetry API has no equivalent historical bulk-readings endpoint
+(only ~24hr rolling windows per station — see fetch_rain.py's fetch_nrw_data
+docstring), so NRW's archive keeps building up day by day from
+make_rain_summary.py's normal daily finalisation instead. SEPA is different:
+despite fetch_rain.py's live fetch_sepa_data only exposing a rolling ~3-4
+day window, SEPA's separate KiWIS service (used by build_sepa_climatology.py)
+does return full historical daily series on request — see
+backfill_sepa_archive.py, which backfills SEPA's archive the same way this
+script backfills EA's.
 
 Run once via workflow_dispatch, or locally with R2 env vars set. Safe to
 re-run: skips any calendar day that's already substantially archived.
