@@ -530,6 +530,20 @@ nav {
   font-size: 0.78rem;
 }
 
+/* A rolling year-to-date figure whose station started tracking partway
+   through the year -- flagged rather than shown as if it were a full
+   12 months (e.g. "26mm this year" for a station that only has 4 days
+   of record is not a real annual total). */
+tbody td.partial-total {
+  font-style: italic;
+  color: var(--text-muted);
+}
+tbody td.partial-total::after {
+  content: ' *';
+  font-style: normal;
+  color: var(--heavy-border);
+}
+
 .table-legend-note {
   margin-top: 0.6rem;
   font-size: 0.78rem;
@@ -844,6 +858,11 @@ footer {
     <span><strong>Month so far bar chart:</strong> Shaded brown bar &amp; percentage show actual rainfall received to date vs climatological monthly normal (100% = on pace with full month's expected rain).</span>
   </div>
 
+  <div class="table-legend-note">
+    <span class="material-icons" style="font-size:16px;color:var(--heavy-border);">star</span>
+    <span><strong>Year so far *</strong> means this station's own tracking record started partway through the year &mdash; the figure covers only that shorter period, not a full 12 months. Hover the value for the start date.</span>
+  </div>
+
   <div class="pagination">
     <span id="pageLabel"></span>
     <button id="prevPage">&larr; Prev</button>
@@ -1097,6 +1116,7 @@ function buildRows() {
             monthTotal: Math.max(sum.monthTotal || 0, sum.last24h || 0),
             yearTotal: Math.max(sum.yearTotal || 0, Math.max(sum.monthTotal || 0, sum.last24h || 0)),
             thresholdLevel: sum.thresholdLevel || 'normal',
+            recordsSince: sum.recordsSince || null,
             clim: clim
         };
     });
@@ -1416,11 +1436,15 @@ function render() {
 
         html += renderMonthCellHtml(r.monthTotal, r.clim, r.network);
         var yearCls = 'num-col' + (sortKey === 'yearTotal' ? ' td-sort-active' : '');
-        if (r.network === 'SEPA' || r.network === 'NRW') {
-            html += '<td class="' + yearCls + '"><span class="no-record" title="No published historical archive for this network">&mdash;</span></td>';
-        } else {
-            html += '<td class="' + yearCls + '">' + fmtMm(r.yearTotal) + '</td>';
-        }
+        // yearTotal is the rolling year-to-date figure from summary.json,
+        // computed identically for every network -- not the deep multi-decade
+        // climatology (that's the separate "record length" concept). Flag it
+        // only when this station's own record genuinely doesn't reach back
+        // to 1 Jan, rather than hiding the whole column for two networks
+        // that have exactly the same rolling data as EA.
+        var partial = r.recordsSince && r.recordsSince > (new Date().getUTCFullYear() + '-01-01');
+        var title = partial ? ' title="Partial record: station tracking began ' + r.recordsSince + '"' : '';
+        html += '<td class="' + yearCls + (partial ? ' partial-total' : '') + '"' + title + '>' + fmtMm(r.yearTotal) + '</td>';
         html += '</tr>';
     });
     tbody.innerHTML = html;

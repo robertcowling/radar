@@ -394,10 +394,22 @@ function renderHeader(s, sum) {
     document.getElementById('content').insertAdjacentHTML('beforeend', html);
 }
 
+// "Month/year so far" is misleading if the gauge's own record doesn't
+// actually go back that far -- e.g. a station added to tracking a few
+// days ago showing "2026 so far: 26.4mm" reads as a genuine 7-month
+// total for North Wales, which is absurd (confirmed live on Bethesda
+// Quarry). When recordsSince falls inside the current month/year, name
+// the tile after the real start date instead of pretending it's complete.
 function renderStatTiles(sum) {
     var now = new Date();
-    var monthLabel = now.toLocaleDateString([], {month: 'long'}) + ' so far';
-    var yearLabel = now.getFullYear() + ' so far';
+    var recSince = sum.recordsSince ? new Date(sum.recordsSince + 'T00:00:00Z') : null;
+    var yearStart = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+    var monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+    var sinceLabel = function(d) { return 'Since ' + d.toLocaleDateString([], {day: 'numeric', month: 'short', timeZone: 'UTC'}); };
+    var monthLabel = (recSince && recSince > monthStart) ? sinceLabel(recSince) : now.toLocaleDateString([], {month: 'long'}) + ' so far';
+    var yearLabel = (recSince && recSince > yearStart) ? sinceLabel(recSince) : now.getFullYear() + ' so far';
+
     var tiles = [
         ['Last Hour', sum.last1h], ['Last 6 Hours', sum.last6h], ['Last 24 Hours', sum.last24h],
         ['Last 7 Days', sum.last7d], [monthLabel, sum.monthTotal], [yearLabel, sum.yearTotal]
