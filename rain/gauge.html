@@ -10,6 +10,9 @@
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Chart.js — same library the Flood Forecast project itself loads
+     (templates/base.html), so this chart ports over untouched. -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 /* Brand tokens mirror the Flood Forecast project's tailwind.config brand
@@ -162,6 +165,7 @@ nav {
 }
 .chart-tabs button.active { background: var(--brand-500); border-color: var(--brand-500); color: #fff; }
 .chart-wrap { overflow-x: auto; }
+.chart-canvas-wrap { position: relative; height: 260px; width: 100%; min-width: 320px; }
 
 .monthly-scroll { display: flex; gap: 0.6rem; overflow-x: auto; padding-bottom: 0.4rem; }
 .month-tile { flex: 0 0 auto; width: 78px; text-align: center; }
@@ -308,6 +312,11 @@ if (!ref) {
 }
 
 function loadAll() {
+    // Every render* function appends its section with insertAdjacentHTML
+    // rather than replacing content, so re-running the whole pipeline (e.g.
+    // the Refresh button, which just calls loadAll() again) duplicated every
+    // section down the page instead of refreshing it in place.
+    document.getElementById('content').innerHTML = '';
     Promise.all([
         fetch('stations.json?_cb=' + Date.now()).then(function(r) { return r.json(); }).catch(function() { return {}; }),
         fetch(R2_CDN + '/rain/summary.json?_cb=' + Date.now()).then(function(r) { return r.json(); }).catch(function() { return {}; })
@@ -614,34 +623,31 @@ function renderRecords(sum) {
     document.getElementById('content').insertAdjacentHTML('beforeend', html);
 }
 
-function barChartSVG(points, W, H) {
-    var padL = 30, padB = 20, padT = 6, padR = 4;
-    var cW = W - padL - padR, cH = H - padT - padB;
-    var maxV = Math.max.apply(null, points.map(function(p) { return p.v; }).concat([1]));
-    var barW = cW / Math.max(points.length, 1);
-    var svg = '<svg width="' + W + '" height="' + H + '">';
-    var yStep = maxV <= 5 ? 1 : maxV <= 20 ? 5 : maxV <= 60 ? 10 : 20;
-    for (var gv = yStep; gv < maxV; gv += yStep) {
-        var gy = (padT + cH - (gv / maxV) * cH).toFixed(1);
-        svg += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="#dde1e7" stroke-width="0.7"/>';
-        svg += '<text x="' + (padL - 4) + '" y="' + (+gy + 3) + '" fill="#9aa0a6" font-size="8" text-anchor="end">' + gv + '</text>';
-    }
-    points.forEach(function(p, i) {
-        var bh = Math.max((p.v / maxV) * cH, p.v > 0 ? 1 : 0);
-        var bx = padL + i * barW;
-        var by = padT + cH - bh;
-        svg += '<rect x="' + (bx + 0.5).toFixed(1) + '" y="' + by.toFixed(1) + '" width="' + Math.max(barW - 1, 0.5).toFixed(1)
-            + '" height="' + bh.toFixed(1) + '" fill="' + (p.v >= 30 ? '#c62828' : p.v >= 10 ? '#ef6c00' : '#2F8696') + '"><title>' + p.label + ': ' + p.v.toFixed(1) + 'mm</title></rect>';
-        if (i % Math.ceil(points.length / 10 || 1) === 0) {
-            svg += '<text x="' + (bx + barW/2).toFixed(1) + '" y="' + (H - 4) + '" fill="#80868b" font-size="7.5" text-anchor="middle">' + p.tick + '</text>';
-        }
-    });
-    svg += '<line x1="' + padL + '" y1="' + (padT + cH) + '" x2="' + (W - padR) + '" y2="' + (padT + cH) + '" stroke="#bdc1c6"/>';
-    svg += '</svg>';
-    return svg;
+// Chart.js — same library the Flood Forecast project's own base.html loads
+// globally, so this ports over untouched. Colors are read live from our CSS
+// custom properties rather than duplicated as hex literals, so the chart
+// re-themes for free if the design tokens ever change, and follows the
+// light/dark toggle exactly like every other element on the page.
+var chartInstance = null;
+
+function chartTheme() {
+    var cs = getComputedStyle(document.documentElement);
+    var v = function(name) { return cs.getPropertyValue(name).trim(); };
+    return {
+        text: v('--text-muted'),
+        grid: v('--border-color'),
+        surface: v('--bg-surface'),
+        strong: v('--text-main'),
+        normal: v('--brand-500'),
+        heavy: v('--heavy-border'),
+        extreme: v('--extreme-border'),
+        font: "'Roboto', -apple-system, BlinkMacSystemFont, sans-serif"
+    };
 }
 
-function render24hChart() {
+function barColorFor(v, t) { return v >= 30 ? t.extreme : v >= 10 ? t.heavy : t.normal; }
+
+function points24h() {
     var now = new Date();
     var points = [];
     for (var back = 95; back >= 0; back--) {
@@ -650,18 +656,80 @@ function render24hChart() {
         var slot = String(Math.floor((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15));
         var day = rawByDate[dk];
         var v = (day && day.readings && day.readings[ref] && day.readings[ref][slot]) || 0;
-        points.push({v: v, label: t.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}), tick: pad2(t.getHours()) + ':00'});
+        points.push({v: v, label: t.toLocaleString([], {weekday: 'short', hour: '2-digit', minute: '2-digit'}), tick: pad2(t.getHours()) + ':00'});
     }
-    return barChartSVG(points, 640, 160);
+    return points;
 }
 
-function renderDailyChart(nDays) {
+function pointsDaily(nDays) {
     var dates = Object.keys(archiveDays).sort().slice(-nDays);
-    var points = dates.map(function(d) {
-        return {v: archiveDays[d], label: d, tick: d.slice(5)};
+    return dates.map(function(d) { return {v: archiveDays[d], label: d, tick: d.slice(5)}; });
+}
+
+function renderChartCanvas(points) {
+    var wrap = document.getElementById('chartWrap');
+    if (!points.length) {
+        if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+        wrap.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:1rem 0">No archived daily totals yet for this period.</div>';
+        return;
+    }
+    if (!document.getElementById('rainChartCanvas')) {
+        wrap.innerHTML = '<div class="chart-canvas-wrap"><canvas id="rainChartCanvas"></canvas></div>';
+    }
+    var t = chartTheme();
+    var ctx = document.getElementById('rainChartCanvas').getContext('2d');
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: points.map(function(p) { return p.tick; }),
+            datasets: [{
+                label: 'Rainfall',
+                data: points.map(function(p) { return p.v; }),
+                backgroundColor: points.map(function(p) { return barColorFor(p.v, t); }),
+                borderRadius: 3,
+                borderSkipped: false,
+                maxBarThickness: 26
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {duration: 250},
+            interaction: {mode: 'index', intersect: false},
+            scales: {
+                x: {
+                    ticks: {color: t.text, font: {family: t.font, size: 10}, maxRotation: 0, autoSkip: true, autoSkipPadding: 12},
+                    grid: {display: false}
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {color: t.text, font: {family: t.font, size: 10}},
+                    grid: {color: t.grid},
+                    title: {display: true, text: 'mm', color: t.text, font: {family: t.font, size: 10}}
+                }
+            },
+            plugins: {
+                legend: {display: false},
+                tooltip: {
+                    backgroundColor: t.surface,
+                    titleColor: t.strong,
+                    bodyColor: t.text,
+                    borderColor: t.grid,
+                    borderWidth: 1,
+                    padding: 10,
+                    cornerRadius: 8,
+                    displayColors: false,
+                    titleFont: {family: t.font, size: 11, weight: '600'},
+                    bodyFont: {family: t.font, size: 12},
+                    callbacks: {
+                        title: function(items) { return points[items[0].dataIndex].label; },
+                        label: function(item) { return item.parsed.y.toFixed(1) + ' mm'; }
+                    }
+                }
+            }
+        }
     });
-    if (!points.length) return '<div style="color:var(--text-muted);font-size:0.85rem;padding:1rem 0">No archived daily totals yet for this period.</div>';
-    return barChartSVG(points, Math.max(640, points.length * 14), 160);
 }
 
 function renderChart() {
@@ -679,11 +747,10 @@ function renderChart() {
         var statsSection = document.querySelectorAll('.section')[0];
         statsSection.insertAdjacentElement('afterend', wrapper);
     }
-    var target = document.getElementById('chartWrap');
-    if (chartTab === '24h') target.innerHTML = render24hChart();
-    else if (chartTab === '7 Days') target.innerHTML = renderDailyChart(7);
-    else if (chartTab === '30 Days') target.innerHTML = renderDailyChart(30);
-    else target.innerHTML = renderDailyChart(100000);
+    if (chartTab === '24h') renderChartCanvas(points24h());
+    else if (chartTab === '7 Days') renderChartCanvas(pointsDaily(7));
+    else if (chartTab === '30 Days') renderChartCanvas(pointsDaily(30));
+    else renderChartCanvas(pointsDaily(100000));
 }
 
 function setChartTab(t) { chartTab = t; renderChart(); }
