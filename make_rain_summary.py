@@ -26,7 +26,7 @@ Called every 15 min by rain_update.yml, right after fetch_rain.py.
 import hashlib
 import json
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import boto3
 
@@ -65,6 +65,18 @@ THRESHOLD_BANDS = {  # window_hours: (heavy_mm, extreme_mm)
 
 DRY_DAY_MM = 1.0          # a day with less than this total counts as "dry"
 ARCHIVE_YEARS_LOOKBACK = 2  # load current + N previous years' archive files
+MONTH_COMPLETENESS_MIN = 0.9  # fraction of a month's days needing an archived
+                               # value before that month can be a wettest/
+                               # driest-month candidate (mirrors
+                               # build_rain_climatology.py's own rule)
+
+
+def days_in_month(month_key):
+    """month_key: 'YYYY-MM' -> number of days in that calendar month."""
+    y, m = int(month_key[:4]), int(month_key[5:7])
+    if m == 12:
+        return 31
+    return (date(y, m + 1, 1) - date(y, m, 1)).days
 
 
 def get_r2():
@@ -255,14 +267,27 @@ def compute_records(stations, archives, now, rolling_totals=None):
         wettest_date, wettest_mm = max(valid_days.items(), key=lambda kv: kv[1])
 
         by_month = {}
+        month_day_counts = {}
         for d, v in valid_days.items():
-            by_month.setdefault(d[:7], 0.0)
-            by_month[d[:7]] += v
+            m = d[:7]
+            by_month.setdefault(m, 0.0)
+            by_month[m] += v
+            month_day_counts[m] = month_day_counts.get(m, 0) + 1
         by_month = {m: round(v, 2) for m, v in by_month.items()}
-        complete_months = {m: v for m, v in by_month.items() if m != this_month}
-        candidate_months = complete_months or by_month
-        wettest_month_key = max(candidate_months, key=candidate_months.get)
-        driest_month_key = min(candidate_months, key=candidate_months.get)
+
+        # A month only qualifies as a wettest/driest-month candidate once it
+        # has both fully elapsed (excluded regardless of day count below) and
+        # has enough of its days actually archived — otherwise a station with
+        # e.g. 3 archived July days reports "wettest month = driest month =
+        # July" fabricated from a month that's only 10% populated (confirmed
+        # live on Bethesda Quarry, NRW: both were "2026-07, 7.6mm", the only
+        # month with any data at all).
+        complete_months = {
+            m: v for m, v in by_month.items()
+            if m != this_month and month_day_counts[m] / days_in_month(m) >= MONTH_COMPLETENESS_MIN
+        }
+        wettest_month_key = max(complete_months, key=complete_months.get) if complete_months else None
+        driest_month_key = min(complete_months, key=complete_months.get) if complete_months else None
 
         # Longest run of *consecutive calendar days* (no gaps — a gap means
         # the gauge was offline, not confirmed dry) below DRY_DAY_MM.
@@ -288,8 +313,10 @@ def compute_records(stations, archives, now, rolling_totals=None):
             "monthTotal": month_total,
             "yearTotal": year_total,
             "wettestDay": {"date": wettest_date, "mm": round(wettest_mm, 2)},
-            "wettestMonth": {"month": wettest_month_key, "mm": by_month[wettest_month_key]},
-            "driestMonth": {"month": driest_month_key, "mm": by_month[driest_month_key]},
+            "wettestMonth": ({"month": wettest_month_key, "mm": by_month[wettest_month_key]}
+                             if wettest_month_key else None),
+            "driestMonth": ({"month": driest_month_key, "mm": by_month[driest_month_key]}
+                            if driest_month_key else None),
             "longestDrySpell": ({"days": best_len, "from": best_start} if best_len > 0 else None),
             "recordsSince": sorted_dates[0],
         }
