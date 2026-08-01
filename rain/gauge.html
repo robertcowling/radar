@@ -417,8 +417,9 @@ function renderMeta(s, sum) {
     document.getElementById('content').insertAdjacentHTML('beforeend', html);
 }
 
-// Absent for NRW gauges (no public historical source) — a 404 is expected
-// there and simply leaves the page on its short rolling record.
+// EA/SEPA/NRW all have deep climatology now (NRW matched to MIDAS Open on
+// CEDA by lat/lon). A 404 here just means an unmatched or brand-new gauge,
+// which falls back to the short rolling record below.
 function loadClimatology() {
     return fetch(R2_CDN + '/rain/climatology/' + encodeURIComponent(ref) + '.json?_cb=' + Date.now())
         .then(function(r) { if (!r.ok) throw 0; return r.json(); })
@@ -442,8 +443,8 @@ function loadArchive(sum) {
 }
 
 // Monthly totals come from the deep climatology series when this gauge has
-// one (EA/SEPA, decades), otherwise from the short rolling archive (NRW —
-// no historical source is publicly available for that network).
+// one (decades, EA/SEPA/NRW), otherwise from the short rolling archive
+// (a gauge with no MIDAS/EA/SEPA match, or one too new to have a file yet).
 function monthlySeries() {
     if (climatology && climatology.monthly && Object.keys(climatology.monthly).length) {
         return {months: climatology.monthly, deep: true};
