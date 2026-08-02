@@ -204,6 +204,7 @@ table.data td.nil { color: var(--text-dark); font-weight: 400; font-style: itali
 .rail .rl { font-size: 0.72rem; color: var(--text-muted); }
 .rail .rv.wet { color: var(--wet); }
 .rail .rv.dry { color: var(--dry); }
+.rail .rv.nil { color: var(--text-dark); font-weight: 500; font-size: 0.98rem; }
 .rail-top { margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); }
 
 /* ── Charts ──────────────────────────────────────────────────────────── */
@@ -373,7 +374,7 @@ footer {
 
 <footer>
   <div class="footer-container">
-    <p>Rainfall observations from the Environment Agency, Natural Resources Wales &amp; SEPA. Historic series from EA Hydrology, SEPA and Met Office MIDAS Open.</p>
+    <p>Rainfall observations from the Environment Agency, Natural Resources Wales &amp; SEPA. Historic series from EA Hydrology and SEPA, measured at the gauge itself &mdash; never substituted from another station.</p>
     <p><a href="table.html" class="footer-link">Gauge table</a> &middot; <a href="/rain" class="footer-link">Gauge map</a></p>
   </div>
 </footer>
@@ -390,6 +391,9 @@ var archiveDays = {};       // {YYYY-MM-DD: mm} rolling archive (UTC-midnight da
 var rawByDate = {};         // {YYYYMMDD: {readings: {ref: {slot: mm}}}} 15-minute
 var clim = null;            // rain/climatology/{ref}.json — the deep record
 var mode = 'none';          // 'live' | 'historic' | 'none'  (see climatologyMode)
+/* Set when a climatology file was fetched but refused because it belongs to a
+   different station. Used only to explain why nothing is shown. */
+var proxyRejected = null;
 var derived = null;
 var station = null;
 var recentTab = '48h';
@@ -400,10 +404,10 @@ var DAY_ABBR = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 /* A month is only comparable with other months once ≥90% of its days carry a
    value — the threshold build_rain_climatology.py uses for its own normals. */
 var MONTH_COMPLETENESS = 0.9;
-/* Beyond this the historic series and today's telemetry describe different
-   instruments and a different climate, so "% of normal" and the year-to-date
-   curve stop being computable. Recency decides, not network: a few EA and SEPA
-   gauges are as stale as the MIDAS proxies. */
+/* Beyond this a record describes a different climate from today's telemetry,
+   so "% of normal" and the year-to-date curve stop being computable. Recency
+   decides, not network: a handful of EA and SEPA gauges have records that stop
+   decades back. */
 var STALE_RECORD_DAYS = 730;
 /* Highest daily rainfall ever recorded in the UK: 341.4 mm, Honister Pass,
    5 December 2015. A published daily value above this is not a record, it is
@@ -466,18 +470,19 @@ function loadAll() {
         getJson('stations.json'),
         getJson(R2_CDN + '/rain/summary.json'),
         getJson(R2_CDN + '/rain/climatology/' + encodeURIComponent(ref) + '.json'),
-        // All three network indexes: ranking against EA alone would not be the
-        // national picture it claims to be.
+        // EA and SEPA only. climatology_index_nrw.json is built entirely from
+        // matched MIDAS stations, so every annual average in it describes a
+        // different site — it must not reach the neighbour column, the map
+        // popups or the national comparison.
         getJson(R2_CDN + '/rain/climatology_index_ea.json'),
-        getJson(R2_CDN + '/rain/climatology_index_sepa.json'),
-        getJson(R2_CDN + '/rain/climatology_index_nrw.json')
+        getJson(R2_CDN + '/rain/climatology_index_sepa.json')
     ]).then(function(res) {
         stations = (res[0] && res[0].stations) || {};
         summaryStations = (res[1] && res[1].stations) || {};
         summaryGeneratedAt = (res[1] && res[1].generated_at) || null;
         clim = res[2];
         normalIndex = {};
-        [res[3], res[4], res[5]].forEach(function(ix) {
+        [res[3], res[4]].forEach(function(ix) {
             if (ix) Object.keys(ix).forEach(function(k) { normalIndex[k] = ix[k]; });
         });
 
@@ -488,6 +493,13 @@ function loadAll() {
             return;
         }
         mode = climatologyMode(clim);
+        // Dropped rather than merely unused: with clim null there is no path,
+        // now or later, by which another station's numbers reach this page.
+        proxyRejected = null;
+        if (mode === 'none' && clim && clim.midasSrcId) {
+            proxyRejected = {name: clim.midasName || '', srcId: clim.midasSrcId, distKm: clim.matchDistKm};
+            clim = null;
+        }
         derived = mode === 'none' ? null : deriveClimatology(clim);
 
         var sum = summaryStations[ref] || {};
@@ -577,8 +589,14 @@ function latestReading() {
 }
 
 // ── Climatology mode & derived statistics ────────────────────────────────
+// Nothing on this page is drawn from another station. build_nrw_climatology.py
+// fills the NRW gap by matching each gauge to its nearest Met Office MIDAS
+// station and stamps midasSrcId on the result; that is a different instrument
+// at a different site, however close, so it is refused outright rather than
+// presented as this gauge's record. A site with no record of its own says so.
 function climatologyMode(c) {
     if (!c || !c.monthly || !Object.keys(c.monthly).length) return 'none';
+    if (c.midasSrcId) return 'none';
     var end = new Date(c.recordEnd + 'T00:00:00Z');
     if (isNaN(end)) return 'historic';
     return (Date.now() - end.getTime()) / 86400000 <= STALE_RECORD_DAYS ? 'live' : 'historic';
@@ -826,16 +844,30 @@ function fillNow(sum) {
     var recSince = sum.recordsSince ? new Date(sum.recordsSince + 'T00:00:00Z') : null;
     var monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
     var monthTruncated = recSince && recSince > monthStart;
+    // A month-to-date of 0.0 mm from a gauge that has sent nothing all month is
+    // not a measurement. The rolling archive says how many of this month's days
+    // are actually held; today's is allowed to be missing, since it is still
+    // accumulating.
+    var elapsed = now.getUTCDate(), held = 0;
+    for (var dd = 1; dd <= elapsed; dd++) {
+        if (archiveDays[isoOf(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), dd)))] != null) held++;
+    }
+    var monthCovered = held >= elapsed - 1;
     if (sum.monthTotal != null) {
-        context.push({v: mmText(sum.monthTotal, 1) + ' mm',
-            l: MONTH_ABBR[now.getUTCMonth()] + ' to date'
-                + (monthTruncated ? ' (from ' + prettyDate(sum.recordsSince) + ')' : ''), cls: ''});
+        context.push(held === 0
+            ? {v: 'No data', l: MONTH_ABBR[now.getUTCMonth()] + ' to date — no days held', cls: 'nil'}
+            : {v: mmText(sum.monthTotal, 1) + ' mm',
+               l: MONTH_ABBR[now.getUTCMonth()] + ' to date'
+                   + (monthTruncated ? ' (from ' + prettyDate(sum.recordsSince) + ')'
+                      : monthCovered ? '' : ' (' + held + ' of ' + elapsed + ' days held)'), cls: ''});
     }
     // Month to date against this calendar month's average. The live total is
     // built on UTC-midnight days and the average on 09:00–09:00 days, so this
     // is a close guide rather than an exact like-for-like; and it is only
     // called wet or dry against the share of the month elapsed.
-    if (monthNorm && !monthTruncated) {
+    // Only worth a percentage when the month's days are actually all there —
+    // otherwise the figure reads dry purely for the missing days.
+    if (monthNorm && !monthTruncated && monthCovered && held > 0) {
         var pct = monthNorm.mean > 0 ? (sum.monthTotal / monthNorm.mean) * 100 : null;
         var frac = now.getUTCDate() / daysInMonth(now.getUTCFullYear(), now.getUTCMonth() + 1);
         context.push({
@@ -1506,12 +1538,19 @@ function fillLongRecord(sum) {
         title.textContent = 'Long record';
         hint.textContent = '';
         var since = sum.recordsSince ? 'on ' + prettyDate(sum.recordsSince) : 'when this gauge joined the network';
-        region.innerHTML = '<div class="callout warn"><strong>No long record published for this gauge.</strong> It has no match '
-            + 'in the EA or SEPA historic daily series and no Met Office MIDAS Open station within matching distance, so there is '
-            + 'nothing to build averages, anomalies or return periods from. Everything on this page comes from Flood Forecast’s '
-            + 'own rolling record, which starts ' + since + '.</div>'
-            + '<div class="note" style="margin-top:0.7rem">Use the 24 month view above for the monthly totals we do hold, and the '
-            + 'surrounding gauges on the map for climatological context &mdash; most of them have a full record.</div>';
+        region.innerHTML = '<div class="callout warn"><strong>No historical record exists for this site.</strong> '
+            + (proxyRejected
+                ? 'Natural Resources Wales publishes no rainfall archive, so nothing measured at this gauge goes back beyond '
+                  + 'Flood Forecast’s own rolling record, which starts ' + since + '. A Met Office MIDAS Open station '
+                  + (proxyRejected.distKm != null ? proxyRejected.distKm.toFixed(2) + ' km away' : 'nearby')
+                  + ' does hold a long record, but that is a different instrument at a different site and is not shown here '
+                  + 'or used in any figure on this page.'
+                : 'There is no EA or SEPA historic daily series for this reference, so nothing measured here goes back beyond '
+                  + 'Flood Forecast’s own rolling record, which starts ' + since + '.')
+            + '</div>'
+            + '<div class="note" style="margin-top:0.7rem">Without a record for the site there are no averages, no anomalies and '
+            + 'no climatological extremes to show, so none are drawn. The 24 month view above holds the monthly totals we have '
+            + 'accumulated ourselves.</div>';
         return;
     }
 
@@ -1519,14 +1558,9 @@ function fillLongRecord(sum) {
     hint.innerHTML = clim.recordStart.slice(0, 4) + '&ndash;' + clim.recordEnd.slice(0, 4)
         + ' &middot; ' + clim.recordYears + ' years &middot; ' + derived.fullYears.length + ' complete calendar years';
 
+    // Everything from here down is measured at this gauge: a matched-station
+    // record never reaches this branch (see climatologyMode).
     var banners = '';
-    if (clim.midasSrcId) {
-        banners += '<div class="callout warn"><strong>Nearby historical reference, not this gauge’s own record.</strong> Natural '
-            + 'Resources Wales publishes no rainfall archive, so the long record here is Met Office MIDAS Open station '
-            + esc(titleCase(clim.midasName || '')) + ' (' + esc(clim.midasSrcId) + '), '
-            + (clim.matchDistKm != null ? clim.matchDistKm.toFixed(2) + ' km away' : 'the nearest matched station')
-            + '. Treat it as the local climatology, not as measurements from this instrument.</div>';
-    }
     if (mode === 'historic') {
         banners += '<div class="callout warn"><strong>This record ends ' + prettyDate(clim.recordEnd) + '.</strong> It is shown '
             + 'on its own terms, as a historical baseline for the site. Today’s telemetry is not compared against it, because the '
@@ -1729,10 +1763,8 @@ function fillProvenance(s, sum) {
 
     var q = [];
     if (mode !== 'none') {
-        q.push(['Historic series', clim.midasSrcId
-            ? 'Met Office MIDAS Open, station ' + esc(titleCase(clim.midasName || '')) + ' (' + esc(clim.midasSrcId) + ')'
-              + (clim.matchDistKm != null ? ', ' + clim.matchDistKm.toFixed(2) + ' km from this gauge' : '')
-            : clim.source === 'sepa' ? 'SEPA daily rainfall archive' : 'EA Hydrology daily rainfall measure']);
+        q.push(['Historic series', (clim.source === 'sepa' ? 'SEPA daily rainfall archive' : 'EA Hydrology daily rainfall measure')
+            + ', measured at this station']);
         q.push(['Period of record', prettyDate(clim.recordStart) + ' to ' + prettyDate(clim.recordEnd)
             + ' &middot; ' + clim.recordYears + ' years'
             + (mode === 'historic' ? ' <span class="pill">Ends historically</span>' : '')]);
@@ -1757,11 +1789,18 @@ function fillProvenance(s, sum) {
                 + ' complete years' + (rank ? ' &mdash; wetter than ' + rank.pct + '% of the ' + rank.n.toLocaleString()
                     + ' UK gauges with a current published record' : '')]);
         }
+    } else if (proxyRejected) {
+        q.push(['Historic series', 'None for this site. Natural Resources Wales publishes no rainfall archive.']);
+        q.push(['Nearest long record', 'Met Office MIDAS Open station ' + esc(titleCase(proxyRejected.name)) + ' ('
+            + esc(proxyRejected.srcId) + ')'
+            + (proxyRejected.distKm != null ? ', ' + proxyRejected.distKm.toFixed(2) + ' km away' : '')
+            + ' &mdash; a different site, deliberately not used for any figure here']);
+        q.push(['Consequence', 'No averages, anomalies or climatological records are shown, because none have been measured at '
+            + 'this gauge. Every figure on this page comes from our own rolling record.']);
     } else {
-        q.push(['Historic series', 'None available. No EA or SEPA archive series for this reference and no MIDAS Open station '
-            + 'matched within range.']);
-        q.push(['Consequence', 'No averages, anomalies or climatological records can be shown. Every figure on this page comes '
-            + 'from our own rolling record.']);
+        q.push(['Historic series', 'None for this site. There is no EA or SEPA archive series for this reference.']);
+        q.push(['Consequence', 'No averages, anomalies or climatological records are shown. Every figure on this page comes from '
+            + 'our own rolling record.']);
     }
 
     document.getElementById('provRegion').innerHTML = '<div class="two-col">'
