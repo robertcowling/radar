@@ -584,7 +584,9 @@ function deriveClimatology(c) {
                     pct: mean > 0 ? (mine.mm / mean) * 100 : null,
                     rankDriest: rankDriest, rankWettest: sameWindow.length - rankDriest + 1,
                     n: sameWindow.length,
-                    label: 'Jan' + (through > 1 ? '&ndash;' + MONTH_ABBR[through - 1] : '')
+                    // An en-dash character, not an entity: this label also
+                    // reaches tooltip and title contexts that take plain text.
+                    label: 'Jan' + (through > 1 ? '–' + MONTH_ABBR[through - 1] : '')
                 };
             }
         }
@@ -1099,12 +1101,15 @@ function fillYear() {
         }
     });
 }
-// Panel title needs to exist before derive-time; kept beside the renderer so
-// the two never drift.
+// Panel title, kept beside the renderer so the two never drift. A record can
+// be recent enough to be a valid baseline and still stop part way through last
+// year — naming the year as "in context" would then imply it is the year we
+// are in, so the title says which year it actually is.
 function envelopeTitle() {
     if (!derived) return 'Year in context';
     var y = (derived.ytd && derived.ytd.year) || (derived.envelope && derived.envelope.year);
-    return y ? y + ' in context' : 'Year in context';
+    if (!y) return 'Year in context';
+    return +y === new Date().getUTCFullYear() ? y + ' in context' : y + ' in context, the latest year of record';
 }
 
 // ── Long record: annual totals + month-by-year anomaly grid ──────────────
