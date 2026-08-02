@@ -46,7 +46,7 @@ ARCHIVE_PFX   = "rain/archive"
 
 # Rolling-window totals used both for the table/detail pages and for the
 # heavy/extreme threshold check.
-WINDOWS_HOURS = {"last1h": 1, "last3h": 3, "last6h": 6, "last12h": 12, "last24h": 24, "last48h": 48}
+WINDOWS_HOURS = {"last1h": 1, "last3h": 3, "last6h": 6, "last12h": 12, "last24h": 24, "last48h": 48, "last72h": 72}
 WINDOW_7D_DAYS = 7
 # Matches fetch_rain.py's RETENTION_DAYS — the longest window raw readings
 # support. Not surfaced in the UI; used only as an internal floor for
