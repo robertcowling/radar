@@ -112,8 +112,6 @@ nav {
 
 .main-wrap { flex: 1; padding: 1.25rem 1.5rem 3rem; width: 100%; max-width: 84rem; margin: 0 auto; }
 @media (max-width: 560px) { .main-wrap { padding: 0.9rem 0.75rem 2rem; } }
-.back-link { display: inline-block; font-size: 0.8rem; color: var(--text-muted); text-decoration: none; margin-bottom: 0.6rem; }
-.back-link:hover { color: var(--brand-500); }
 
 /* ── Header strip: facts and live figures, not a card with one number ──── */
 .gauge-head {
@@ -267,29 +265,54 @@ table.hm td.d4 { background: var(--dv-d4); color: var(--dv-d4-ink); }
 @media (max-width: 1000px) { #gaugeMap { height: 320px; } }
 @media (max-width: 560px) { #gaugeMap { height: 260px; } }
 .leaflet-container { background: var(--bg-inset); font-family: var(--font-family); }
-.rg-wrap { width: 22px; height: 22px; }
+/* Marker rules copied verbatim from rain/index.html (.rg-wrap / .rg-icon /
+   .rg-nodata / .rg-dry) — same sizes, same flex-centering, same transform
+   hint — so a gauge reads as the identical marker on both pages. Only the
+   additions below (rg-self, dark-mode dry, zoomed-out) are new to this page. */
+.rg-wrap {
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+}
 .rg-icon {
-  width: 22px; height: 22px; border-radius: 50%;
+  width: 20px; height: 20px;
+  border-radius: 50%;
   border: 1.5px solid rgba(255,255,255,0.55);
+  transform: translateZ(0); will-change: transform;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-family); font-size: 8.5px; font-weight: 700;
-  color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.5);
-  box-sizing: border-box; cursor: pointer; line-height: 1;
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+  box-sizing: border-box;
+  cursor: pointer;
+  line-height: 1;
+}
+.rg-icon.rg-nodata {
+  width: 7px; height: 7px;
+  background: #90a4ae;
+  opacity: 0.35;
+  border: none;
 }
 /* Reported readings summing to ~0: measured and dry, which must not look like
    a gauge that sent nothing. */
-.rg-icon.rg-dry { background: #eef1f3; color: #6b7a86; border-color: rgba(120,144,156,0.45); text-shadow: none; }
+.rg-icon.rg-dry {
+  background: #eef1f3;
+  color: #6b7a86;
+  border-color: rgba(120,144,156,0.45);
+  text-shadow: none;
+}
 /* /rain's dry chip is tuned for a light basemap; on Dark Matter it would be
-   the brightest thing on the map, which is backwards for "nothing happened". */
+   the brightest thing on the map, which is backwards for "nothing happened".
+   /rain itself has no dark mode, so this addition has nothing to match. */
 @media (prefers-color-scheme: dark) {
   .rg-icon.rg-dry { background: #2b3648; color: #94a3b8; border-color: rgba(148,163,184,0.35); }
 }
-/* Nothing received in the window: small faded dot, no number. */
-.rg-icon.rg-nodata { width: 8px; height: 8px; background: var(--nodata); opacity: 0.45; border: none; }
+/* This page's own addition: the gauge whose page this is, ringed so it's
+   findable among its neighbours. */
 .rg-icon.rg-self { box-shadow: 0 0 0 3px var(--brand-500), 0 0 0 4.5px rgba(255,255,255,0.85); }
-/* Below zoom 9 the value labels collide, so markers drop to plain dots. */
-.leaflet-container.zoomed-out .rg-icon { width: 11px; height: 11px; font-size: 0; border-width: 1px; }
-.leaflet-container.zoomed-out .rg-icon.rg-nodata { width: 6px; height: 6px; }
+/* This page's own addition: below zoom 9 the value labels collide, so markers
+   drop to plain dots, scaled from the same 20px/7px base above. */
+.leaflet-container.zoomed-out .rg-icon { width: 10px; height: 10px; font-size: 0; border-width: 1px; }
+.leaflet-container.zoomed-out .rg-icon.rg-nodata { width: 5px; height: 5px; }
 .leaflet-container.zoomed-out .rg-icon.rg-self { box-shadow: 0 0 0 2.5px var(--brand-500), 0 0 0 4px rgba(255,255,255,0.85); }
 .map-bar {
   display: flex; align-items: flex-end; justify-content: space-between; gap: 0.6rem 1rem; flex-wrap: wrap;
@@ -368,7 +391,6 @@ footer {
 </nav>
 
 <main class="main-wrap">
-  <a href="table.html" class="back-link">&larr; Back to gauge table</a>
   <div id="content"></div>
 </main>
 
@@ -396,8 +418,15 @@ var mode = 'none';          // 'live' | 'historic' | 'none'  (see climatologyMod
 var proxyRejected = null;
 var derived = null;
 var station = null;
-var recentTab = '48h';
+var recentTab = '24h';
 var mapWindow = '24h';      // which accumulation the map markers show
+var durationScope = 'short'; // 'short' | 'long' — see DURATIONS split below
+var lastSummary = null;      // the summaryStations[ref] row, kept for re-renders
+// stations.json carries no county field (confirmed empty on all 1,342 rows) —
+// table.html derives it client-side with a point-in-polygon test against
+// geo/uk-counties.geojson, so this page does the same for the one gauge it
+// needs it for, rather than repeating "Not assigned" on every page.
+var countyName = null;
 
 var MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 var DAY_ABBR = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -413,17 +442,27 @@ var STALE_RECORD_DAYS = 730;
    5 December 2015. A published daily value above this is not a record, it is
    an artefact in the source series — say so rather than present it straight. */
 var UK_DAILY_RECORD_MM = 341.4;
-var DURATIONS = [
+// Split rather than one bar scale for all nine: a bar chart sized to a 14 day
+// total makes the 1 hour row a sliver regardless of how heavy that hour was.
+// Two scopes, each scaled to its own peak, keep both ends legible.
+var DURATIONS_SHORT = [
     ['1 hour', 'last1h', 1], ['3 hours', 'last3h', 3], ['6 hours', 'last6h', 6],
-    ['12 hours', 'last12h', 12], ['24 hours', 'last24h', 24], ['48 hours', 'last48h', 48],
-    ['72 hours', 'last72h', 72], ['7 days', 'last7d', 168], ['14 days', 'last14d', 336]
+    ['12 hours', 'last12h', 12], ['24 hours', 'last24h', 24]
 ];
-/* Accumulation colours and breaks lifted from rain/index.html, so a gauge
-   reads the same colour here as it does on the network map. */
-var ACCUM_COLORS = ['#e1f5fe','#81d4fa','#03a9f4','#01579b','#2e7d32','#fbc02d','#ef6c00','#c62828','#6a1b9a'];
-var ACCUM_TEXT   = ['#01579b','#01579b','#002b6b','#ffffff','#ffffff','#5d3a00','#ffffff','#ffffff','#ffffff'];
-var SCALE_SHORT = [0.1, 0.5, 1, 2, 4, 8, 16, 32, 64];       // ≤ 24 h windows
-var SCALE_LONG  = [2, 5, 10, 25, 50, 100, 150, 200, 350];    // 48 h and beyond
+var DURATIONS_LONG = [
+    ['48 hours', 'last48h', 48], ['72 hours', 'last72h', 72],
+    ['7 days', 'last7d', 168], ['14 days', 'last14d', 336]
+];
+var DURATIONS = DURATIONS_SHORT.concat(DURATIONS_LONG);
+// Met Office Alternative Colour Palette — the same breaks/fill/text as
+// rain/table.html's accumStyle() (itself lifted from the Flood Forecast
+// project's own home.html), so a gauge is coloured the same way here as it is
+// in the table, rather than the different teal-to-purple ramp rain/index.html
+// uses for its own live radar-style map. One scale for every duration, again
+// matching table.html rather than splitting short/long windows.
+var ACCUM_BREAKS = [0.03, 1, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160, 180];
+var ACCUM_FILL   = ['#3A6CFF','#00FF00','#FFFF95','#FFD563','#FF9618','#E86100','#BA2000','#CC537D','#DB92DC','#FF02FF','#FFFFFF','#C8C8C8','#BFBF00'];
+var ACCUM_TEXT   = ['#ffffff','#003300','#333333','#333333','#333333','#ffffff','#ffffff','#ffffff','#333333','#333333','#333333','#333333','#333333'];
 var MAP_WINDOWS = [['1h', 'last1h'], ['6h', 'last6h'], ['24h', 'last24h'], ['48h', 'last48h'], ['7d', 'last7d']];
 
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -451,6 +490,30 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 }
 function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
+// Point-in-polygon county lookup — the same ray-casting test table.html uses
+// for its own county column and filter, kept identical so a gauge's county
+// here always agrees with its county there.
+function pointInRing(pt, ring) {
+    var x = pt[0], y = pt[1], inside = false;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+        if (((yi > y) !== (yj > y)) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+}
+function countyFor(lon, lat, features) {
+    var pt = [lon, lat];
+    for (var i = 0; i < features.length; i++) {
+        var g = features[i].geometry;
+        if (!g) continue;
+        var polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+        for (var p = 0; p < polys.length; p++) {
+            if (pointInRing(pt, polys[p][0])) return features[i].properties.name || features[i].properties.public_name || null;
+        }
+    }
+    return null;
+}
+
 // ── Load ──────────────────────────────────────────────────────────────────
 if (!ref) {
     document.getElementById('content').innerHTML =
@@ -475,7 +538,10 @@ function loadAll() {
         // different site — it must not reach the neighbour column, the map
         // popups or the national comparison.
         getJson(R2_CDN + '/rain/climatology_index_ea.json'),
-        getJson(R2_CDN + '/rain/climatology_index_sepa.json')
+        getJson(R2_CDN + '/rain/climatology_index_sepa.json'),
+        // getJson resolves null on any failure rather than rejecting, so the
+        // local fallback is chained with .then, not .catch.
+        getJson(R2_CDN + '/geo/uk-counties.geojson').then(function(gj) { return gj || getJson('../uk-counties.geojson'); })
     ]).then(function(res) {
         stations = (res[0] && res[0].stations) || {};
         summaryStations = (res[1] && res[1].stations) || {};
@@ -485,6 +551,7 @@ function loadAll() {
         [res[3], res[4]].forEach(function(ix) {
             if (ix) Object.keys(ix).forEach(function(k) { normalIndex[k] = ix[k]; });
         });
+        var countyFeatures = (res[5] && res[5].features) || [];
 
         station = stations[ref];
         if (!station) {
@@ -492,6 +559,7 @@ function loadAll() {
                 '&rdquo; not found. <a href="table.html">Back to the gauge table</a></div>';
             return;
         }
+        countyName = countyFeatures.length ? countyFor(station.lon, station.lat, countyFeatures) : null;
         mode = climatologyMode(clim);
         // Dropped rather than merely unused: with clim null there is no path,
         // now or later, by which another station's numbers reach this page.
@@ -536,9 +604,11 @@ function loadArchive(sum) {
     }));
 }
 
+// 4 calendar days covers the 72 h tab with room to spare: 72 h back from any
+// time of day can touch a 4th distinct UTC date, not just 3.
 function loadRecentReadings() {
     var now = new Date();
-    return Promise.all([0, 1, 2].map(function(b) {
+    return Promise.all([0, 1, 2, 3].map(function(b) {
         var dk = dateKeyOf(new Date(now - b * 86400000));
         return getJson(R2_CDN + '/rain/readings/' + dk + '.json').then(function(data) {
             if (data) rawByDate[dk] = data;
@@ -690,9 +760,20 @@ function deriveClimatology(c) {
     // running sum of monthly percentiles (which assumes every month lands at
     // the same percentile together and comes out far too narrow). Index 0 is
     // 1 January, so the curve starts from zero rather than mid-air.
+    // Cumulative rainfall is right-skewed — bounded below by zero/dry years,
+    // stretched above by the occasional very wet one — so the median sits
+    // well below the middle of the P10-P90 band (confirmed on real stations:
+    // by December the median typically sits 25-30% of the way up the band,
+    // not 50%). That is a genuine property of the distribution, not a
+    // computation error, but it reads as a mistake next to a band that looks
+    // like it should be symmetric. The mean does not have that problem — it
+    // is pulled toward the band's centre by the same wet years that stretch
+    // the top of it — and it is also the figure already shown alongside this
+    // chart as "average full year", so one dashed line means the same thing
+    // in both places instead of two different kinds of "average".
     var envelope = null;
     if (fullYears.length >= 5) {
-        var p10 = [0], p50 = [0], p90 = [0];
+        var p10 = [0], p90 = [0], pmean = [0];
         for (var mm = 1; mm <= 12; mm++) {
             var vals = fullYears.map(function(y) {
                 var t = 0;
@@ -700,8 +781,8 @@ function deriveClimatology(c) {
                 return t;
             }).sort(function(a, b) { return a - b; });
             p10.push(percentile(vals, 0.10));
-            p50.push(percentile(vals, 0.50));
             p90.push(percentile(vals, 0.90));
+            pmean.push(vals.reduce(function(a, b) { return a + b; }, 0) / vals.length);
         }
         var cur = [0], run = 0, ok = true;
         for (var m2 = 1; m2 <= 12; m2++) {
@@ -710,7 +791,7 @@ function deriveClimatology(c) {
             run += v;
             cur.push(run);
         }
-        envelope = {p10: p10, p50: p50, p90: p90, current: cur, year: latestYear, nYears: fullYears.length};
+        envelope = {p10: p10, p90: p90, mean: pmean, current: cur, year: latestYear, nYears: fullYears.length};
     }
 
     return {
@@ -747,10 +828,10 @@ function renderSkeleton() {
         + '<div id="headRegion"></div>'
         + '<div class="grid split">'
         +   '<section class="panel"><div class="panel-head"><h2>Rainfall to now</h2>'
-        +     '<span class="hint" id="nowHint"></span></div>'
+        +     '<div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">'
+        +       '<div class="tabs" id="nowTabs"></div><span class="hint" id="nowHint"></span></div></div>'
         +     '<div id="nowRegion" class="panel-body"></div></section>'
-        +   '<section class="panel"><div class="panel-head"><h2>Gauge network around this site</h2>'
-        +     '<span class="hint">Click any gauge to open it</span></div>'
+        +   '<section class="panel"><div class="panel-head"><h2>Location</h2></div>'
         +     '<div id="placeRegion" class="panel-body flush"></div></section>'
         + '</div>'
         + '<section class="panel"><div class="panel-head"><h2>Recent rainfall</h2>'
@@ -776,10 +857,12 @@ function fillHead(s, sum) {
     document.title = s.name + ' | Flood Forecast';
     document.getElementById('pageTitle').textContent = s.name + ' | Flood Forecast';
 
+    // Network and county as a pair of pills — identity, not detail. Position
+    // is still exact in the provenance table below; a truncated 4dp chip up
+    // here just repeated it without earning the space.
     var facts = ['<span class="pill">' + networkOf(s) + '</span>'];
-    if (s.county) facts.push(esc(s.county));
+    if (countyName) facts.push('<span class="pill">' + esc(countyName) + '</span>');
     facts.push('<span class="sep">&middot;</span><span class="mono">' + esc(ref) + '</span>');
-    facts.push('<span class="sep">&middot;</span><span class="mono">' + s.lat.toFixed(4) + ', ' + s.lon.toFixed(4) + '</span>');
     if (mode !== 'none') {
         facts.push('<span class="sep">&middot;</span>' + (mode === 'live' ? 'Record ' : 'Historic record ')
             + clim.recordStart.slice(0, 4) + '&ndash;' + clim.recordEnd.slice(0, 4) + ' (' + clim.recordYears + ' yr)');
@@ -818,10 +901,19 @@ function fillHead(s, sum) {
 }
 
 // ── Rainfall to now ──────────────────────────────────────────────────────
-// One table for every duration held. A duration whose window contains no
-// reported slots says so instead of showing a total of 0.0.
+// A duration whose window contains no reported slots says so instead of
+// showing a total of 0.0. Short and long durations are shown one scope at a
+// time, each scaled to its own peak — a bar chart spanning 1 hour to 14 days
+// makes the short end unreadable regardless of how heavy that hour was.
 function fillNow(sum) {
-    var rows = DURATIONS.map(function(d) {
+    lastSummary = sum;
+    var list = durationScope === 'short' ? DURATIONS_SHORT : DURATIONS_LONG;
+    document.getElementById('nowTabs').innerHTML = [['short', 'Up to 24h'], ['long', '48h+']].map(function(t) {
+        return '<button class="' + (durationScope === t[0] ? 'active' : '') + '" onclick="setDurationScope(\''
+            + t[0] + '\')">' + t[1] + '</button>';
+    }).join('');
+
+    var rows = list.map(function(d) {
         return {label: d[0], v: sum[d[1]], known: windowHasData(d[2])};
     });
     var peak = rows.reduce(function(a, r) { return Math.max(a, r.known && r.v ? r.v : 0); }, 0);
@@ -893,10 +985,12 @@ function fillNow(sum) {
                     return '<div class="item"><div class="rv ' + c.cls + '">' + c.v + '</div><div class="rl">' + c.l + '</div></div>';
                 }).join('') + '</div>'
             : '')
-        + '<div class="note" style="margin-top:0.7rem">Bars are drawn against the largest accumulation in the table; a hairline '
-        + 'means the gauge reported and measured no rain. Durations beyond 48 hours cannot be checked for gaps against the '
-        + '15 minute readings held here, so they are shown as published.</div>';
+        + '<div class="note" style="margin-top:0.7rem">Bars are drawn against the largest accumulation in this scope, so short '
+        + 'and long durations each get a scale that fits them; a hairline means the gauge reported and measured no rain. '
+        + 'Durations beyond 48 hours cannot be checked for gaps against the 15 minute readings held here, so they are shown as '
+        + 'published.</div>';
 }
+function setDurationScope(s) { durationScope = s; fillNow(lastSummary); }
 
 // ── Map: the /rain gauge map's markers, scale and behaviour ──────────────
 function fillPlace(s) {
@@ -926,27 +1020,26 @@ function fillPlace(s) {
     renderNeighbourList(neighbours);
 }
 
-function scaleFor(win) { return win === '48h' || win === '7d' ? SCALE_LONG : SCALE_SHORT; }
-
 function renderMapScale() {
     document.getElementById('mapScale').innerHTML = ''
         + '<div><div class="scale-cap">mm in ' + mapWindow + '</div><div class="scale-row">'
         +   '<span class="sc" style="background:#eef1f3;border:1px solid var(--border-color)" title="Measured, dry"></span>'
-        +   ACCUM_COLORS.map(function(c) { return '<span class="sc" style="background:' + c + '"></span>'; }).join('')
+        +   ACCUM_FILL.map(function(c) { return '<span class="sc" style="background:' + c + '"></span>'; }).join('')
         + '</div><div class="scale-labels"><span>0</span>'
-        +   scaleFor(mapWindow).map(function(b) { return '<span>' + b + '</span>'; }).join('')
+        +   ACCUM_BREAKS.map(function(b) { return '<span>' + b + '</span>'; }).join('')
         + '</div></div>';
 }
 
-// Style for one gauge's accumulation, mirroring getAccumStyle in
-// rain/index.html: a faded dot for nothing received, a muted full-size marker
-// for measured-and-dry, colour by break otherwise.
-function accumStyle(val, hasData, win) {
+// Style for one gauge's accumulation: a faded dot for nothing received, a
+// muted full-size marker for measured-and-dry, colour by break otherwise —
+// same three-way split as rain/index.html's getAccumStyle, but the colour
+// bands are table.html's Met Office Alternative Palette, per ACCUM_BREAKS.
+function accumStyle(val, hasData) {
     if (!hasData || val == null) return {cls: 'rg-nodata', bg: '', fg: '', label: ''};
     if (val < 0.05) return {cls: 'rg-dry', bg: '', fg: '', label: '0'};
-    var breaks = scaleFor(win), i = 0;
-    for (var k = 0; k < breaks.length; k++) { if (val >= breaks[k]) i = k; else break; }
-    return {cls: '', bg: ACCUM_COLORS[i], fg: ACCUM_TEXT[i], label: val < 10 ? val.toFixed(1) : String(Math.round(val))};
+    var i = 0;
+    for (var k = 0; k < ACCUM_BREAKS.length; k++) { if (val >= ACCUM_BREAKS[k]) i = k; else break; }
+    return {cls: '', bg: ACCUM_FILL[i], fg: ACCUM_TEXT[i], label: val < 10 ? val.toFixed(1) : String(Math.round(val))};
 }
 
 // summary.json holds no nulls, so a gauge that has sent nothing still reads
@@ -1003,7 +1096,7 @@ function refreshMapMarkers() {
         var div = el.querySelector('.rg-icon');
         if (!div) return;
         var wv = windowValue(id, mapWindow);
-        var st = accumStyle(wv.v, wv.hasData, mapWindow);
+        var st = accumStyle(wv.v, wv.hasData);
         div.className = 'rg-icon ' + st.cls + (id === ref ? ' rg-self' : '');
         div.style.background = st.bg;
         div.style.color = st.fg;
@@ -1217,7 +1310,8 @@ function points15min(hours) {
 
 function pointsDaily(nDays) {
     var out = [], now = new Date();
-    var step = nDays <= 31 ? 5 : 10;
+    // A 7-day window has room to label every day; 30/90 day windows don't.
+    var step = nDays <= 10 ? 1 : nDays <= 31 ? 5 : 10;
     for (var back = nDays - 1; back >= 0; back--) {
         var t = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - back));
         var key = isoOf(t), dom = t.getUTCDate(), first = dom === 1;
@@ -1225,7 +1319,8 @@ function pointsDaily(nDays) {
             // A day absent from the archive is a gap, not a dry day.
             v: archiveDays[key] == null ? null : archiveDays[key],
             boundary: first,
-            tick: first ? MONTH_ABBR[t.getUTCMonth()] : (dom % step === 0 ? String(dom) : ''),
+            tick: first ? MONTH_ABBR[t.getUTCMonth()]
+                : (step === 1 ? DAY_ABBR[t.getUTCDay()] : (dom % step === 0 ? String(dom) : '')),
             label: DAY_ABBR[t.getUTCDay()] + ' ' + prettyDate(key)
         });
     }
@@ -1270,8 +1365,13 @@ function pointsMonthly(nMonths) {
     return out;
 }
 
+// 15-minute resolution up to 72 h; a week and beyond switches to daily bars —
+// 7 days at 15-minute resolution is 672 bars, finer than anyone reads at a
+// glance, and daily is what the 30/90 day tabs already use.
+var HOUR_TABS = {'24h': 24, '48h': 48, '72h': 72};
+
 function renderRecent() {
-    var tabs = ['48h', '30 days', '90 days', '24 months'];
+    var tabs = ['24h', '48h', '72h', '7 days', '30 days', '90 days', '24 months'];
     document.getElementById('recentTabs').innerHTML = tabs.map(function(t) {
         return '<button class="' + (recentTab === t ? 'active' : '') + '" onclick="setRecentTab(\'' + t + '\')">' + t + '</button>';
     }).join('');
@@ -1279,17 +1379,18 @@ function renderRecent() {
     var region = document.getElementById('recentRegion');
     var points, note, opts;
 
-    if (recentTab === '48h') {
-        points = points15min(48);
-        opts = {yTitle: 'mm per 15 min', barMax: 8};
+    if (HOUR_TABS[recentTab]) {
+        var hrs = HOUR_TABS[recentTab];
+        points = points15min(hrs);
+        opts = {yTitle: 'mm per 15 min', barMax: hrs <= 24 ? 14 : hrs <= 48 ? 8 : 5};
         var got = points.filter(function(p) { return p.v != null; });
         var total = got.reduce(function(a, p) { return a + p.v; }, 0);
         var peak = got.reduce(function(a, p) { return Math.max(a, p.v); }, 0);
         note = got.length
-            ? '15 minute telemetry in UTC, ' + got.length + ' of ' + points.length + ' slots received. 48 hour total '
+            ? '15 minute telemetry in UTC, ' + got.length + ' of ' + points.length + ' slots received. ' + hrs + ' hour total '
               + mmText(total, 1) + ' mm; peak 15 minutes ' + mmText(peak, 1) + ' mm (' + mmText(peak * 4, 1)
               + ' mm/h). Rules mark midnight, day names sit on it.'
-            : 'No 15 minute readings received from this gauge in the last 48 hours.';
+            : 'No 15 minute readings received from this gauge in the last ' + hrs + ' hours.';
     } else if (recentTab === '24 months') {
         points = pointsMonthly(24);
         opts = {yTitle: 'mm per month', colourByNorm: mode !== 'none', tol: 0.25, normLine: true, barMax: 30};
@@ -1300,9 +1401,9 @@ function renderRecent() {
             : 'Monthly totals accumulated from the rolling daily archive. No long record is published for this gauge, so there '
               + 'is no average to colour them against.';
     } else {
-        var n = recentTab === '30 days' ? 30 : 90;
+        var n = recentTab === '7 days' ? 7 : recentTab === '30 days' ? 30 : 90;
         points = pointsDaily(n);
-        opts = {yTitle: 'mm per day', barMax: n === 30 ? 24 : 12};
+        opts = {yTitle: 'mm per day', barMax: n === 7 ? 46 : n === 30 ? 24 : 12};
         var have = points.filter(function(p) { return p.v != null; });
         var dTotal = have.reduce(function(a, p) { return a + p.v; }, 0);
         var wettest = have.reduce(function(a, p) { return !a || p.v > a.v ? p : a; }, null);
@@ -1374,15 +1475,18 @@ function fillYear() {
         + '<div class="chart-box"><canvas id="yearChart"></canvas></div>'
         + '<div class="legend">'
         +   '<span class="key" style="color:' + t.wet + '"><span class="sw line"></span>' + e.year + ' cumulative</span>'
-        +   '<span class="key"><span class="sw dash"></span>Median year</span>'
-        +   '<span class="key"><span class="sw" style="background:' + t.wetFill + '"></span>Running ahead of the median</span>'
+        +   '<span class="key"><span class="sw dash"></span>Average year</span>'
+        +   '<span class="key"><span class="sw" style="background:' + t.wetFill + '"></span>Running ahead of average</span>'
         +   '<span class="key"><span class="sw" style="background:' + t.dryFill + '"></span>Running behind it</span>'
         +   '<span class="key"><span class="sw" style="background:' + t.tint + ';border:1px solid ' + t.grid + '"></span>Normal range, P10&ndash;P90</span>'
         + '</div>'
         + '<div class="note" style="margin-top:0.55rem">Rainfall accumulated from 1 January and plotted at each month end, against '
-        + 'percentiles of the cumulative total across ' + e.nYears + ' complete years of record. Percentiles are taken on the '
-        + 'accumulated series month by month, so the band is the spread of whole years to that point rather than a running sum of '
-        + 'monthly extremes.' + (clim.recordEnd ? ' The series runs to ' + prettyDate(clim.recordEnd) + '.' : '') + '</div>';
+        + 'the P10&ndash;P90 spread of the cumulative total across ' + e.nYears + ' complete years of record. The dashed line is '
+        + 'the mean, the same figure as the &ldquo;average full year&rdquo; total above &mdash; not the middle of the band, which '
+        + 'sits well below it. Rainfall years are right-skewed (a floor near zero, a long tail from the occasional very wet one), '
+        + 'so the typical year runs below the mean and the mean itself sits closer to the wet edge of the band than the dry one; '
+        + 'that skew is a real property of the record, not a plotting error.'
+        + (clim.recordEnd ? ' The series runs to ' + prettyDate(clim.recordEnd) + '.' : '') + '</div>';
 
     mountChart('yearChart', {
         type: 'line',
@@ -1394,11 +1498,16 @@ function fillYear() {
             datasets: [
                 {label: 'P10', data: e.p10, borderColor: 'transparent', pointRadius: 0, fill: false},
                 {label: 'P90', data: e.p90, borderColor: 'transparent', pointRadius: 0, backgroundColor: t.tint, fill: '-1'},
-                {label: 'Median', data: e.p50, borderColor: t.muted, borderWidth: 2, borderDash: [5, 4],
+                // The mean, not the median: it is what "average full year" in
+                // the rail above already means, so the dashed line and that
+                // figure agree. A median would sit lower in the band — right,
+                // not wrong, but a second, different "average" on the same
+                // panel is confusing for no real benefit.
+                {label: 'Average', data: e.mean, borderColor: t.muted, borderWidth: 2, borderDash: [5, 4],
                  pointRadius: 0, fill: false, tension: 0.15},
-                // Two-colour fill against the median: ahead of an average year
-                // reads cool, behind it reads warm — the above/below signal
-                // without a second axis or a second chart.
+                // Two-colour fill against the average: ahead of it reads cool,
+                // behind it reads warm — the above/below signal without a
+                // second axis or a second chart.
                 {label: e.year, data: e.current, borderColor: t.wet, borderWidth: 2.5,
                  pointRadius: 2.5, pointBackgroundColor: t.wet, pointHoverRadius: 5,
                  fill: {target: 2, above: t.wetFill, below: t.dryFill}, spanGaps: false, tension: 0.15}
@@ -1430,11 +1539,11 @@ function fillYear() {
                     },
                     function(item) {
                         if (item.parsed.y == null) return null;
-                        var n = item.dataset.label, med = e.p50[item.dataIndex];
+                        var n = item.dataset.label, avg = e.mean[item.dataIndex];
                         if (n === 'P10' || n === 'P90') return n + ' ' + mmText(item.parsed.y, 0) + ' mm';
-                        if (n === 'Median') return 'Median ' + mmText(item.parsed.y, 0) + ' mm';
+                        if (n === 'Average') return 'Average ' + mmText(item.parsed.y, 0) + ' mm';
                         return n + ' ' + mmText(item.parsed.y, 0) + ' mm'
-                            + (med > 0 ? '  ·  ' + Math.round((item.parsed.y / med) * 100) + '% of the median' : '');
+                            + (avg > 0 ? '  ·  ' + Math.round((item.parsed.y / avg) * 100) + '% of average' : '');
                     })
             }
         }
@@ -1755,7 +1864,7 @@ function fillProvenance(s, sum) {
         ['Reference', '<span class="mono">' + esc(ref) + '</span>'],
         ['Network', networkOf(s) + (s.source === 'nrw' ? ' (Natural Resources Wales)'
             : s.source === 'sepa' ? ' (Scottish Environment Protection Agency)' : ' (Environment Agency)')],
-        ['County', esc(s.county || 'Not assigned')],
+        ['County', esc(countyName || 'Not matched')],
         ['Position', '<span class="mono">' + s.lat.toFixed(5) + ', ' + s.lon.toFixed(5) + '</span>'],
         ['Live telemetry', '15 minute tips, polled by Flood Forecast'
             + (sum.recordsSince ? '; our own record starts ' + prettyDate(sum.recordsSince) : '')]
