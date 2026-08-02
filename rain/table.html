@@ -777,7 +777,7 @@ footer {
           <button type="button" class="segmented-btn" data-tablemode="thresholds">Threshold exceedances</button>
         </div>
 
-        <button type="button" class="info-icon-btn" id="threshInfoBtn" title="Threshold rules info">
+        <button type="button" class="info-icon-btn" id="threshInfoBtn" title="Threshold rules info" style="margin-left:-0.4rem;">
           <span class="material-icons" style="font-size:18px;">info</span>
         </button>
       </div>
@@ -789,7 +789,7 @@ footer {
           <button type="button" class="segmented-btn" data-timemode="today" title="Highest duration totals for today so far">Today so far</button>
           <button type="button" class="segmented-btn" data-timemode="yesterday" title="Highest duration totals for yesterday">Yesterday</button>
         </div>
-        <button type="button" class="info-icon-btn" id="windowInfoBtn" title="What does this view show?">
+        <button type="button" class="info-icon-btn" id="windowInfoBtn" title="What does this view show?" style="margin-left:-0.25rem;">
           <span class="material-icons" style="font-size:18px;">info</span>
         </button>
       </div>
@@ -817,12 +817,9 @@ footer {
       </table>
     </div>
 
-    <!-- Row 3: Filters -->
-    <div class="controls-row">
-      <!-- countyFilter lives here in the DOM but is physically relocated into
-           the Gauge column header on first render (see renderTableHeader) —
-           kept as a single persistent element so its listeners/value/options
-           survive every header rebuild rather than being recreated. -->
+    <!-- Row 3: Filters. Also countyFilter's stable home when it's not
+         parked in the Gauge column header — see renderTableHeader. -->
+    <div class="controls-row" id="filtersRow">
       <select id="countyFilter" class="form-select"><option value="all">All counties</option></select>
 
       <select id="thresholdFilter" class="form-select" style="display:none;">
@@ -839,7 +836,7 @@ footer {
         <option value="100">No gaps</option>
         <option value="0">Show all</option>
       </select>
-      <button type="button" class="info-icon-btn" id="dataGapsInfoBtn" title="What does this filter mean?">
+      <button type="button" class="info-icon-btn" id="dataGapsInfoBtn" title="What does this filter mean?" style="margin-left:-0.4rem;">
         <span class="material-icons" style="font-size:18px;">info</span>
       </button>
 
@@ -1304,6 +1301,22 @@ function renderTableHeader() {
     var monthName = now.toLocaleDateString([], {month: 'short'});
     var yearStr = now.getFullYear();
 
+    // renderTableHeader runs on every render() (every filter/sort/page
+    // change), and thead.innerHTML = html below destroys its whole previous
+    // subtree — including countyFilter if it's still parked inside from the
+    // last render, which silently deleted the select from the document
+    // entirely and made every later document.getElementById('countyFilter')
+    // return null. That null blew up applyFilters() (countySelect.value on
+    // null), which aborted before filteredRows was recomputed — the actual
+    // cause of "the org dropdown doesn't work", since checking an org
+    // checkbox also calls applyFilters(). Always move it back to its stable
+    // home in the static filters row first, before wiping thead.
+    var countySelect = document.getElementById('countyFilter');
+    var filtersRow = document.getElementById('filtersRow');
+    if (countySelect && filtersRow && countySelect.parentElement !== filtersRow) {
+        filtersRow.insertBefore(countySelect, filtersRow.firstChild);
+    }
+
     function sortCls(key) { return key === sortKey ? ' th-sort-active' : ''; }
 
     var html = '<tr>';
@@ -1350,7 +1363,6 @@ function renderTableHeader() {
     // Gauge header cell — appendChild moves the existing node (with its
     // listeners, options and current value intact) rather than recreating it.
     var gaugeHeaderRow = document.querySelector('#gaugeHeaderCell .gauge-header-row');
-    var countySelect = document.getElementById('countyFilter');
     if (gaugeHeaderRow && countySelect) gaugeHeaderRow.appendChild(countySelect);
 
     // Org Header Dropdown Toggle Event & Stop Click Propagation
