@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="pageTitle">Rain Gauge | Flood Forecast</title>
-<meta name="description" content="Rainfall totals, records and history for a UK rain gauge.">
+<meta name="description" content="Rainfall totals, climatology, records and data provenance for a UK rain gauge.">
 
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <!-- Chart.js — same library the Flood Forecast project itself loads
-     (templates/base.html), so this chart ports over untouched. -->
+     (templates/base.html), so these charts port over untouched. -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -20,18 +20,36 @@
 :root {
   --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: 'Outfit', var(--font-family);
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
   --bg-base: #f8f9fa;
   --bg-surface: #ffffff;
   --bg-surface-hover: #f1f3f4;
-  --border-color: #dde1e7;
-  --text-main: #202124;
-  --text-muted: #5f6368;
-  --text-dark: #80868b;
+  --bg-inset: #f4f6f8;
+  --border-color: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-dark: #94a3b8;
+  --brand-100: #d6f4f4;
+  --brand-200: #AFEAE9;
+  --brand-300: #79D6DA;
   --brand-400: #44BBC8;
   --brand-500: #2F8696;
   --brand-600: #266b78;
+  --brand-700: #1f555f;
+  --brand-tint: rgba(47,134,150,0.10);
   --heavy-bg: #fff3e0; --heavy-text: #b06000; --heavy-border: #ef6c00;
   --extreme-bg: #fce8e6; --extreme-text: #c5221f; --extreme-border: #c62828;
+  /* Diverging anomaly ramp: cool (wet) ↔ warm (dry), neutral gray midpoint.
+     Poles come straight off the brand teal ramp and the project's existing
+     "below average" amber, so the heatmap uses no colour the rest of the
+     site doesn't already use. Each arm is lightness-monotonic. */
+  --dv-w4: #1f555f; --dv-w3: #2F8696; --dv-w2: #79D6DA; --dv-w1: #d6f4f4;
+  --dv-n:  #eceff2;
+  --dv-d1: #f6e8cd; --dv-d2: #e3c384; --dv-d3: #b8862a; --dv-d4: #7a5713;
+  --dv-w4-ink: #ffffff; --dv-w3-ink: #ffffff; --dv-w2-ink: #123a42; --dv-w1-ink: #1f555f;
+  --dv-d1-ink: #6f4c12; --dv-d2-ink: #4a330b; --dv-d3-ink: #ffffff; --dv-d4-ink: #ffffff;
+  --dv-n-ink: #475569;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -39,7 +57,9 @@
     --bg-base: #0f172a;
     --bg-surface: #1e293b;
     --bg-surface-hover: #334155;
+    --bg-inset: #16233a;
     --border-color: #334155;
+    --border-strong: #475569;
     --text-main: #f1f5f9;
     --text-muted: #94a3b8;
     --text-dark: #64748b;
@@ -47,8 +67,15 @@
        Flood Forecast project itself uses (see base.html's .spinner rule) */
     --brand-500: #44BBC8;
     --brand-600: #79D6DA;
-    --heavy-bg: rgba(245,158,11,0.12); --heavy-text: #fbbf24; --heavy-border: #f59e0b;
-    --extreme-bg: rgba(239,68,68,0.12); --extreme-text: #f87171; --extreme-border: #ef4444;
+    --brand-tint: rgba(68,187,200,0.14);
+    --heavy-bg: rgba(245,158,11,0.14); --heavy-text: #fbbf24; --heavy-border: #f59e0b;
+    --extreme-bg: rgba(239,68,68,0.14); --extreme-text: #f87171; --extreme-border: #ef4444;
+    --dv-w4: #AFEAE9; --dv-w3: #44BBC8; --dv-w2: #2F8696; --dv-w1: #1f555f;
+    --dv-n:  #2b3648;
+    --dv-d1: #4a3512; --dv-d2: #7d5a17; --dv-d3: #c08f24; --dv-d4: #f2c14e;
+    --dv-w4-ink: #0f172a; --dv-w3-ink: #0f172a; --dv-w2-ink: #eafcff; --dv-w1-ink: #cdeef2;
+    --dv-d1-ink: #f5dda6; --dv-d2-ink: #fbe9c2; --dv-d3-ink: #241905; --dv-d4-ink: #241905;
+    --dv-n-ink: #cbd5e1;
   }
 }
 
@@ -76,171 +103,202 @@ nav {
 .nav-link:hover { background-color: #1e293b; color: #fff; }
 .nav-link.active { background-color: #1e293b; color: #fff; font-weight: 700; }
 
-.main-wrap { flex: 1; padding: 2rem 1.5rem 3rem; width: 100%; max-width: 72rem; margin: 0 auto; }
-
-.back-link { display: inline-block; font-size: 0.82rem; color: var(--text-muted); text-decoration: none; margin-bottom: 0.75rem; }
+.main-wrap { flex: 1; padding: 1.25rem 1.5rem 3rem; width: 100%; max-width: 84rem; margin: 0 auto; }
+.back-link { display: inline-block; font-size: 0.8rem; color: var(--text-muted); text-decoration: none; margin-bottom: 0.6rem; }
 .back-link:hover { color: var(--brand-500); }
 
-.header-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  margin-bottom: 1.25rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 1rem;
-  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px -4px rgba(15,23,42,.08);
+/* ── Header strip ─────────────────────────────────────────────────────────
+   A single band of facts and live figures, not a card with one big number
+   in it: identity on the left, the numbers a duty forecaster looks at first
+   on the right, hairline-separated. */
+.gauge-head {
+  background: var(--bg-surface); border: 1px solid var(--border-color);
+  border-radius: 12px; padding: 0.9rem 1.1rem; margin-bottom: 0.85rem;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 1.25rem; flex-wrap: wrap;
 }
-.header-card h1 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; margin-bottom: 0.2rem; }
-.header-meta { font-size: 0.85rem; color: var(--text-muted); }
-.header-meta .network-pill {
-  display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 1px 8px;
-  border-radius: 10px; background: var(--bg-surface-hover); color: var(--text-muted); margin-right: 6px;
+.gauge-head h1 { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
+.head-facts { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.head-facts .sep { color: var(--border-strong); }
+.pill {
+  font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 4px;
+  background: var(--bg-inset); color: var(--text-muted); border: 1px solid var(--border-color);
 }
-.rate-block { text-align: right; }
-.rate-value { font-size: 2rem; font-weight: 700; line-height: 1; }
-.rate-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
-.updated-label { font-size: 0.75rem; color: var(--text-dark); margin-top: 6px; }
-.refresh-button {
-  background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main);
-  padding: 0.4rem 0.85rem; border-radius: 20px; font-size: 0.78rem; font-weight: 500; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 6px;
-}
-.refresh-button:hover { background: var(--bg-surface-hover); }
+.pill.brand { background: var(--brand-tint); color: var(--brand-600); border-color: transparent; }
+.mono { font-family: var(--font-mono); font-size: 0.94em; }
 
-/* Card primitive — mirrors the Flood Forecast project's own .card/.card-header
-   tokens (border-radius 1rem, layered shadow that escalates on hover) rather
-   than a flat border with a near-invisible shadow. */
-.section {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 1rem;
-  padding: 1.35rem 1.5rem;
-  margin-bottom: 1.25rem;
-  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px -4px rgba(15,23,42,.08);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+.head-figures { display: flex; align-items: stretch; gap: 0; margin-left: auto; }
+.figure { padding: 0 0.95rem; border-left: 1px solid var(--border-color); text-align: right; }
+.figure:first-child { border-left: none; }
+.figure .fv { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; line-height: 1.05; letter-spacing: -0.01em; }
+.figure .fv .u { font-size: 0.62em; font-weight: 500; color: var(--text-muted); margin-left: 1px; }
+.figure .fl { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; white-space: nowrap; }
+.head-aside { display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; padding-left: 0.95rem; border-left: 1px solid var(--border-color); }
+.head-aside .stamp { font-size: 0.7rem; color: var(--text-dark); white-space: nowrap; }
+.btn {
+  background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main);
+  padding: 0.3rem 0.7rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 0.25rem; font-family: var(--font-family);
 }
-.section:hover {
-  box-shadow: 0 2px 4px rgba(15,23,42,.06), 0 12px 28px -8px rgba(15,23,42,.16);
+.btn:hover { background: var(--bg-surface-hover); }
+
+/* On a phone the figure rail cannot stay on one row — four hairline-divided
+   columns are 500px wide, which pushed the whole page into a horizontal
+   scroll. It wraps to a left-aligned block instead. */
+@media (max-width: 720px) {
+  .gauge-head { flex-direction: column; gap: 0.85rem; }
+  .head-figures { margin-left: 0; flex-wrap: wrap; gap: 0.5rem 0; width: 100%; }
+  .figure { padding: 0 1.1rem 0 0; border-left: none; text-align: left; }
+  .figure .fv { font-size: 1.3rem; }
+  .head-aside { flex-direction: row; align-items: center; gap: 0.6rem; padding-left: 0; border-left: none; }
 }
-.section h2 {
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0 0 1rem;
-  padding-bottom: 0.75rem;
+
+/* ── Panel primitive ─────────────────────────────────────────────────────
+   Flat: hairline border, no hover lift, no icon chip. Titles are small and
+   quiet so the data is the loudest thing on the page. */
+.grid { display: grid; gap: 0.85rem; margin-bottom: 0.85rem; }
+.grid.split { grid-template-columns: minmax(0, 1fr) minmax(0, 0.82fr); align-items: start; }
+@media (max-width: 980px) { .grid.split { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 0.85rem; }
+.grid .panel { margin-bottom: 0; }
+.panel-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;
+  padding: 0.7rem 1.05rem; border-bottom: 1px solid var(--border-color);
+}
+.panel-head h2 { font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; }
+.panel-head .hint { font-size: 0.74rem; color: var(--text-muted); }
+.panel-body { padding: 0.9rem 1.05rem; }
+.panel-body.flush { padding: 0; }
+.note { font-size: 0.73rem; color: var(--text-muted); line-height: 1.5; }
+.panel-foot { padding: 0.6rem 1.05rem 0.8rem; border-top: 1px solid var(--border-color); }
+.empty { font-size: 0.82rem; color: var(--text-muted); padding: 0.4rem 0; }
+
+/* ── Data tables ─────────────────────────────────────────────────────── */
+table.data { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+table.data th {
+  font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-align: right;
+  padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--border-color); white-space: nowrap;
+}
+table.data th:first-child, table.data td:first-child { text-align: left; }
+table.data td { padding: 0.32rem 0.5rem; border-bottom: 1px solid var(--border-color); text-align: right; }
+table.data tbody tr:last-child td { border-bottom: none; }
+table.data tbody tr:hover { background: var(--bg-inset); }
+table.data td.num { font-variant-numeric: tabular-nums; font-weight: 600; }
+table.data td.dim { color: var(--text-muted); font-weight: 400; }
+
+.bar-cell { width: 34%; }
+.bar-track { height: 7px; background: var(--bg-inset); border-radius: 2px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--brand-500); border-radius: 2px 0 0 2px; }
+.tag { font-size: 0.68rem; font-weight: 700; padding: 1px 7px; border-radius: 4px; white-space: nowrap; }
+.tag.normal { background: var(--bg-inset); color: var(--text-muted); }
+.tag.heavy { background: var(--heavy-bg); color: var(--heavy-text); border: 1px solid var(--heavy-border); }
+.tag.extreme { background: var(--extreme-bg); color: var(--extreme-text); border: 1px solid var(--extreme-border); }
+
+/* ── Inline stat rail ─────────────────────────────────────────────────── */
+.rail { display: flex; flex-wrap: wrap; gap: 0 1.4rem; }
+.rail .item { padding: 0.15rem 0; min-width: 8.5rem; }
+.rail .rv { font-family: var(--font-display); font-size: 1.12rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rail .rl { font-size: 0.72rem; color: var(--text-muted); }
+.rail .rv.wet { color: var(--brand-600); }
+.rail .rv.dry { color: var(--heavy-text); }
+
+/* ── Charts ──────────────────────────────────────────────────────────── */
+.tabs { display: flex; gap: 0.3rem; }
+.tabs button {
+  font-family: var(--font-family); font-size: 0.74rem; font-weight: 500; padding: 0.22rem 0.6rem;
+  border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-muted); cursor: pointer;
+}
+.tabs button:hover { background: var(--bg-surface-hover); }
+.tabs button.active { background: var(--brand-tint); border-color: var(--brand-500); color: var(--brand-600); font-weight: 600; }
+.chart-box { position: relative; width: 100%; }
+.chart-box.h-tall { height: 250px; }
+.chart-box.h-mid { height: 210px; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.15rem 1rem; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.5rem; }
+.legend .key { display: inline-flex; align-items: center; gap: 0.35rem; }
+.legend .sw { width: 14px; height: 9px; border-radius: 2px; display: inline-block; }
+.legend .sw.line { height: 0; border-top: 2px solid currentColor; border-radius: 0; }
+.legend .sw.dash { height: 0; border-top: 2px dashed var(--text-dark); border-radius: 0; }
+
+/* ── Anomaly heatmap ─────────────────────────────────────────────────── */
+.hm-scroll { max-height: 24rem; overflow: auto; }
+table.hm { width: 100%; border-collapse: separate; border-spacing: 2px; font-size: 0.7rem; font-variant-numeric: tabular-nums; }
+table.hm th {
+  font-size: 0.68rem; font-weight: 600; color: var(--text-muted); padding: 2px 4px; text-align: center;
+  background: var(--bg-surface); position: sticky; top: 0; z-index: 2;
+}
+table.hm th.yr, table.hm td.yr {
+  position: sticky; left: 0; z-index: 3; background: var(--bg-surface);
+  text-align: left; padding-right: 8px; font-weight: 600; color: var(--text-main); white-space: nowrap;
+}
+table.hm th.yr { z-index: 4; }
+table.hm td { text-align: center; padding: 3px 5px; border-radius: 3px; min-width: 2.5rem; color: var(--dv-n-ink); background: var(--dv-n); }
+table.hm td.gap { background: transparent; color: var(--text-dark); }
+table.hm td.part { background: var(--bg-inset); color: var(--text-dark); font-style: italic; }
+table.hm td.tot { background: transparent; color: var(--text-main); font-weight: 600; border-left: 1px solid var(--border-color); }
+/* The average row stays pinned to the bottom of the scroll box: it is the
+   reference every cell above is shaded against, so it must never scroll away. */
+table.hm tr.norms td {
+  background: var(--bg-surface); color: var(--text-muted); font-weight: 500;
+  border-top: 1px solid var(--border-strong); position: sticky; bottom: 0; z-index: 2;
+}
+table.hm tr.norms td.yr { color: var(--text-muted); font-weight: 600; z-index: 3; }
+/* Scoped to table.hm so these beat the `table.hm td` default background —
+   an unscoped `td.w4` loses on specificity and every cell renders neutral. */
+table.hm td.w4 { background: var(--dv-w4); color: var(--dv-w4-ink); }
+table.hm td.w3 { background: var(--dv-w3); color: var(--dv-w3-ink); }
+table.hm td.w2 { background: var(--dv-w2); color: var(--dv-w2-ink); }
+table.hm td.w1 { background: var(--dv-w1); color: var(--dv-w1-ink); }
+table.hm td.d1 { background: var(--dv-d1); color: var(--dv-d1-ink); }
+table.hm td.d2 { background: var(--dv-d2); color: var(--dv-d2-ink); }
+table.hm td.d3 { background: var(--dv-d3); color: var(--dv-d3-ink); }
+table.hm td.d4 { background: var(--dv-d4); color: var(--dv-d4-ink); }
+.hm-legend { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; font-size: 0.7rem; color: var(--text-muted); margin-top: 0.7rem; }
+.hm-legend .cell { width: 26px; height: 13px; border-radius: 3px; }
+
+/* ── Map & neighbours ────────────────────────────────────────────────── */
+#gaugeMap { height: 320px; border-bottom: 1px solid var(--border-color); }
+.leaflet-container { background: var(--bg-inset); font-family: var(--font-family); }
+.map-legend { display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.7rem; color: var(--text-muted); padding: 0.5rem 1.05rem; border-bottom: 1px solid var(--border-color); }
+.map-legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 0.3rem; vertical-align: -1px; }
+.nb-row {
+  display: grid; grid-template-columns: minmax(0,1fr) 4.2rem 4.6rem; align-items: center; gap: 0.5rem;
+  padding: 0.32rem 1.05rem; font-size: 0.8rem; text-decoration: none; color: var(--text-main);
   border-bottom: 1px solid var(--border-color);
 }
-.section h2 .material-icons {
-  font-size: 20px;
-  color: var(--brand-500);
-  background: var(--bg-base);
-  border-radius: 8px;
-  padding: 4px;
+.nb-row:last-child { border-bottom: none; }
+.nb-row:hover { background: var(--bg-inset); color: var(--brand-600); }
+.nb-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nb-row .nm .d { color: var(--text-muted); font-size: 0.74rem; }
+.nb-row .v { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.nb-row .n { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-muted); font-size: 0.76rem; }
+.nb-head { display: grid; grid-template-columns: minmax(0,1fr) 4.2rem 4.6rem; gap: 0.5rem; padding: 0.4rem 1.05rem 0.25rem; font-size: 0.68rem; color: var(--text-muted); font-weight: 600; }
+.nb-head span:not(:first-child) { text-align: right; }
+
+/* ── Callouts ────────────────────────────────────────────────────────── */
+.callout {
+  font-size: 0.76rem; line-height: 1.55; color: var(--text-main);
+  background: var(--bg-inset); border: 1px solid var(--border-color);
+  border-left: 3px solid var(--border-strong); border-radius: 6px; padding: 0.6rem 0.8rem;
 }
-.section .subtitle { font-size: 0.78rem; color: var(--text-muted); margin: -0.5rem 0 0.9rem; }
+.callout.warn { border-left-color: var(--heavy-border); }
+.callout strong { font-weight: 600; }
+.callout + .callout, .panel-body > .callout:not(:first-child) { margin-top: 0.6rem; }
 
-.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.85rem; }
-.stat-tile {
-  background: var(--bg-base);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 0.8rem 0.95rem;
-  transition: border-color 0.15s ease, transform 0.15s ease;
-}
-.stat-tile:hover { border-color: var(--brand-500); transform: translateY(-1px); }
-.stat-tile .stat-value { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; }
-.stat-tile .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-
-.chart-tabs { display: flex; gap: 0.4rem; margin-bottom: 0.9rem; }
-.chart-tabs button {
-  font-family: var(--font-family); font-size: 0.78rem; font-weight: 500; padding: 0.35rem 0.85rem;
-  border-radius: 16px; border: 1px solid var(--border-color); background: var(--bg-base); color: var(--text-muted); cursor: pointer;
-}
-.chart-tabs button.active { background: var(--brand-500); border-color: var(--brand-500); color: #fff; }
-.chart-wrap { overflow-x: auto; }
-.chart-canvas-wrap { position: relative; height: 260px; width: 100%; min-width: 320px; }
-
-.monthly-scroll { display: flex; gap: 0.6rem; overflow-x: auto; padding-bottom: 0.4rem; }
-.month-tile { flex: 0 0 auto; width: 78px; text-align: center; }
-.month-tile .month-label { font-size: 0.72rem; color: var(--text-muted); }
-.month-bar-track { height: 90px; display: flex; align-items: flex-end; justify-content: center; margin: 4px 0; position: relative; }
-.month-bar { width: 22px; background: var(--brand-500); border-radius: 3px 3px 0 0; min-height: 2px; position: relative; z-index: 1; }
-.month-bar.above { background: var(--brand-600); }
-.month-bar.below { background: #b07d2a; }
-.month-tile .month-mm { font-size: 0.72rem; font-weight: 600; }
-.month-tile .month-mm.above { color: var(--brand-600); }
-.month-tile .month-mm.below { color: #b07d2a; }
-.month-tile .month-avg { font-size: 0.64rem; color: var(--text-dark); }
-/* Incomplete/in-progress months: shown, but never judged against a normal. */
-.month-bar.partial { background: var(--text-dark); opacity: 0.45; }
-.month-tile .month-mm.partial { color: var(--text-muted); font-weight: 400; }
-/* Normal range (P10-P90) for that calendar month, drawn behind the bar. */
-.norm-band {
-  position: absolute; left: 4px; right: 4px; z-index: 0;
-  background: rgba(47,134,150,0.10);
-  border-top: 1px dashed rgba(47,134,150,0.55);
-  border-bottom: 1px dashed rgba(47,134,150,0.55);
-}
-.norm-mean { position: absolute; left: 2px; right: 2px; height: 0; border-top: 1px solid var(--text-dark); opacity: 0.55; z-index: 2; }
-@media (prefers-color-scheme: dark) {
-  .month-bar.above { background: var(--brand-400); }
-  .month-bar.below { background: #fbbf24; }
-  .month-tile .month-mm.above { color: var(--brand-400); }
-  .month-tile .month-mm.below { color: #fbbf24; }
-  .norm-band { background: rgba(68,187,200,0.12); border-color: rgba(68,187,200,0.5); }
-}
-
-.records-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.85rem; }
-.record-tile {
-  background: var(--bg-base);
-  border: 1px solid var(--border-color);
-  border-left: 3px solid var(--record-accent, var(--brand-500));
-  border-radius: 10px;
-  padding: 0.85rem 1rem;
-  transition: border-color 0.15s ease, transform 0.15s ease;
-}
-.record-tile:hover { transform: translateY(-1px); }
-.record-tile .record-value { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; }
-.record-tile .record-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 0.3rem; }
-.record-tile .record-label .material-icons { font-size: 15px; color: var(--record-accent, var(--brand-500)); }
-.record-tile .record-date { font-size: 0.72rem; color: var(--text-dark); margin-top: 1px; }
-.records-caption { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.75rem; }
-
-.threshold-rows { display: flex; flex-direction: column; gap: 0.5rem; }
-.threshold-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; }
-.threshold-pill { font-size: 0.7rem; font-weight: 700; padding: 2px 9px; border-radius: 10px; }
-.threshold-pill.normal { background: var(--bg-surface-hover); color: var(--text-muted); }
-.threshold-pill.heavy { background: var(--heavy-bg); color: var(--heavy-text); border: 1px solid var(--heavy-border); }
-.threshold-pill.extreme { background: var(--extreme-bg); color: var(--extreme-text); border: 1px solid var(--extreme-border); }
-
-.nearby-list { display: flex; flex-direction: column; }
-.nearby-row { display: flex; justify-content: space-between; align-items: center; padding: 0.55rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; text-decoration: none; color: var(--text-main); }
-.nearby-row:last-child { border-bottom: none; }
-.nearby-row:hover { color: var(--brand-500); }
-.nearby-row .nearby-dist { color: var(--text-muted); font-size: 0.78rem; }
-.nearby-row .nearby-total { font-weight: 600; }
-
-#miniMap { height: 260px; border-radius: 10px; }
-
-.meta-table { width: 100%; font-size: 0.82rem; border-collapse: collapse; }
-.meta-table td { padding: 0.3rem 0.5rem 0.3rem 0; color: var(--text-muted); }
-.meta-table td:last-child { color: var(--text-main); font-weight: 500; text-align: right; }
+/* ── Provenance / definition list ────────────────────────────────────── */
+.dl { display: grid; grid-template-columns: max-content minmax(0,1fr); gap: 0.2rem 1rem; font-size: 0.78rem; }
+.dl dt { color: var(--text-muted); }
+.dl dd { color: var(--text-main); }
+.two-col { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1rem 1.6rem; }
+@media (max-width: 780px) { .two-col { grid-template-columns: minmax(0,1fr); } }
+.sub-h { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem; }
 
 footer {
   background-color: var(--bg-base); border-top: 1px solid var(--border-color);
-  padding: 2rem 0; color: var(--text-muted); font-size: 0.875rem;
+  padding: 1.5rem 0; color: var(--text-muted); font-size: 0.8rem;
 }
-.footer-container { max-width: 96rem; width: 100%; margin: 0 auto; padding: 0 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+.footer-container { max-width: 84rem; width: 100%; margin: 0 auto; padding: 0 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
 .footer-link { color: var(--text-muted); text-decoration: none; }
 .footer-link:hover { color: var(--text-main); }
-
 .not-found { text-align: center; padding: 3rem; color: var(--text-muted); }
 </style>
 </head>
@@ -269,503 +327,1125 @@ footer {
 
 <footer>
   <div class="footer-container">
-    <p>Data provided by Environment Agency, Natural Resources Wales &amp; SEPA.</p>
-    <p>Duration totals &amp; records computed by Flood Forecast &bull; <a href="/" class="footer-link">Back to home</a></p>
+    <p>Rainfall observations from the Environment Agency, Natural Resources Wales &amp; SEPA. Historic series from EA Hydrology, SEPA and Met Office MIDAS Open.</p>
+    <p><a href="table.html" class="footer-link">Gauge table</a></p>
   </div>
 </footer>
 
 <script>
 var R2_CDN = 'https://radar.floodforecast.co.uk';
 var ref = new URLSearchParams(location.search).get('ref');
-var stations = {};
-var summaryStations = {};
-var archiveDays = {};   // {date: mm} for this station, merged across fetched years
-var rawByDate = {};     // {dateKey(YYYYMMDD): {readings: {stationId: {slot: mm}}}}
-var chartTab = '24h';
+
+var stations = {};          // rain/stations.json — network metadata
+var summaryStations = {};   // rain/summary.json — live rolling totals
 var summaryGeneratedAt = null;
-var climatology = null;   // rain/climatology/{ref}.json — decades deep, EA/SEPA only
+var normalIndex = {};       // merged climatology_index_{ea,sepa,nrw} — annualNormal per gauge
+var archiveDays = {};       // {YYYY-MM-DD: mm} rolling archive (UTC-midnight days)
+var rawByDate = {};         // {YYYYMMDD: {readings: {ref: {slot: mm}}}} 15-minute
+var clim = null;            // rain/climatology/{ref}.json — the deep record
+var mode = 'none';          // 'live' | 'historic' | 'none'  (see climatologyMode)
+var derived = null;         // everything computed off clim, once
+var station = null;
+var recentTab = '48h';
 
-function htmlEsc(s) { return String(s).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-function fmtMm(v) { return (v == null ? 0 : v).toFixed(1) + ' mm'; }
+var MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+/* A month is only comparable with other months once ≥90% of its days carry a
+   value — the same threshold build_rain_climatology.py uses to decide which
+   months feed the normals. */
+var MONTH_COMPLETENESS = 0.9;
+/* Beyond this the historic series and today's telemetry describe different
+   climates as well as different instruments, so "% of normal" and the
+   year-to-date curve stop being computable. Recency, not network, decides:
+   a handful of EA/SEPA gauges are just as stale as the MIDAS proxies. */
+var STALE_RECORD_DAYS = 730;
+/* Heavy/extreme accumulation bands agreed for the Flood Forecast network. */
+var THRESHOLDS = {'1h': [10, 30], '3h': [20, 40], '6h': [30, 50]};
+var DURATIONS = [
+    ['1h', 'last1h'], ['3h', 'last3h'], ['6h', 'last6h'], ['12h', 'last12h'],
+    ['24h', 'last24h'], ['48h', 'last48h'], ['72h', 'last72h'],
+    ['7 days', 'last7d'], ['14 days', 'last14d']
+];
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function pad2(n) { return String(n).padStart(2, '0'); }
-function dateKeyOf(d) { return d.getUTCFullYear() + pad2(d.getUTCMonth()+1) + pad2(d.getUTCDate()); }
-
-function networkOf(s) {
-    if (s.source === 'nrw') return 'NRW';
-    if (s.source === 'sepa') return 'SEPA';
-    return 'EA';
+function dateKeyOf(d) { return d.getUTCFullYear() + pad2(d.getUTCMonth() + 1) + pad2(d.getUTCDate()); }
+function mmText(v, dp) { if (v == null || isNaN(v)) return '&ndash;'; var d = dp == null ? (Math.abs(v) >= 100 ? 0 : 1) : dp; return v.toFixed(d); }
+function mmUnit(v, dp) { return mmText(v, dp) + '<span class="u">mm</span>'; }
+function daysInMonth(y, m) { return new Date(Date.UTC(y, m, 0)).getUTCDate(); }
+function monthName(mk) { return MONTH_ABBR[+mk.slice(5, 7) - 1] + ' ' + mk.slice(0, 4); }
+function prettyDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso + 'T00:00:00Z');
+    if (isNaN(d)) return iso;
+    return d.getUTCDate() + ' ' + MONTH_ABBR[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
 }
-
+function ordinal(n) {
+    var s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+function networkOf(s) { return s.source === 'nrw' ? 'NRW' : s.source === 'sepa' ? 'SEPA' : 'EA'; }
 function haversineKm(lat1, lon1, lat2, lon2) {
-    var R = 6371;
-    var dLat = (lat2 - lat1) * Math.PI / 180;
-    var dLon = (lon2 - lon1) * Math.PI / 180;
-    var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
-        Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    var R = 6371, rad = Math.PI / 180;
+    var dLat = (lat2 - lat1) * rad, dLon = (lon2 - lon1) * rad;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// ── Load ──────────────────────────────────────────────────────────────────
 if (!ref) {
-    document.getElementById('content').innerHTML = '<div class="not-found">No gauge specified. <a href="table.html">Back to table</a></div>';
+    document.getElementById('content').innerHTML =
+        '<div class="not-found">No gauge specified. <a href="table.html">Back to the gauge table</a></div>';
 } else {
     loadAll();
 }
 
-function loadAll() {
-    // Every render* function appends its section with insertAdjacentHTML
-    // rather than replacing content, so re-running the whole pipeline (e.g.
-    // the Refresh button, which just calls loadAll() again) duplicated every
-    // section down the page instead of refreshing it in place.
-    document.getElementById('content').innerHTML = '';
-    Promise.all([
-        fetch('stations.json?_cb=' + Date.now()).then(function(r) { return r.json(); }).catch(function() { return {}; }),
-        fetch(R2_CDN + '/rain/summary.json?_cb=' + Date.now()).then(function(r) { return r.json(); }).catch(function() { return {}; })
-    ]).then(function(results) {
-        stations = (results[0] && results[0].stations) || {};
-        summaryStations = (results[1] && results[1].stations) || {};
-        summaryGeneratedAt = (results[1] && results[1].generated_at) || null;
+function getJson(url) {
+    return fetch(url + (url.indexOf('?') < 0 ? '?' : '&') + '_cb=' + Date.now())
+        .then(function(r) { if (!r.ok) throw 0; return r.json(); })
+        .catch(function() { return null; });
+}
 
-        var s = stations[ref];
-        if (!s) {
-            document.getElementById('content').innerHTML = '<div class="not-found">Gauge "' + htmlEsc(ref) + '" not found. <a href="table.html">Back to table</a></div>';
+function loadAll() {
+    Promise.all([
+        getJson('stations.json'),
+        getJson(R2_CDN + '/rain/summary.json'),
+        getJson(R2_CDN + '/rain/climatology/' + encodeURIComponent(ref) + '.json'),
+        // All three network indexes, merged: ranking this gauge's annual normal
+        // against EA alone would not be the national picture it claims to be.
+        getJson(R2_CDN + '/rain/climatology_index_ea.json'),
+        getJson(R2_CDN + '/rain/climatology_index_sepa.json'),
+        getJson(R2_CDN + '/rain/climatology_index_nrw.json')
+    ]).then(function(res) {
+        stations = (res[0] && res[0].stations) || {};
+        summaryStations = (res[1] && res[1].stations) || {};
+        summaryGeneratedAt = (res[1] && res[1].generated_at) || null;
+        clim = res[2];
+        normalIndex = {};
+        [res[3], res[4], res[5]].forEach(function(ix) {
+            if (ix) Object.keys(ix).forEach(function(k) { normalIndex[k] = ix[k]; });
+        });
+
+        station = stations[ref];
+        if (!station) {
+            document.getElementById('content').innerHTML = '<div class="not-found">Gauge &ldquo;' + esc(ref) +
+                '&rdquo; not found. <a href="table.html">Back to the gauge table</a></div>';
             return;
         }
+        mode = climatologyMode(clim);
+        derived = mode === 'none' ? null : deriveClimatology(clim);
 
         var sum = summaryStations[ref] || {};
-        renderHeader(s, sum);
-        renderStatTiles(sum);
-        renderThresholds(sum);
-        renderNearby(s);
-        renderMap(s);
-        renderMeta(s, sum);
+        renderSkeleton(sum);
+        fillHead(station, sum);
+        fillNow(sum);
+        fillPlace(station);
+        fillYear();
+        fillLongRecord(sum);
+        fillExtremes(sum);
+        fillProvenance(station, sum);
 
-        Promise.all([loadArchive(sum), loadClimatology()]).then(function() {
-            renderMonthlyOverview();
-            renderRecords(sum);
-            renderChart();
-        });
-        loadTodayReadings();
+        loadArchive(sum).then(function() { renderRecent(); });
+        loadRecentReadings();
     });
 }
 
-function loadTodayReadings() {
-    var now = new Date();
-    var days = [now, new Date(now - 86400000)];
-    Promise.all(days.map(function(d) {
-        var dk = dateKeyOf(d);
-        return fetch(R2_CDN + '/rain/readings/' + dk + '.json?_cb=' + Date.now())
-            .then(function(r) { if (!r.ok) throw 0; return r.json(); })
-            .then(function(data) { rawByDate[dk] = data; })
-            .catch(function() {});
-    })).then(function() {
-        updateCurrentRate();
-        if (chartTab === '24h') renderChart();
-    });
-}
-
-function updateCurrentRate() {
-    var now = new Date();
-    for (var back = 0; back < 8; back++) {
-        var t = new Date(now - back * 900000);
-        var dk = dateKeyOf(t);
-        var slot = String(Math.floor((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15));
-        var day = rawByDate[dk];
-        var v = day && day.readings && day.readings[ref] && day.readings[ref][slot];
-        if (typeof v === 'number') {
-            var el = document.getElementById('rateValue');
-            if (el) el.textContent = (v * 4).toFixed(1) + ' mm/hr';
-            return;
-        }
-    }
-}
-
-function renderHeader(s, sum) {
-    document.title = s.name + ' | Flood Forecast';
-    document.getElementById('pageTitle').textContent = s.name + ' | Flood Forecast';
-    var html = ''
-        + '<div class="header-card">'
-        + '<div><h1>' + htmlEsc(s.name) + '</h1>'
-        + '<div class="header-meta"><span class="network-pill">' + networkOf(s) + '</span>' + (s.county ? htmlEsc(s.county) : '') + '</div></div>'
-        + '<div class="rate-block"><div class="rate-value" id="rateValue">&ndash;</div>'
-        + '<div class="rate-label">Current rate</div>'
-        + '<div class="updated-label" id="updatedLabel">' + (summaryGeneratedAt ? 'Updated ' + new Date(summaryGeneratedAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '') + '</div>'
-        + '<button class="refresh-button" onclick="loadAll()"><span class="material-icons" style="font-size:14px;">refresh</span> Refresh</button>'
-        + '</div></div>';
-    document.getElementById('content').insertAdjacentHTML('beforeend', html);
-}
-
-// "Month/year so far" is misleading if the gauge's own record doesn't
-// actually go back that far -- e.g. a station added to tracking a few
-// days ago showing "2026 so far: 26.4mm" reads as a genuine 7-month
-// total for North Wales, which is absurd (confirmed live on Bethesda
-// Quarry). When recordsSince falls inside the current month/year, name
-// the tile after the real start date instead of pretending it's complete.
-function renderStatTiles(sum) {
-    var now = new Date();
-    var recSince = sum.recordsSince ? new Date(sum.recordsSince + 'T00:00:00Z') : null;
-    var yearStart = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
-    var monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-
-    var sinceLabel = function(d) { return 'Since ' + d.toLocaleDateString([], {day: 'numeric', month: 'short', timeZone: 'UTC'}); };
-    var monthLabel = (recSince && recSince > monthStart) ? sinceLabel(recSince) : now.toLocaleDateString([], {month: 'long'}) + ' so far';
-    var yearLabel = (recSince && recSince > yearStart) ? sinceLabel(recSince) : now.getFullYear() + ' so far';
-
-    var tiles = [
-        ['Last Hour', sum.last1h], ['Last 6 Hours', sum.last6h], ['Last 24 Hours', sum.last24h],
-        ['Last 7 Days', sum.last7d], [monthLabel, sum.monthTotal], [yearLabel, sum.yearTotal]
-    ];
-    var html = '<div class="section"><h2><span class="material-icons">water_drop</span>Rainfall totals</h2><div class="stat-grid">';
-    tiles.forEach(function(t) {
-        html += '<div class="stat-tile"><div class="stat-value">' + fmtMm(t[1]) + '</div><div class="stat-label">' + t[0] + '</div></div>';
-    });
-    html += '</div></div>';
-    document.getElementById('content').insertAdjacentHTML('beforeend', html);
-}
-
-function renderThresholds(sum) {
-    var bands = [[1, 10, 30], [3, 20, 40], [6, 30, 50]];
-    var html = '<div class="section"><h2><span class="material-icons">notifications_active</span>Threshold status</h2>'
-        + '<div class="subtitle">Heavy/extreme accumulation bands agreed for the Flood Forecast gauge network.</div>'
-        + '<div class="threshold-rows">';
-    bands.forEach(function(b) {
-        var hrs = b[0], heavy = b[1], extreme = b[2];
-        var val = sum['last' + hrs + 'h'] || 0;
-        var level = val > extreme ? 'extreme' : val > heavy ? 'heavy' : 'normal';
-        html += '<div class="threshold-row"><span>' + hrs + ' hr total: <strong>' + fmtMm(val) + '</strong>'
-            + ' <span style="color:var(--text-muted);font-size:0.78rem">(heavy &gt;' + heavy + 'mm, extreme &gt;' + extreme + 'mm)</span></span>'
-            + '<span class="threshold-pill ' + level + '">' + level.charAt(0).toUpperCase() + level.slice(1) + '</span></div>';
-    });
-    html += '</div></div>';
-    document.getElementById('content').insertAdjacentHTML('beforeend', html);
-}
-
-function renderNearby(s) {
-    var others = Object.keys(stations)
-        .filter(function(id) { return id !== ref; })
-        .map(function(id) {
-            var o = stations[id];
-            return {id: id, name: o.name, dist: haversineKm(s.lat, s.lon, o.lat, o.lon)};
-        })
-        .sort(function(a, b) { return a.dist - b.dist; })
-        .slice(0, 8);
-
-    var html = '<div class="section"><h2><span class="material-icons">near_me</span>Nearby rain gauges</h2><div class="nearby-list">';
-    if (!others.length) {
-        html += '<div style="color:var(--text-muted);font-size:0.85rem">No nearby gauges found.</div>';
-    }
-    others.forEach(function(o) {
-        var sum = summaryStations[o.id] || {};
-        html += '<a class="nearby-row" href="gauge.html?ref=' + encodeURIComponent(o.id) + '">'
-            + '<span>' + htmlEsc(o.name) + ' <span class="nearby-dist">&middot; ' + o.dist.toFixed(1) + 'km</span></span>'
-            + '<span class="nearby-total">' + fmtMm(sum.last24h) + ' <span class="nearby-dist">24h</span></span></a>';
-    });
-    html += '</div></div>';
-    document.getElementById('content').insertAdjacentHTML('beforeend', html);
-}
-
-function renderMap(s) {
-    var html = '<div class="section"><h2><span class="material-icons">place</span>Location</h2><div id="miniMap"></div></div>';
-    document.getElementById('content').insertAdjacentHTML('beforeend', html);
-    var map = L.map('miniMap', {scrollWheelZoom: false}).setView([s.lat, s.lon], 11);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-    L.marker([s.lat, s.lon]).addTo(map);
-}
-
-function renderMeta(s, sum) {
-    var rows = [
-        ['Station ref', ref],
-        ['Network', networkOf(s)],
-        ['County', s.county || 'Unknown'],
-        ['Lat / Lng', s.lat.toFixed(5) + ', ' + s.lon.toFixed(5)],
-        ['Records from', sum.recordsSince || 'No records yet']
-    ];
-    var html = '<div class="section"><h2><span class="material-icons">description</span>Station details</h2><table class="meta-table">';
-    rows.forEach(function(r) { html += '<tr><td>' + r[0] + '</td><td>' + htmlEsc(r[1]) + '</td></tr>'; });
-    html += '</table></div>';
-    document.getElementById('content').insertAdjacentHTML('beforeend', html);
-}
-
-// EA/SEPA/NRW all have deep climatology now (NRW matched to MIDAS Open on
-// CEDA by lat/lon). A 404 here just means an unmatched or brand-new gauge,
-// which falls back to the short rolling record below.
-function loadClimatology() {
-    return fetch(R2_CDN + '/rain/climatology/' + encodeURIComponent(ref) + '.json?_cb=' + Date.now())
-        .then(function(r) { if (!r.ok) throw 0; return r.json(); })
-        .then(function(data) { climatology = data; })
-        .catch(function() { climatology = null; });
-}
-
+// The rolling archive is UTC-midnight days; it is used only for the recent
+// daily chart and never summed with the 09:00–09:00 climatology series.
 function loadArchive(sum) {
+    var thisYear = new Date().getUTCFullYear();
+    var start = sum.recordsSince ? parseInt(sum.recordsSince.slice(0, 4), 10) : thisYear;
     var years = [];
-    var currentYear = new Date().getUTCFullYear();
-    var startYear = sum.recordsSince ? parseInt(sum.recordsSince.slice(0, 4), 10) : currentYear;
-    startYear = Math.max(startYear, currentYear - 3);
-    for (var y = startYear; y <= currentYear; y++) years.push(y);
-
+    for (var y = Math.max(start, thisYear - 1); y <= thisYear; y++) years.push(y);
     return Promise.all(years.map(function(y) {
-        return fetch(R2_CDN + '/rain/archive/daily_' + y + '.json?_cb=' + Date.now())
-            .then(function(r) { if (!r.ok) throw 0; return r.json(); })
-            .then(function(data) { Object.assign(archiveDays, (data && data[ref]) || {}); })
-            .catch(function() {});
+        return getJson(R2_CDN + '/rain/archive/daily_' + y + '.json').then(function(data) {
+            if (data && data[ref]) Object.keys(data[ref]).forEach(function(d) { archiveDays[d] = data[ref][d]; });
+        });
     }));
 }
 
-// Monthly totals come from the deep climatology series when this gauge has
-// one (decades, EA/SEPA/NRW), otherwise from the short rolling archive
-// (a gauge with no MIDAS/EA/SEPA match, or one too new to have a file yet).
-function monthlySeries() {
-    if (climatology && climatology.monthly && Object.keys(climatology.monthly).length) {
-        return {months: climatology.monthly, deep: true};
-    }
-    var byMonth = {};
-    Object.keys(archiveDays).forEach(function(d) {
-        var m = d.slice(0, 7);
-        byMonth[m] = (byMonth[m] || 0) + archiveDays[d];
-    });
-    return {months: byMonth, deep: false};
-}
-
-function renderMonthlyOverview() {
-    var series = monthlySeries();
-    var byMonth = series.months;
-    var months = Object.keys(byMonth).sort();
-    var norms = (climatology && climatology.climatology) || {};
-
-    // Scale bars against the P90 band top too, so an average month doesn't
-    // render taller than the band it is supposed to sit inside.
-    var peak = months.reduce(function(a, m) { return Math.max(a, byMonth[m]); }, 1);
-    Object.keys(norms).forEach(function(k) { peak = Math.max(peak, norms[k].p90); });
-
-    var html = '<div class="section"><h2><span class="material-icons">calendar_month</span>Monthly rainfall overview</h2>';
-    if (!months.length) {
-        html += '<div style="color:var(--text-muted);font-size:0.85rem">No completed months recorded yet for this gauge.</div>';
-    } else {
-        if (series.deep && Object.keys(norms).length) {
-            html += '<div class="subtitle">Monthly totals against this gauge\'s own long-term average. '
-                 + 'The shaded band is the normal range (P10&ndash;P90) for that calendar month.</div>';
-        } else if (series.deep) {
-            html += '<div class="subtitle">Monthly totals from this gauge\'s full record. Too few complete years to publish monthly normals.</div>';
-        } else {
-            html += '<div class="subtitle">Recent monthly totals only &mdash; no long-term record is published for this gauge\'s network.</div>';
-        }
-        html += '<div class="monthly-scroll">';
-        months.forEach(function(m) {
-            var v = byMonth[m];
-            var n = norms[m.slice(5, 7)];
-            var h = Math.max(4, Math.round((v / peak) * 86));
-            var d = new Date(m + '-01T00:00:00Z');
-            var label = d.toLocaleDateString([], {month: 'short', year: 'numeric', timeZone: 'UTC'});
-            var band = '';
-            if (n) {
-                var bTop = Math.round((n.p90 / peak) * 86);
-                var bBot = Math.round((n.p10 / peak) * 86);
-                band = '<div class="norm-band" style="bottom:' + bBot + 'px;height:' + Math.max(bTop - bBot, 2) + 'px"></div>'
-                     + '<div class="norm-mean" style="bottom:' + Math.round((n.mean / peak) * 86) + 'px"></div>';
-            }
-            // A month missing days (or still running) must not be judged
-            // against a full-month normal — it would read as "below average"
-            // purely for being incomplete.
-            var dayCounts = (climatology && climatology.monthDayCounts) || {};
-            var dim = new Date(Date.UTC(+m.slice(0, 4), +m.slice(5, 7), 0)).getUTCDate();
-            var partial = dayCounts[m] != null && dayCounts[m] / dim < 0.9;
-            var vs = (n && !partial) ? (v > n.p90 ? ' above' : v < n.p10 ? ' below' : '')
-                                     : (partial ? ' partial' : '');
-            html += '<div class="month-tile"><div class="month-mm' + vs + '">' + v.toFixed(0) + 'mm</div>'
-                + '<div class="month-bar-track">' + band
-                + '<div class="month-bar' + vs + '" style="height:' + h + 'px"></div></div>'
-                + '<div class="month-label">' + label + '</div>'
-                + (partial ? '<div class="month-avg">partial month</div>'
-                           : n ? '<div class="month-avg">avg ' + n.mean.toFixed(0) + 'mm</div>' : '')
-                + '</div>';
+function loadRecentReadings() {
+    var now = new Date();
+    var days = [now, new Date(now - 86400000), new Date(now - 2 * 86400000)];
+    return Promise.all(days.map(function(d) {
+        var dk = dateKeyOf(d);
+        return getJson(R2_CDN + '/rain/readings/' + dk + '.json').then(function(data) {
+            if (data) rawByDate[dk] = data;
         });
-        html += '</div>';
-        if (series.deep && Object.keys(norms).length) {
-            html += '<div class="records-caption">Normals from ' + climatology.recordStart.slice(0, 4)
-                 + '&ndash;' + climatology.recordEnd.slice(0, 4) + ', calendar months with at least 5 complete years of record.</div>';
-        }
-    }
-    html += '</div>';
-    document.getElementById('content').insertAdjacentHTML('beforeend', html);
-}
-
-function renderRecords(sum) {
-    // Prefer the deep record (decades) over the short rolling archive.
-    var deep = climatology && climatology.records;
-    var r = deep ? climatology.records : sum;
-
-    var html = '<div class="section"><h2><span class="material-icons">emoji_events</span>Rainfall records</h2><div class="records-grid">';
-    var tiles = [
-        ['Wettest day', r.wettestDay ? fmtMm(r.wettestDay.mm) : '&ndash;', r.wettestDay ? r.wettestDay.date : '', 'water_drop', 'var(--brand-500)'],
-        ['Wettest month', r.wettestMonth ? fmtMm(r.wettestMonth.mm) : '&ndash;', r.wettestMonth ? r.wettestMonth.month : '', 'water', 'var(--brand-600)'],
-        ['Driest month', r.driestMonth ? fmtMm(r.driestMonth.mm) : '&ndash;', r.driestMonth ? r.driestMonth.month : '', 'wb_sunny', 'var(--heavy-border)'],
-        ['Longest dry spell', r.longestDrySpell ? r.longestDrySpell.days + ' days' : '&ndash;', r.longestDrySpell ? ('from ' + r.longestDrySpell.from) : '', 'timelapse', 'var(--extreme-border)']
-    ];
-    tiles.forEach(function(t) {
-        html += '<div class="record-tile" style="--record-accent:' + t[4] + '"><div class="record-value">' + t[1] + '</div>'
-            + '<div class="record-label"><span class="material-icons">' + t[3] + '</span>' + t[0] + '</div>'
-            + (t[2] ? '<div class="record-date">' + t[2] + '</div>' : '') + '</div>';
+    })).then(function() {
+        updateLiveRate();
+        if (recentTab === '48h') renderRecent();
     });
-    html += '</div>';
-
-    if (deep) {
-        var c = climatology;
-        var caption = 'Records from this gauge\'s full published record, ' + c.recordStart + ' to '
-            + c.recordEnd + ' (' + c.recordYears + ' years).';
-        if (c.completeMonths != null && c.totalMonths) {
-            caption += ' ' + c.completeMonths + ' of ' + c.totalMonths
-                + ' months have enough valid days to count as complete totals.';
-        }
-        if (c.qualityGoodPct != null) {
-            caption += ' ' + c.qualityGoodPct + '% of daily values are flagged Good by the Environment Agency; '
-                + 'the rest are estimated, unchecked or suspect but still included.';
-        }
-        if (c.source === 'sepa') {
-            caption += ' SEPA daily totals are labelled by the start of the 09:00 accumulation window, '
-                + 'so a single-day attribution can differ by one day from Met Office convention.';
-        }
-        html += '<div class="records-caption">' + caption + '</div>';
-    } else {
-        html += '<div class="records-caption">Records since ' + (sum.recordsSince || 'this gauge was added to the table')
-            + ' &mdash; a short rolling record, not a multi-decade climatology. '
-            + 'No historical archive is publicly available for this gauge\'s network.</div>';
-    }
-    html += '</div>';
-    document.getElementById('content').insertAdjacentHTML('beforeend', html);
 }
 
-// Chart.js — same library the Flood Forecast project's own base.html loads
-// globally, so this ports over untouched. Colors are read live from our CSS
-// custom properties rather than duplicated as hex literals, so the chart
-// re-themes for free if the design tokens ever change, and follows the
-// light/dark toggle exactly like every other element on the page.
-var chartInstance = null;
+function updateLiveRate() {
+    var now = new Date();
+    for (var back = 0; back < 8; back++) {
+        var t = new Date(now - back * 900000);
+        var day = rawByDate[dateKeyOf(t)];
+        var slot = String(Math.floor((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15));
+        var v = day && day.readings && day.readings[ref] && day.readings[ref][slot];
+        if (typeof v === 'number') {
+            var el = document.getElementById('liveRate');
+            if (el) el.innerHTML = mmText(v * 4, 1) + '<span class="u">mm/h</span>';
+            return;
+        }
+    }
+}
 
+// ── Climatology mode & derived statistics ────────────────────────────────
+// Every long-record panel routes through this. A record that stops decades
+// ago is a historical reference, not a baseline for today's telemetry — the
+// year-to-date and "% of normal" views are simply not computable from it.
+function climatologyMode(c) {
+    if (!c || !c.monthly || !Object.keys(c.monthly).length) return 'none';
+    var end = new Date(c.recordEnd + 'T00:00:00Z');
+    if (isNaN(end)) return 'historic';
+    return (Date.now() - end.getTime()) / 86400000 <= STALE_RECORD_DAYS ? 'live' : 'historic';
+}
+
+function deriveClimatology(c) {
+    var monthly = c.monthly || {}, counts = c.monthDayCounts || {}, norms = c.climatology || {};
+    var todayKey = new Date().toISOString().slice(0, 7);
+
+    // A month counts as a full monthly total only if it has finished and has
+    // enough valid days. Everything ranked or averaged below uses this set.
+    function complete(mk) {
+        if (mk >= todayKey) return false;
+        var y = +mk.slice(0, 4), m = +mk.slice(5, 7);
+        var n = counts[mk];
+        return n == null ? true : (n / daysInMonth(y, m)) >= MONTH_COMPLETENESS;
+    }
+
+    var years = {};   // year -> {months: {1..12: mm}, complete: {1..12: bool}}
+    Object.keys(monthly).sort().forEach(function(mk) {
+        var y = mk.slice(0, 4), m = +mk.slice(5, 7);
+        if (!years[y]) years[y] = {months: {}, complete: {}};
+        years[y].months[m] = monthly[mk];
+        years[y].complete[m] = complete(mk);
+    });
+    var yearKeys = Object.keys(years).sort();
+    yearKeys.forEach(function(y) {
+        var rec = years[y], n = 0, total = 0, full = true;
+        for (var m = 1; m <= 12; m++) {
+            if (rec.months[m] == null) { full = false; continue; }
+            total += rec.months[m];
+            if (rec.complete[m]) n++; else full = false;
+        }
+        rec.total = total;
+        rec.fullYear = full && n === 12;
+        rec.monthsPresent = Object.keys(rec.months).length;
+    });
+
+    var fullYears = yearKeys.filter(function(y) { return years[y].fullYear; });
+    var annualNormal = fullYears.length
+        ? fullYears.reduce(function(a, y) { return a + years[y].total; }, 0) / fullYears.length
+        : null;
+
+    var wettestYear = null, driestYear = null;
+    fullYears.forEach(function(y) {
+        if (!wettestYear || years[y].total > years[wettestYear].total) wettestYear = y;
+        if (!driestYear || years[y].total < years[driestYear].total) driestYear = y;
+    });
+
+    // Wettest complete months, ranked — the monthly series supports a proper
+    // top-N where a single "wettest month" record does not.
+    var topMonths = Object.keys(monthly).filter(complete)
+        .sort(function(a, b) { return monthly[b] - monthly[a]; }).slice(0, 6)
+        .map(function(mk) { return {month: mk, mm: monthly[mk]}; });
+
+    // Year-to-date, always over the longest run of complete months Jan..M in
+    // the latest year of record, so prior years are compared over the same
+    // calendar window rather than against a full-year normal.
+    var latestYear = yearKeys[yearKeys.length - 1];
+    var ytd = null;
+    if (latestYear) {
+        var through = 0;
+        for (var m = 1; m <= 12; m++) {
+            if (years[latestYear].months[m] != null && years[latestYear].complete[m]) through = m; else break;
+        }
+        if (through >= 1) {
+            var sameWindow = [];   // {year, mm} for years complete over Jan..through
+            yearKeys.forEach(function(y) {
+                var ok = true, t = 0;
+                for (var m = 1; m <= through; m++) {
+                    if (years[y].months[m] == null || !years[y].complete[m]) { ok = false; break; }
+                    t += years[y].months[m];
+                }
+                if (ok) sameWindow.push({year: y, mm: t});
+            });
+            var mine = sameWindow.filter(function(r) { return r.year === latestYear; })[0];
+            if (mine && sameWindow.length >= 3) {
+                var sorted = sameWindow.slice().sort(function(a, b) { return a.mm - b.mm; });
+                var rankDriest = sorted.findIndex(function(r) { return r.year === latestYear; }) + 1;
+                var mean = sameWindow.reduce(function(a, r) { return a + r.mm; }, 0) / sameWindow.length;
+                ytd = {
+                    year: latestYear, through: through, mm: mine.mm, mean: mean,
+                    pct: mean > 0 ? (mine.mm / mean) * 100 : null,
+                    rankDriest: rankDriest, rankWettest: sameWindow.length - rankDriest + 1,
+                    n: sameWindow.length,
+                    // An en-dash character, not an entity: this label also
+                    // reaches tooltip and title contexts that take plain text.
+                    label: 'Jan' + (through > 1 ? '–' + MONTH_ABBR[through - 1] : '')
+                };
+            }
+        }
+    }
+
+    // Cumulative envelope: percentiles of the *cumulative* series across
+    // years, not a running sum of monthly percentiles (which would be far too
+    // narrow — it assumes every month lands at its own percentile together).
+    var envelope = null;
+    if (fullYears.length >= 5) {
+        var p10 = [], p50 = [], p90 = [];
+        for (var m = 1; m <= 12; m++) {
+            var vals = fullYears.map(function(y) {
+                var t = 0;
+                for (var k = 1; k <= m; k++) t += years[y].months[k];
+                return t;
+            }).sort(function(a, b) { return a - b; });
+            p10.push(percentile(vals, 0.10));
+            p50.push(percentile(vals, 0.50));
+            p90.push(percentile(vals, 0.90));
+        }
+        var thisYearCum = [], run = 0, ok = true;
+        for (var m2 = 1; m2 <= 12; m2++) {
+            var v = years[latestYear].months[m2];
+            if (v == null || !ok) { thisYearCum.push(null); ok = false; continue; }
+            run += v;
+            thisYearCum.push(run);
+        }
+        envelope = {p10: p10, p50: p50, p90: p90, current: thisYearCum, year: latestYear, nYears: fullYears.length};
+    }
+
+    return {
+        monthly: monthly, norms: norms, years: years, yearKeys: yearKeys,
+        isComplete: complete, fullYears: fullYears, annualNormal: annualNormal,
+        wettestYear: wettestYear, driestYear: driestYear, topMonths: topMonths,
+        ytd: ytd, envelope: envelope
+    };
+}
+
+function percentile(sorted, p) {
+    if (!sorted.length) return null;
+    if (sorted.length === 1) return sorted[0];
+    var k = (sorted.length - 1) * p, lo = Math.floor(k), hi = Math.min(lo + 1, sorted.length - 1);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (k - lo);
+}
+
+// ── Skeleton ─────────────────────────────────────────────────────────────
+// Built once with fixed ids, then each region is filled. Refresh refills in
+// place rather than appending a second copy of every panel down the page.
+function renderSkeleton(sum) {
+    var showYear = mode === 'live' && derived && (derived.ytd || derived.envelope);
+    document.getElementById('content').innerHTML = ''
+        + '<div id="headRegion"></div>'
+        + '<div class="grid split">'
+        +   '<section class="panel"><div class="panel-head"><h2>Rainfall to now</h2>'
+        +     '<span class="hint">Accumulations ending at the latest reading</span></div>'
+        +     '<div id="nowRegion" class="panel-body"></div></section>'
+        +   '<section class="panel"><div class="panel-head"><h2>Location &amp; neighbouring gauges</h2></div>'
+        +     '<div id="placeRegion" class="panel-body flush"></div></section>'
+        + '</div>'
+        + '<section class="panel"><div class="panel-head"><h2>Recent rainfall</h2>'
+        +   '<div class="tabs" id="recentTabs"></div></div>'
+        +   '<div class="panel-body" id="recentRegion"></div></section>'
+        + (showYear
+            ? '<section class="panel"><div class="panel-head"><h2>' + envelopeTitle() + '</h2>'
+              + '<span class="hint">Cumulative total against the spread of complete years in the record</span></div>'
+              + '<div class="panel-body" id="yearRegion"></div></section>'
+            : '')
+        + '<section class="panel"><div class="panel-head"><h2 id="recordTitle">Long record</h2>'
+        +   '<span class="hint" id="recordHint"></span></div>'
+        +   '<div class="panel-body" id="recordRegion"></div></section>'
+        + '<section class="panel"><div class="panel-head"><h2>Extremes</h2>'
+        +   '<span class="hint" id="extremesHint"></span></div>'
+        +   '<div class="panel-body" id="extremesRegion"></div></section>'
+        + '<section class="panel"><div class="panel-head"><h2>Station &amp; record provenance</h2></div>'
+        +   '<div class="panel-body" id="provRegion"></div></section>';
+}
+
+// ── Header ───────────────────────────────────────────────────────────────
+function fillHead(s, sum) {
+    document.title = s.name + ' | Flood Forecast';
+    document.getElementById('pageTitle').textContent = s.name + ' | Flood Forecast';
+
+    var facts = ['<span class="pill">' + networkOf(s) + '</span>'];
+    if (s.county) facts.push(esc(s.county));
+    facts.push('<span class="sep">&middot;</span><span class="mono">' + esc(ref) + '</span>');
+    facts.push('<span class="sep">&middot;</span><span class="mono">' + s.lat.toFixed(4) + ', ' + s.lon.toFixed(4) + '</span>');
+    if (mode !== 'none') {
+        facts.push('<span class="sep">&middot;</span>' + (mode === 'live' ? 'Record ' : 'Historic record ')
+            + clim.recordStart.slice(0, 4) + '&ndash;' + clim.recordEnd.slice(0, 4)
+            + ' (' + clim.recordYears + ' yr)');
+    } else if (sum.recordsSince) {
+        facts.push('<span class="sep">&middot;</span>Tracked since ' + prettyDate(sum.recordsSince));
+    }
+
+    var figures = [
+        ['<span id="liveRate">&ndash;</span>', 'Latest 15 min rate'],
+        [mmUnit(sum.last1h), '1 hour'],
+        [mmUnit(sum.last24h), '24 hours'],
+        [mmUnit(sum.last7d), '7 days']
+    ];
+
+    document.getElementById('headRegion').innerHTML = ''
+        + '<div class="gauge-head">'
+        +   '<div><h1>' + esc(s.name) + '</h1><div class="head-facts">' + facts.join(' ') + '</div></div>'
+        +   '<div class="head-figures">'
+        +     figures.map(function(f) {
+                  return '<div class="figure"><div class="fv">' + f[0] + '</div><div class="fl">' + f[1] + '</div></div>';
+              }).join('')
+        +     '<div class="head-aside">'
+        +       '<button class="btn" onclick="loadAll()"><span class="material-icons" style="font-size:13px;">refresh</span>Refresh</button>'
+        +       '<div class="stamp">' + (summaryGeneratedAt
+                    ? 'Totals ' + new Date(summaryGeneratedAt).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) + ' UTC'
+                    : 'Awaiting totals') + '</div>'
+        +     '</div>'
+        +   '</div>'
+        + '</div>';
+}
+
+// ── Rainfall to now ──────────────────────────────────────────────────────
+// One table replaces six equal tiles plus a separate threshold list: every
+// duration we hold, its total, its share of the longest accumulation, and the
+// band it sits in where a band is defined for that duration.
+function fillNow(sum) {
+    var vals = DURATIONS.map(function(d) { return sum[d[1]] || 0; });
+    var peak = Math.max.apply(null, vals.concat([1]));
+    var rows = DURATIONS.map(function(d, i) {
+        var v = vals[i], band = THRESHOLDS[d[0]];
+        var level = 'normal', tag = '<span class="dim">&mdash;</span>';
+        if (band) {
+            level = v > band[1] ? 'extreme' : v > band[0] ? 'heavy' : 'normal';
+            tag = '<span class="tag ' + level + '">' + level.charAt(0).toUpperCase() + level.slice(1) + '</span>';
+        }
+        return '<tr><td>' + d[0] + '</td>'
+            + '<td class="num">' + mmText(v) + '</td>'
+            + '<td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:'
+            + Math.round((v / peak) * 100) + '%"></div></div></td>'
+            + '<td class="dim">' + (band ? '&gt;' + band[0] + ' / &gt;' + band[1] : '') + '</td>'
+            + '<td>' + tag + '</td></tr>';
+    }).join('');
+
+    var context = [];
+    // Month to date against this calendar month's normal. The live month total
+    // is UTC-midnight days while the normal is built from 09:00–09:00 days, so
+    // this is a close guide rather than an exact like-for-like.
+    var now = new Date();
+    var thisMonthKey = pad2(now.getUTCMonth() + 1);
+    var monthNorm = mode === 'live' && derived && derived.norms[thisMonthKey];
+    var recSince = sum.recordsSince ? new Date(sum.recordsSince + 'T00:00:00Z') : null;
+    var monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    var monthTruncated = recSince && recSince > monthStart;
+    if (sum.monthTotal != null) {
+        context.push({
+            v: mmText(sum.monthTotal, 1) + ' mm',
+            l: MONTH_ABBR[now.getUTCMonth()] + ' to date'
+                + (monthTruncated ? ' (from ' + prettyDate(sum.recordsSince) + ')' : ''),
+            cls: ''
+        });
+    }
+    if (monthNorm && !monthTruncated) {
+        var pct = monthNorm.mean > 0 ? (sum.monthTotal / monthNorm.mean) * 100 : null;
+        context.push({
+            v: pct == null ? '&ndash;' : Math.round(pct) + '%',
+            l: 'of the ' + MONTH_ABBR[now.getUTCMonth()] + ' normal (' + mmText(monthNorm.mean, 0) + ' mm)',
+            cls: pct == null ? '' : pct >= 100 ? 'wet' : 'dry'
+        });
+    }
+    // Only when the record's latest year is the year we are actually in —
+    // otherwise this would quietly present a stale year's position as "now".
+    if (derived && derived.ytd && +derived.ytd.year === now.getUTCFullYear()) {
+        context.push({v: Math.round(derived.ytd.pct) + '%', l: 'of normal, ' + derived.ytd.label + ' ' + derived.ytd.year,
+            cls: derived.ytd.pct >= 100 ? 'wet' : 'dry'});
+    }
+    if (sum.completeness != null) {
+        // make_rain_summary.py writes completeness as a 0–1 fraction of the
+        // expected 15-minute slots in the last 24 hours.
+        context.push({v: Math.round(sum.completeness * 100) + '%', l: 'Telemetry slots received, 24 h', cls: ''});
+    }
+
+    document.getElementById('nowRegion').innerHTML = ''
+        + '<table class="data"><thead><tr><th>Duration</th><th>Total</th><th></th>'
+        +   '<th>Heavy / extreme</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table>'
+        + (context.length
+            ? '<div class="rail" style="margin-top:0.85rem;padding-top:0.75rem;border-top:1px solid var(--border-color)">'
+              + context.map(function(c) {
+                    return '<div class="item"><div class="rv ' + c.cls + '">' + c.v + '</div><div class="rl">' + c.l + '</div></div>';
+                }).join('') + '</div>'
+            : '')
+        + '<div class="note" style="margin-top:0.7rem">Bars show each duration against the largest accumulation in the table. '
+        + 'Heavy and extreme bands are defined for the 1, 3 and 6 hour durations only.</div>';
+}
+
+// ── Map & neighbours ─────────────────────────────────────────────────────
+// The map is the working part of the page for a duty hydrometeorologist:
+// every gauge around this one, sized and coloured by its own 24 hour total,
+// each one a link to its page.
+function fillPlace(s) {
+    var neighbours = Object.keys(stations)
+        .filter(function(id) { return id !== ref && stations[id].lat != null; })
+        .map(function(id) {
+            var o = stations[id];
+            return {id: id, name: o.name, source: o.source, lat: o.lat, lon: o.lon,
+                dist: haversineKm(s.lat, s.lon, o.lat, o.lon)};
+        })
+        .filter(function(o) { return o.dist <= 45; })
+        .sort(function(a, b) { return a.dist - b.dist; })
+        .slice(0, 140);
+
+    document.getElementById('placeRegion').innerHTML = ''
+        + '<div id="gaugeMap"></div>'
+        + '<div class="map-legend">'
+        +   '<span><span class="dot" style="background:var(--brand-600);border:2px solid var(--bg-surface);box-shadow:0 0 0 1px var(--brand-600)"></span>This gauge</span>'
+        +   '<span><span class="dot" style="background:var(--dv-n)"></span>Dry, 24 h</span>'
+        +   '<span><span class="dot" style="background:var(--brand-300)"></span>&lt;5 mm</span>'
+        +   '<span><span class="dot" style="background:var(--brand-500)"></span>5&ndash;20 mm</span>'
+        +   '<span><span class="dot" style="background:var(--brand-700)"></span>&gt;20 mm</span>'
+        + '</div>'
+        + '<div class="nb-head"><span>Nearest gauges</span><span>24 h</span><span>Annual avg</span></div>'
+        + (neighbours.length
+            ? neighbours.slice(0, 10).map(function(o) {
+                  var os = summaryStations[o.id] || {};
+                  var norm = normalIndex[o.id] && normalIndex[o.id].annualNormal;
+                  return '<a class="nb-row" href="gauge.html?ref=' + encodeURIComponent(o.id) + '">'
+                      + '<span class="nm">' + esc(o.name) + ' <span class="d">' + o.dist.toFixed(1) + ' km</span></span>'
+                      + '<span class="v">' + mmText(os.last24h == null ? 0 : os.last24h, 1) + '</span>'
+                      + '<span class="n">' + (norm ? Math.round(norm) + ' mm' : '&ndash;') + '</span></a>';
+              }).join('')
+            : '<div class="empty" style="padding:0.5rem 1.05rem">No other gauges within 45 km.</div>');
+
+    drawMap(s, neighbours);
+}
+
+var mapInstance = null;
+function drawMap(s, neighbours) {
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+    var map = L.map('gaugeMap', {scrollWheelZoom: false, zoomControl: true}).setView([s.lat, s.lon], 10);
+    mapInstance = map;
+    // CARTO Voyager / Dark Matter — the same basemaps the radar viewer and
+    // gauge map use (index.html, rain/index.html), retina-aware.
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/' + (dark ? 'dark_all' : 'voyager') + '/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap, &copy; CARTO', subdomains: 'abcd', maxZoom: 19
+    }).addTo(map);
+
+    function colourFor(mm) {
+        var cs = getComputedStyle(document.documentElement);
+        var v = function(n) { return cs.getPropertyValue(n).trim(); };
+        if (mm == null || mm <= 0.05) return v('--dv-n');
+        if (mm < 5) return v('--brand-300');
+        if (mm <= 20) return v('--brand-500');
+        return v('--brand-700');
+    }
+
+    neighbours.forEach(function(o) {
+        var os = summaryStations[o.id] || {};
+        var mm = os.last24h;
+        L.circleMarker([o.lat, o.lon], {
+            radius: 4 + Math.min(5, Math.sqrt(Math.max(mm || 0, 0))),
+            fillColor: colourFor(mm), fillOpacity: 0.9, color: dark ? '#0f172a' : '#ffffff', weight: 1.5
+        }).addTo(map).bindPopup(
+            '<strong>' + esc(o.name) + '</strong><br>' + (o.source === 'nrw' ? 'NRW' : o.source === 'sepa' ? 'SEPA' : 'EA')
+            + ' &middot; ' + o.dist.toFixed(1) + ' km<br>24 h: ' + mmText(mm == null ? 0 : mm, 1) + ' mm<br>'
+            + '<a href="gauge.html?ref=' + encodeURIComponent(o.id) + '">Open this gauge</a>'
+        );
+    });
+
+    L.circleMarker([s.lat, s.lon], {
+        radius: 8, fillColor: getComputedStyle(document.documentElement).getPropertyValue('--brand-600').trim(),
+        fillOpacity: 1, color: dark ? '#0f172a' : '#ffffff', weight: 3
+    }).addTo(map).bindTooltip(s.name, {permanent: false});
+
+    var bounds = L.latLngBounds([[s.lat, s.lon]]);
+    neighbours.slice(0, 12).forEach(function(o) { bounds.extend([o.lat, o.lon]); });
+    if (neighbours.length) map.fitBounds(bounds.pad(0.25), {maxZoom: 11});
+}
+
+// ── Recent rainfall chart ────────────────────────────────────────────────
 function chartTheme() {
     var cs = getComputedStyle(document.documentElement);
-    var v = function(name) { return cs.getPropertyValue(name).trim(); };
+    var v = function(n) { return cs.getPropertyValue(n).trim(); };
     return {
-        text: v('--text-muted'),
-        grid: v('--border-color'),
-        surface: v('--bg-surface'),
-        strong: v('--text-main'),
-        normal: v('--brand-500'),
-        heavy: v('--heavy-border'),
-        extreme: v('--extreme-border'),
+        ink: v('--text-main'), text: v('--text-muted'), grid: v('--border-color'),
+        surface: v('--bg-surface'), inset: v('--bg-inset'), muted: v('--text-dark'),
+        brand: v('--brand-500'), brandDeep: v('--brand-700'), brandSoft: v('--brand-200'),
+        tint: v('--brand-tint'),
         font: "'Roboto', -apple-system, BlinkMacSystemFont, sans-serif"
     };
 }
 
-function barColorFor(v, t) { return v >= 30 ? t.extreme : v >= 10 ? t.heavy : t.normal; }
+function axisOpts(t, yTitle) {
+    return {
+        x: {ticks: {color: t.text, font: {family: t.font, size: 10}, maxRotation: 0, autoSkip: true, autoSkipPadding: 14},
+            grid: {display: false}, border: {color: t.grid}},
+        y: {beginAtZero: true, ticks: {color: t.text, font: {family: t.font, size: 10}},
+            grid: {color: t.grid, drawTicks: false}, border: {display: false},
+            title: {display: !!yTitle, text: yTitle, color: t.text, font: {family: t.font, size: 10}}}
+    };
+}
 
-function points24h() {
-    var now = new Date();
-    var points = [];
-    for (var back = 95; back >= 0; back--) {
+function tooltipOpts(t, titleFn, labelFn) {
+    return {
+        backgroundColor: t.surface, titleColor: t.ink, bodyColor: t.text, borderColor: t.grid, borderWidth: 1,
+        padding: 9, cornerRadius: 6, displayColors: false,
+        titleFont: {family: t.font, size: 11, weight: '600'}, bodyFont: {family: t.font, size: 12},
+        callbacks: {title: titleFn, label: labelFn}
+    };
+}
+
+var charts = {};
+function mountChart(id, config) {
+    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+    var el = document.getElementById(id);
+    if (el) charts[id] = new Chart(el.getContext('2d'), config);
+}
+
+function points15min(hours) {
+    var now = new Date(), out = [], n = hours * 4;
+    for (var back = n - 1; back >= 0; back--) {
         var t = new Date(now - back * 900000);
-        var dk = dateKeyOf(t);
+        var day = rawByDate[dateKeyOf(t)];
         var slot = String(Math.floor((t.getUTCHours() * 60 + t.getUTCMinutes()) / 15));
-        var day = rawByDate[dk];
-        var v = (day && day.readings && day.readings[ref] && day.readings[ref][slot]) || 0;
-        points.push({v: v, label: t.toLocaleString([], {weekday: 'short', hour: '2-digit', minute: '2-digit'}), tick: pad2(t.getHours()) + ':00'});
+        var v = day && day.readings && day.readings[ref] && day.readings[ref][slot];
+        out.push({
+            v: typeof v === 'number' ? v : 0,
+            tick: t.getUTCMinutes() === 0 && t.getUTCHours() % 6 === 0 ? pad2(t.getUTCHours()) + 'Z' : '',
+            label: t.toLocaleString([], {weekday: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC'}) + ' UTC'
+        });
     }
-    return points;
+    return out;
 }
 
 function pointsDaily(nDays) {
-    var dates = Object.keys(archiveDays).sort().slice(-nDays);
-    return dates.map(function(d) { return {v: archiveDays[d], label: d, tick: d.slice(5)}; });
+    var out = [], now = new Date();
+    for (var back = nDays - 1; back >= 0; back--) {
+        var t = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - back));
+        var key = t.toISOString().slice(0, 10);
+        out.push({
+            v: archiveDays[key] == null ? 0 : archiveDays[key],
+            tick: t.getUTCDate() === 1 || nDays <= 31 && t.getUTCDate() % 5 === 0 ? t.getUTCDate() + ' ' + MONTH_ABBR[t.getUTCMonth()] : '',
+            label: prettyDate(key)
+        });
+    }
+    return out;
 }
 
-function renderChartCanvas(points) {
-    var wrap = document.getElementById('chartWrap');
-    if (!points.length) {
-        if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
-        wrap.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:1rem 0">No archived daily totals yet for this period.</div>';
+// Last 24 months of monthly totals. Prefers the deep series (same day
+// convention as the normals it is drawn against); falls back to the rolling
+// archive for a gauge with no published long record.
+function pointsMonthly() {
+    var src = (mode !== 'none' && derived) ? derived.monthly : null;
+    var fallback = {};
+    if (!src) {
+        Object.keys(archiveDays).forEach(function(d) {
+            var mk = d.slice(0, 7);
+            fallback[mk] = (fallback[mk] || 0) + archiveDays[d];
+        });
+        src = fallback;
+    }
+    var keys = Object.keys(src).sort().slice(-24);
+    return keys.map(function(mk) {
+        var norm = (mode !== 'none' && derived) ? derived.norms[mk.slice(5, 7)] : null;
+        return {v: src[mk], norm: norm ? norm.mean : null, tick: MONTH_ABBR[+mk.slice(5, 7) - 1]
+            + (mk.slice(5, 7) === '01' ? " '" + mk.slice(2, 4) : ''), label: monthName(mk)};
+    });
+}
+
+function renderRecent() {
+    var tabs = ['48h', '30 days', '90 days', '24 months'];
+    document.getElementById('recentTabs').innerHTML = tabs.map(function(t) {
+        return '<button class="' + (recentTab === t ? 'active' : '') + '" onclick="setRecentTab(\'' + t + '\')">' + t + '</button>';
+    }).join('');
+
+    var region = document.getElementById('recentRegion');
+    var t = chartTheme();
+    var points, yTitle, note, legend = '';
+
+    if (recentTab === '48h') {
+        points = points15min(48);
+        yTitle = 'mm / 15 min';
+        var total = points.reduce(function(a, p) { return a + p.v; }, 0);
+        var peak = points.reduce(function(a, p) { return Math.max(a, p.v); }, 0);
+        note = '15 minute telemetry, UTC. 48 hour total ' + mmText(total, 1) + ' mm, peak 15 minute '
+             + mmText(peak, 1) + ' mm (' + mmText(peak * 4, 1) + ' mm/h).';
+    } else if (recentTab === '24 months') {
+        points = pointsMonthly();
+        yTitle = 'mm / month';
+        note = (mode !== 'none')
+            ? 'Monthly totals from this gauge’s ' + (mode === 'historic' ? 'historic' : 'published')
+              + ' daily series (09:00&ndash;09:00 rain days).'
+            : 'Monthly totals accumulated from the rolling daily archive — no long record is published for this gauge.';
+        if (points.some(function(p) { return p.norm != null; })) {
+            legend = '<div class="legend"><span class="key"><span class="sw" style="background:' + t.brand + '"></span>Monthly total</span>'
+                   + '<span class="key"><span class="sw dash"></span>Long-term average for that month</span></div>';
+        }
+    } else {
+        var n = recentTab === '30 days' ? 30 : 90;
+        points = pointsDaily(n);
+        yTitle = 'mm / day';
+        var dTotal = points.reduce(function(a, p) { return a + p.v; }, 0);
+        var wettest = points.reduce(function(a, p) { return p.v > (a ? a.v : -1) ? p : a; }, null);
+        note = 'Daily totals from the rolling archive (00&ndash;24 UTC days). ' + n + ' day total '
+             + mmText(dTotal, 1) + ' mm' + (wettest && wettest.v > 0 ? ', wettest day ' + mmText(wettest.v, 1) + ' mm on ' + wettest.label : '') + '.';
+    }
+
+    if (!points.length || points.every(function(p) { return !p.v; })) {
+        region.innerHTML = '<div class="chart-box h-mid" style="height:auto"><div class="empty">'
+            + (recentTab === '48h' ? 'No rainfall recorded in the last 48 hours.' : 'No data held for this period.')
+            + '</div></div><div class="note">' + note + '</div>';
+        if (charts.recentChart) { charts.recentChart.destroy(); delete charts.recentChart; }
         return;
     }
-    if (!document.getElementById('rainChartCanvas')) {
-        wrap.innerHTML = '<div class="chart-canvas-wrap"><canvas id="rainChartCanvas"></canvas></div>';
+
+    region.innerHTML = '<div class="chart-box h-tall"><canvas id="recentChart"></canvas></div>' + legend
+        + '<div class="note" style="margin-top:0.55rem">' + note + '</div>';
+
+    var datasets = [{
+        label: 'Rainfall', data: points.map(function(p) { return p.v; }),
+        backgroundColor: t.brand, borderRadius: 3, borderSkipped: false,
+        maxBarThickness: recentTab === '48h' ? 8 : 26, categoryPercentage: 0.94, barPercentage: 0.92
+    }];
+    if (recentTab === '24 months' && points.some(function(p) { return p.norm != null; })) {
+        datasets.push({
+            type: 'line', label: 'Average', data: points.map(function(p) { return p.norm; }),
+            borderColor: t.muted, borderWidth: 2, borderDash: [4, 4], pointRadius: 0, spanGaps: true, tension: 0
+        });
     }
-    var t = chartTheme();
-    var ctx = document.getElementById('rainChartCanvas').getContext('2d');
-    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
-    chartInstance = new Chart(ctx, {
+
+    mountChart('recentChart', {
         type: 'bar',
-        data: {
-            labels: points.map(function(p) { return p.tick; }),
-            datasets: [{
-                label: 'Rainfall',
-                data: points.map(function(p) { return p.v; }),
-                backgroundColor: points.map(function(p) { return barColorFor(p.v, t); }),
-                borderRadius: 3,
-                borderSkipped: false,
-                maxBarThickness: 26
-            }]
-        },
+        data: {labels: points.map(function(p) { return p.tick; }), datasets: datasets},
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: {duration: 250},
+            responsive: true, maintainAspectRatio: false, animation: {duration: 200},
             interaction: {mode: 'index', intersect: false},
-            scales: {
-                x: {
-                    ticks: {color: t.text, font: {family: t.font, size: 10}, maxRotation: 0, autoSkip: true, autoSkipPadding: 12},
-                    grid: {display: false}
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {color: t.text, font: {family: t.font, size: 10}},
-                    grid: {color: t.grid},
-                    title: {display: true, text: 'mm', color: t.text, font: {family: t.font, size: 10}}
-                }
-            },
+            scales: axisOpts(t, yTitle),
             plugins: {
                 legend: {display: false},
-                tooltip: {
-                    backgroundColor: t.surface,
-                    titleColor: t.strong,
-                    bodyColor: t.text,
-                    borderColor: t.grid,
-                    borderWidth: 1,
-                    padding: 10,
-                    cornerRadius: 8,
-                    displayColors: false,
-                    titleFont: {family: t.font, size: 11, weight: '600'},
-                    bodyFont: {family: t.font, size: 12},
-                    callbacks: {
-                        title: function(items) { return points[items[0].dataIndex].label; },
-                        label: function(item) { return item.parsed.y.toFixed(1) + ' mm'; }
-                    }
-                }
+                tooltip: tooltipOpts(t,
+                    function(items) { return points[items[0].dataIndex].label; },
+                    function(item) {
+                        return (item.datasetIndex === 1 ? 'Average ' : '') + mmText(item.parsed.y, 1) + ' mm';
+                    })
+            }
+        }
+    });
+}
+function setRecentTab(t) { recentTab = t; renderRecent(); }
+
+// ── Year in context: cumulative curve against the record's own envelope ──
+function fillYear() {
+    var region = document.getElementById('yearRegion');
+    if (!region || !derived) return;
+    var e = derived.envelope, y = derived.ytd, t = chartTheme();
+
+    var rail = '';
+    if (y) {
+        rail = '<div class="rail" style="margin-bottom:0.9rem">'
+            + '<div class="item"><div class="rv">' + mmText(y.mm, 0) + ' mm</div><div class="rl">' + y.label + ' ' + y.year + '</div></div>'
+            + '<div class="item"><div class="rv ' + (y.pct >= 100 ? 'wet' : 'dry') + '">' + Math.round(y.pct) + '%</div>'
+            +   '<div class="rl">of the ' + mmText(y.mean, 0) + ' mm average for ' + y.label + '</div></div>'
+            + '<div class="item"><div class="rv">' + ordinal(y.pct >= 100 ? y.rankWettest : y.rankDriest) + '</div>'
+            +   '<div class="rl">' + (y.pct >= 100 ? 'wettest' : 'driest') + ' ' + y.label + ' of ' + y.n + ' years</div></div>'
+            + (derived.annualNormal ? '<div class="item"><div class="rv">' + mmText(derived.annualNormal, 0) + ' mm</div>'
+                + '<div class="rl">Average full year (' + derived.fullYears.length + ' years)</div></div>' : '')
+            + '</div>';
+    }
+
+    if (!e) {
+        region.innerHTML = rail + '<div class="note">Fewer than five complete years of record &mdash; not enough to draw a normal range for the year to date.</div>';
+        return;
+    }
+
+    region.innerHTML = rail
+        + '<div class="chart-box h-tall"><canvas id="yearChart"></canvas></div>'
+        + '<div class="legend">'
+        +   '<span class="key" style="color:' + t.brand + '"><span class="sw line"></span>' + e.year + ' to date</span>'
+        +   '<span class="key"><span class="sw dash"></span>Median year</span>'
+        +   '<span class="key"><span class="sw" style="background:' + t.tint + ';border:1px solid ' + t.grid + '"></span>Normal range (P10&ndash;P90)</span>'
+        + '</div>'
+        + '<div class="note" style="margin-top:0.55rem">Cumulative rainfall through the year against percentiles of the '
+        + 'cumulative total across ' + e.nYears + ' complete years of record. Percentiles are taken on the accumulated '
+        + 'series month by month, so the band is the spread of whole years to that point rather than a running sum of monthly extremes.'
+        + (clim.recordEnd ? ' Series runs to ' + prettyDate(clim.recordEnd) + '.' : '')
+        + '</div>';
+
+    mountChart('yearChart', {
+        type: 'line',
+        data: {
+            labels: MONTH_ABBR,
+            datasets: [
+                {label: 'P10', data: e.p10, borderColor: 'transparent', pointRadius: 0, fill: false},
+                {label: 'P90', data: e.p90, borderColor: 'transparent', pointRadius: 0, backgroundColor: t.tint, fill: '-1'},
+                {label: 'Median', data: e.p50, borderColor: t.muted, borderWidth: 2, borderDash: [5, 4], pointRadius: 0, fill: false, tension: 0.15},
+                {label: e.year, data: e.current, borderColor: t.brand, borderWidth: 2.5, pointRadius: 0,
+                 pointHoverRadius: 4, fill: false, spanGaps: false, tension: 0.15}
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, animation: {duration: 200},
+            interaction: {mode: 'index', intersect: false},
+            scales: axisOpts(t, 'Cumulative mm'),
+            plugins: {
+                legend: {display: false},
+                tooltip: tooltipOpts(t,
+                    function(items) { return MONTH_ABBR[items[0].dataIndex] + ' (end of month)'; },
+                    function(item) {
+                        if (item.parsed.y == null) return null;
+                        var n = item.dataset.label;
+                        return (n === 'P10' ? 'P10 ' : n === 'P90' ? 'P90 ' : n === 'Median' ? 'Median ' : n + ' ')
+                            + mmText(item.parsed.y, 0) + ' mm';
+                    })
+            }
+        }
+    });
+}
+// Panel title, kept beside the renderer so the two never drift. A record can
+// be recent enough to be a valid baseline and still stop part way through last
+// year — naming the year as "in context" would then imply it is the year we
+// are in, so the title says which year it actually is.
+function envelopeTitle() {
+    if (!derived) return 'Year in context';
+    var y = (derived.ytd && derived.ytd.year) || (derived.envelope && derived.envelope.year);
+    if (!y) return 'Year in context';
+    return +y === new Date().getUTCFullYear() ? y + ' in context' : y + ' in context, the latest year of record';
+}
+
+// ── Long record: annual totals + month-by-year anomaly grid ──────────────
+function fillLongRecord(sum) {
+    var region = document.getElementById('recordRegion');
+    var hint = document.getElementById('recordHint');
+    var title = document.getElementById('recordTitle');
+
+    if (mode === 'none') {
+        title.textContent = 'Long record';
+        hint.textContent = '';
+        var since = sum.recordsSince ? 'on ' + prettyDate(sum.recordsSince) : 'when this gauge joined the network';
+        region.innerHTML = '<div class="callout warn"><strong>No long record published for this gauge.</strong> '
+            + 'It has no match in the EA or SEPA historic daily series and no Met Office MIDAS Open station within '
+            + 'matching distance, so there is nothing to build normals, anomalies or return periods from. '
+            + 'Everything on this page comes from Flood Forecast’s own rolling record, which starts ' + since + '.</div>'
+            + '<div class="note" style="margin-top:0.7rem">Use the 24 month tab above for the monthly totals we do hold, '
+            + 'and the neighbouring gauges for climatological context &mdash; several of them will have a full record.</div>';
+        return;
+    }
+
+    title.textContent = mode === 'historic' ? 'Historic record' : 'Long record';
+    hint.innerHTML = clim.recordStart.slice(0, 4) + '&ndash;' + clim.recordEnd.slice(0, 4)
+        + ' &middot; ' + clim.recordYears + ' years &middot; ' + derived.fullYears.length + ' complete calendar years';
+
+    var banners = '';
+    if (clim.midasSrcId) {
+        banners += '<div class="callout warn"><strong>Nearby historical reference, not this gauge’s own record.</strong> '
+            + 'Natural Resources Wales publishes no rainfall archive, so the long record shown here is Met Office MIDAS Open station '
+            + esc(titleCase(clim.midasName || '')) + ' (' + esc(clim.midasSrcId) + '), '
+            + (clim.matchDistKm != null ? clim.matchDistKm.toFixed(2) + ' km away' : 'the nearest matched station')
+            + '. Treat it as the local climatology, not as measurements from this instrument.</div>';
+    }
+    if (mode === 'historic') {
+        banners += '<div class="callout warn"><strong>This record ends ' + prettyDate(clim.recordEnd) + '.</strong> '
+            + 'It is shown on its own terms: a historical baseline for the site. Today’s telemetry is not compared against it, '
+            + 'because the two do not overlap &mdash; no year-to-date position, no percentage of normal.</div>';
+    }
+
+    region.innerHTML = banners
+        + '<div class="sub-h" style="margin-top:' + (banners ? '0.9rem' : '0') + '">Annual totals</div>'
+        + '<div class="chart-box h-mid"><canvas id="annualChart"></canvas></div>'
+        + '<div class="legend">'
+        +   '<span class="key"><span class="sw" style="background:var(--brand-500)"></span>Complete calendar year</span>'
+        +   '<span class="key"><span class="sw" style="background:var(--bg-surface-hover)"></span>Part year &mdash; not comparable</span>'
+        +   (derived.annualNormal ? '<span class="key"><span class="sw dash"></span>Average of complete years ('
+                + mmText(derived.annualNormal, 0) + ' mm)</span>' : '')
+        + '</div>'
+        + '<div class="sub-h" style="margin-top:1.3rem">Monthly totals against the average for that month</div>'
+        + buildHeatmap()
+        + '<div class="note" style="margin-top:0.7rem">' + heatmapNote() + '</div>';
+
+    drawAnnualChart();
+}
+
+function titleCase(s) {
+    return String(s).toLowerCase().replace(/\b[a-z]/g, function(c) { return c.toUpperCase(); });
+}
+
+function drawAnnualChart() {
+    var t = chartTheme();
+    var keys = derived.yearKeys;
+    var vals = keys.map(function(y) { return derived.years[y].total; });
+    var full = keys.map(function(y) { return derived.years[y].fullYear; });
+
+    var datasets = [{
+        label: 'Annual total', data: vals,
+        backgroundColor: keys.map(function(y, i) { return full[i] ? t.brand : t.inset; }),
+        borderColor: keys.map(function(y, i) { return full[i] ? t.brand : t.grid; }),
+        borderWidth: keys.map(function(y, i) { return full[i] ? 0 : 1; }),
+        borderRadius: 3, borderSkipped: false, maxBarThickness: 22
+    }];
+    if (derived.annualNormal) {
+        datasets.push({
+            type: 'line', label: 'Average', data: keys.map(function() { return derived.annualNormal; }),
+            borderColor: t.muted, borderWidth: 2, borderDash: [5, 4], pointRadius: 0, tension: 0
+        });
+    }
+
+    mountChart('annualChart', {
+        type: 'bar',
+        data: {labels: keys, datasets: datasets},
+        options: {
+            responsive: true, maintainAspectRatio: false, animation: {duration: 200},
+            interaction: {mode: 'index', intersect: false},
+            scales: axisOpts(t, 'mm / year'),
+            plugins: {
+                legend: {display: false},
+                tooltip: tooltipOpts(t,
+                    function(items) { return items[0].label + (full[items[0].dataIndex] ? '' : ' (part year)'); },
+                    function(item) {
+                        if (item.datasetIndex === 1) return 'Average ' + mmText(derived.annualNormal, 0) + ' mm';
+                        var i = item.dataIndex, rec = derived.years[keys[i]];
+                        var line = mmText(item.parsed.y, 0) + ' mm';
+                        if (!full[i]) line += ' from ' + rec.monthsPresent + ' month' + (rec.monthsPresent === 1 ? '' : 's');
+                        else if (derived.annualNormal) line += '  ·  ' + Math.round((item.parsed.y / derived.annualNormal) * 100) + '% of average';
+                        return line;
+                    })
             }
         }
     });
 }
 
-function renderChart() {
-    var html = '<div class="section"><h2><span class="material-icons">bar_chart</span>Rainfall chart</h2><div class="chart-tabs">'
-        + ['24h', '7 Days', '30 Days', 'Historical'].map(function(t) {
-            return '<button class="' + (chartTab === t ? 'active' : '') + '" onclick="setChartTab(\'' + t + '\')">' + t + '</button>';
-        }).join('')
-        + '</div><div class="chart-wrap" id="chartWrap"></div></div>';
-    var existing = document.getElementById('chartSection');
-    var wrapper = document.createElement('div');
-    wrapper.id = 'chartSection';
-    wrapper.innerHTML = html;
-    if (existing) existing.replaceWith(wrapper);
-    else {
-        var statsSection = document.querySelectorAll('.section')[0];
-        statsSection.insertAdjacentElement('afterend', wrapper);
+// Year × month grid, coloured by log-ratio to that calendar month's average.
+// Every month in the record is here — dense and scannable — which is what the
+// horizontal month scroller could never be.
+function buildHeatmap() {
+    var years = derived.yearKeys.slice().reverse();
+    var norms = derived.norms;
+
+    function bucket(v, mean) {
+        if (!mean || mean <= 0) return '';
+        // Log2 ratio — rainfall departures are multiplicative, and the arms
+        // must be symmetric so "half the average" reads as strongly as
+        // "double". Nothing inside a quarter of the average is shaded: for a
+        // UK monthly total that is ordinary variability, and shading it turns
+        // the whole grid into noise with no anomaly standing out.
+        var r = Math.log(Math.max(v, 0.1) / mean) / Math.LN2;
+        if (r >= 1.58) return 'w4';    // ×3 and above
+        if (r >= 1.00) return 'w3';    // ×2
+        if (r >= 0.58) return 'w2';    // ×1.5
+        if (r >= 0.32) return 'w1';    // ×1.25
+        if (r <= -1.58) return 'd4';   // a third of the average or less
+        if (r <= -1.00) return 'd3';   // half
+        if (r <= -0.58) return 'd2';   // two thirds
+        if (r <= -0.32) return 'd1';   // four fifths
+        return '';
     }
-    if (chartTab === '24h') renderChartCanvas(points24h());
-    else if (chartTab === '7 Days') renderChartCanvas(pointsDaily(7));
-    else if (chartTab === '30 Days') renderChartCanvas(pointsDaily(30));
-    else renderChartCanvas(pointsDaily(100000));
+
+    var head = '<tr><th class="yr">Year</th>'
+        + MONTH_ABBR.map(function(m) { return '<th>' + m + '</th>'; }).join('')
+        + '<th>Year</th></tr>';
+
+    var body = years.map(function(y) {
+        var rec = derived.years[y];
+        var cells = '';
+        for (var m = 1; m <= 12; m++) {
+            var v = rec.months[m];
+            if (v == null) { cells += '<td class="gap" title="' + MONTH_ABBR[m - 1] + ' ' + y + ' — no data">&middot;</td>'; continue; }
+            var mean = norms[pad2(m)] ? norms[pad2(m)].mean : null;
+            if (!rec.complete[m]) {
+                cells += '<td class="part" title="' + MONTH_ABBR[m - 1] + ' ' + y + ' — ' + mmText(v, 0)
+                    + ' mm, incomplete month, not compared with the average">' + mmText(v, 0) + '</td>';
+                continue;
+            }
+            var cls = bucket(v, mean);
+            var tip = MONTH_ABBR[m - 1] + ' ' + y + ' — ' + mmText(v, 1) + ' mm'
+                + (mean ? ', ' + Math.round((v / mean) * 100) + '% of the ' + mmText(mean, 0) + ' mm average' : ', no average published for this month');
+            cells += '<td class="' + cls + '" title="' + tip + '">' + mmText(v, 0) + '</td>';
+        }
+        var totTip = rec.fullYear ? mmText(rec.total, 0) + ' mm' : mmText(rec.total, 0) + ' mm from ' + rec.monthsPresent + ' months — part year';
+        cells += '<td class="tot" title="' + y + ' — ' + totTip + '">'
+            + (rec.fullYear ? mmText(rec.total, 0) : '<span style="color:var(--text-dark)">' + mmText(rec.total, 0) + '*</span>') + '</td>';
+        return '<tr><td class="yr">' + y + '</td>' + cells + '</tr>';
+    }).join('');
+
+    var normRow = '';
+    if (Object.keys(norms).length) {
+        normRow = '<tr class="norms"><td class="yr">Average</td>'
+            + MONTH_ABBR.map(function(m, i) {
+                  var n = norms[pad2(i + 1)];
+                  return '<td title="' + m + ' average ' + (n ? mmText(n.mean, 1) + ' mm from ' + n.years + ' years' : 'not published') + '">'
+                      + (n ? mmText(n.mean, 0) : '&middot;') + '</td>';
+              }).join('')
+            + '<td class="tot">' + (derived.annualNormal ? mmText(derived.annualNormal, 0) : '&middot;') + '</td></tr>';
+    }
+
+    var legend = '<div class="hm-legend"><span>Drier</span>'
+        + ['d4', 'd3', 'd2', 'd1'].map(function(c) { return '<span class="cell ' + c + '" style="background:var(--dv-' + c + ')"></span>'; }).join('')
+        + '<span class="cell" style="background:var(--dv-n)"></span>'
+        + ['w1', 'w2', 'w3', 'w4'].map(function(c) { return '<span class="cell" style="background:var(--dv-' + c + ')"></span>'; }).join('')
+        + '<span>Wetter</span>'
+        + '<span style="margin-left:0.6rem">Unshaded within a quarter of the average; steps at &times;1.25, &times;1.5, &times;2 and &times;3 either side</span></div>';
+
+    return '<div class="hm-scroll"><table class="hm"><thead>' + head + '</thead><tbody>' + body + normRow + '</tbody></table></div>' + legend;
 }
 
-function setChartTab(t) { chartTab = t; renderChart(); }
+function heatmapNote() {
+    var n = 'Each cell is that month’s total in mm, shaded only where it departs from the average for that calendar month by more than a quarter. '
+        + 'Grey italic cells are months missing more than a tenth of their days &mdash; shown, never judged against an average. '
+        + 'Dots are gaps in the record; a starred year total is a part year.';
+    if (Object.keys(derived.norms).length) {
+        n += ' Averages need at least five complete years for that calendar month, computed over '
+            + clim.recordStart.slice(0, 4) + '&ndash;' + clim.recordEnd.slice(0, 4) + '.';
+    } else {
+        n += ' Too few complete years in this record to publish monthly averages, so no cell is shaded.';
+    }
+    return n;
+}
+
+// ── Extremes ─────────────────────────────────────────────────────────────
+function fillExtremes(sum) {
+    var region = document.getElementById('extremesRegion');
+    var hint = document.getElementById('extremesHint');
+    var deep = mode !== 'none' && clim.records;
+    var r = deep ? clim.records : sum;
+
+    hint.innerHTML = deep
+        ? 'From the ' + clim.recordYears + ' year daily series, ' + clim.recordStart.slice(0, 4) + '&ndash;' + clim.recordEnd.slice(0, 4)
+        : 'From Flood Forecast’s rolling record only' + (sum.recordsSince ? ', since ' + prettyDate(sum.recordsSince) : '');
+
+    var rows = [
+        ['Wettest day', r.wettestDay ? mmText(r.wettestDay.mm, 1) + ' mm' : null, r.wettestDay ? prettyDate(r.wettestDay.date) : ''],
+        ['Wettest month', r.wettestMonth ? mmText(r.wettestMonth.mm, 0) + ' mm' : null, r.wettestMonth ? monthName(r.wettestMonth.month) : ''],
+        ['Driest month', r.driestMonth ? mmText(r.driestMonth.mm, 1) + ' mm' : null, r.driestMonth ? monthName(r.driestMonth.month) : ''],
+        ['Longest dry spell', r.longestDrySpell ? r.longestDrySpell.days + ' days' : null, r.longestDrySpell ? 'from ' + prettyDate(r.longestDrySpell.from) : '']
+    ];
+    if (deep && derived.wettestYear) {
+        rows.push(['Wettest year', mmText(derived.years[derived.wettestYear].total, 0) + ' mm', derived.wettestYear]);
+        rows.push(['Driest year', mmText(derived.years[derived.driestYear].total, 0) + ' mm', derived.driestYear]);
+    }
+
+    // Each half of .two-col must be a single element, or the grid lays out the
+    // heading and its table as two separate cells.
+    var left = '<div><div class="sub-h">Record extremes</div><table class="data"><tbody>'
+        + rows.map(function(x) {
+              return '<tr><td>' + x[0] + '</td><td class="num">' + (x[1] || '&ndash;') + '</td>'
+                  + '<td class="dim">' + x[2] + '</td></tr>';
+          }).join('')
+        + '</tbody></table></div>';
+
+    var right = '';
+    if (deep && derived.topMonths.length) {
+        var peak = derived.topMonths[0].mm;
+        right = '<div><div class="sub-h">Wettest months on record</div><table class="data"><tbody>'
+            + derived.topMonths.map(function(x, i) {
+                  var norm = derived.norms[x.month.slice(5, 7)];
+                  return '<tr><td>' + (i + 1) + '. ' + monthName(x.month) + '</td>'
+                      + '<td class="num">' + mmText(x.mm, 0) + '</td>'
+                      + '<td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:'
+                      + Math.round((x.mm / peak) * 100) + '%"></div></div></td>'
+                      + '<td class="dim">' + (norm ? Math.round((x.mm / norm.mean) * 100) + '% of avg' : '') + '</td></tr>';
+              }).join('')
+            + '</tbody></table></div>';
+    } else if (!deep) {
+        right = '<div><div class="sub-h">Why these are short-record figures</div>'
+            + '<div class="note">A rolling record of months cannot produce a meaningful wettest day or dry spell for a UK site. '
+            + 'These are the extremes we have observed since this gauge was added to the network, and they will keep moving as the record grows. '
+            + 'They are not climatological records.</div></div>';
+    }
+
+    var caption = '';
+    if (deep) {
+        caption = 'Daily figures are ' + (clim.dayWindow ? esc(clim.dayWindow) : '09:00–09:00 rain days')
+            + '. Monthly extremes use complete months only (' + clim.completeMonths + ' of ' + clim.totalMonths + ' months qualify), '
+            + 'so a half-missing month cannot take the driest-month record. '
+            + 'A dry spell is a run of consecutive days below 0.2 mm with no gap in the record.';
+        if (clim.source === 'sepa') {
+            caption += ' SEPA labels each daily total by the start of its 09:00 window, so a single-day date can differ '
+                + 'by one day from Met Office convention.';
+        }
+    }
+
+    region.innerHTML = '<div class="two-col">' + left + right + '</div>'
+        + (caption ? '<div class="note" style="margin-top:0.9rem">' + caption + '</div>' : '');
+}
+
+// ── Provenance ───────────────────────────────────────────────────────────
+function fillProvenance(s, sum) {
+    var rows = [];
+    rows.push(['Station name', esc(s.name)]);
+    rows.push(['Reference', '<span class="mono">' + esc(ref) + '</span>']);
+    rows.push(['Network', networkOf(s) + (s.source === 'nrw' ? ' (Natural Resources Wales)'
+        : s.source === 'sepa' ? ' (Scottish Environment Protection Agency)' : ' (Environment Agency)')]);
+    rows.push(['County', esc(s.county || 'Not assigned')]);
+    rows.push(['Position', '<span class="mono">' + s.lat.toFixed(5) + ', ' + s.lon.toFixed(5) + '</span>']);
+    rows.push(['Live telemetry', '15 minute tips, polled by Flood Forecast'
+        + (sum.recordsSince ? '; our own record starts ' + prettyDate(sum.recordsSince) : '')]);
+
+    var q = [];
+    if (mode !== 'none') {
+        q.push(['Historic series', clim.midasSrcId
+            ? 'Met Office MIDAS Open, station ' + esc(titleCase(clim.midasName || '')) + ' (' + esc(clim.midasSrcId) + ')'
+              + (clim.matchDistKm != null ? ', ' + clim.matchDistKm.toFixed(2) + ' km from this gauge' : '')
+            : clim.source === 'sepa' ? 'SEPA daily rainfall archive' : 'EA Hydrology daily rainfall measure']);
+        q.push(['Period of record', prettyDate(clim.recordStart) + ' to ' + prettyDate(clim.recordEnd)
+            + ' &middot; ' + clim.recordYears + ' years'
+            + (mode === 'historic' ? ' <span class="pill">Ends historically</span>' : '')]);
+        q.push(['Valid daily values', (clim.validDays != null ? clim.validDays.toLocaleString() : '&ndash;')
+            + ' days; ' + clim.completeMonths + ' of ' + clim.totalMonths + ' months complete; '
+            + derived.fullYears.length + ' complete calendar years']);
+        q.push(['Rain day', esc(clim.dayWindow || '09:00–09:00, the meteorological convention')
+            + ' &mdash; never summed with the 00–24 UTC rolling archive']);
+        if (clim.qualityGoodPct != null) {
+            q.push(['Quality flags', clim.qualityGoodPct + '% of daily values are flagged Good by the Environment Agency. '
+                + 'The remainder are estimated, unchecked or suspect and are still included in every total on this page'
+                + (clim.qualityGoodPct < 80 ? ' — read the records and anomalies with that in mind' : '') + '.']);
+        }
+        if (derived.annualNormal) {
+            // The national pool is built from current records, so a baseline
+            // that stops decades ago is not ranked against it.
+            var rank = mode === 'live' ? nationalRank(derived.annualNormal) : null;
+            q.push(['Annual average', mmText(derived.annualNormal, 0) + ' mm from ' + derived.fullYears.length + ' complete years'
+                + (rank ? ' &mdash; wetter than ' + rank.pct + '% of the ' + rank.n.toLocaleString()
+                    + ' UK gauges with a published record' : '')]);
+        }
+    } else {
+        q.push(['Historic series', 'None available. No EA or SEPA archive series for this reference and no MIDAS Open station matched within range.']);
+        q.push(['Consequence', 'No normals, anomalies or climatological records can be shown. '
+            + 'Every figure on this page comes from our own rolling record.']);
+    }
+
+    document.getElementById('provRegion').innerHTML = '<div class="two-col">'
+        + '<div><div class="sub-h">Station</div><dl class="dl">'
+        +   rows.map(function(r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl></div>'
+        + '<div><div class="sub-h">Record &amp; data quality</div><dl class="dl">'
+        +   q.map(function(r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl></div>'
+        + '</div>';
+}
+
+// Percentile of this gauge's annual average across every gauge with a
+// published record in all three network indexes.
+function nationalRank(value) {
+    var all = Object.keys(normalIndex)
+        .map(function(k) { return normalIndex[k] && normalIndex[k].annualNormal; })
+        .filter(function(v) { return typeof v === 'number' && v > 0; });
+    if (all.length < 50) return null;
+    var below = all.filter(function(v) { return v < value; }).length;
+    return {pct: Math.round((below / all.length) * 100), n: all.length};
+}
+
+// Re-theme charts and the basemap when the OS switches light/dark: every
+// colour is read live from the CSS custom properties, so a re-render is all
+// it takes.
+if (window.matchMedia) {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    var onScheme = function() {
+        if (!station) return;
+        renderRecent();
+        if (document.getElementById('yearRegion')) fillYear();
+        if (mode !== 'none' && document.getElementById('annualChart')) drawAnnualChart();
+        fillPlace(station);
+    };
+    if (mq.addEventListener) mq.addEventListener('change', onScheme);
+    else if (mq.addListener) mq.addListener(onScheme);
+}
 </script>
 </body>
 </html>
