@@ -323,10 +323,40 @@ table.hm td.d4 { background: var(--dv-d4); color: var(--dv-d4-ink); }
 .scale-labels { display: flex; gap: 0; font-size: 0.6rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .scale-labels span { width: 21px; text-align: center; }
 .scale-cap { font-size: 0.64rem; color: var(--text-muted); margin-bottom: 2px; }
-.gauge-popup-body { font-size: 0.78rem; line-height: 1.5; }
-.gauge-popup-body strong { font-size: 0.85rem; }
-.gauge-popup-body .pv { font-variant-numeric: tabular-nums; }
 @media (max-width: 560px) { .map-bar { padding-left: 0.75rem; padding-right: 0.75rem; } .scale-row .sc, .scale-labels span { width: 17px; } }
+
+/* ── Map popup: default Leaflet chrome re-themed to this page's own panel
+   language (surface colour, hairline border, layered shadow) instead of the
+   plain white box Leaflet ships — otherwise a light popup sits on the dark
+   basemap and the rest of the dark-mode page like a hole punched in it. */
+.leaflet-popup.gauge-popup .leaflet-popup-content-wrapper {
+  background: var(--bg-surface); color: var(--text-main);
+  border: 1px solid var(--border-color); border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(15,23,42,.06), 0 8px 24px -6px rgba(15,23,42,.18);
+  padding: 0;
+}
+.leaflet-popup.gauge-popup .leaflet-popup-content { margin: 0.75rem 0.95rem; width: auto !important; min-width: 11rem; }
+.leaflet-popup.gauge-popup .leaflet-popup-tip-container { width: 24px; height: 12px; }
+.leaflet-popup.gauge-popup .leaflet-popup-tip { background: var(--bg-surface); box-shadow: none; border: 1px solid var(--border-color); }
+.leaflet-popup.gauge-popup .leaflet-popup-close-button {
+  top: 7px !important; right: 7px !important; width: 20px !important; height: 20px !important;
+  color: var(--text-dark); font-size: 17px; font-weight: 400;
+}
+.leaflet-popup.gauge-popup .leaflet-popup-close-button:hover { color: var(--text-main); background: transparent; }
+
+.pop-name { font-family: var(--font-display); font-weight: 700; font-size: 0.92rem; padding-right: 0.9rem; }
+.pop-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
+.pop-sub .pill { padding: 0 6px; font-size: 0.62rem; }
+.pop-stats { display: flex; gap: 1.1rem; margin-top: 0.55rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); }
+.pop-stat .pv { font-family: var(--font-display); font-weight: 700; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.pop-stat .pv.nil { color: var(--text-dark); font-weight: 500; font-size: 0.82rem; }
+.pop-stat .pv .u { font-size: 0.66em; font-weight: 500; color: var(--text-muted); margin-left: 1px; }
+.pop-stat .pl { font-size: 0.68rem; color: var(--text-muted); margin-top: 1px; }
+.pop-link {
+  display: block; margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color);
+  font-size: 0.76rem; font-weight: 600; color: var(--brand-500); text-decoration: none;
+}
+.pop-link:hover { color: var(--brand-600); text-decoration: underline; }
 
 .nb-row {
   display: grid; grid-template-columns: minmax(0,1fr) 4.2rem 4.8rem; align-items: center; gap: 0.5rem;
@@ -396,7 +426,7 @@ footer {
 
 <footer>
   <div class="footer-container">
-    <p>Rainfall observations from the Environment Agency, Natural Resources Wales &amp; SEPA. Historic series from EA Hydrology and SEPA, measured at the gauge itself &mdash; never substituted from another station.</p>
+    <p>Rainfall observations from the Environment Agency, Natural Resources Wales &amp; SEPA. Historic series from EA Hydrology and SEPA, measured at the gauge itself, never substituted from another station.</p>
     <p><a href="table.html" class="footer-link">Gauge table</a> &middot; <a href="/rain" class="footer-link">Gauge map</a></p>
   </div>
 </footer>
@@ -442,6 +472,15 @@ var STALE_RECORD_DAYS = 730;
    5 December 2015. A published daily value above this is not a record, it is
    an artefact in the source series — say so rather than present it straight. */
 var UK_DAILY_RECORD_MM = 341.4;
+/* Longest verified UK run without measurable rain: around 73 days (Mile End,
+   London, spring 1893). A published dry spell or a driest calendar month of
+   0.0 mm well past that is a stuck or blocked gauge reading zero day after
+   day, not a fact about the weather, so it is flagged the same way as an
+   implausible wettest day rather than presented straight. 90 days gives
+   genuine dry spells room without missing the multi-hundred-day cases seen
+   in EA's own published series. */
+var UK_DRY_SPELL_RECORD_DAYS = 90;
+var ZERO_MONTH_MM = 0.5;
 // Split rather than one bar scale for all nine: a bar chart sized to a 14 day
 // total makes the 1 hour row a sliver regardless of how heavy that hour was.
 // Two scopes, each scaled to its own peak, keep both ends legible.
@@ -947,7 +986,7 @@ function fillNow(sum) {
     var monthCovered = held >= elapsed - 1;
     if (sum.monthTotal != null) {
         context.push(held === 0
-            ? {v: 'No data', l: MONTH_ABBR[now.getUTCMonth()] + ' to date — no days held', cls: 'nil'}
+            ? {v: 'No data', l: MONTH_ABBR[now.getUTCMonth()] + ' to date, no days held', cls: 'nil'}
             : {v: mmText(sum.monthTotal, 1) + ' mm',
                l: MONTH_ABBR[now.getUTCMonth()] + ' to date'
                    + (monthTruncated ? ' (from ' + prettyDate(sum.recordsSince) + ')'
@@ -1077,7 +1116,7 @@ function drawMap(s) {
                 iconSize: [22, 22], iconAnchor: [11, 11]}),
             zIndexOffset: id === ref ? 1000 : 0
         });
-        m.bindPopup('', {className: 'gauge-popup', maxWidth: 240});
+        m.bindPopup('', {className: 'gauge-popup', maxWidth: 260});
         m.on('click', function() { m.setPopupContent(popupFor(id)); });
         mapMarkers[id] = m;
         layer.addLayer(m);
@@ -1101,7 +1140,7 @@ function refreshMapMarkers() {
         div.style.background = st.bg;
         div.style.color = st.fg;
         div.textContent = st.label;
-        el.title = stations[id].name + ' — ' + (wv.hasData ? mmText(wv.v, 1) + ' mm in ' + mapWindow
+        el.title = stations[id].name + ', ' + (wv.hasData ? mmText(wv.v, 1) + ' mm in ' + mapWindow
             : 'no readings in ' + mapWindow);
     });
     var nb = document.getElementById('nbCol');
@@ -1113,12 +1152,16 @@ function popupFor(id) {
     var o = stations[id], wv = windowValue(id, mapWindow);
     var norm = normalIndex[id] && normalIndex[id].annualNormal;
     var dist = station ? haversineKm(station.lat, station.lon, o.lat, o.lon) : 0;
-    return '<div class="gauge-popup-body"><strong>' + esc(o.name) + '</strong><br>'
-        + networkOf(o) + (id === ref ? ' &middot; this gauge' : ' &middot; ' + dist.toFixed(1) + ' km away') + '<br>'
-        + '<span class="pv">' + (wv.hasData ? mmText(wv.v, 1) + ' mm in ' + mapWindow : 'No readings in ' + mapWindow) + '</span>'
-        + (norm ? '<br><span class="pv">' + Math.round(norm) + ' mm</span> annual average' : '')
-        + (id === ref ? '' : '<br><a href="gauge.html?ref=' + encodeURIComponent(id) + '">Open this gauge</a>')
-        + '</div>';
+    var stats = [{v: wv.hasData ? mmText(wv.v, 1) : null, l: mapWindow, nil: !wv.hasData}];
+    if (norm) stats.push({v: mmText(norm, 0), l: 'annual avg'});
+    return '<div class="pop-name">' + esc(o.name) + '</div>'
+        + '<div class="pop-sub">' + networkOf(o)
+            + (id === ref ? ' <span class="pill">This gauge</span>' : ' &middot; ' + dist.toFixed(1) + ' km away') + '</div>'
+        + '<div class="pop-stats">' + stats.map(function(s) {
+              return '<div class="pop-stat"><div class="pv' + (s.nil ? ' nil' : '') + '">'
+                  + (s.nil ? 'No data' : s.v + '<span class="u">mm</span>') + '</div><div class="pl">' + s.l + '</div></div>';
+          }).join('') + '</div>'
+        + (id === ref ? '' : '<a class="pop-link" href="gauge.html?ref=' + encodeURIComponent(id) + '">Open this gauge &rarr;</a>');
 }
 
 var neighbourCache = null;
@@ -1466,7 +1509,7 @@ function fillYear() {
     }
 
     if (!e) {
-        region.innerHTML = rail + '<div class="note">Fewer than five complete years of record &mdash; not enough to draw a '
+        region.innerHTML = rail + '<div class="note">Fewer than five complete years of record, not enough to draw a '
             + 'normal range for the year to date.</div>';
         return;
     }
@@ -1482,7 +1525,7 @@ function fillYear() {
         + '</div>'
         + '<div class="note" style="margin-top:0.55rem">Rainfall accumulated from 1 January and plotted at each month end, against '
         + 'the P10&ndash;P90 spread of the cumulative total across ' + e.nYears + ' complete years of record. The dashed line is '
-        + 'the mean, the same figure as the &ldquo;average full year&rdquo; total above &mdash; not the middle of the band, which '
+        + 'the mean, the same figure as the &ldquo;average full year&rdquo; total above, not the middle of the band, which '
         + 'sits well below it. Rainfall years are right-skewed (a floor near zero, a long tail from the occasional very wet one), '
         + 'so the typical year runs below the mean and the mean itself sits closer to the wet edge of the band than the dry one; '
         + 'that skew is a real property of the record, not a plotting error.'
@@ -1567,20 +1610,30 @@ function fillExtremes(sum) {
     // The bad day inflates whatever month it sits in, so the mark follows it
     // into every figure built on that month, not just the day's own row.
     var badMonth = daySuspect ? r.wettestDay.date.slice(0, 7) : null;
-    var mark = ' <span class="suspect" title="Inflated by an implausible daily value — see the note above">?</span>';
+    var mark = ' <span class="suspect" title="Inflated by an implausible daily value, see the note above">?</span>';
+    // Same failure mode at the dry end: a full calendar month at exactly zero,
+    // or a dry spell past the UK's own verified record, is a stuck gauge, not
+    // weather. Both point at the same underlying artifact, so one mark and
+    // one explanation covers either.
+    var driestMonthSuspect = r.driestMonth && r.driestMonth.mm < ZERO_MONTH_MM;
+    var spellSuspect = r.longestDrySpell && r.longestDrySpell.days > UK_DRY_SPELL_RECORD_DAYS;
+    var dryBadMonth = driestMonthSuspect ? r.driestMonth.month : null;
+    var dryMark = ' <span class="suspect" title="A stuck or blocked gauge, not a real dry spell, see the note above">?</span>';
     var rows = [
         ['Wettest day', r.wettestDay ? mmText(r.wettestDay.mm, 1) + ' mm' + (daySuspect ? mark : '') : null,
             r.wettestDay ? prettyDate(r.wettestDay.date) : ''],
         ['Wettest month', r.wettestMonth ? mmText(r.wettestMonth.mm, 0) + ' mm'
             + (badMonth && r.wettestMonth.month === badMonth ? mark : '') : null,
             r.wettestMonth ? monthName(r.wettestMonth.month) : ''],
-        ['Driest month', r.driestMonth ? mmText(r.driestMonth.mm, 1) + ' mm' : null, r.driestMonth ? monthName(r.driestMonth.month) : ''],
-        ['Longest dry spell', r.longestDrySpell ? r.longestDrySpell.days + ' days' : null,
+        ['Driest month', r.driestMonth ? mmText(r.driestMonth.mm, 1) + ' mm' + (driestMonthSuspect ? dryMark : '') : null,
+            r.driestMonth ? monthName(r.driestMonth.month) : ''],
+        ['Longest dry spell', r.longestDrySpell ? r.longestDrySpell.days + ' days' + (spellSuspect ? dryMark : '') : null,
             r.longestDrySpell ? 'from ' + prettyDate(r.longestDrySpell.from) : '']
     ];
     if (deep && derived.wettestYear) {
         rows.push(['Wettest year', mmText(derived.years[derived.wettestYear].total, 0) + ' mm', derived.wettestYear]);
-        rows.push(['Driest year', mmText(derived.years[derived.driestYear].total, 0) + ' mm', derived.driestYear]);
+        rows.push(['Driest year', mmText(derived.years[derived.driestYear].total, 0) + ' mm'
+            + (dryBadMonth && dryBadMonth.slice(0, 4) === derived.driestYear ? dryMark : ''), derived.driestYear]);
     }
 
     var left = '<div><div class="sub-h">Record extremes</div><table class="data"><tbody>'
@@ -1615,8 +1668,18 @@ function fillExtremes(sum) {
         caption += '<div class="callout warn" style="margin-bottom:0.8rem"><strong>The wettest-day value is not credible.</strong> '
             + mmText(r.wettestDay.mm, 1) + ' mm in a day exceeds the highest daily rainfall ever recorded anywhere in the UK ('
             + UK_DAILY_RECORD_MM + ' mm at Honister Pass, 5 December 2015), so it is an artefact in the published series rather '
-            + 'than a measurement &mdash; most likely a stuck or reset tipping-bucket count. It is shown as published rather than '
+            + 'than a measurement, most likely a stuck or reset tipping-bucket count. It is shown as published rather than '
             + 'quietly dropped, and it inflates the month and the year it sits in too.</div>';
+    }
+    if (driestMonthSuspect || spellSuspect) {
+        var bits = [];
+        if (driestMonthSuspect) bits.push(monthName(r.driestMonth.month) + ' at exactly ' + mmText(r.driestMonth.mm, 1) + ' mm');
+        if (spellSuspect) bits.push(r.longestDrySpell.days + ' consecutive days from ' + prettyDate(r.longestDrySpell.from));
+        caption += '<div class="callout warn" style="margin-bottom:0.8rem"><strong>The dry extremes below are not credible.</strong> '
+            + bits.join(', and ') + (bits.length > 1 ? ' both go' : ' goes') + ' well past the longest run without measurable rain '
+            + 'ever verified in the UK (around 73 days, Mile End, spring 1893), so this reads as a gauge stuck or blocked at zero '
+            + 'for an extended stretch, not a real drought. It is shown as published rather than quietly dropped, and it drags '
+            + 'down whichever year it falls in too.</div>';
     }
     if (deep) {
         caption += '<div class="note" style="margin-bottom:0.8rem">Daily figures are '
@@ -1673,7 +1736,7 @@ function fillLongRecord(sum) {
     if (mode === 'historic') {
         banners += '<div class="callout warn"><strong>This record ends ' + prettyDate(clim.recordEnd) + '.</strong> It is shown '
             + 'on its own terms, as a historical baseline for the site. Today’s telemetry is not compared against it, because the '
-            + 'two do not overlap &mdash; no year-to-date position, no percentage of normal.</div>';
+            + 'two do not overlap: no year-to-date position, no percentage of normal.</div>';
     }
 
     region.innerHTML = banners
@@ -1801,21 +1864,21 @@ function buildHeatmap() {
         var cells = '';
         for (var m = 1; m <= 12; m++) {
             var v = rec.months[m];
-            if (v == null) { cells += '<td class="gap" title="' + MONTH_ABBR[m - 1] + ' ' + y + ' — no data">&middot;</td>'; continue; }
+            if (v == null) { cells += '<td class="gap" title="' + MONTH_ABBR[m - 1] + ' ' + y + ', no data">&middot;</td>'; continue; }
             var mean = norms[pad2(m)] ? norms[pad2(m)].mean : null;
             if (!rec.complete[m]) {
-                cells += '<td class="part" title="' + MONTH_ABBR[m - 1] + ' ' + y + ' — ' + mmText(v, 0)
+                cells += '<td class="part" title="' + MONTH_ABBR[m - 1] + ' ' + y + ', ' + mmText(v, 0)
                     + ' mm, incomplete month, not compared with the average">' + mmText(v, 0) + '</td>';
                 continue;
             }
-            var tip = MONTH_ABBR[m - 1] + ' ' + y + ' — ' + mmText(v, 1) + ' mm'
+            var tip = MONTH_ABBR[m - 1] + ' ' + y + ', ' + mmText(v, 1) + ' mm'
                 + (mean ? ', ' + Math.round((v / mean) * 100) + '% of the ' + mmText(mean, 0) + ' mm average'
                         : ', no average published for this month');
             cells += '<td class="' + bucket(v, mean) + '" title="' + tip + '">' + mmText(v, 0) + '</td>';
         }
         var totTip = rec.fullYear ? mmText(rec.total, 0) + ' mm'
-            : mmText(rec.total, 0) + ' mm from ' + rec.monthsPresent + ' months — part year';
-        cells += '<td class="tot" title="' + y + ' — ' + totTip + '">'
+            : mmText(rec.total, 0) + ' mm from ' + rec.monthsPresent + ' months, part year';
+        cells += '<td class="tot" title="' + y + ', ' + totTip + '">'
             + (rec.fullYear ? mmText(rec.total, 0) : '<span style="color:var(--text-dark)">' + mmText(rec.total, 0) + '*</span>')
             + '</td>';
         return '<tr><td class="yr">' + y + '</td>' + cells + '</tr>';
@@ -1846,8 +1909,8 @@ function buildHeatmap() {
 
 function heatmapNote() {
     var n = 'Each cell is that month’s total in mm, shaded only where it departs from the average for that calendar month by more '
-        + 'than a quarter. Grey italic cells are months missing more than a tenth of their days &mdash; shown, never judged '
-        + 'against an average. Dots are gaps in the record; a starred total is a part year.';
+        + 'than a quarter. Grey italic cells are months missing more than a tenth of their days (shown, never judged '
+        + 'against an average). Dots are gaps in the record; a starred total is a part year.';
     if (Object.keys(derived.norms).length) {
         n += ' Averages need at least five complete years for that calendar month, computed over '
             + clim.recordStart.slice(0, 4) + '&ndash;' + clim.recordEnd.slice(0, 4) + '.';
@@ -1881,11 +1944,11 @@ function fillProvenance(s, sum) {
             + ' days; ' + clim.completeMonths + ' of ' + clim.totalMonths + ' months complete; '
             + derived.fullYears.length + ' complete calendar years']);
         q.push(['Rain day', esc(clim.dayWindow || '09:00–09:00, the meteorological convention')
-            + ' &mdash; never summed with the 00–24 UTC rolling archive']);
+            + ', never summed with the 00–24 UTC rolling archive']);
         if (clim.qualityGoodPct != null) {
             q.push(['Quality flags', clim.qualityGoodPct + '% of daily values are flagged Good by the Environment Agency. The '
                 + 'remainder are estimated, unchecked or suspect and are still included in every total on this page'
-                + (clim.qualityGoodPct < 80 ? ' — read the records and anomalies with that in mind' : '') + '.']);
+                + (clim.qualityGoodPct < 80 ? ', so read the records and anomalies with that in mind' : '') + '.']);
         }
         if (derived.annualNormal) {
             // Ranked on the index's own annual normal rather than the average
@@ -1895,7 +1958,7 @@ function fillProvenance(s, sum) {
             var mineIdx = normalIndex[ref] && normalIndex[ref].annualNormal;
             var rank = mode === 'live' && mineIdx ? nationalRank(mineIdx) : null;
             q.push(['Annual average', mmText(derived.annualNormal, 0) + ' mm from ' + derived.fullYears.length
-                + ' complete years' + (rank ? ' &mdash; wetter than ' + rank.pct + '% of the ' + rank.n.toLocaleString()
+                + ' complete years' + (rank ? ', wetter than ' + rank.pct + '% of the ' + rank.n.toLocaleString()
                     + ' UK gauges with a current published record' : '')]);
         }
     } else if (proxyRejected) {
@@ -1903,7 +1966,7 @@ function fillProvenance(s, sum) {
         q.push(['Nearest long record', 'Met Office MIDAS Open station ' + esc(titleCase(proxyRejected.name)) + ' ('
             + esc(proxyRejected.srcId) + ')'
             + (proxyRejected.distKm != null ? ', ' + proxyRejected.distKm.toFixed(2) + ' km away' : '')
-            + ' &mdash; a different site, deliberately not used for any figure here']);
+            + ', a different site, deliberately not used for any figure here']);
         q.push(['Consequence', 'No averages, anomalies or climatological records are shown, because none have been measured at '
             + 'this gauge. Every figure on this page comes from our own rolling record.']);
     } else {
