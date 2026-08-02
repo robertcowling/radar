@@ -268,7 +268,7 @@ table.hm td.d4 { background: var(--dv-d4); color: var(--dv-d4-ink); }
 /* Marker rules copied verbatim from rain/index.html (.rg-wrap / .rg-icon /
    .rg-nodata / .rg-dry) — same sizes, same flex-centering, same transform
    hint — so a gauge reads as the identical marker on both pages. Only the
-   additions below (rg-self, dark-mode dry, zoomed-out) are new to this page. */
+   additions below (rg-self, dark-mode dry) are new to this page. */
 .rg-wrap {
   display: flex; align-items: center; justify-content: center;
   width: 20px; height: 20px;
@@ -307,13 +307,9 @@ table.hm td.d4 { background: var(--dv-d4); color: var(--dv-d4-ink); }
   .rg-icon.rg-dry { background: #2b3648; color: #94a3b8; border-color: rgba(148,163,184,0.35); }
 }
 /* This page's own addition: the gauge whose page this is, ringed so it's
-   findable among its neighbours. */
+   findable among its neighbours. Numbers stay visible at every zoom level,
+   same as /rain's own map, rather than shrinking to unlabelled dots. */
 .rg-icon.rg-self { box-shadow: 0 0 0 3px var(--brand-500), 0 0 0 4.5px rgba(255,255,255,0.85); }
-/* This page's own addition: below zoom 9 the value labels collide, so markers
-   drop to plain dots, scaled from the same 20px/7px base above. */
-.leaflet-container.zoomed-out .rg-icon { width: 10px; height: 10px; font-size: 0; border-width: 1px; }
-.leaflet-container.zoomed-out .rg-icon.rg-nodata { width: 5px; height: 5px; }
-.leaflet-container.zoomed-out .rg-icon.rg-self { box-shadow: 0 0 0 2.5px var(--brand-500), 0 0 0 4px rgba(255,255,255,0.85); }
 .map-bar {
   display: flex; align-items: flex-end; justify-content: space-between; gap: 0.6rem 1rem; flex-wrap: wrap;
   padding: 0.55rem 1.05rem; border-bottom: 1px solid var(--border-color);
@@ -344,7 +340,14 @@ table.hm td.d4 { background: var(--dv-d4); color: var(--dv-d4-ink); }
 }
 .leaflet-popup.gauge-popup .leaflet-popup-close-button:hover { color: var(--text-main); background: transparent; }
 
-.pop-name { font-family: var(--font-display); font-weight: 700; font-size: 0.92rem; padding-right: 0.9rem; }
+.pop-name {
+  display: block; font-family: var(--font-display); font-weight: 700; font-size: 0.92rem;
+  padding-right: 0.9rem; color: var(--text-main); text-decoration: none;
+}
+/* Only a neighbouring gauge's name is a link (this gauge's own popup has
+   nowhere useful to go) — underline on hover is the only tell it's clickable,
+   so it doesn't read as a link when it isn't one. */
+.pop-name-link:hover { color: var(--brand-500); text-decoration: underline; }
 .pop-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
 .pop-sub .pill { padding: 0 6px; font-size: 0.62rem; }
 .pop-stats { display: flex; gap: 1.1rem; margin-top: 0.55rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); }
@@ -352,11 +355,6 @@ table.hm td.d4 { background: var(--dv-d4); color: var(--dv-d4-ink); }
 .pop-stat .pv.nil { color: var(--text-dark); font-weight: 500; font-size: 0.82rem; }
 .pop-stat .pv .u { font-size: 0.66em; font-weight: 500; color: var(--text-muted); margin-left: 1px; }
 .pop-stat .pl { font-size: 0.68rem; color: var(--text-muted); margin-top: 1px; }
-.pop-link {
-  display: block; margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color);
-  font-size: 0.76rem; font-weight: 600; color: var(--brand-500); text-decoration: none;
-}
-.pop-link:hover { color: var(--brand-600); text-decoration: underline; }
 
 .nb-row {
   display: grid; grid-template-columns: minmax(0,1fr) 4.2rem 4.8rem; align-items: center; gap: 0.5rem;
@@ -687,6 +685,15 @@ function windowHasData(hours) {
     return newestSlotAgeH != null && newestSlotAgeH < hours;
 }
 
+// SEPA only reports hourly, one value on the hour (fetch_rain.py's
+// fetch_sepa_data stores that hour's total directly, not a 15-minute
+// fraction of it). Treating the three empty quarter-slots between each hour
+// as "no reading received" would draw a gap tick three times an hour, every
+// hour, forever, and multiplying an hourly total by 4 to fake a "mm/h rate"
+// quadruples it. Both need a different code path from EA/NRW's genuine
+// 15-minute telemetry.
+function isSepaGauge() { return ref.indexOf('sepa_') === 0; }
+
 function latestReading() {
     var now = new Date();
     for (var back = 0; back < 12; back++) {
@@ -910,11 +917,16 @@ function fillHead(s, sum) {
     }
 
     var haveSlots = Object.keys(rawByDate).length > 0;
+    var sepa = isSepaGauge();
     var latest = latestReading();
     var figures = [latest
-        ? {v: mmText(latest.mm * 4, 1) + '<span class="u">mm/h</span>', nil: latest.mm === 0,
-           l: 'Rate at ' + pad2(latest.t.getUTCHours()) + ':' + pad2(latest.t.getUTCMinutes()) + ' UTC'}
-        : {v: haveSlots ? 'No data' : '&ndash;', nil: true, absent: haveSlots, l: 'Latest 15 minute rate'}];
+        ? (sepa
+            ? {v: mmText(latest.mm, 1) + '<span class="u">mm</span>', nil: latest.mm === 0,
+               l: pad2(latest.t.getUTCHours()) + ':00 UTC hour'}
+            : {v: mmText(latest.mm * 4, 1) + '<span class="u">mm/h</span>', nil: latest.mm === 0,
+               l: 'Rate at ' + pad2(latest.t.getUTCHours()) + ':' + pad2(latest.t.getUTCMinutes()) + ' UTC'})
+        : {v: haveSlots ? 'No data' : '&ndash;', nil: true, absent: haveSlots,
+           l: sepa ? 'Latest hourly total' : 'Latest 15 minute rate'}];
     [['last1h', '1 hour', 1], ['last24h', '24 hours', 24], ['last7d', '7 days', 168]].forEach(function(d) {
         figures.push(windowHasData(d[2])
             ? {v: mmText(sum[d[0]]) + '<span class="u">mm</span>', nil: !sum[d[0]], l: d[1]}
@@ -1094,10 +1106,27 @@ function windowValue(id, win) {
 }
 
 var mapInstance = null, mapMarkers = {};
+// Default zoom for a gauge with no saved preference: wide enough to place
+// the gauge in its surroundings, not a tight crop on one pin.
+var DEFAULT_MAP_ZOOM = 9;
+var MAP_ZOOM_KEY = 'gaugeMapZoom';
+
+function savedMapZoom() {
+    try {
+        var v = localStorage.getItem(MAP_ZOOM_KEY);
+        return v == null ? null : +v;
+    } catch (e) { return null; }
+}
+
 function drawMap(s) {
     var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     if (mapInstance) { mapInstance.remove(); mapInstance = null; mapMarkers = {}; }
-    var map = L.map('gaugeMap', {scrollWheelZoom: false}).setView([s.lat, s.lon], 10);
+    // The centre always follows the gauge whose page this is; the zoom level
+    // is the one thing that carries over from gauge to gauge, so zooming out
+    // to see a wider area once doesn't reset itself on the very next click.
+    var startZoom = savedMapZoom();
+    if (startZoom == null || isNaN(startZoom)) startZoom = DEFAULT_MAP_ZOOM;
+    var map = L.map('gaugeMap', {scrollWheelZoom: false, touchZoom: true}).setView([s.lat, s.lon], startZoom);
     mapInstance = map;
     // CARTO Voyager / Dark Matter — the basemaps the radar viewer and the
     // /rain gauge map already use (index.html:1075, rain/index.html:566).
@@ -1113,7 +1142,7 @@ function drawMap(s) {
         if (!o || o.lat == null || o.lon == null) return;
         var m = L.marker([o.lat, o.lon], {
             icon: L.divIcon({className: '', html: '<div class="rg-wrap"><div class="rg-icon rg-nodata"></div></div>',
-                iconSize: [22, 22], iconAnchor: [11, 11]}),
+                iconSize: [20, 20], iconAnchor: [10, 10]}),
             zIndexOffset: id === ref ? 1000 : 0
         });
         m.bindPopup('', {className: 'gauge-popup', maxWidth: 260});
@@ -1122,9 +1151,9 @@ function drawMap(s) {
         layer.addLayer(m);
     });
 
-    var applyZoomClass = function() { map.getContainer().classList.toggle('zoomed-out', map.getZoom() < 9); };
-    map.on('zoomend', applyZoomClass);
-    applyZoomClass();
+    map.on('zoomend', function() {
+        try { localStorage.setItem(MAP_ZOOM_KEY, map.getZoom()); } catch (e) {}
+    });
     refreshMapMarkers();
 }
 
@@ -1154,14 +1183,16 @@ function popupFor(id) {
     var dist = station ? haversineKm(station.lat, station.lon, o.lat, o.lon) : 0;
     var stats = [{v: wv.hasData ? mmText(wv.v, 1) : null, l: mapWindow, nil: !wv.hasData}];
     if (norm) stats.push({v: mmText(norm, 0), l: 'annual avg'});
-    return '<div class="pop-name">' + esc(o.name) + '</div>'
+    var name = id === ref
+        ? '<div class="pop-name">' + esc(o.name) + '</div>'
+        : '<a class="pop-name pop-name-link" href="gauge.html?ref=' + encodeURIComponent(id) + '">' + esc(o.name) + '</a>';
+    return name
         + '<div class="pop-sub">' + networkOf(o)
             + (id === ref ? ' <span class="pill">This gauge</span>' : ' &middot; ' + dist.toFixed(1) + ' km away') + '</div>'
         + '<div class="pop-stats">' + stats.map(function(s) {
               return '<div class="pop-stat"><div class="pv' + (s.nil ? ' nil' : '') + '">'
                   + (s.nil ? 'No data' : s.v + '<span class="u">mm</span>') + '</div><div class="pl">' + s.l + '</div></div>';
-          }).join('') + '</div>'
-        + (id === ref ? '' : '<a class="pop-link" href="gauge.html?ref=' + encodeURIComponent(id) + '">Open this gauge &rarr;</a>');
+          }).join('') + '</div>';
 }
 
 var neighbourCache = null;
@@ -1333,6 +1364,24 @@ function barChart(id, points, opts) {
 // ── Recent rainfall ──────────────────────────────────────────────────────
 function points15min(hours) {
     var out = [];
+    // SEPA has one real value an hour; sampling on the hour rather than every
+    // quarter avoids drawing the three slots between each report as gaps.
+    if (isSepaGauge()) {
+        var endH = new Date(Math.floor(Date.now() / 3600000) * 3600000);
+        for (var backH = hours - 1; backH >= 0; backH--) {
+            var th = new Date(endH - backH * 3600000);
+            var hh = th.getUTCHours();
+            var midnightH = hh === 0;
+            out.push({
+                v: slotValue(th),
+                boundary: midnightH,
+                tick: midnightH ? DAY_ABBR[th.getUTCDay()] : (hh % 6 === 0 ? pad2(hh) : ''),
+                label: DAY_ABBR[th.getUTCDay()] + ' ' + th.getUTCDate() + ' ' + MONTH_ABBR[th.getUTCMonth()]
+                    + ', ' + pad2(hh) + ':00 UTC'
+            });
+        }
+        return out;
+    }
     // Anchored to the last completed 15-minute slot, so the final bar is never
     // a partly elapsed interval.
     var end = new Date(Math.floor(Date.now() / 900000) * 900000);
@@ -1424,16 +1473,23 @@ function renderRecent() {
 
     if (HOUR_TABS[recentTab]) {
         var hrs = HOUR_TABS[recentTab];
+        var sepaRecent = isSepaGauge();
         points = points15min(hrs);
-        opts = {yTitle: 'mm per 15 min', barMax: hrs <= 24 ? 14 : hrs <= 48 ? 8 : 5};
+        opts = sepaRecent
+            ? {yTitle: 'mm per hour', barMax: hrs <= 24 ? 30 : hrs <= 48 ? 18 : 10}
+            : {yTitle: 'mm per 15 min', barMax: hrs <= 24 ? 14 : hrs <= 48 ? 8 : 5};
         var got = points.filter(function(p) { return p.v != null; });
         var total = got.reduce(function(a, p) { return a + p.v; }, 0);
         var peak = got.reduce(function(a, p) { return Math.max(a, p.v); }, 0);
-        note = got.length
-            ? '15 minute telemetry in UTC, ' + got.length + ' of ' + points.length + ' slots received. ' + hrs + ' hour total '
-              + mmText(total, 1) + ' mm; peak 15 minutes ' + mmText(peak, 1) + ' mm (' + mmText(peak * 4, 1)
-              + ' mm/h). Rules mark midnight, day names sit on it.'
-            : 'No 15 minute readings received from this gauge in the last ' + hrs + ' hours.';
+        note = !got.length
+            ? 'No readings received from this gauge in the last ' + hrs + ' hours.'
+            : sepaRecent
+                ? 'SEPA reports hourly, not every 15 minutes, so each bar is one hour. ' + got.length + ' of ' + points.length
+                  + ' hours received. ' + hrs + ' hour total ' + mmText(total, 1) + ' mm; peak hour ' + mmText(peak, 1)
+                  + ' mm. Rules mark midnight, day names sit on it.'
+                : '15 minute telemetry in UTC, ' + got.length + ' of ' + points.length + ' slots received. ' + hrs + ' hour total '
+                  + mmText(total, 1) + ' mm; peak 15 minutes ' + mmText(peak, 1) + ' mm (' + mmText(peak * 4, 1)
+                  + ' mm/h). Rules mark midnight, day names sit on it.';
     } else if (recentTab === '24 months') {
         points = pointsMonthly(24);
         opts = {yTitle: 'mm per month', colourByNorm: mode !== 'none', tol: 0.25, normLine: true, barMax: 30};
