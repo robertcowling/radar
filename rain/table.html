@@ -34,6 +34,8 @@
   --brand-700: #1f555f;
   --brand-focus-ring: rgba(47, 134, 150, 0.15);
   --brand-active-tint: rgba(47, 134, 150, 0.08);
+  --sort-active-border: #94a3b8;
+  --sort-active-tint: rgba(100, 116, 139, 0.10);
   --heavy-bg: #fff3e0;
   --heavy-text: #b06000;
   --heavy-border: #ef6c00;
@@ -56,6 +58,8 @@
     --brand-500: #44BBC8;
     --brand-focus-ring: rgba(68, 187, 200, 0.18);
     --brand-active-tint: rgba(68, 187, 200, 0.1);
+    --sort-active-border: #64748b;
+    --sort-active-tint: rgba(148, 163, 184, 0.12);
     --heavy-bg: rgba(245, 158, 11, 0.16);
     --heavy-text: #fbbf24;
     --heavy-border: #f59e0b;
@@ -395,19 +399,6 @@ nav {
 }
 .search-feature-input.filter-active { border-color: var(--brand-500) !important; }
 
-.clear-filters-btn {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 20px;
-  padding: 0.4rem 0.9rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.clear-filters-btn:hover { background: rgba(239, 68, 68, 0.2); }
-
 .results-count { font-size: 0.8rem; color: var(--text-muted); align-self: center; margin-left: auto; }
 
 /* Threshold Modal & Info */
@@ -446,7 +437,7 @@ nav {
   background: var(--bg-base);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  padding: 0.35rem 0.85rem;
+  padding: 0.35rem 0.6rem;
   font-family: var(--font-family);
   font-size: 0.82rem;
   font-weight: 700;
@@ -455,7 +446,10 @@ nav {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
 }
+#orgTriggerLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .org-dropdown-trigger:hover {
   border-color: var(--brand-500);
 }
@@ -585,7 +579,7 @@ table {
    than a plain number column would. Widths are on <th> only: table-layout
    fixed derives the whole column's width from its header cell. */
 .col-gauge { width: 22%; min-width: 170px; }
-.col-org { width: 9%; }
+.col-org { width: 10%; }
 .col-thresh { width: 11%; }
 .col-dur { width: 7.6%; }
 .col-month { width: 15%; }
@@ -613,24 +607,43 @@ thead th.num-col { text-align: center; }
 /* Strong, persistent marker for whichever duration column is driving the
    current sort — not just the bold cell values, which was too subtle to
    notice which column filtering/sorting actually applied to. Runs the full
-   height of the table as a "lane": tinted, bold header, brand-colored side
-   borders on every cell in that column. */
+   height of the table as a "lane": tinted, bold header, grey side borders
+   on every cell in that column. Deliberately neutral grey rather than the
+   brand teal — reserving the brand color for actual rain-intensity/brand
+   accents so it doesn't compete with them. */
 thead th.th-sort-active {
-  color: var(--brand-500);
+  color: var(--text-main);
   font-weight: 800;
-  background: var(--brand-active-tint);
-  border-left: 2px solid var(--brand-500) !important;
-  border-right: 2px solid var(--brand-500) !important;
+  background: var(--sort-active-tint);
+  border-left: 2px solid var(--sort-active-border) !important;
+  border-right: 2px solid var(--sort-active-border) !important;
 }
-thead th.th-sort-active .sort-arrow { opacity: 1; color: var(--brand-500); }
+thead th.th-sort-active .sort-arrow { opacity: 1; color: var(--text-main); }
 tbody td.td-sort-active {
-  background: var(--brand-active-tint);
-  border-left: 2px solid var(--brand-500);
-  border-right: 2px solid var(--brand-500);
+  background: var(--sort-active-tint);
+  border-left: 2px solid var(--sort-active-border);
+  border-right: 2px solid var(--sort-active-border);
 }
 
 thead th:first-child, tbody td:first-child {
   padding-left: 1.25rem;
+}
+
+.gauge-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+/* countyFilter is relocated here from the filters row (see
+   renderTableHeader) — compact sizing to fit inline with the column
+   heading instead of the full-size filter-row treatment. */
+#gaugeHeaderCell #countyFilter {
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.2rem 1.5rem 0.2rem 0.55rem;
+  background-position: right 0.5rem center;
+  text-transform: none;
 }
 
 tbody td {
@@ -772,8 +785,8 @@ footer {
       <div style="display:flex; align-items:center; gap:0.5rem;">
         <span class="controls-label">Window</span>
         <div class="segmented-control" id="timeModeToggle">
-          <button type="button" class="segmented-btn active" data-timemode="rolling" title="Rolling duration totals up to now">Rolling</button>
-          <button type="button" class="segmented-btn" data-timemode="today" title="Highest duration totals for today so far">Today</button>
+          <button type="button" class="segmented-btn active" data-timemode="rolling" title="Rolling duration totals up to now">Rolling to latest</button>
+          <button type="button" class="segmented-btn" data-timemode="today" title="Highest duration totals for today so far">Today so far</button>
           <button type="button" class="segmented-btn" data-timemode="yesterday" title="Highest duration totals for yesterday">Yesterday</button>
         </div>
         <button type="button" class="info-icon-btn" id="windowInfoBtn" title="What does this view show?">
@@ -804,33 +817,42 @@ footer {
       </table>
     </div>
 
-    <!-- Row 3: Filters, Max Gaps & Page Controls -->
+    <!-- Row 3: Filters -->
     <div class="controls-row">
+      <!-- countyFilter lives here in the DOM but is physically relocated into
+           the Gauge column header on first render (see renderTableHeader) —
+           kept as a single persistent element so its listeners/value/options
+           survive every header rebuild rather than being recreated. -->
       <select id="countyFilter" class="form-select"><option value="all">All counties</option></select>
-      
+
       <select id="thresholdFilter" class="form-select" style="display:none;">
         <option value="all">Any threshold</option>
         <option value="extreme">Extreme only</option>
         <option value="heavy">Heavy or extreme</option>
       </select>
 
-      <select id="dataGapsSelect" class="form-select" title="Data completeness filter">
+      <span class="controls-label">Data gaps</span>
+      <select id="dataGapsSelect" class="form-select">
         <option value="90" selected>Max 10% gaps</option>
         <option value="80">Max 20% gaps</option>
         <option value="70">Max 30% gaps</option>
         <option value="100">No gaps</option>
         <option value="0">Show all</option>
       </select>
-      
-      <select id="pageSizeSelect" class="form-select">
-        <option value="25">25 / page</option>
-        <option value="50" selected>50 / page</option>
-        <option value="100">100 / page</option>
-      </select>
-
-      <button type="button" id="clearFiltersBtn" class="clear-filters-btn" style="display:none;">Clear filters</button>
+      <button type="button" class="info-icon-btn" id="dataGapsInfoBtn" title="What does this filter mean?">
+        <span class="material-icons" style="font-size:18px;">info</span>
+      </button>
 
       <span class="results-count" id="resultsCount"></span>
+    </div>
+  </div>
+
+  <!-- Data gaps info modal -->
+  <div id="dataGapsInfoBackdrop" class="info-modal-backdrop">
+    <div class="info-modal">
+      <button class="info-modal-close" id="dataGapsInfoCloseBtn" title="Close">&times;</button>
+      <h3><span class="material-icons" style="font-size:18px;color:var(--brand-500);">info</span> Data gaps</h3>
+      <p>Each gauge is checked for how much data it actually reported over the selected window. This filter hides stations missing more than the chosen share of readings, so the table isn't cluttered with unreliable or offline gauges. Gaps are usually caused by temporary faults at the Environment Agency, Natural Resources Wales or SEPA APIs &mdash; not by an absence of rainfall. Choose "Show all" to see every gauge regardless of missing data.</p>
     </div>
   </div>
 
@@ -850,7 +872,6 @@ footer {
       </thead>
       <tbody id="tableBody"></tbody>
     </table>
-    <div class="empty-state" id="emptyState" style="display:none;">No gauges match these filters.</div>
   </div>
 
   <div class="table-legend-note">
@@ -1140,7 +1161,6 @@ function applyFilters() {
     var countySelect = document.getElementById('countyFilter');
     var thresholdSelect = document.getElementById('thresholdFilter');
     var dataGapsSelect = document.getElementById('dataGapsSelect');
-    var clearBtn = document.getElementById('clearFiltersBtn');
 
     var search = searchInput.value.trim().toLowerCase();
     var county = countySelect.value;
@@ -1168,10 +1188,6 @@ function applyFilters() {
 
     if (dataGapThreshold !== 90) dataGapsSelect.classList.add('filter-active');
     else dataGapsSelect.classList.remove('filter-active');
-
-    var isAnyOrgFilterActive = !(selectedOrgs.EA && !selectedOrgs.NRW && !selectedOrgs.SEPA);
-    var isAnyFilterActive = (search !== '' || county !== 'all' || threshold !== 'all' || isAnyOrgFilterActive || dataGapThreshold !== 90);
-    clearBtn.style.display = isAnyFilterActive ? 'inline-block' : 'none';
 
     filteredRows = rows.filter(function(r) {
         // Data gaps filter (completeness %)
@@ -1274,7 +1290,11 @@ function updateOrgTriggerLabel() {
     if (selectedOrgs.SEPA) active.push('SEPA');
     var label = document.getElementById('orgTriggerLabel');
     if (label) {
-        label.textContent = (active.length === 3) ? 'All' : (active.length ? active.join(', ') : 'None');
+        // Listing full names for 2 selected (e.g. "SEPA, NRW") overflowed the
+        // narrow Org column past the table's right edge — a compact count
+        // fits regardless of which two are picked.
+        var text = active.length === 3 ? 'All' : active.length === 2 ? '2 orgs' : active.length === 1 ? active[0] : 'None';
+        label.textContent = text;
     }
 }
 
@@ -1287,7 +1307,7 @@ function renderTableHeader() {
     function sortCls(key) { return key === sortKey ? ' th-sort-active' : ''; }
 
     var html = '<tr>';
-    html += '<th class="col-gauge">Gauge</th>';
+    html += '<th class="col-gauge" id="gaugeHeaderCell" style="cursor:default;"><div class="gauge-header-row">Gauge</div></th>';
 
     // Org Header with Checkbox Dropdown Selector
     html += '<th class="col-org org-header-cell" style="cursor:default;">';
@@ -1325,6 +1345,13 @@ function renderTableHeader() {
 
     thead.innerHTML = html;
     updateOrgTriggerLabel();
+
+    // Relocate the persistent countyFilter select into the freshly rebuilt
+    // Gauge header cell — appendChild moves the existing node (with its
+    // listeners, options and current value intact) rather than recreating it.
+    var gaugeHeaderRow = document.querySelector('#gaugeHeaderCell .gauge-header-row');
+    var countySelect = document.getElementById('countyFilter');
+    if (gaugeHeaderRow && countySelect) gaugeHeaderRow.appendChild(countySelect);
 
     // Org Header Dropdown Toggle Event & Stop Click Propagation
     var dropdownBtn = document.getElementById('orgDropdownBtn');
@@ -1398,8 +1425,19 @@ function render() {
     var start = (page - 1) * pageSize;
     var pageRows = filteredRows.slice(start, start + pageSize);
 
-    document.getElementById('emptyState').style.display = filteredRows.length ? 'none' : 'block';
-    document.getElementById('gaugeTable').style.display = filteredRows.length ? '' : 'none';
+    // The table (including its header row) always stays visible, even with
+    // zero matches — hiding the whole <table> used to take the header with
+    // it, which read as if the page had broken rather than just filtered
+    // down to nothing.
+    if (!filteredRows.length) {
+        var colCount = document.querySelectorAll('#tableHead th').length || 1;
+        tbody.innerHTML = '<tr><td colspan="' + colCount + '" class="empty-state">No gauges match these filters.</td></tr>';
+        document.getElementById('resultsCount').textContent = '0 of ' + rows.length + ' gauges';
+        document.getElementById('pageLabel').textContent = '';
+        document.getElementById('prevPage').disabled = true;
+        document.getElementById('nextPage').disabled = true;
+        return;
+    }
 
     var html = '';
     pageRows.forEach(function(r) {
@@ -1528,7 +1566,7 @@ document.getElementById('threshInfoBtn').addEventListener('click', function() {
     box.style.display = (box.style.display === 'none') ? 'block' : 'none';
 });
 
-// Window Info Modal (what does "Rolling"/"Today"/"Yesterday" actually show)
+// Window Info Modal (what does "Rolling to latest"/"Today so far"/"Yesterday" actually show)
 var windowInfoBackdrop = document.getElementById('windowInfoBackdrop');
 document.getElementById('windowInfoBtn').addEventListener('click', function() {
     windowInfoBackdrop.classList.add('open');
@@ -1538,6 +1576,18 @@ document.getElementById('windowInfoCloseBtn').addEventListener('click', function
 });
 windowInfoBackdrop.addEventListener('click', function(e) {
     if (e.target === windowInfoBackdrop) windowInfoBackdrop.classList.remove('open');
+});
+
+// Data Gaps Info Modal
+var dataGapsInfoBackdrop = document.getElementById('dataGapsInfoBackdrop');
+document.getElementById('dataGapsInfoBtn').addEventListener('click', function() {
+    dataGapsInfoBackdrop.classList.add('open');
+});
+document.getElementById('dataGapsInfoCloseBtn').addEventListener('click', function() {
+    dataGapsInfoBackdrop.classList.remove('open');
+});
+dataGapsInfoBackdrop.addEventListener('click', function(e) {
+    if (e.target === dataGapsInfoBackdrop) dataGapsInfoBackdrop.classList.remove('open');
 });
 
 document.getElementById('searchClearBtn').addEventListener('click', function() {
@@ -1551,25 +1601,6 @@ document.getElementById('searchInput').addEventListener('input', applyFilters);
 document.getElementById('countyFilter').addEventListener('change', applyFilters);
 document.getElementById('thresholdFilter').addEventListener('change', applyFilters);
 document.getElementById('dataGapsSelect').addEventListener('change', applyFilters);
-
-document.getElementById('clearFiltersBtn').addEventListener('click', function() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('countyFilter').value = 'all';
-    document.getElementById('thresholdFilter').value = 'all';
-    document.getElementById('dataGapsSelect').value = '90';
-    selectedOrgs = { EA: true, NRW: false, SEPA: false };
-    activeSortDuration = '24h';
-    sortKey = 'last24h';
-    sortDir = -1;
-    updateSortPillUI();
-    applyFilters();
-});
-
-document.getElementById('pageSizeSelect').addEventListener('change', function() {
-    pageSize = parseInt(this.value, 10);
-    page = 1;
-    render();
-});
 
 document.getElementById('prevPage').addEventListener('click', function() { if (page > 1) { page--; render(); } });
 document.getElementById('nextPage').addEventListener('click', function() {
