@@ -139,22 +139,33 @@ nav {
 
 .header-actions { display: flex; align-items: center; gap: 1rem; }
 
+/* Matches Flood Forecast's own refresh button exactly (templates/index.html):
+   rounded-lg (8px, not a pill), bold label, shadow-sm->shadow-md on hover,
+   icon picks up the brand color on hover, active state presses down 5%. */
 .refresh-button {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   color: var(--text-main);
   padding: 0.5rem 1rem;
-  border-radius: 24px;
+  border-radius: 8px;
   font-size: 0.825rem;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  gap: 0.5rem;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px -4px rgba(15,23,42,.08);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
 }
 
-.refresh-button:hover { background: var(--bg-surface-hover); border-color: var(--text-dark); }
+.refresh-button:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--text-dark);
+  box-shadow: 0 2px 4px rgba(15,23,42,.06), 0 12px 28px -8px rgba(15,23,42,.16);
+}
+.refresh-button:active { transform: scale(0.95); }
+.refresh-button .material-icons { color: var(--text-muted); transition: color 0.15s ease; }
+.refresh-button:hover .material-icons { color: var(--brand-500); }
 .refresh-time { font-size: 0.8rem; color: var(--text-muted); }
 
 /* Controls Card - Flood Forecast Design Ethos */
@@ -638,11 +649,16 @@ thead th:first-child, tbody td:first-child {
 /* countyFilter is relocated here from the filters row (see
    renderTableHeader) — compact sizing to fit inline with the column
    heading instead of the full-size filter-row treatment. */
+/* Same box-model as .org-dropdown-trigger (border + 0.35rem vertical
+   padding + 0.82rem font) so the two header dropdowns read as the same
+   height side by side, not the county one looking squashed. */
 #gaugeHeaderCell #countyFilter {
-  font-size: 0.72rem;
-  font-weight: 500;
-  padding: 0.2rem 1.5rem 0.2rem 0.55rem;
-  background-position: right 0.5rem center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 0.35rem 1.7rem 0.35rem 0.6rem;
+  background-position: right 0.6rem center;
   text-transform: none;
 }
 

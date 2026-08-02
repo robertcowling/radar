@@ -128,14 +128,22 @@ def load_day_file(r2, date_key, cache):
     return cache[date_key]
 
 
+EXPECTED_SLOTS_24H = 96  # one 15-min reading every slot across 24h
+
+
 def compute_rolling_totals(stations, r2, now, day_cache):
     """Per-station last1h/3h/6h/24h/7d/14d totals, summed slot-by-slot across
     the day files needed to cover a 14-day lookback (14d is internal-only,
-    see WINDOW_14D_DAYS)."""
+    see WINDOW_14D_DAYS), plus a completeness fraction (slots actually
+    present vs EXPECTED_SLOTS_24H over the last 24h) used by rain/table.html's
+    "Data gaps" filter — which previously always saw every station as 100%
+    complete since nothing ever populated this field."""
     totals = {sid: {k: 0.0 for k in list(WINDOWS_HOURS) + ["last7d", "last14d"]} for sid in stations}
+    slot_counts_24h = {sid: 0 for sid in stations}
     cutoffs = {k: now - timedelta(hours=h) for k, h in WINDOWS_HOURS.items()}
     cutoffs["last7d"] = now - timedelta(days=WINDOW_7D_DAYS)
     cutoffs["last14d"] = now - timedelta(days=WINDOW_14D_DAYS)
+    cutoff_24h = cutoffs["last24h"]
 
     for days_ago in range(WINDOW_14D_DAYS + 1):
         date = now - timedelta(days=days_ago)
@@ -158,10 +166,13 @@ def compute_rolling_totals(stations, r2, now, day_cache):
                 for key, cutoff in cutoffs.items():
                     if ts >= cutoff:
                         station_totals[key] += mm
+                if ts >= cutoff_24h:
+                    slot_counts_24h[sid] += 1
 
     for sid, t in totals.items():
         for key in t:
             t[key] = round(t[key], 2)
+        t["completeness"] = round(min(1.0, slot_counts_24h[sid] / EXPECTED_SLOTS_24H), 3)
     return totals
 
 
