@@ -865,11 +865,200 @@ function departure(v, mean, tol) {
     return '';
 }
 
+// ── Period contexts: year, last year, and the four meteorological seasons ──
+// "Year in context" only ever showed the current year against a Jan-Dec
+// band. This builds the same shape of cumulative-vs-percentile-band view for
+// the previous complete year and for each season, so the same panel can
+// switch between them rather than being locked to one period.
+
+function yearCumulativeSeries(yearKey) {
+    var series = [0], run = 0, ok = true;
+    for (var m = 1; m <= 12; m++) {
+        var v = derived.years[yearKey].months[m];
+        if (v == null || !ok) { series.push(null); ok = false; continue; }
+        run += v;
+        series.push(run);
+    }
+    return series;
+}
+
+// Meteorological seasons, not calendar quarters. Winter spans two calendar
+// years and is labelled by the year its January/February falls in (Met
+// Office convention) — "Winter 2026" is December 2025 plus January/February
+// 2026 — so it needs its own month-to-year mapping; spring/summer/autumn
+// each sit inside a single calendar year.
+var SEASON_META = {
+    winter: {label: 'Winter', months: [12, 1, 2]},
+    spring: {label: 'Spring', months: [3, 4, 5]},
+    summer: {label: 'Summer', months: [6, 7, 8]},
+    autumn: {label: 'Autumn', months: [9, 10, 11]}
+};
+// The label year of the season that is either currently under way or the
+// most recently completed one — never a season still in the future.
+function seasonLabelYear(key, now) {
+    var m = now.getUTCMonth() + 1, y = now.getUTCFullYear();
+    if (key === 'winter') return m === 12 ? y + 1 : y;
+    return m >= SEASON_META[key].months[0] ? y : y - 1;
+}
+
+function seasonMonthList(key, labelYear) {
+    return SEASON_META[key].months.map(function(m) {
+        return [key === 'winter' && m === 12 ? labelYear - 1 : labelYear, m];
+    });
+}
+
+// Every occurrence of a season, across the whole record, with all three
+// months complete — the pool the percentile band and the rank are built
+// from. Deliberately open-ended past the record's own end year: a season
+// instance is only included once it actually qualifies, so scanning one year
+// past the latest data just finds nothing extra, not a phantom future season.
+function seasonInstances(key) {
+    var years = derived.yearKeys.map(Number);
+    var minY = Math.min.apply(null, years), maxY = Math.max.apply(null, years);
+    var out = [];
+    for (var ly = minY; ly <= maxY + 1; ly++) {
+        var months = seasonMonthList(key, ly);
+        var ok = true, run = 0, series = [0];
+        for (var i = 0; i < months.length; i++) {
+            var yr = derived.years[months[i][0]];
+            var mo = months[i][1];
+            if (!yr || yr.months[mo] == null || !yr.complete[mo]) { ok = false; break; }
+            run += yr.months[mo];
+            series.push(run);
+        }
+        if (ok) out.push({labelYear: ly, series: series});
+    }
+    return out;
+}
+
+// Same cumulative walk, but for one specific (usually in-progress) instance,
+// truncating at the first missing month rather than requiring completeness —
+// exactly how the year view's own year-to-date curve behaves.
+function seasonCurrentSeries(key, labelYear) {
+    var months = seasonMonthList(key, labelYear);
+    var run = 0, ok = true, series = [0];
+    for (var i = 0; i < months.length; i++) {
+        var yr = derived.years[months[i][0]];
+        var v = yr ? yr.months[months[i][1]] : null;
+        if (v == null || !ok) { series.push(null); ok = false; continue; }
+        run += v;
+        series.push(run);
+    }
+    return series;
+}
+
+function seasonContext(key) {
+    var meta = SEASON_META[key];
+    var labelYear = seasonLabelYear(key, new Date());
+    var instances = seasonInstances(key);
+    if (instances.length < 5) return null;
+    var current = seasonCurrentSeries(key, labelYear);
+    var through = 0;
+    for (var i = 1; i < current.length; i++) if (current[i] != null) through = i;
+    if (through === 0) return null;
+
+    var p10 = [0], p90 = [0], mean = [0];
+    for (var step = 1; step <= 3; step++) {
+        var vals = instances.map(function(ins) { return ins.series[step]; }).sort(function(a, b) { return a - b; });
+        p10.push(percentile(vals, 0.10));
+        p90.push(percentile(vals, 0.90));
+        mean.push(vals.reduce(function(a, b) { return a + b; }, 0) / vals.length);
+    }
+    // Ranked at the same step the current instance has actually reached, so a
+    // season still in progress is compared against other years over the same
+    // partial window rather than against their full three-month totals.
+    var pool = instances.filter(function(ins) { return ins.labelYear !== labelYear; })
+        .map(function(ins) { return {y: ins.labelYear, v: ins.series[through]}; });
+    pool.push({y: labelYear, v: current[through]});
+    var sorted = pool.slice().sort(function(a, b) { return a.v - b.v; });
+    var rankDriest = sorted.findIndex(function(r) { return r.y === labelYear; }) + 1;
+    var meanAtThrough = pool.reduce(function(a, r) { return a + r.v; }, 0) / pool.length;
+    var complete = instances.some(function(ins) { return ins.labelYear === labelYear; });
+
+    var m1 = meta.months[0], m2 = meta.months[1], m3 = meta.months[2];
+    var lastMonthYear = seasonMonthList(key, labelYear)[2][0];
+    var lastDay = daysInMonth(lastMonthYear, m3);
+
+    return {
+        key: key, labelYear: labelYear,
+        title: meta.label + ' ' + labelYear + ' in context' + (complete ? '' : ', in progress'),
+        hint: 'Cumulative total against ' + instances.length + ' historical ' + meta.label.toLowerCase() + 's',
+        xLabels: ['1 ' + MONTH_ABBR[m1 - 1], MONTH_ABBR[m2 - 1], MONTH_ABBR[m3 - 1], lastDay + ' ' + MONTH_ABBR[m3 - 1]],
+        boundaryLabel: function(i) { return i === 0 ? 'Start of ' + meta.label.toLowerCase() : 'End of ' + MONTH_ABBR[meta.months[i - 1] - 1]; },
+        current: current, p10: p10, p90: p90, mean: mean,
+        totalSoFar: current[through], periodLabel: through === 3 ? meta.label : meta.label + ' so far',
+        meanAtPoint: meanAtThrough,
+        pct: meanAtThrough > 0 ? (current[through] / meanAtThrough) * 100 : null,
+        rankDriest: rankDriest, rankWettest: pool.length - rankDriest + 1, n: pool.length,
+        rankNoun: meta.label.toLowerCase() + 's',
+        periodAverageLabel: 'Average ' + meta.label + ', ' + instances.length + ' ' + meta.label.toLowerCase() + 's',
+        periodAverageValue: mean[3],
+        affectedYears: [String(lastMonthYear), String(seasonMonthList(key, labelYear)[0][0])]
+    };
+}
+
+// Dispatches to whichever of the six period views the panel is currently
+// showing; returns null when that view has nothing to show for this gauge
+// (e.g. under five historical winters, or no complete previous year).
+function periodContext(key) {
+    if (key === 'year') {
+        var y = derived.ytd, e = derived.envelope;
+        if (!y && !e) return null;
+        var labelYear = (y && y.year) || (e && e.year);
+        return {
+            key: 'year', labelYear: labelYear,
+            title: +labelYear === new Date().getUTCFullYear() ? labelYear + ' in context' : labelYear + ' in context, the latest year of record',
+            hint: 'Cumulative total against the spread of complete years in the record',
+            xLabels: ['1 Jan'].concat(MONTH_ABBR.slice(1)).concat(['31 Dec']),
+            boundaryLabel: function(i) { return i === 0 ? 'Start of the year' : 'End of ' + MONTH_ABBR[i - 1]; },
+            current: e ? e.current : null, p10: e ? e.p10 : null, p90: e ? e.p90 : null, mean: e ? e.mean : null,
+            totalSoFar: y ? y.mm : null, periodLabel: y ? y.label : 'Jan–Dec',
+            meanAtPoint: y ? y.mean : null, pct: y ? y.pct : null,
+            rankDriest: y ? y.rankDriest : null, rankWettest: y ? y.rankWettest : null, n: y ? y.n : (e ? e.nYears : 0),
+            rankNoun: 'years',
+            periodAverageLabel: derived.annualNormal ? 'Average full year, ' + derived.fullYears.length + ' years' : null,
+            periodAverageValue: derived.annualNormal,
+            affectedYears: [String(labelYear)]
+        };
+    }
+    if (key === 'lastyear') {
+        if (!derived.envelope) return null;
+        var fy = derived.fullYears;
+        if (!fy.length) return null;
+        var py = fy[fy.length - 1];
+        // Don't offer "last year" as just a re-run of the year tab's own
+        // subject, on the rare gauge where the latest year is itself complete.
+        if (derived.ytd && py === derived.ytd.year) {
+            if (fy.length < 2) return null;
+            py = fy[fy.length - 2];
+        }
+        var series = yearCumulativeSeries(py);
+        var pool = fy.map(function(fyy) { return {y: fyy, v: derived.years[fyy].total}; });
+        var sorted = pool.slice().sort(function(a, b) { return a.v - b.v; });
+        var rankDriest = sorted.findIndex(function(r) { return r.y === py; }) + 1;
+        var total = derived.years[py].total;
+        return {
+            key: 'lastyear', labelYear: py, title: py + ' in context',
+            hint: 'Cumulative total against the spread of complete years in the record',
+            xLabels: ['1 Jan'].concat(MONTH_ABBR.slice(1)).concat(['31 Dec']),
+            boundaryLabel: function(i) { return i === 0 ? 'Start of the year' : 'End of ' + MONTH_ABBR[i - 1]; },
+            current: series, p10: derived.envelope.p10, p90: derived.envelope.p90, mean: derived.envelope.mean,
+            totalSoFar: total, periodLabel: 'Jan–Dec',
+            meanAtPoint: derived.annualNormal, pct: derived.annualNormal ? (total / derived.annualNormal) * 100 : null,
+            rankDriest: rankDriest, rankWettest: pool.length - rankDriest + 1, n: pool.length,
+            rankNoun: 'years',
+            periodAverageLabel: 'Average full year, ' + fy.length + ' years', periodAverageValue: derived.annualNormal,
+            affectedYears: [String(py)]
+        };
+    }
+    return seasonContext(key);
+}
+
 // ── Skeleton ─────────────────────────────────────────────────────────────
 // Built once with fixed ids, then each region is filled, so a refresh refills
 // in place rather than appending a second copy of every panel.
 function renderSkeleton() {
-    var showYear = mode === 'live' && derived && (derived.ytd || derived.envelope);
+    var showYear = mode === 'live' && derived && YEAR_TAB_ORDER.some(function(t) { return periodContext(t[0]); });
     document.getElementById('content').innerHTML = ''
         + '<div id="headRegion"></div>'
         + '<div class="grid split">'
@@ -884,8 +1073,9 @@ function renderSkeleton() {
         +   '<div class="tabs" id="recentTabs"></div></div>'
         +   '<div class="panel-body" id="recentRegion"></div></section>'
         + (showYear
-            ? '<section class="panel"><div class="panel-head"><h2>' + envelopeTitle() + '</h2>'
-              + '<span class="hint">Cumulative total against the spread of complete years in the record</span></div>'
+            ? '<section class="panel"><div class="panel-head"><h2 id="yearTitle">Year in context</h2>'
+              + '<div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">'
+              + '<div class="tabs" id="yearTabs"></div><span class="hint" id="yearHint"></span></div></div>'
               + '<div class="panel-body" id="yearRegion"></div></section>'
             : '')
         + '<section class="panel"><div class="panel-head"><h2>Extremes</h2>'
@@ -1525,89 +1715,101 @@ function renderRecent() {
 function setRecentTab(t) { recentTab = t; renderRecent(); }
 
 // ── Year in context ─────────────────────────────────────────────────────
-function envelopeTitle() {
-    if (!derived) return 'Year in context';
-    var y = (derived.ytd && derived.ytd.year) || (derived.envelope && derived.envelope.year);
-    if (!y) return 'Year in context';
-    return +y === new Date().getUTCFullYear() ? y + ' in context' : y + ' in context, the latest year of record';
-}
+var yearTab = 'year';
+var YEAR_TAB_ORDER = [['year', 'This year'], ['lastyear', 'Last year'],
+    ['winter', 'Winter'], ['spring', 'Spring'], ['summer', 'Summer'], ['autumn', 'Autumn']];
 
 function fillYear() {
     var region = document.getElementById('yearRegion');
     if (!region || !derived) return;
-    var e = derived.envelope, y = derived.ytd, t = chartTheme();
-    var panelYear = (y && y.year) || (e && e.year);
+
+    var available = YEAR_TAB_ORDER.map(function(t) { return [t[0], t[1], periodContext(t[0])]; })
+        .filter(function(t) { return t[2]; });
+    if (!available.length) { document.getElementById('yearTabs').innerHTML = ''; return; }
+    if (!available.some(function(t) { return t[0] === yearTab; })) yearTab = available[0][0];
+
+    document.getElementById('yearTabs').innerHTML = available.length > 1
+        ? available.map(function(t) {
+              return '<button class="' + (yearTab === t[0] ? 'active' : '') + '" onclick="setYearTab(\'' + t[0] + '\')">' + t[1] + '</button>';
+          }).join('')
+        : '';
+
+    var p = available.filter(function(t) { return t[0] === yearTab; })[0][2];
+    var t = chartTheme();
+    document.getElementById('yearTitle').textContent = p.title;
+    document.getElementById('yearHint').textContent = p.hint;
 
     // An implausible daily value does not stop at the extremes table: it
     // inflates the month, the cumulative curve and the rank built on them, so
-    // say so where those numbers are read.
+    // say so where those numbers are read, for whichever period contains it.
     var bad = clim.records && clim.records.wettestDay && clim.records.wettestDay.mm > UK_DAILY_RECORD_MM
         ? clim.records.wettestDay : null;
-    var badHere = bad && bad.date.slice(0, 4) === String(panelYear) ? bad : null;
+    var badHere = bad && p.affectedYears.indexOf(bad.date.slice(0, 4)) !== -1 ? bad : null;
 
     var rail = '';
-    if (y) {
-        var dep = departure(y.mm, y.mean, 0.05);
+    if (p.totalSoFar != null) {
+        var dep = departure(p.totalSoFar, p.meanAtPoint, 0.05);
         rail = '<div class="rail" style="margin-bottom:0.9rem">'
-            + '<div class="item"><div class="rv">' + mmText(y.mm, 0) + ' mm</div><div class="rl">' + y.label + ' ' + y.year + '</div></div>'
-            + '<div class="item"><div class="rv ' + dep + '">' + Math.round(y.pct) + '%</div>'
-            +   '<div class="rl">of the ' + mmText(y.mean, 0) + ' mm average for ' + y.label + '</div></div>'
-            + '<div class="item"><div class="rv ' + dep + '">' + ordinal(y.pct >= 100 ? y.rankWettest : y.rankDriest) + '</div>'
-            +   '<div class="rl">' + (y.pct >= 100 ? 'wettest' : 'driest') + ' ' + y.label + ' of ' + y.n + ' years</div></div>'
-            + (derived.annualNormal ? '<div class="item"><div class="rv">' + mmText(derived.annualNormal, 0) + ' mm</div>'
-                + '<div class="rl">Average full year, ' + derived.fullYears.length + ' years</div></div>' : '')
+            + '<div class="item"><div class="rv">' + mmText(p.totalSoFar, 0) + ' mm</div><div class="rl">' + p.periodLabel
+            + ' ' + p.labelYear + '</div></div>'
+            + (p.pct != null ? '<div class="item"><div class="rv ' + dep + '">' + Math.round(p.pct) + '%</div>'
+                + '<div class="rl">of the ' + mmText(p.meanAtPoint, 0) + ' mm average for ' + p.periodLabel + '</div></div>' : '')
+            + (p.rankDriest != null ? '<div class="item"><div class="rv ' + dep + '">'
+                + ordinal(p.pct >= 100 ? p.rankWettest : p.rankDriest) + '</div>'
+                + '<div class="rl">' + (p.pct >= 100 ? 'wettest' : 'driest') + ' ' + p.periodLabel + ' of ' + p.n + ' ' + p.rankNoun
+                + '</div></div>' : '')
+            + (p.periodAverageLabel ? '<div class="item"><div class="rv">' + mmText(p.periodAverageValue, 0) + ' mm</div>'
+                + '<div class="rl">' + p.periodAverageLabel + '</div></div>' : '')
             + '</div>';
     }
     if (badHere) {
         rail += '<div class="callout warn" style="margin-bottom:0.9rem">These figures inherit an implausible daily value on '
             + prettyDate(badHere.date) + ' (' + mmText(badHere.mm, 1) + ' mm, beyond the UK daily record), so the total, the '
-            + 'percentage and the rank for ' + panelYear + ' all read high. See the extremes below.</div>';
+            + 'percentage and the rank for ' + p.labelYear + ' all read high. See the extremes below.</div>';
     }
 
-    if (!e) {
-        region.innerHTML = rail + '<div class="note">Fewer than five complete years of record, not enough to draw a '
-            + 'normal range for the year to date.</div>';
+    if (!p.p10) {
+        region.innerHTML = rail + '<div class="note">Fewer than five complete ' + (p.rankNoun || 'years')
+            + ' of record, not enough to draw a normal range.</div>';
+        if (charts.yearChart) { charts.yearChart.destroy(); delete charts.yearChart; }
         return;
     }
 
     region.innerHTML = rail
         + '<div class="chart-box"><canvas id="yearChart"></canvas></div>'
         + '<div class="legend">'
-        +   '<span class="key" style="color:' + t.wet + '"><span class="sw line"></span>' + e.year + ' cumulative</span>'
-        +   '<span class="key"><span class="sw dash"></span>Average year</span>'
+        +   '<span class="key" style="color:' + t.wet + '"><span class="sw line"></span>' + p.labelYear + ' cumulative</span>'
+        +   '<span class="key"><span class="sw dash"></span>Average</span>'
         +   '<span class="key"><span class="sw" style="background:' + t.wetFill + '"></span>Running ahead of average</span>'
         +   '<span class="key"><span class="sw" style="background:' + t.dryFill + '"></span>Running behind it</span>'
         +   '<span class="key"><span class="sw" style="background:' + t.tint + ';border:1px solid ' + t.grid + '"></span>Normal range, P10&ndash;P90</span>'
         + '</div>'
-        + '<div class="note" style="margin-top:0.55rem">Rainfall accumulated from 1 January and plotted at each month end, against '
-        + 'the P10&ndash;P90 spread of the cumulative total across ' + e.nYears + ' complete years of record. The dashed line is '
-        + 'the mean, the same figure as the &ldquo;average full year&rdquo; total above, not the middle of the band, which '
-        + 'sits well below it. Rainfall years are right-skewed (a floor near zero, a long tail from the occasional very wet one), '
-        + 'so the typical year runs below the mean and the mean itself sits closer to the wet edge of the band than the dry one; '
-        + 'that skew is a real property of the record, not a plotting error.'
+        + '<div class="note" style="margin-top:0.55rem">Rainfall accumulated from the start of the period and plotted at each month '
+        + 'end, against the P10&ndash;P90 spread of the cumulative total across ' + (SEASON_META[p.key]
+            ? p.n + ' historical ' + p.rankNoun : p.n + ' complete years')
+        + ' of record. The dashed line is the mean, the same figure as the average shown above, not the middle of the band, which '
+        + 'sits well below it for a right-skewed quantity like rainfall (a floor near zero, a long tail from the occasional very '
+        + 'wet one); that skew is a real property of the record, not a plotting error.'
         + (clim.recordEnd ? ' The series runs to ' + prettyDate(clim.recordEnd) + '.' : '') + '</div>';
 
     mountChart('yearChart', {
         type: 'line',
         data: {
-            // Each point is a month boundary, so each label names that
-            // boundary: index 1 is the end of January, which is 1 February.
-            // Labelling it "Jan" would sit a month name on the wrong tick.
-            labels: ['1 Jan'].concat(MONTH_ABBR.slice(1)).concat(['31 Dec']),
+            labels: p.xLabels,
             datasets: [
-                {label: 'P10', data: e.p10, borderColor: 'transparent', pointRadius: 0, fill: false},
-                {label: 'P90', data: e.p90, borderColor: 'transparent', pointRadius: 0, backgroundColor: t.tint, fill: '-1'},
-                // The mean, not the median: it is what "average full year" in
+                {label: 'P10', data: p.p10, borderColor: 'transparent', pointRadius: 0, fill: false},
+                {label: 'P90', data: p.p90, borderColor: 'transparent', pointRadius: 0, backgroundColor: t.tint, fill: '-1'},
+                // The mean, not the median: it is what the average figure in
                 // the rail above already means, so the dashed line and that
                 // figure agree. A median would sit lower in the band — right,
                 // not wrong, but a second, different "average" on the same
                 // panel is confusing for no real benefit.
-                {label: 'Average', data: e.mean, borderColor: t.muted, borderWidth: 2, borderDash: [5, 4],
+                {label: 'Average', data: p.mean, borderColor: t.muted, borderWidth: 2, borderDash: [5, 4],
                  pointRadius: 0, fill: false, tension: 0.15},
                 // Two-colour fill against the average: ahead of it reads cool,
                 // behind it reads warm — the above/below signal without a
                 // second axis or a second chart.
-                {label: e.year, data: e.current, borderColor: t.wet, borderWidth: 2.5,
+                {label: String(p.labelYear), data: p.current, borderColor: t.wet, borderWidth: 2.5,
                  pointRadius: 2.5, pointBackgroundColor: t.wet, pointHoverRadius: 5,
                  fill: {target: 2, above: t.wetFill, below: t.dryFill}, spanGaps: false, tension: 0.15}
             ]
@@ -1618,7 +1820,7 @@ function fillYear() {
             scales: {
                 x: {
                     ticks: {color: t.text, font: {family: t.font, size: 10}, autoSkip: false, maxRotation: 0},
-                    // A rule at every month end: reading off where the year
+                    // A rule at every month end: reading off where the period
                     // stands at a given month is the whole point of the chart.
                     grid: {display: true, color: t.grid, drawTicks: false},
                     border: {color: t.grid}
@@ -1632,13 +1834,10 @@ function fillYear() {
             plugins: {
                 legend: {display: false},
                 tooltip: tooltipOpts(t,
-                    function(items) {
-                        var i = items[0].dataIndex;
-                        return i === 0 ? 'Start of the year' : 'End of ' + MONTH_ABBR[i - 1];
-                    },
+                    function(items) { return p.boundaryLabel(items[0].dataIndex); },
                     function(item) {
                         if (item.parsed.y == null) return null;
-                        var n = item.dataset.label, avg = e.mean[item.dataIndex];
+                        var n = item.dataset.label, avg = p.mean[item.dataIndex];
                         if (n === 'P10' || n === 'P90') return n + ' ' + mmText(item.parsed.y, 0) + ' mm';
                         if (n === 'Average') return 'Average ' + mmText(item.parsed.y, 0) + ' mm';
                         return n + ' ' + mmText(item.parsed.y, 0) + ' mm'
@@ -1648,6 +1847,7 @@ function fillYear() {
         }
     });
 }
+function setYearTab(t) { yearTab = t; fillYear(); }
 
 // ── Extremes ─────────────────────────────────────────────────────────────
 function fillExtremes(sum) {
