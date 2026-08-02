@@ -244,42 +244,6 @@ nav {
   }
 }
 
-/* Sort Pill Selector Row */
-.sort-pill-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.sort-pill-btn {
-  border: 1px solid var(--border-color);
-  background: var(--bg-base);
-  color: var(--text-muted);
-  font-family: var(--font-family);
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 0.3rem 0.75rem;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.sort-pill-btn:hover {
-  border-color: var(--brand-500);
-  color: var(--text-main);
-}
-.sort-pill-btn.active {
-  background: #0f172a;
-  color: #ffffff;
-  border-color: #0f172a;
-  font-weight: 700;
-}
-@media (prefers-color-scheme: dark) {
-  .sort-pill-btn.active {
-    background: var(--brand-500);
-    border-color: var(--brand-500);
-    color: #ffffff;
-  }
-}
-
 /* Info modal — same pattern as the Flood Forecast project's own rain.html
    (.info-modal-backdrop / .info-modal), used for anything that would
    otherwise be a persistent explanatory banner taking up layout space. */
@@ -640,28 +604,6 @@ thead th:first-child, tbody td:first-child {
   padding-left: 1.25rem;
 }
 
-.gauge-header-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-/* countyFilter is relocated here from the filters row (see
-   renderTableHeader) — compact sizing to fit inline with the column
-   heading instead of the full-size filter-row treatment. */
-/* Same box-model as .org-dropdown-trigger (border + 0.35rem vertical
-   padding + 0.82rem font) so the two header dropdowns read as the same
-   height side by side, not the county one looking squashed. */
-#gaugeHeaderCell #countyFilter {
-  font-size: 0.82rem;
-  font-weight: 700;
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 0.35rem 1.7rem 0.35rem 0.6rem;
-  background-position: right 0.6rem center;
-  text-transform: none;
-}
-
 tbody td {
   padding: 0.45rem 0.6rem;
   border-bottom: 1px solid var(--border-color);
@@ -811,18 +753,6 @@ footer {
       </div>
     </div>
 
-    <!-- Row 2: Separate Sort Pill Selector Row -->
-    <div class="controls-row">
-      <span class="controls-label">Sort</span>
-      <div class="sort-pill-group" id="sortPillGroup">
-        <button type="button" class="sort-pill-btn" data-sortkey="1h">1h</button>
-        <button type="button" class="sort-pill-btn" data-sortkey="3h">3h</button>
-        <button type="button" class="sort-pill-btn" data-sortkey="6h">6h</button>
-        <button type="button" class="sort-pill-btn" data-sortkey="12h">12h</button>
-        <button type="button" class="sort-pill-btn active" data-sortkey="24h">24h</button>
-      </div>
-    </div>
-
     <!-- Threshold Info Expansion Box -->
     <div class="threshold-info-box" id="threshInfoBox" style="display:none;">
       <strong>Operational rainfall thresholds:</strong>
@@ -833,9 +763,8 @@ footer {
       </table>
     </div>
 
-    <!-- Row 3: Filters. Also countyFilter's stable home when it's not
-         parked in the Gauge column header — see renderTableHeader. -->
-    <div class="controls-row" id="filtersRow">
+    <!-- Row 3: Filters -->
+    <div class="controls-row">
       <select id="countyFilter" class="form-select"><option value="all">All counties</option></select>
 
       <select id="thresholdFilter" class="form-select" style="display:none;">
@@ -1317,26 +1246,10 @@ function renderTableHeader() {
     var monthName = now.toLocaleDateString([], {month: 'short'});
     var yearStr = now.getFullYear();
 
-    // renderTableHeader runs on every render() (every filter/sort/page
-    // change), and thead.innerHTML = html below destroys its whole previous
-    // subtree — including countyFilter if it's still parked inside from the
-    // last render, which silently deleted the select from the document
-    // entirely and made every later document.getElementById('countyFilter')
-    // return null. That null blew up applyFilters() (countySelect.value on
-    // null), which aborted before filteredRows was recomputed — the actual
-    // cause of "the org dropdown doesn't work", since checking an org
-    // checkbox also calls applyFilters(). Always move it back to its stable
-    // home in the static filters row first, before wiping thead.
-    var countySelect = document.getElementById('countyFilter');
-    var filtersRow = document.getElementById('filtersRow');
-    if (countySelect && filtersRow && countySelect.parentElement !== filtersRow) {
-        filtersRow.insertBefore(countySelect, filtersRow.firstChild);
-    }
-
     function sortCls(key) { return key === sortKey ? ' th-sort-active' : ''; }
 
     var html = '<tr>';
-    html += '<th class="col-gauge" id="gaugeHeaderCell" style="cursor:default;"><div class="gauge-header-row">Gauge</div></th>';
+    html += '<th class="col-gauge">Gauge</th>';
 
     // Org Header with Checkbox Dropdown Selector
     html += '<th class="col-org org-header-cell" style="cursor:default;">';
@@ -1375,12 +1288,6 @@ function renderTableHeader() {
     thead.innerHTML = html;
     updateOrgTriggerLabel();
 
-    // Relocate the persistent countyFilter select into the freshly rebuilt
-    // Gauge header cell — appendChild moves the existing node (with its
-    // listeners, options and current value intact) rather than recreating it.
-    var gaugeHeaderRow = document.querySelector('#gaugeHeaderCell .gauge-header-row');
-    if (gaugeHeaderRow && countySelect) gaugeHeaderRow.appendChild(countySelect);
-
     // Org Header Dropdown Toggle Event & Stop Click Propagation
     var dropdownBtn = document.getElementById('orgDropdownBtn');
     var dropdownMenu = document.getElementById('orgDropdownMenu');
@@ -1416,21 +1323,12 @@ function renderTableHeader() {
             else if (key === dur6Key) activeSortDuration = '6h';
             else if (key === dur12Key) activeSortDuration = '12h';
             else if (key === dur24Key) activeSortDuration = '24h';
-            
-            updateSortPillUI();
 
             if (sortKey === key) sortDir *= -1;
             else { sortKey = key; sortDir = -1; }
             sortRows();
             render();
         });
-    });
-}
-
-function updateSortPillUI() {
-    document.querySelectorAll('#sortPillGroup .sort-pill-btn').forEach(function(btn) {
-        if (btn.dataset.sortkey === activeSortDuration) btn.classList.add('active');
-        else btn.classList.remove('active');
     });
 }
 
@@ -1445,7 +1343,6 @@ document.addEventListener('click', function(e) {
 
 function render() {
     renderTableHeader();
-    updateSortPillUI();
 
     var tbody = document.getElementById('tableBody');
     var totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
@@ -1573,18 +1470,6 @@ document.querySelectorAll('#timeModeToggle .segmented-btn').forEach(function(btn
                 applyFilters();
             });
         }
-    });
-});
-
-// Sort Pill Group Listener
-document.querySelectorAll('#sortPillGroup .sort-pill-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-        activeSortDuration = this.dataset.sortkey;
-        updateSortPillUI();
-        var explainText = document.getElementById('windowExplainText');
-        if (timeMode === 'rolling') explainText.textContent = 'Showing rolling duration rainfall totals up to now. Sorted by ' + activeSortDuration + ' accumulation.';
-        sortDir = -1;
-        applyFilters();
     });
 });
 
