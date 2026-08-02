@@ -529,8 +529,17 @@ def main():
     yesterday_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
     yesterday_key = (now - timedelta(days=1)).strftime("%Y%m%d")
 
+    # EA does not publish every station's readings in real time — Wick St
+    # Lawrence (52223) was measured empirically to lag by upwards of two
+    # hours on some evenings, so a `date=yesterday` query made right at
+    # midnight can still be missing the tail of the day. A single catch-up
+    # poll at 00:00-00:30 only closes that gap if EA's lag that night happens
+    # to be under 30 minutes. Re-querying yesterday on every run for the
+    # first three hours of the new day gives EA up to 3 hours to publish the
+    # rest, comfortably past the worst lag observed; each extra run is one
+    # lightweight date-scoped request, not a per-station pull.
     fetch_yesterday = False
-    if now.hour == 0 and now.minute < 30:
+    if now.hour < 3:
         fetch_yesterday = True
     elif USE_R2:
         r2_key_yest = f"{R2_READINGS_PFX}/{yesterday_key}.json"
