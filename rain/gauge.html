@@ -502,6 +502,7 @@ function loadAll() {
         // The duration table, the header figures and the 48 h chart all need
         // the 15-minute readings to tell a reported zero from a gap.
         Promise.all([loadArchive(sum), loadRecentReadings()]).then(function() {
+            scanSlotAges();
             fillHead(station, sum);
             fillNow(sum);
             renderRecent();
@@ -543,14 +544,26 @@ function slotValue(t) {
     return typeof v === 'number' ? v : null;
 }
 
-// Slots actually reported in the last `hours`, so the duration table can say
-// "no data" instead of "0.0 mm" for a gauge that has sent nothing.
-function reportedSlots(hours) {
-    var now = new Date(), n = 0;
-    for (var back = 0; back < hours * 4; back++) {
-        if (slotValue(new Date(now - back * 900000)) != null) n++;
+// How long ago, in hours, the most recent reported slot is — computed once and
+// compared against each duration, rather than rescanning the window per row.
+// The test is monotone: if anything arrived within the last hour, every longer
+// window contains data too.
+var newestSlotAgeH = null;
+function scanSlotAges() {
+    newestSlotAgeH = null;
+    for (var back = 0; back < 48 * 4; back++) {
+        if (slotValue(new Date(Date.now() - back * 900000)) != null) {
+            newestSlotAgeH = back / 4;
+            return;
+        }
     }
-    return n;
+}
+// True when this duration's window contains at least one reported slot. Only
+// durations inside the 48 h of 15-minute readings held here can be checked;
+// anything longer is reported as published.
+function windowHasData(hours) {
+    if (!Object.keys(rawByDate).length || hours > 48) return true;
+    return newestSlotAgeH != null && newestSlotAgeH < hours;
 }
 
 function latestReading() {
@@ -763,8 +776,7 @@ function fillHead(s, sum) {
            l: 'Rate at ' + pad2(latest.t.getUTCHours()) + ':' + pad2(latest.t.getUTCMinutes()) + ' UTC'}
         : {v: haveSlots ? 'No data' : '&ndash;', nil: true, absent: haveSlots, l: 'Latest 15 minute rate'}];
     [['last1h', '1 hour', 1], ['last24h', '24 hours', 24], ['last7d', '7 days', 168]].forEach(function(d) {
-        var known = !haveSlots || d[2] > 48 || reportedSlots(d[2]) > 0;
-        figures.push(known
+        figures.push(windowHasData(d[2])
             ? {v: mmText(sum[d[0]]) + '<span class="u">mm</span>', nil: !sum[d[0]], l: d[1]}
             : {v: 'No data', nil: true, absent: true, l: d[1]});
     });
@@ -791,12 +803,8 @@ function fillHead(s, sum) {
 // One table for every duration held. A duration whose window contains no
 // reported slots says so instead of showing a total of 0.0.
 function fillNow(sum) {
-    var haveSlots = Object.keys(rawByDate).length > 0;
     var rows = DURATIONS.map(function(d) {
-        // Only durations inside the 48 h of 15-minute readings we hold can be
-        // checked for coverage; longer ones are shown as published.
-        var known = !haveSlots || d[2] > 48 || reportedSlots(d[2]) > 0;
-        return {label: d[0], v: sum[d[1]], known: known};
+        return {label: d[0], v: sum[d[1]], known: windowHasData(d[2])};
     });
     var peak = rows.reduce(function(a, r) { return Math.max(a, r.known && r.v ? r.v : 0); }, 0);
 
@@ -1077,7 +1085,11 @@ function barChart(id, points, opts) {
     var bar = {maxBarThickness: opts.barMax || 26, categoryPercentage: 0.96, barPercentage: 0.94, borderSkipped: false};
 
     var datasets = [
-        Object.assign({label: 'Rainfall', order: 2, borderRadius: 2, backgroundColor: colours,
+        // minBarLength keeps a light shower visible when the axis is scaled to
+        // a downpour: at a 30 mm axis a 0.2 mm bar is a pixel and a half, less
+        // than the measured-zero stub beside it. Colour still separates the
+        // two, and the tooltip carries the exact value.
+        Object.assign({label: 'Rainfall', order: 2, borderRadius: 2, backgroundColor: colours, minBarLength: 3,
             data: points.map(function(p) { return p.v == null || p.v === 0 ? null : p.v; })}, bar),
         Object.assign({label: 'Measured dry', order: 3, borderRadius: 0, backgroundColor: t.muted,
             data: points.map(function(p) { return p.v === 0 ? stub : null; })}, bar),
@@ -1411,11 +1423,16 @@ function fillExtremes(sum) {
     // A published daily total above the UK record is an artefact, not a
     // record. Shown as published, never presented as a fact about the weather.
     var daySuspect = r.wettestDay && r.wettestDay.mm > UK_DAILY_RECORD_MM;
+    // The bad day inflates whatever month it sits in, so the mark follows it
+    // into every figure built on that month, not just the day's own row.
+    var badMonth = daySuspect ? r.wettestDay.date.slice(0, 7) : null;
+    var mark = ' <span class="suspect" title="Inflated by an implausible daily value — see the note above">?</span>';
     var rows = [
-        ['Wettest day', r.wettestDay ? mmText(r.wettestDay.mm, 1) + ' mm'
-            + (daySuspect ? ' <span class="suspect" title="Beyond the UK record — see the note above">?</span>' : '') : null,
+        ['Wettest day', r.wettestDay ? mmText(r.wettestDay.mm, 1) + ' mm' + (daySuspect ? mark : '') : null,
             r.wettestDay ? prettyDate(r.wettestDay.date) : ''],
-        ['Wettest month', r.wettestMonth ? mmText(r.wettestMonth.mm, 0) + ' mm' : null, r.wettestMonth ? monthName(r.wettestMonth.month) : ''],
+        ['Wettest month', r.wettestMonth ? mmText(r.wettestMonth.mm, 0) + ' mm'
+            + (badMonth && r.wettestMonth.month === badMonth ? mark : '') : null,
+            r.wettestMonth ? monthName(r.wettestMonth.month) : ''],
         ['Driest month', r.driestMonth ? mmText(r.driestMonth.mm, 1) + ' mm' : null, r.driestMonth ? monthName(r.driestMonth.month) : ''],
         ['Longest dry spell', r.longestDrySpell ? r.longestDrySpell.days + ' days' : null,
             r.longestDrySpell ? 'from ' + prettyDate(r.longestDrySpell.from) : '']
@@ -1439,7 +1456,7 @@ function fillExtremes(sum) {
             + derived.topMonths.map(function(x, i) {
                   var norm = derived.norms[x.month.slice(5, 7)];
                   return '<tr><td>' + (i + 1) + '. ' + monthName(x.month) + '</td>'
-                      + '<td class="num">' + mmText(x.mm, 0) + '</td>'
+                      + '<td class="num">' + mmText(x.mm, 0) + (x.month === badMonth ? mark : '') + '</td>'
                       + '<td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:'
                       + Math.round((x.mm / peak) * 100) + '%"></div></div></td>'
                       + '<td class="dim">' + (norm ? Math.round((x.mm / norm.mean) * 100) + '% of avg' : '') + '</td></tr>';
