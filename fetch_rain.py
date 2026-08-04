@@ -115,13 +115,29 @@ def fetch_stations():
         lon  = item.get("long")
         if not ref or lat is None or lon is None:
             continue
-        if guid:
-            suid_to_ref[guid] = ref
+        # Some sites host a rain gauge co-located with a level/flow instrument
+        # under the same stationGuid; EA disambiguates by appending the
+        # stationReference to the GUID in the rainfall measure's own @id
+        # (e.g. "{guid}_{ref}-rainfall-..." instead of plain "{guid}-rainfall-...").
+        # Reading suid_to_ref from the bare stationGuid silently drops those
+        # stations' readings, so derive the lookup key from the rainfall
+        # measure's actual @id when present.
+        raw_id = guid
+        measures = item.get("measures", [])
+        if isinstance(measures, dict):
+            measures = [measures]
+        for m in measures:
+            mid = (m.get("@id") or "").rsplit("/", 1)[-1]
+            if "-rainfall" in mid:
+                raw_id = mid.split("-rainfall")[0]
+                break
+        if raw_id:
+            suid_to_ref[raw_id] = ref
         stations[ref] = {
             "lat":  round(float(lat), 5),
             "lon":  round(float(lon), 5),
             "name": item.get("label") or ref,
-            "guid": guid,
+            "guid": raw_id,
         }
     print(f"  {len(stations)} stations with coordinates")
     return stations, suid_to_ref
