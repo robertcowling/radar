@@ -11,7 +11,8 @@ Checks:
   2. A broader sweep: every EA-origin station (ref not prefixed nrw_/sepa_)
      in our stations.json that is absent from BOTH of the last two days'
      merged readings files in R2 — for a sample of those, query EA
-     directly to see whether they have a 900s measure with recent data
+     directly (by-measure, date-scoped, same pattern as fetch_rain.py's
+     bulk query) to see whether they have a 900s measure with recent data
      that our bulk query is somehow missing.
 
 Read-only: does not write to R2. Safe to run any time.
@@ -24,11 +25,23 @@ import requests
 
 from fetch_rain import HYDRO_BASE, get_r2, r2_get_json, USE_R2
 
+
+def probe_measure(guid, suffix, date_str):
+    """Query a single measure's readings for one date. Mirrors the date-scoped
+    pattern fetch_rain.py's bulk query uses, just narrowed to one measure."""
+    url = f"{HYDRO_BASE}/id/measures/{guid}-{suffix}/readings.json"
+    r = requests.get(url, params={"date": date_str, "_limit": 200}, timeout=30)
+    return r
+
+
 def main():
     if not USE_R2:
         print("No R2 creds — aborting")
         sys.exit(1)
     r2 = get_r2()
+    now = datetime.now(timezone.utc)
+    today_str = now.strftime("%Y-%m-%d")
+    yest_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
 
     stations_data, ok = r2_get_json(r2, "rain/stations.json", None)
     if not ok or not stations_data:
@@ -43,43 +56,42 @@ def main():
     print("Our stations.json entry:", json.dumps(ws))
     guid = ws.get("guid") if ws else None
 
-    try:
-        r = requests.get(f"{HYDRO_BASE}/id/stations/600986.json", timeout=30)
-        r.raise_for_status()
-        items = r.json().get("items", [])
-        item = items[0] if isinstance(items, list) else items
-        print("EA station record label:", item.get("label"))
-        print("EA station record stationGuid:", item.get("stationGuid"))
-        measures = item.get("measures", [])
-        if isinstance(measures, dict):
-            measures = [measures]
-        print(f"EA lists {len(measures)} measure(s):")
-        for m in measures:
-            print("  -", m.get("@id"), "| parameter:", m.get("parameter"),
-                  "| period:", m.get("period"), "| valueType:", m.get("valueType"),
-                  "| latestReading time:", (m.get("latestReading") or {}).get("dateTime")
-                  if isinstance(m.get("latestReading"), dict) else m.get("latestReading"))
-    except Exception as e:
-        print("EA station record fetch failed:", e)
-
     if guid:
+        try:
+            r = requests.get(f"{HYDRO_BASE}/id/stations/{guid}.json", timeout=30)
+            print(f"Station detail (by guid) HTTP {r.status_code}")
+            r.raise_for_status()
+            items = r.json().get("items", [])
+            item = items[0] if isinstance(items, list) else items
+            print("EA station record label:", item.get("label"))
+            measures = item.get("measures", [])
+            if isinstance(measures, dict):
+                measures = [measures]
+            print(f"EA lists {len(measures)} measure(s):")
+            for m in measures:
+                lr = m.get("latestReading")
+                lr_time = lr.get("dateTime") if isinstance(lr, dict) else lr
+                print("  -", m.get("@id"))
+                print("      parameter:", m.get("parameter"), "| period(s):", m.get("period"),
+                      "| valueType:", m.get("valueType"), "| latestReading:", lr_time)
+        except Exception as e:
+            print("Station detail fetch failed:", e)
+
         for suffix in ["rainfall-t-900-mm-qualified", "rainfall-t-900-mm-unqualified"]:
-            measure_url = f"{HYDRO_BASE}/id/measures/{guid}-{suffix}"
-            try:
-                r = requests.get(f"{measure_url}/readings.json",
-                                  params={"_sorted": "", "_limit": 5}, timeout=30)
-                print(f"\n{suffix}: HTTP {r.status_code}")
-                if r.ok:
-                    items = r.json().get("items", [])
-                    print(f"  {len(items)} readings, latest few:")
-                    for it in items[:5]:
-                        print("   ", it.get("dateTime"), it.get("value"), it.get("quality"))
-            except Exception as e:
-                print(f"{suffix}: fetch failed:", e)
+            for date_str in (today_str, yest_str):
+                try:
+                    r = probe_measure(guid, suffix, date_str)
+                    n = 0
+                    if r.ok:
+                        n = len(r.json().get("items", []))
+                    print(f"{suffix} date={date_str}: HTTP {r.status_code}, {n} items")
+                except Exception as e:
+                    print(f"{suffix} date={date_str}: fetch failed: {e}")
+    else:
+        print("No guid on file for Wet Sleddale — can't probe measures")
 
     # ── Part 2: broader sweep ──────────────────────────────────────────────
     print("\n=== Broader sweep: EA stations missing from last 2 days of our readings ===")
-    now = datetime.now(timezone.utc)
     day_keys = [(now - timedelta(days=i)).strftime("%Y%m%d") for i in range(2)]
     day_data = {}
     for dk in day_keys:
@@ -95,7 +107,8 @@ def main():
     print(f"  {len(missing)} EA stations missing from BOTH days")
 
     sample = missing[:25]
-    print(f"\n  Probing EA directly for {len(sample)} of them...")
+    print(f"\n  Probing EA directly for {len(sample)} of them (today's date={today_str})...")
+    bug_candidates = 0
     for ref in sample:
         s = stations[ref]
         guid = s.get("guid")
@@ -104,22 +117,23 @@ def main():
             print(f"  {ref:10s} '{name}': no guid on file")
             continue
         try:
-            r = requests.get(
-                f"{HYDRO_BASE}/id/measures/{guid}-rainfall-t-900-mm-qualified/readings.json",
-                params={"_sorted": "", "_limit": 3}, timeout=20)
+            r = probe_measure(guid, "rainfall-t-900-mm-qualified", today_str)
             if r.status_code == 404:
-                print(f"  {ref:10s} '{name}': no 900s-qualified measure (404)")
+                print(f"  {ref:10s} '{name}': no 900s-qualified measure (404) -- genuinely not on this API")
                 continue
             r.raise_for_status()
             items = r.json().get("items", [])
             if items:
-                print(f"  {ref:10s} '{name}': EA HAS recent 900s data! latest={items[0].get('dateTime')} val={items[0].get('value')}  <-- BUG CANDIDATE")
+                bug_candidates += 1
+                print(f"  {ref:10s} '{name}': EA HAS {len(items)} readings today! latest={items[-1].get('dateTime')} val={items[-1].get('value')}  <-- BUG CANDIDATE")
             else:
-                print(f"  {ref:10s} '{name}': 900s measure exists but no recent items")
+                print(f"  {ref:10s} '{name}': measure exists, 0 readings today (consistent with offline gauge)")
         except Exception as e:
             print(f"  {ref:10s} '{name}': probe failed: {e}")
 
-    print("\nDone.")
+    print(f"\nBug candidates (EA has data we're missing): {bug_candidates} / {len(sample)} sampled")
+    print("Done.")
+
 
 if __name__ == "__main__":
     main()
