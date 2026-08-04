@@ -90,6 +90,25 @@ def main():
     else:
         print("No guid on file for Wet Sleddale — can't probe measures")
 
+    print("\n--- Searching EA Hydrology API for ALL stations labelled 'Wet Sleddale' ---")
+    try:
+        r = requests.get(f"{HYDRO_BASE}/id/stations.json",
+                          params={"label": "Wet Sleddale"}, timeout=30)
+        print(f"label search HTTP {r.status_code}")
+        if r.ok:
+            items = r.json().get("items", [])
+            print(f"  {len(items)} station(s) with label 'Wet Sleddale':")
+            for it in items:
+                print(f"    ref={it.get('stationReference')} guid={it.get('stationGuid')} "
+                      f"label={it.get('label')} lat={it.get('lat')} lon={it.get('long')}")
+                measures = it.get("measures", [])
+                if isinstance(measures, dict):
+                    measures = [measures]
+                for m in measures:
+                    print(f"      measure: {m.get('@id')} | parameter={m.get('parameter')} period={m.get('period')}")
+    except Exception as e:
+        print("label search failed:", e)
+
     # ── Part 2: broader sweep ──────────────────────────────────────────────
     print("\n=== Broader sweep: EA stations missing from last 2 days of our readings ===")
     day_keys = [(now - timedelta(days=i)).strftime("%Y%m%d") for i in range(2)]
