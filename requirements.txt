@@ -9,3 +9,9 @@ pyproj>=3.6.0
 openai>=1.0.0
 pandas>=2.2.0
 shapely>=2.0.0
+# Storms pipeline (fetch_storms.py): google-cloud-storage is the only GCS
+# writer in this repo, needed because storms.csv lives in the sibling
+# floodforecast project's GCS bucket, not R2 — see CLAUDE.md. pypdf reads the
+# Met Office storm report PDFs that feed the LLM summary.
+google-cloud-storage>=2.10.0
+pypdf>=4.0.0
