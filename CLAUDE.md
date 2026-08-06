@@ -90,6 +90,50 @@ script that writes to R2:
   Overall county risk often stays VL while all the action is in source cells,
   so change detection always scans every source, not just the selected view.
 
+## Named storm archive (`fetch_storms.py` / `storm_scraper.py` / `storm_summaries.py`)
+
+- Migrated here from the sibling **floodforecast** Flask app's
+  `/trigger-storm-update` route (now removed there) because this repo already
+  had the `OPENAI_API_KEY`/`OPENAI_MODEL` secret and the
+  workflow_dispatch-triggered-by-Google-Apps-Script convention the job needs —
+  floodforecast had neither. Triggered externally roughly every 12 hours via
+  the `storms_update.yml` workflow (`workflow_dispatch` only, no cron, same as
+  every other job here).
+- **This is the only script in the repo that writes to Google Cloud Storage**
+  rather than R2. `storms.csv` lives in floodforecast's own GCS bucket
+  (`grounded-chain-373213.appspot.com`) because its `/storms` page reads it
+  from there directly — moving the *scraper* here doesn't move the *data*.
+  `gcs_storms.py` is a minimal read/write helper for just this file, using env
+  var `GOOGLE_JSON_KEY_FLOODFORECAST` — the same GCP service-account JSON key
+  floodforecast's own `gcs_utils.py` already uses under that name, copied into
+  a radar secret rather than a new key. Env-var-only, no local-file/ADC
+  fallback (meaningless on a runner) — a missing secret fails loudly rather
+  than trying some other auth path.
+- `storm_scraper.py` (parses the Met Office Storm Centre — no API exists) and
+  `storm_summaries.py` (LLM summaries from the storm's report PDF and/or the
+  NSWWS warnings archive below) are verbatim ports from floodforecast's copies
+  of the same files. floodforecast keeps its own copies as a manual
+  dev-machine fallback — if you fix a parsing hazard here (the module
+  docstrings list several real ones already hit: `&nbsp;` reserved names,
+  non-ASCII names, cross-month date ranges, one PDF covering two storms), port
+  the fix to both.
+- `fetch_storms.py`'s `update_storms()` is a **merge, not an insert**: storm
+  information arrives gradually (name first, impact dates a day or two later,
+  a report PDF weeks later or never), so a field already in `storms.csv` is
+  never overwritten with a blank. Storms are keyed by name **and** season —
+  names repeat across seasons (Hannah in 2018-19 and 2025-26).
+- `_load_warnings_for_window()` reads Met Office warnings back from **this
+  repo's own public R2 CDN** (`warnings/archive/warnings_YYYYMMDD.json`) as
+  evidence for the LLM summary — a same-repo HTTP round trip rather than
+  reading local files, kept that way for parity with the floodforecast copy.
+  Surface obs are deliberately not used as wind evidence: `surface_obs`
+  archives 1-minute *mean* wind with no gust field, and quoting a mean as a
+  storm's peak gust would read as plainly wrong.
+- `python fetch_storms.py storms --dry-run` runs the full scrape/merge and
+  prints what would change without writing to GCS — there's no test bucket,
+  so this is the only safety net before a real write against the CSV
+  floodforecast.co.uk reads live.
+
 ## Gauge QC (`gauge_qc.py` / `gaugecheck.html`)
 
 - Results: `gaugecheck/results.json` (current run snapshot)

@@ -1,0 +1,92 @@
+name: Storms update
+
+# Migrated from the sibling floodforecast project's /trigger-storm-update
+# Flask route — see CLAUDE.md ("Named storm archive") for why this pipeline
+# lives here (OPENAI_API_KEY, OPENAI_MODEL and the workflow_dispatch-via-
+# Google-Apps-Script convention already existed in this repo; they didn't in
+# floodforecast). Triggered externally roughly every 12 hours, same pattern
+# as every other job in this repo — no schedule: cron here.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "storms | summaries | both"
+        required: false
+        default: "both"
+      prune:
+        description: "Also prune reserved-name rows (storms mode only)"
+        type: boolean
+        default: false
+      backfill_seasons:
+        description: "Space-separated past seasons to backfill, e.g. 2024-25 2023-24"
+        required: false
+        default: ""
+      force_names:
+        description: "Comma-separated storm names to force-regenerate summaries for"
+        required: false
+        default: ""
+      limit:
+        description: "Cap on number of summaries generated this run (blank = no cap)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Scrape/merge only, skip the GCS write"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  storms:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Two separate steps, not one combined call: a scrape failure (Storm
+      # Centre page unreachable/reworked) must not block the summary pass —
+      # a storm whose impact window closed shouldn't wait on that.
+      - name: Run storm scrape/merge
+        if: ${{ inputs.mode == 'storms' || inputs.mode == 'both' }}
+        env:
+          GOOGLE_JSON_KEY_FLOODFORECAST: ${{ secrets.GOOGLE_JSON_KEY_FLOODFORECAST }}
+        run: |
+          ARGS="storms"
+          [ "${{ inputs.prune }}" = "true" ] && ARGS="$ARGS --prune"
+          [ "${{ inputs.dry_run }}" = "true" ] && ARGS="$ARGS --dry-run"
+          if [ -n "${{ inputs.backfill_seasons }}" ]; then
+            ARGS="$ARGS --backfill ${{ inputs.backfill_seasons }}"
+          fi
+          python fetch_storms.py $ARGS
+
+      - name: Run storm summaries
+        if: ${{ inputs.mode == 'summaries' || inputs.mode == 'both' }}
+        env:
+          GOOGLE_JSON_KEY_FLOODFORECAST: ${{ secrets.GOOGLE_JSON_KEY_FLOODFORECAST }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+        run: |
+          ARGS="summaries"
+          [ -n "${{ inputs.force_names }}" ] && ARGS="$ARGS --force ${{ inputs.force_names }}"
+          [ -n "${{ inputs.limit }}" ] && ARGS="$ARGS --limit ${{ inputs.limit }}"
+          python fetch_storms.py $ARGS
+
+      - name: Report Job Status
+        if: always()
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          JOB_NAME: "Storms update"
+          JOB_STATUS: ${{ job.status }}
+        run: python report_job_status.py
