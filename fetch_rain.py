@@ -41,6 +41,8 @@ R2_PUBLIC_URL    = os.environ.get("R2_PUBLIC_BASE_URL", "").rstrip("/")
 USE_R2 = all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_KEY, R2_BUCKET, R2_PUBLIC_URL])
 
 RETENTION_DAYS  = 14
+BACKFILL_DAYS   = 5
+BACKFILL_INTERVAL_MIN = 55
 META_PATH       = "rain/meta.json"
 STATIONS_PATH   = "rain/stations.json"
 R2_READINGS_PFX = "rain/readings"
@@ -537,43 +539,57 @@ def main():
 
     # ── Load current meta ──────────────────────────────────────────────────────
     meta = load_local_json(META_PATH, {
-        "generated_at": "", "latest_time": "", "available_days": [], "r2_base_url": ""
+        "generated_at": "", "latest_time": "", "available_days": [], "last_backfill_at": "", "r2_base_url": ""
     })
 
-    # ── Fetch today's readings (and yesterday's if missing or degraded) ──────────
-    today_str     = now.strftime("%Y-%m-%d")
-    yesterday_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-    yesterday_key = (now - timedelta(days=1)).strftime("%Y%m%d")
+    # ── Fetch today's readings (plus a rolling backfill window) ──────────────────
+    today_str = now.strftime("%Y-%m-%d")
 
-    # EA does not publish every station's readings in real time — Wick St
-    # Lawrence (52223) was measured empirically to lag by upwards of two
-    # hours on some evenings, so a `date=yesterday` query made right at
-    # midnight can still be missing the tail of the day. A single catch-up
-    # poll at 00:00-00:30 only closes that gap if EA's lag that night happens
-    # to be under 30 minutes. Re-querying yesterday on every run for the
-    # first three hours of the new day gives EA up to 3 hours to publish the
-    # rest, comfortably past the worst lag observed; each extra run is one
-    # lightweight date-scoped request, not a per-station pull.
-    fetch_yesterday = False
-    if now.hour < 3:
-        fetch_yesterday = True
-    elif USE_R2:
-        r2_key_yest = f"{R2_READINGS_PFX}/{yesterday_key}.json"
-        existing_yest, yest_ok = r2_get_json(r2, r2_key_yest, None)
-        if yest_ok and (not existing_yest or len(existing_yest.get("readings", {})) < 100):
-            print(f"Yesterday's archive ({yesterday_key}) missing or degraded in R2 — triggering self-healing fetch.")
-            fetch_yesterday = True
+    # EA does not publish every station's readings in real time, and the lag
+    # isn't bounded to a few hours — Seathwaite Farm (592448) was observed
+    # missing its last ~9 hours of a day for two days running, confirmed
+    # fully published by EA only three days later. A single midnight-adjacent
+    # catch-up poll only closes the gap if that night's lag happens to be
+    # short; it isn't always. Re-fetching a rolling window of the last few
+    # days lets any station's readings self-heal whenever EA actually
+    # publishes them, however late. The bulk date-scoped endpoint is one
+    # lightweight request per day regardless of station count, and the
+    # station-keyed merge below is additive only (never deletes), so
+    # re-fetching an already-complete day is just a harmless no-op.
+    #
+    # Gated to roughly once an hour via meta.json's own last_backfill_at
+    # (persisted across runs — rain_update.yml commits meta.json back to the
+    # repo each run) rather than `now.minute < X`: this script is dispatched
+    # externally on a ~5-15 min cadence and `now` is read after checkout +
+    # pip install, so a fixed minute-of-hour window can drift past entirely
+    # and never fire. A wall-clock-since-last-run check can't miss that way.
+    last_backfill_at = meta.get("last_backfill_at", "")
+    run_backfill = True
+    if last_backfill_at:
+        try:
+            last_dt = datetime.strptime(last_backfill_at, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            run_backfill = (now - last_dt) >= timedelta(minutes=BACKFILL_INTERVAL_MIN)
+        except ValueError:
+            run_backfill = True
+    backfill_days = [(now - timedelta(days=n)).strftime("%Y-%m-%d") for n in range(1, BACKFILL_DAYS + 1)] if run_backfill else []
 
     try:
-        items = fetch_readings_for_date(today_str)
-        if fetch_yesterday:
-            print(f"  Fetching full archive readings for yesterday ({yesterday_str})...")
-            items += fetch_readings_for_date(yesterday_str)
+        by_date, latest_dt = parse_readings(fetch_readings_for_date(today_str), suid_to_ref)
+        for day_str in backfill_days:
+            print(f"  Backfill-checking readings for {day_str}...")
+            day_by_date, day_latest = parse_readings(fetch_readings_for_date(day_str), suid_to_ref)
+            for date_key, station_slots in day_by_date.items():
+                for sid, slots in station_slots.items():
+                    by_date.setdefault(date_key, {}).setdefault(sid, {}).update(slots)
+            if day_latest and (latest_dt is None or day_latest > latest_dt):
+                latest_dt = day_latest
+        if run_backfill:
+            meta["last_backfill_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     except Exception as e:
         print(f"Error fetching readings: {e}")
         sys.exit(1)
 
-    if not items:
+    if not by_date:
         print("No readings returned — updating generated_at only")
         meta["generated_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
         meta["r2_base_url"] = R2_PUBLIC_URL
@@ -581,8 +597,6 @@ def main():
         if USE_R2:
             r2_put_json(r2, "rain/meta.json", meta)
         return
-
-    by_date, latest_dt = parse_readings(items, suid_to_ref)
 
     # ── NRW readings (merged in before upload loop) ───────────────────────────
     if USE_NRW:
@@ -697,6 +711,7 @@ def main():
         "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "latest_time": latest_dt or meta.get("latest_time", ""),
         "available_days": sorted(available_days),
+        "last_backfill_at": meta.get("last_backfill_at", ""),
         "r2_base_url": R2_PUBLIC_URL,
     }
     write_local_json(META_PATH, meta)
