@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-10T18:56:00.000Z",
+  "generated_at": "2026-08-10T19:03:00.000Z",
   "runs": [
     {
       "run_ts": "20260810T1500Z",
@@ -168,24 +168,24 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_rate_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_rate_met.png"
           },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_accum_6h_met.png"
-          },
-          "splats": {
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_6h_50mm.png",
-            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_1h_10mm.png",
-            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_1h_30mm.png",
-            "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_3h_20mm.png",
-            "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_3h_30mm.png",
-            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_3h_40mm.png"
-          },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_accum_1h_met.png"
+          },
+          "splats": {
+            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_1h_10mm.png",
+            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_6h_50mm.png",
+            "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_3h_20mm.png",
+            "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_3h_30mm.png",
+            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_splat_3h_40mm.png"
+          },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0007H00M_accum_3h_norm.png",
@@ -202,24 +202,24 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_rate_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_rate_met.png"
           },
-          "accum_1h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_accum_1h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_accum_1h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_accum_1h_met.png"
-          },
-          "splats": {
-            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_1h_10mm.png",
-            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_1h_30mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_6h_50mm.png",
-            "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_3h_20mm.png",
-            "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_3h_30mm.png",
-            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_3h_40mm.png"
-          },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_accum_6h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_accum_6h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_accum_6h_met.png"
+          },
+          "splats": {
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_6h_50mm.png",
+            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_1h_10mm.png",
+            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_1h_30mm.png",
+            "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_3h_20mm.png",
+            "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_3h_30mm.png",
+            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_splat_3h_40mm.png"
+          },
+          "accum_1h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_accum_1h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_accum_1h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_accum_1h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0008H00M_accum_3h_norm.png",
@@ -236,29 +236,29 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_rate_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_rate_met.png"
           },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_accum_6h_met.png"
+          },
+          "splats": {
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_6h_50mm.png",
+            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_1h_10mm.png",
+            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_1h_30mm.png",
+            "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_3h_20mm.png",
+            "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_3h_30mm.png",
+            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_3h_40mm.png"
+          },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_accum_1h_met.png"
           },
-          "splats": {
-            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_1h_10mm.png",
-            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_1h_30mm.png",
-            "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_3h_20mm.png",
-            "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_3h_30mm.png",
-            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_3h_40mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_splat_6h_50mm.png"
-          },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_accum_3h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_accum_3h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_accum_3h_met.png"
-          },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0009H00M_accum_6h_met.png"
           }
         },
         {
@@ -304,24 +304,24 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_rate_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_rate_met.png"
           },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_accum_6h_met.png"
-          },
-          "splats": {
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_6h_50mm.png",
-            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_1h_10mm.png",
-            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_1h_30mm.png",
-            "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_3h_20mm.png",
-            "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_3h_30mm.png",
-            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_3h_40mm.png"
-          },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_accum_1h_met.png"
+          },
+          "splats": {
+            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_1h_10mm.png",
+            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_6h_50mm.png",
+            "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_3h_20mm.png",
+            "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_3h_30mm.png",
+            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_splat_3h_40mm.png"
+          },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0011H00M_accum_3h_norm.png",
@@ -345,23 +345,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_splat_12h_1mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_splat_6h_50mm.png",
             "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_splat_1h_10mm.png",
             "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_splat_3h_40mm.png"
-          },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_accum_6h_met.png"
           },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_accum_1h_met.png"
+          },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0012H00M_accum_3h_norm.png",
@@ -465,23 +465,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_splat_12h_1mm.png",
-            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_splat_1h_10mm.png",
-            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_splat_1h_30mm.png",
             "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_splat_6h_30mm.png",
             "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_splat_6h_50mm.png",
+            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_splat_1h_10mm.png",
+            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_splat_1h_30mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_splat_3h_40mm.png"
-          },
-          "accum_1h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_accum_1h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_accum_1h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_accum_1h_met.png"
           },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_accum_6h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_accum_6h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_accum_6h_met.png"
+          },
+          "accum_1h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_accum_1h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_accum_1h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_accum_1h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0015H00M_accum_3h_norm.png",
@@ -545,23 +545,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_splat_12h_1mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_splat_6h_50mm.png",
             "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_splat_1h_10mm.png",
             "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_splat_3h_40mm.png"
-          },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_accum_6h_met.png"
           },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_accum_1h_met.png"
+          },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0017H00M_accum_3h_norm.png",
@@ -585,23 +585,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_splat_12h_1mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_splat_6h_50mm.png",
             "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_splat_1h_10mm.png",
             "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_splat_3h_40mm.png"
-          },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_accum_6h_met.png"
           },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_accum_1h_met.png"
+          },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0018H00M_accum_3h_norm.png",
@@ -625,23 +625,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_splat_12h_1mm.png",
-            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_splat_1h_10mm.png",
-            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_splat_1h_30mm.png",
             "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_splat_6h_30mm.png",
             "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_splat_6h_50mm.png",
+            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_splat_1h_10mm.png",
+            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_splat_1h_30mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_splat_3h_40mm.png"
-          },
-          "accum_1h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_accum_1h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_accum_1h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_accum_1h_met.png"
           },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_accum_6h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_accum_6h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_accum_6h_met.png"
+          },
+          "accum_1h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_accum_1h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_accum_1h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_accum_1h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0019H00M_accum_3h_norm.png",
@@ -705,23 +705,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_splat_12h_1mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_splat_6h_50mm.png",
             "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_splat_1h_10mm.png",
             "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_splat_3h_40mm.png"
-          },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_accum_6h_met.png"
           },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_accum_1h_met.png"
+          },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0021H00M_accum_3h_norm.png",
@@ -823,25 +823,25 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_24h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_24h_met.png"
           },
-          "accum_1h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_1h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_1h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_1h_met.png"
+          "accum_12h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_12h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_12h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_12h_met.png"
           },
           "splats": {
+            "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_splat_12h_1mm.png",
             "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_splat_1h_10mm.png",
             "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_splat_1h_30mm.png",
-            "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_splat_12h_1mm.png",
             "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_splat_6h_30mm.png",
             "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_splat_3h_40mm.png"
           },
-          "accum_12h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_12h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_12h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_12h_met.png"
+          "accum_1h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_1h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_1h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_1h_met.png"
           },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0024H00M_accum_6h_norm.png",
@@ -875,23 +875,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_splat_12h_1mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_splat_6h_50mm.png",
             "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_splat_1h_10mm.png",
             "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_splat_3h_40mm.png"
-          },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_accum_6h_met.png"
           },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_accum_1h_met.png"
+          },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0025H00M_accum_3h_norm.png",
@@ -913,30 +913,30 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_24h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_24h_met.png"
           },
-          "accum_1h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_1h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_1h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_1h_met.png"
-          },
-          "splats": {
-            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_1h_10mm.png",
-            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_1h_30mm.png",
-            "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_12h_1mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_6h_50mm.png",
-            "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_3h_20mm.png",
-            "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_3h_30mm.png",
-            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_3h_40mm.png"
-          },
           "accum_12h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_12h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_12h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_12h_met.png"
           },
+          "splats": {
+            "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_12h_1mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_6h_50mm.png",
+            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_1h_10mm.png",
+            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_1h_30mm.png",
+            "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_3h_20mm.png",
+            "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_3h_30mm.png",
+            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_splat_3h_40mm.png"
+          },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_6h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_6h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_6h_met.png"
+          },
+          "accum_1h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_1h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_1h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_1h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0026H00M_accum_3h_norm.png",
@@ -1012,26 +1012,26 @@
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_splat_12h_1mm.png",
             "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_splat_1h_10mm.png",
             "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_splat_3h_30mm.png",
-            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_splat_3h_40mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_splat_6h_50mm.png"
+            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_splat_3h_40mm.png"
           },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_accum_1h_met.png"
           },
-          "accum_3h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_accum_3h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_accum_3h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_accum_6h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_accum_6h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_accum_3h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_accum_3h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0028H00M_accum_3h_met.png"
           }
         },
         {
@@ -1100,23 +1100,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_splat_12h_1mm.png",
-            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_splat_1h_10mm.png",
-            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_splat_1h_30mm.png",
             "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_splat_6h_30mm.png",
             "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_splat_6h_50mm.png",
+            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_splat_1h_10mm.png",
+            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_splat_1h_30mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_splat_3h_40mm.png"
-          },
-          "accum_1h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_accum_1h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_accum_1h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_accum_1h_met.png"
           },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_accum_6h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_accum_6h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_accum_6h_met.png"
+          },
+          "accum_1h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_accum_1h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_accum_1h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_accum_1h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0030H00M_accum_3h_norm.png",
@@ -1145,23 +1145,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_splat_12h_1mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_splat_6h_50mm.png",
             "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_splat_1h_10mm.png",
             "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_splat_3h_40mm.png"
-          },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_accum_6h_met.png"
           },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_accum_1h_met.png"
+          },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0031H00M_accum_3h_norm.png",
@@ -1235,23 +1235,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_splat_12h_1mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_splat_6h_50mm.png",
             "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_splat_1h_10mm.png",
             "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_splat_3h_40mm.png"
-          },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_accum_6h_met.png"
           },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_accum_1h_met.png"
+          },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0033H00M_accum_3h_norm.png",
@@ -1415,23 +1415,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_splat_12h_1mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_splat_6h_50mm.png",
             "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_splat_1h_10mm.png",
             "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_splat_3h_40mm.png"
-          },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_accum_6h_met.png"
           },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_accum_1h_met.png"
+          },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0037H00M_accum_3h_norm.png",
@@ -1640,13 +1640,18 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_splat_12h_1mm.png",
+            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_splat_1h_10mm.png",
+            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_splat_1h_30mm.png",
             "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_splat_6h_30mm.png",
             "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_splat_3h_30mm.png",
-            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_splat_3h_40mm.png",
-            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_splat_1h_10mm.png",
-            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_splat_1h_30mm.png"
+            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_splat_3h_40mm.png"
+          },
+          "accum_1h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_accum_1h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_accum_1h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_accum_1h_met.png"
           },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_accum_6h_norm.png",
@@ -1657,11 +1662,6 @@
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_accum_3h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_accum_3h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_accum_3h_met.png"
-          },
-          "accum_1h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_accum_1h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_accum_1h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0042H00M_accum_1h_met.png"
           }
         },
         {
@@ -1730,23 +1730,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_splat_12h_1mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_splat_6h_50mm.png",
             "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_splat_1h_10mm.png",
             "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_splat_3h_40mm.png"
-          },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_accum_6h_met.png"
           },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_accum_1h_met.png"
+          },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0044H00M_accum_3h_norm.png",
@@ -1768,17 +1768,17 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_24h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_24h_met.png"
           },
-          "accum_12h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_12h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_12h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_12h_met.png"
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_6h_met.png"
           },
           "splats": {
-            "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_splat_12h_1mm.png",
-            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_splat_1h_10mm.png",
-            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_splat_1h_30mm.png",
             "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_splat_6h_30mm.png",
             "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_splat_6h_50mm.png",
+            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_splat_1h_10mm.png",
+            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_splat_1h_30mm.png",
+            "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_splat_12h_1mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_splat_3h_40mm.png"
@@ -1788,10 +1788,10 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_1h_met.png"
           },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_6h_met.png"
+          "accum_12h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_12h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_12h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_12h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0045H00M_accum_3h_norm.png",
@@ -1820,23 +1820,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_splat_12h_1mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_splat_6h_50mm.png",
             "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_splat_1h_10mm.png",
             "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_splat_3h_40mm.png"
-          },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_accum_6h_met.png"
           },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_accum_1h_met.png"
+          },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0046H00M_accum_3h_norm.png",
@@ -1865,23 +1865,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_splat_12h_1mm.png",
-            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_splat_1h_10mm.png",
-            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_splat_1h_30mm.png",
             "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_splat_6h_30mm.png",
             "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_splat_6h_50mm.png",
+            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_splat_1h_10mm.png",
+            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_splat_1h_30mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_splat_3h_40mm.png"
-          },
-          "accum_1h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_accum_1h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_accum_1h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_accum_1h_met.png"
           },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_accum_6h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_accum_6h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_accum_6h_met.png"
+          },
+          "accum_1h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_accum_1h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_accum_1h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_accum_1h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0047H00M_accum_3h_norm.png",
@@ -1898,15 +1898,15 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0048H00M_rate_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0048H00M_rate_met.png"
           },
-          "accum_24h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0048H00M_accum_24h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0048H00M_accum_24h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0048H00M_accum_24h_met.png"
-          },
           "accum_48h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0048H00M_accum_48h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0048H00M_accum_48h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0048H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0048H00M_accum_24h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0048H00M_accum_24h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0048H00M_accum_24h_met.png"
           },
           "accum_12h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0048H00M_accum_12h_norm.png",
@@ -1965,23 +1965,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_splat_12h_1mm.png",
-            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_splat_1h_10mm.png",
-            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_splat_1h_30mm.png",
             "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_splat_6h_30mm.png",
             "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_splat_6h_50mm.png",
+            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_splat_1h_10mm.png",
+            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_splat_1h_30mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_splat_3h_40mm.png"
-          },
-          "accum_1h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_accum_1h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_accum_1h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_accum_1h_met.png"
           },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_accum_6h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_accum_6h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_accum_6h_met.png"
+          },
+          "accum_1h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_accum_1h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_accum_1h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_accum_1h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0049H00M_accum_3h_norm.png",
@@ -1998,15 +1998,15 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0050H00M_rate_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0050H00M_rate_met.png"
           },
-          "accum_48h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0050H00M_accum_48h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0050H00M_accum_48h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0050H00M_accum_48h_met.png"
-          },
           "accum_24h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0050H00M_accum_24h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0050H00M_accum_24h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0050H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0050H00M_accum_48h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0050H00M_accum_48h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0050H00M_accum_48h_met.png"
           },
           "accum_12h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0050H00M_accum_12h_norm.png",
@@ -2065,23 +2065,23 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_splat_12h_1mm.png",
-            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_splat_1h_10mm.png",
-            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_splat_1h_30mm.png",
             "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_splat_6h_30mm.png",
             "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_splat_6h_50mm.png",
+            "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_splat_1h_10mm.png",
+            "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_splat_1h_30mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_splat_3h_40mm.png"
-          },
-          "accum_1h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_accum_1h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_accum_1h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_accum_1h_met.png"
           },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_accum_6h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_accum_6h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_accum_6h_met.png"
+          },
+          "accum_1h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_accum_1h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_accum_1h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_accum_1h_met.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0051H00M_accum_3h_norm.png",
@@ -2098,15 +2098,15 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0052H00M_rate_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0052H00M_rate_met.png"
           },
-          "accum_24h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0052H00M_accum_24h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0052H00M_accum_24h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0052H00M_accum_24h_met.png"
-          },
           "accum_48h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0052H00M_accum_48h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0052H00M_accum_48h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0052H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0052H00M_accum_24h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0052H00M_accum_24h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0052H00M_accum_24h_met.png"
           },
           "accum_12h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0052H00M_accum_12h_norm.png",
@@ -2148,15 +2148,15 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_rate_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_rate_met.png"
           },
-          "accum_48h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_48h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_48h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_48h_met.png"
-          },
           "accum_24h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_24h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_24h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_48h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_48h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_48h_met.png"
           },
           "accum_12h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_12h_norm.png",
@@ -2167,26 +2167,26 @@
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_splat_12h_1mm.png",
             "1h_10mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_splat_1h_10mm.png",
             "1h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_splat_1h_30mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_splat_3h_30mm.png",
-            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_splat_3h_40mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_splat_6h_50mm.png"
+            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_splat_3h_40mm.png"
           },
           "accum_1h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_1h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_1h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_1h_met.png"
           },
-          "accum_3h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_3h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_3h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_6h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_6h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_3h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_3h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0053H00M_accum_3h_met.png"
           }
         },
         {
@@ -2248,15 +2248,15 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0057H00M_rate_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0057H00M_rate_met.png"
           },
-          "accum_24h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0057H00M_accum_24h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0057H00M_accum_24h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0057H00M_accum_24h_met.png"
-          },
           "accum_48h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0057H00M_accum_48h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0057H00M_accum_48h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0057H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0057H00M_accum_24h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0057H00M_accum_24h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0057H00M_accum_24h_met.png"
           },
           "accum_12h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0057H00M_accum_12h_norm.png",
@@ -2292,15 +2292,15 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0060H00M_rate_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0060H00M_rate_met.png"
           },
-          "accum_24h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0060H00M_accum_24h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0060H00M_accum_24h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0060H00M_accum_24h_met.png"
-          },
           "accum_48h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0060H00M_accum_48h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0060H00M_accum_48h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0060H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0060H00M_accum_24h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0060H00M_accum_24h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0060H00M_accum_24h_met.png"
           },
           "accum_12h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0060H00M_accum_12h_norm.png",
@@ -2353,21 +2353,21 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_splat_12h_1mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_splat_3h_30mm.png",
-            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_splat_3h_40mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_splat_6h_50mm.png"
-          },
-          "accum_3h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_accum_3h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_accum_3h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_accum_3h_met.png"
+            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_splat_3h_40mm.png"
           },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_accum_6h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_accum_6h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_accum_3h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_accum_3h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0063H00M_accum_3h_met.png"
           },
           "accum_estimated": true
         },
@@ -2441,21 +2441,21 @@
           },
           "splats": {
             "12h_1mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_splat_12h_1mm.png",
-            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_splat_6h_30mm.png",
-            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_splat_6h_50mm.png",
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_splat_3h_30mm.png",
-            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_splat_3h_40mm.png"
-          },
-          "accum_6h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_accum_6h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_accum_6h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_accum_6h_met.png"
+            "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_splat_3h_40mm.png",
+            "6h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_splat_6h_30mm.png",
+            "6h_50mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_splat_6h_50mm.png"
           },
           "accum_3h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_accum_3h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_accum_3h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_accum_6h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_accum_6h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0069H00M_accum_6h_met.png"
           },
           "accum_estimated": true
         },
@@ -2561,11 +2561,6 @@
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_accum_48h_high.png",
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_accum_48h_met.png"
           },
-          "accum_24h": {
-            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_accum_24h_norm.png",
-            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_accum_24h_high.png",
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_accum_24h_met.png"
-          },
           "accum_12h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_accum_12h_norm.png",
             "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_accum_12h_high.png",
@@ -2578,6 +2573,11 @@
             "3h_20mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_splat_3h_20mm.png",
             "3h_30mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_splat_3h_30mm.png",
             "3h_40mm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_splat_3h_40mm.png"
+          },
+          "accum_24h": {
+            "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_accum_24h_norm.png",
+            "high": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_accum_24h_high.png",
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_accum_24h_met.png"
           },
           "accum_6h": {
             "norm": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ukv/20260810T1500Z/PT0078H00M_accum_6h_norm.png",
