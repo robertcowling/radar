@@ -41,6 +41,44 @@ script that writes to R2:
   those are genuinely new objects each run, so reducing them means
   reducing schemes/thresholds/durations (a product decision, not plumbing).
 
+## Freshness timestamps are a public API (floodforecast consumer contract)
+
+The sibling **floodforecast** Flask app reads the timestamp fields out of the
+manifests this repo publishes and uses them to tell users, on the page,
+whether what they are looking at is current. That makes these fields a
+consumer contract rather than an internal detail. Nothing here needs a UI
+change in this repo; it needs the fields to keep behaving.
+
+| Object | Field floodforecast grades |
+|---|---|
+| `frames_parallel.json` | `time` on the last element (`Wed 12 Aug 2026 16:30 UTC`) |
+| `rain/meta.json` | `latest_time` |
+| `warnings/warnings_latest.json` | `generated_at` |
+| `ea/floods/current.json`, `nrw/floods/current.json` | `generated_at` |
+| `accum_multi_meta.json` | `generated_at` |
+| `mslp_meta.json` | `generated_at` |
+| `ukv_meta.json` | `runs[0].run_ts` |
+
+Three things to keep in mind when changing any of them:
+
+- **Renaming or dropping one of these fields silently breaks a user-facing
+  warning.** It does not fail loudly — floodforecast just stops being able to
+  tell users their data is stale, which is the exact failure the feature
+  exists to prevent. Treat them as public API.
+- **A cadence change needs a matching threshold change in floodforecast**,
+  because thresholds are 3× cadence for "late" and 6× for "very late". The
+  live example is the Met Office warnings move from 30 to 10 minutes: that
+  takes "late" from 90 minutes down to 30. Changing the schedule without
+  telling the consumer leaves it either crying wolf or asleep.
+- **`mslp_meta.json` and `ukv_meta.json` frames run into the future** — they
+  are forecast series, so the newest frame's `valid_time` is *ahead* of now
+  (MSLP was +324 minutes ahead of its own `generated_at` when this was
+  written). A consumer must never treat newest-frame time as data age; it
+  would read as permanently fresh no matter how long the pipeline had been
+  dead. `mslp_meta.json` also carries **no run timestamp at all** — only
+  `generated_at` and per-frame `valid_time` — so if run-age grading is ever
+  wanted for MSLP, this repo has to publish a run field first.
+
 ## UKV forecast fetch (`fetch_ukv.py`)
 
 - Met Office publishes UKV runs **hourly**, but only the 3-hourly synoptic
