@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <title>UK Radar on OpenStreetMap</title>
@@ -7,6 +7,8 @@
     <link rel="icon" type="image/png" href="favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Google Fonts: Roboto -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -541,7 +543,7 @@
         <div id="infoContentTop" class="hide-collapsed">
             <h3 style="margin-top:0;">Rainfall Radar</h3>
             <div class="time-box">
-                <p style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: 700; color: #1a73e8; letter-spacing: 0.5px;">Time (UTC)</p>
+                <p style="margin: 0; font-size: 11px; font-weight: 700; color: #1a73e8; letter-spacing: 0.5px;">Time (UTC)</p>
                 <div id="timeDisplay" style="font-size: 22px; font-weight: 700; color: #202124; margin-top: 4px;">Loading...</div>
             </div>
         </div>
@@ -567,7 +569,7 @@
                 </label>
             </div>
 
-            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; text-transform: uppercase; letter-spacing: 0.5px;">Satellite</p>
+            <p style="margin: 14px 0 6px; font-size: 11px; font-weight: 700; color: #3c4043; letter-spacing: 0.5px;">Satellite</p>
             <div style="margin-bottom: 24px;">
                 <label class="custom-checkbox" style="margin-bottom: 4px;">
                     <input type="radio" name="satLayer" value="none" checked onchange="onSatLayerChange('none')">
