@@ -131,12 +131,17 @@ Three things to keep in mind when changing any of them:
 ## Named storm archive (`fetch_storms.py` / `storm_scraper.py` / `storm_summaries.py`)
 
 - Migrated here from the sibling **floodforecast** Flask app's
-  `/trigger-storm-update` route (now removed there) because this repo already
+  `/trigger-storm-update` route because this repo already
   had the `OPENAI_API_KEY`/`OPENAI_MODEL` secret and the
   workflow_dispatch-triggered-by-Google-Apps-Script convention the job needs —
   floodforecast had neither. Triggered externally roughly every 12 hours via
   the `storms_update.yml` workflow (`workflow_dispatch` only, no cron, same as
-  every other job here).
+  every other job here). floodforecast's `/trigger-storm-update` route still
+  exists and still works — it was *not* removed when the scheduled job moved
+  here, and an earlier version of this note wrongly said it had been. Treat
+  this repo as the scheduled runner and that route as a manual fallback; just
+  don't point a scheduler at both, or two writers race on the same
+  `storms.csv`.
 - **This is the only script in the repo that writes to Google Cloud Storage**
   rather than R2. `storms.csv` lives in floodforecast's own GCS bucket
   (`grounded-chain-373213.appspot.com`) because its `/storms` page reads it
