@@ -128,7 +128,7 @@ def load_day_file(r2, date_key, cache):
     return cache[date_key]
 
 
-EXPECTED_SLOTS_24H = 96  # one 15-min reading every slot across 24h
+EXPECTED_SLOTS_24H = 96  # one 15-min reading every slot across 24h (EA/NRW)
 
 
 def compute_rolling_totals(stations, r2, now, day_cache):
@@ -140,6 +140,16 @@ def compute_rolling_totals(stations, r2, now, day_cache):
     complete since nothing ever populated this field."""
     totals = {sid: {k: 0.0 for k in list(WINDOWS_HOURS) + ["last7d", "last14d"]} for sid in stations}
     slot_counts_24h = {sid: 0 for sid in stations}
+    # SEPA gauges report hourly, not every 15 minutes (see fetch_rain.py's
+    # `source` field and rain/index.html's detectCadence()) — a
+    # fully-reporting SEPA station only ever fills 24 of the 96 slots
+    # EXPECTED_SLOTS_24H assumes, so completeness read ~0.25 for every SEPA
+    # gauge regardless of actual data quality, which permanently failed
+    # rain/table.html's default "Max 10% gaps" (90%) filter for the entire
+    # network. Same bug make_gauge_bias.py had (fixed 2026-07, same
+    # `cadence_divisor` naming) — no shared cadence-detection utility exists
+    # yet, so each pipeline still scales for it independently.
+    cadence_divisor = {sid: (4 if stations.get(sid, {}).get("source") == "sepa" else 1) for sid in stations}
     cutoffs = {k: now - timedelta(hours=h) for k, h in WINDOWS_HOURS.items()}
     cutoffs["last7d"] = now - timedelta(days=WINDOW_7D_DAYS)
     cutoffs["last14d"] = now - timedelta(days=WINDOW_14D_DAYS)
@@ -172,7 +182,8 @@ def compute_rolling_totals(stations, r2, now, day_cache):
     for sid, t in totals.items():
         for key in t:
             t[key] = round(t[key], 2)
-        t["completeness"] = round(min(1.0, slot_counts_24h[sid] / EXPECTED_SLOTS_24H), 3)
+        expected = EXPECTED_SLOTS_24H / cadence_divisor[sid]
+        t["completeness"] = round(min(1.0, slot_counts_24h[sid] / expected), 3)
     return totals
 
 
