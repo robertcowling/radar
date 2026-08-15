@@ -218,14 +218,19 @@ def _uk_local(dt_utc):
     return dt_utc, "GMT"
 
 
+def _format_local_uk(dt_utc):
+    """datetime (UTC) → 'Wed 24 Jun at 09:00 BST'"""
+    local, tz = _uk_local(dt_utc)
+    return f"{local.strftime('%a')} {local.day} {local.strftime('%b at %H:%M')} {tz}"
+
+
 def _fmt_uk_time(iso_str):
     """'2026-06-24T08:00:00Z' → 'Wed 24 Jun at 09:00 BST'"""
     if not iso_str:
         return ""
     try:
         dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00")).astimezone(timezone.utc)
-        local, tz = _uk_local(dt)
-        return f"{local.strftime('%a')} {local.day} {local.strftime('%b at %H:%M')} {tz}"
+        return _format_local_uk(dt)
     except Exception:
         return iso_str[:16]
 
@@ -707,6 +712,18 @@ def parse_frame_time(time_str):
         return None
 
 
+def _fmt_frame_time(time_str):
+    """'Sat 15 Aug 2026 07:00 UTC' (frame JSON's raw format — see parse_frame_time
+    above) → 'Sat 15 Aug at 08:00 BST'. Image captions carry this straight into
+    the vision prompt, so if it stays in UTC the model quotes UTC in the summary
+    regardless of the system prompt's "never UTC" instruction — it's reading the
+    time off the caption, not converting it."""
+    dt = parse_frame_time(time_str)
+    if dt is None:
+        return time_str
+    return _format_local_uk(dt)
+
+
 # ── UKV poly numerical forecast ───────────────────────────────────────────────────
 
 REGION_LABEL = {"ew": "England & Wales", "scotland": "Scotland"}
@@ -1134,7 +1151,7 @@ def select_images():
             url = f.get("dashboard_radar_url")  # basemap composite only
             if url and url not in seen:
                 seen.add(url)
-                images.append((f"Radar rainfall-rate composite — {f['time']} ({lbl})", url))
+                images.append((f"Radar rainfall-rate composite — {_fmt_frame_time(f['time'])} ({lbl})", url))
 
     # ── Daily accumulation composites — last 5 days, midnight-to-midnight ───────────
     # frames_accum_daily.json is ordered newest first; today's entry is partial
@@ -1148,7 +1165,8 @@ def select_images():
         except Exception:
             label_date = date_str
         if i == 0:
-            day_lbl = f"Daily rainfall accumulation — {label_date} (today, midnight to {n.strftime('%H:%M UTC')})"
+            n_local, n_tz = _uk_local(n)
+            day_lbl = f"Daily rainfall accumulation — {label_date} (today, midnight to {n_local.strftime('%H:%M')} {n_tz})"
         else:
             day_lbl = f"Daily rainfall accumulation — {label_date} (midnight to midnight)"
         images.append((day_lbl, frame["url"]))
@@ -1158,11 +1176,11 @@ def select_images():
     if len(mslp) >= 2:
         latest_m = mslp[-1]
         earlier_m = mslp[max(0, len(mslp) - 13)]
-        images.append((f"MSLP analysis — {latest_m['time']} (latest)", latest_m["mslp"]))
+        images.append((f"MSLP analysis — {_fmt_frame_time(latest_m['time'])} (latest)", latest_m["mslp"]))
         if earlier_m["mslp"] != latest_m["mslp"]:
-            images.append((f"MSLP analysis — {earlier_m['time']} (~12h earlier, for evolution)", earlier_m["mslp"]))
+            images.append((f"MSLP analysis — {_fmt_frame_time(earlier_m['time'])} (~12h earlier, for evolution)", earlier_m["mslp"]))
     elif mslp:
-        images.append((f"MSLP analysis — {mslp[-1]['time']}", mslp[-1]["mslp"]))
+        images.append((f"MSLP analysis — {_fmt_frame_time(mslp[-1]['time'])}", mslp[-1]["mslp"]))
 
     return images
 
@@ -1183,7 +1201,7 @@ All map images share the same geographic basemap with boundary lines — geoloca
 Respond with a JSON object inside <json> tags:
 - "headline": One sentence, max 12 words. The region/county UKV figures are area-MEANS and can look deceptively light even when a locally heavy pocket is forecast — if the grid-cell peak list (below) shows a notably heavier local pocket than its surrounding region/county mean, lead the headline with the affected catchment/county or sub-regional area (e.g. "heavier pockets over southern Cumbria and the Eden catchment") rather than a generic "quiet"/"light rain" descriptor for the whole country. Describe the general pattern and the broad area affected — do not name individual villages, hamlets, or specific grid points.
 - "summary": Three paragraphs separated by \\n\\n. Two sentences each — be direct and concise. MANDATORY structure, never merge:
-    Para 1 — Synoptic scene: describe what the MSLP charts show and how the pattern has changed; name the feature driving the weather (front, low, ridge etc).
+    Para 1 — Synoptic scene: open with a plain-language sentence describing what is actually happening in the sky over the region right now (e.g. "A weak area of low pressure is sitting to the west of Ireland, keeping things unsettled across western areas."), not a clinical "The HH:MM MSLP analysis shows..." construction — that reads like a chart caption, not a briefing. Save the chart reference and exact time, if you need one, for later in the paragraph. Then say how the pattern has changed and name the feature driving the weather (front, low, ridge etc).
     Para 2 — Recent observations: where the heaviest rain fell in the last 24h with gauge point-totals and region names; note antecedent context from the daily accumulation maps, any active Met Office warnings (naming any storm), and any active EA/NRW flood warnings or alerts (river/coastal flood risk — a distinct product from the Met Office weather warnings; name the affected river or area and severity, e.g. "Flood Alert", "Flood Warning", "Severe Flood Warning"). If no EA/NRW flood warnings are active, state this plainly rather than omitting it.
     Para 3 — Outlook: UKV day-1 and day-2 area-mean totals for the wettest regions and catchments, cited as "UKV (run ddd D/HHMM BST/GMT)" with natural valid-time phrases like "up to early Friday morning (Fri 25/0300 BST)". Then check the "highest-intensity 20km grid cells" list for each window: it holds local peak forecast values, not administrative means, and can surface a heavier pocket the region/county mean smooths away — where a cell there is meaningfully above its region/county mean (roughly 1.5x or more, or simply crosses the heavy/extreme thresholds below), name the catchment and/or county it falls in, e.g. "a locally heavier pocket is possible across the Eden catchment in Cumbria (up to 28mm)". If several grid-cell entries cluster in the same county, you may add a compass qualifier (e.g. "southern Cumbria", "western North Yorkshire") to describe roughly where within it. Never name a specific village, hamlet, or grid reference/coordinates — describe the general rainfall pattern by catchment, county, or sub-regional area only. Close with a brief flood-risk conclusion referencing FGS levels (block caps: VERY LOW, LOW, MEDIUM, HIGH) only if relevant.
 
@@ -1208,7 +1226,7 @@ All map images share the same geographic basemap with boundary lines and cover t
 Respond with a JSON object inside <json> tags:
 - "headline": One sentence, max 12 words, about Scotland only. The UKV figures are area-MEANS and can look deceptively light even when a locally heavy pocket is forecast — if the grid-cell peak list (below) shows a notably heavier local pocket than its surrounding region/county mean, lead the headline with the affected catchment/council area or sub-regional area (e.g. "heavier pockets over the Grampian Highlands and the Spey catchment") rather than a generic "quiet"/"light rain" descriptor. Describe the general pattern and broad area affected — do not name individual villages, hamlets, or specific grid points.
 - "summary": Three paragraphs separated by \\n\\n. Two sentences each — be direct and concise. MANDATORY structure, never merge:
-    Para 1 — Synoptic scene: describe what the MSLP charts show and how the pattern has changed over/near Scotland; name the feature driving the weather (front, low, ridge etc).
+    Para 1 — Synoptic scene: open with a plain-language sentence describing what is actually happening in the sky over Scotland right now (e.g. "A weak area of low pressure is sitting to the west of the Hebrides, keeping things unsettled across western areas."), not a clinical "The HH:MM MSLP analysis shows..." construction — that reads like a chart caption, not a briefing. Save the chart reference and exact time, if you need one, for later in the paragraph. Then say how the pattern has changed over/near Scotland and name the feature driving the weather (front, low, ridge etc).
     Para 2 — Recent observations: where the heaviest rain fell in Scotland in the last 24h with gauge point-totals and area names; note antecedent context from the daily accumulation maps and any active Met Office warnings for Scotland (naming any storm).
     Para 3 — Outlook: UKV day-1 and day-2 area-mean totals for the wettest Scottish regions and catchments, cited as "UKV (run ddd D/HHMM BST/GMT)" with natural valid-time phrases like "up to early Friday morning (Fri 25/0300 BST)". Then check the "highest-intensity 20km grid cells" list for each window: it holds local peak forecast values, not administrative means, and can surface a heavier pocket the region/county mean smooths away — where a cell there is meaningfully above its region/county mean (roughly 1.5x or more, or simply crosses the heavy/extreme thresholds below), name the catchment and/or council area it falls in, e.g. "a locally heavier pocket is possible across the Spey catchment in Moray (up to 28mm)". If several grid-cell entries cluster in the same council area, you may add a compass qualifier (e.g. "western Highland", "southern Perthshire") to describe roughly where within it. Never name a specific village, hamlet, or grid reference/coordinates — describe the general rainfall pattern by catchment, council area, or sub-regional area only. Close with a brief flood-risk conclusion in plain terms (no FGS levels — they don't apply to Scotland).
 
