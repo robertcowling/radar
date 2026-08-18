@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- SEO -->
+<title>ECMWF Deterministic Rainfall Forecast | Flood Forecast</title>
+<meta name="description" content="Explore the ECMWF HRES deterministic rainfall forecast on an interactive map. View forecast accumulations and rain rates out to 10 days ahead across the UK and near Europe.">
+<meta name="keywords" content="ECMWF forecast, ECMWF HRES, IFS deterministic, rainfall forecast, weather model, UK forecast rainfall, flood forecast">
+<meta name="author" content="Flood Forecast">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://floodforecast.co.uk/ecmwf">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://floodforecast.co.uk/ecmwf">
+<meta property="og:title" content="ECMWF Deterministic Rainfall Forecast | Flood Forecast">
+<meta property="og:description" content="Interactive ECMWF HRES deterministic rainfall forecast map, out to 10 days ahead across the UK and near Europe.">
+<meta property="og:image" content="https://floodforecast.co.uk/static/images/og_image.png">
+<meta property="og:site_name" content="Flood Forecast">
+<meta property="og:locale" content="en_GB">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ECMWF Deterministic Rainfall Forecast | Flood Forecast">
+<meta name="twitter:description" content="Interactive ECMWF HRES deterministic rainfall forecast map, out to 10 days ahead across the UK and near Europe.">
+<meta name="twitter:image" content="https://floodforecast.co.uk/static/images/og_image.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="https://floodforecast.co.uk/static/images/avatar.png">
+
+<!-- JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "ECMWF Deterministic Rainfall Forecast | Flood Forecast",
+  "url": "https://floodforecast.co.uk/ecmwf",
+  "description": "Interactive ECMWF HRES deterministic rainfall forecast map, out to 10 days ahead across the UK and near Europe.",
+  "isPartOf": { "@type": "WebSite", "url": "https://floodforecast.co.uk" },
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Flood Forecast", "item": "https://floodforecast.co.uk" },
+      { "@type": "ListItem", "position": 2, "name": "ECMWF Deterministic Rainfall Forecast", "item": "https://floodforecast.co.uk/ecmwf" }
+    ]
+  }
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+  body { padding: 0; margin: 0; font-family: 'Roboto', sans-serif; background: #f8f9fa; color: #3c4043; overflow: hidden; }
+  #map { width: 100vw; height: 100vh; }
+
+  .surface {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+    transition: box-shadow 0.3s ease;
+  }
+  .surface:hover {
+    box-shadow: 0 12px 32px rgba(0,0,0,0.16), 0 4px 10px rgba(0,0,0,0.1);
+  }
+
+  /* ── Info panel ─────────────────────────────────────────────────────────── */
+  .info-panel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 24px;
+    z-index: 1000;
+    width: 380px;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    transform-origin: top right;
+  }
+
+  .info-panel.collapsed {
+    width: 380px;
+    height: auto;
+    padding: 0;
+    overflow: hidden;
+  }
+  .info-panel.collapsed .collapsed-top-row {
+    background: #1e293b;
+    padding: 9px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .info-panel.collapsed .cbar-container {
+    padding: 6px 24px 8px;
+  }
+  .info-panel.collapsed .cbar-container p { font-size: 9px; font-weight: 600; color: #475569; margin-bottom: 3px; }
+  .info-panel.collapsed .cbar { height: 6px; border-radius: 3px; }
+  .info-panel.collapsed .hide-collapsed { display: none !important; }
+
+  .collapsed-top-row { display: none; }
+  .info-panel.collapsed .collapsed-top-row { display: flex; }
+  .info-panel:not(.collapsed) .collapsed-top-row { display: none; }
+
+  .collapsed-title { font-size: 10px; font-weight: 600; color: #f1f5f9; letter-spacing: 0.2px; }
+  .chip-open-btn {
+    background: transparent; border: none; cursor: pointer; padding: 0;
+    display: flex; align-items: center; color: #94a3b8; transition: transform 0.2s;
+  }
+  .chip-open-btn:hover { transform: scale(1.1); }
+  .info-icon-btn {
+    background: transparent; border: none; cursor: pointer; padding: 0;
+    display: flex; align-items: center; color: #94a3b8; transition: color 0.2s; flex-shrink: 0;
+  }
+  .info-icon-btn:hover { color: #f1f5f9; }
+  .info-modal-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 3000; align-items: center; justify-content: center;
+  }
+  .info-modal-backdrop.open { display: flex; }
+  .info-modal {
+    background: white; border-radius: 14px; padding: 22px 24px 18px; max-width: 380px; width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative;
+  }
+  .info-modal h3 {
+    font-size: 13px; font-weight: 700; color: #1e293b; margin: 0 0 12px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .info-modal ul { margin: 0; padding: 0; list-style: none; }
+  .info-modal li {
+    font-size: 12px; color: #475569; line-height: 1.6; padding: 7px 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .info-modal li:last-child { border-bottom: none; padding-bottom: 0; }
+  .info-modal li strong { color: #1e293b; font-weight: 600; }
+  .info-modal a { color: #1a73e8; }
+  .info-modal-close {
+    position: absolute; top: 14px; right: 16px; background: transparent; border: none;
+    cursor: pointer; padding: 4px; color: #94a3b8; font-size: 18px; line-height: 1;
+  }
+  .info-modal-close:hover { color: #475569; }
+
+  .panel-header {
+    background: #1e293b;
+    color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 20px;
+    border-radius: 12px 12px 0 0;
+    margin: 0 -24px 16px -24px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .info-panel:not(.collapsed)::-webkit-scrollbar { width: 6px; }
+  .info-panel:not(.collapsed)::-webkit-scrollbar-track { background: transparent; }
+  .info-panel:not(.collapsed)::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+  .info-panel:not(.collapsed) { padding-top: 0; }
+
+  .panel-header-title { font-size: 14px; font-weight: 600; letter-spacing: 0.3px; }
+  .panel-close-btn {
+    background: transparent; border: none; cursor: pointer; padding: 0;
+    color: #94a3b8; display: flex; align-items: center; transition: color 0.2s;
+  }
+  .panel-close-btn:hover { color: #f1f5f9; }
+
+  .cbar-container { margin-top: 4px; }
+  .cbar-container p { font-size: 12px; font-weight: 500; color: #3c4043; margin-bottom: 8px; }
+  .cbar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; }
+  .cbar-block { flex: 1; }
+  .cbar-labels { position: relative; height: 13px; margin-top: 3px; font-size: 10px; color: #5f6368; font-weight: 500; }
+  .cbar-label { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: #f1f3f4;
+    border: none;
+    padding: 9px 34px 9px 16px;
+    border-radius: 24px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 13px;
+    color: #202124;
+    font-weight: 500;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235F6368' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    outline: none;
+    transition: background 0.2s;
+    width: 100%;
+  }
+  select:hover { background-color: #e8eaed; }
+
+  .opacity-control { margin-top: 14px; }
+  .opacity-control label { font-size: 11px; font-weight: 700; color: #3c4043; display: block; margin-bottom: 6px; }
+  .opacity-control input { width: 100%; accent-color: #202124; cursor: pointer; }
+
+  #generatedAt { font-size: 10px; color: #94a3b8; margin: 14px 0 0; }
+  #attribution { font-size: 10px; color: #94a3b8; margin: 6px 0 0; line-height: 1.5; }
+
+  /* ── Player panel ───────────────────────────────────────────────────────── */
+  .player-panel {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    z-index: 1000;
+    width: 95%;
+    max-width: 1050px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .control-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #3c4043;
+    letter-spacing: 0.5px;
+    padding-left: 8px;
+  }
+
+  /* Run select: wider */
+  #runSelect { min-width: 220px; }
+
+  .timeline-container {
+    position: relative;
+    flex-grow: 1;
+    height: 48px;
+    display: flex;
+    align-items: center;
+  }
+  .timeline-track {
+    position: absolute;
+    top: 50%; left: 9px; right: 9px;
+    height: 6px;
+    margin-top: -3px;
+    background: #e8eaed;
+    border-radius: 3px;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .loaded-progress {
+    height: 100%;
+    width: 0%;
+    background: #bdc1c6;
+    transition: width 0.2s ease, opacity 0.5s;
+    opacity: 0;
+  }
+
+  #timeSlider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    background: transparent;
+    z-index: 3;
+    margin: 0;
+    position: relative;
+  }
+  #timeSlider:focus { outline: none; }
+  #timeSlider::-webkit-slider-runnable-track { height: 6px; background: transparent; border-radius: 3px; }
+  #timeSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 18px; width: 18px;
+    border-radius: 50%;
+    background: #0891b2;
+    border: 2px solid white;
+    cursor: pointer;
+    margin-top: -6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  #timeSlider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+  }
+
+  #playerDateTime {
+    flex-shrink: 0;
+    width: 110px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding-left: 12px;
+    border-left: 1px solid #e8eaed;
+    overflow: hidden;
+  }
+  #playerDateLine {
+    font-size: 10px; color: #3c4043; font-weight: 500;
+    white-space: nowrap; overflow: hidden;
+  }
+  #playerTimeLine {
+    font-size: 16px; font-weight: 700; color: #202124;
+    white-space: nowrap; overflow: hidden;
+  }
+  #playerOffsetLine {
+    font-size: 10px; color: #94a3b8; font-weight: 500;
+    white-space: nowrap; overflow: hidden;
+  }
+
+  /* No-data overlay */
+  #noData {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 12px;
+    padding: 24px 32px;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 2000;
+    display: none;
+  }
+  #noData p { margin: 0; color: #5f6368; font-size: 14px; }
+
+  .leaflet-image-layer { image-rendering: pixelated; }
+
+  @media (max-width: 768px) {
+    .info-panel,
+    .info-panel.collapsed { top: 8px; right: 8px; width: calc(100% - 24px); left: 12px; box-sizing: border-box; }
+    .info-panel:not(.collapsed) { max-height: calc(100vh - 220px); }
+    .player-panel {
+      bottom: 8px;
+      width: calc(100% - 16px);
+      padding: 7px 10px;
+      gap: 4px 6px;
+      flex-wrap: wrap;
+      box-sizing: border-box;
+      align-items: flex-end;
+    }
+    .player-panel .control-group { flex-shrink: 1; min-width: 0; }
+    .control-label { font-size: 9px; padding-left: 6px; }
+    .player-panel .control-group select { font-size: 11px; padding: 5px 22px 5px 9px; background-position: right 9px center; }
+    #runSelect { min-width: 0; }
+    .timeline-container { flex: 1 1 100%; order: 10; height: 28px; }
+    #playerDateTime {
+      flex: 0 0 auto;
+      order: 11;
+      width: auto;
+      padding-left: 8px;
+      border-left: 1px solid #e8eaed;
+    }
+    #playerDateLine { font-size: 9px; }
+    #playerTimeLine { font-size: 13px; }
+    #playerOffsetLine { font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+<h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">ECMWF HRES Deterministic Rainfall Forecast</h1>
+<div id="map"></div>
+<div id="noData"><p>No data for this layer at this forecast step.<br>Try a different layer or step.</p></div>
+
+<!-- Info panel -->
+<div class="info-panel surface collapsed" id="infoPanel">
+
+  <!-- Collapsed chip state -->
+  <div class="collapsed-top-row">
+    <span class="collapsed-title">ECMWF Forecast</span>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button class="info-icon-btn" onclick="toggleInfoModal()" title="About this data">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      </button>
+      <button class="chip-open-btn" onclick="toggleInfo()" title="Open">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Full panel header -->
+  <div class="panel-header hide-collapsed">
+    <span class="panel-header-title">ECMWF Forecast</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="info-icon-btn" onclick="toggleInfoModal()" title="About this data">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      </button>
+      <button class="panel-close-btn" onclick="toggleInfo()" title="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Colour bar (visible in both states) -->
+  <div class="cbar-container">
+    <p id="cbarTitle">Rainfall rate (mm/hr)</p>
+    <div class="cbar" id="cbar"></div>
+    <div class="cbar-labels" id="cbarLabels"></div>
+  </div>
+
+  <!-- Rest hidden when collapsed -->
+  <div class="hide-collapsed">
+    <p class="section-label" style="font-size:11px;font-weight:700;color:#3c4043;margin:16px 0 6px;">Opacity</p>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <input type="range" id="opacitySlider" min="0" max="100" value="85"
+             style="flex:1; accent-color:#0891b2; cursor:pointer;"
+             oninput="setOpacity(this.value)">
+      <span id="opacityLabel" style="font-size:11px; color:#64748b; width:30px; text-align:right;">85%</span>
+    </div>
+
+    <p id="generatedAt"></p>
+    <p id="attribution">ECMWF HRES open data &copy; ECMWF &mdash; <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" style="color:inherit;">CC BY 4.0</a></p>
+  </div>
+</div>
+
+<!-- Data info modal -->
+<div id="infoModalBackdrop" class="info-modal-backdrop" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="info-modal">
+    <button class="info-modal-close" onclick="toggleInfoModal()" title="Close">&times;</button>
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      About this data
+    </h3>
+    <ul>
+      <li><strong>ECMWF HRES forecast:</strong> ECMWF's high-resolution deterministic (IFS) model, 0.25&deg; global grid, out to 10 days ahead. 00Z/12Z runs cover the full horizon; 06Z/18Z runs only go out to T+90h. <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">ECMWF Open Data &mdash; CC BY 4.0</a>.</li>
+      <li><strong>Compare with:</strong> the <a href="ukv.html">Met Office UKV</a> forecast for a higher-resolution (2km), shorter-range (out to ~72h) view of the UK.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Player panel -->
+<div class="player-panel surface">
+  <div class="control-group">
+    <span class="control-label">Run</span>
+    <select id="runSelect" onchange="setRun(parseInt(this.value))">
+      <option>Loading...</option>
+    </select>
+  </div>
+
+  <div class="timeline-container">
+    <div class="timeline-track">
+      <div id="loadedProgress" class="loaded-progress"></div>
+    </div>
+    <input type="range" id="timeSlider" min="0" max="0" step="1" value="0"
+           oninput="setStep(parseInt(this.value))">
+  </div>
+
+  <div id="playerDateTime">
+    <div id="playerDateLine">—</div>
+    <div id="playerTimeLine">—</div>
+    <div id="playerOffsetLine">—</div>
+  </div>
+
+  <div class="control-group">
+    <span class="control-label">Period</span>
+    <select id="layerSelect" onchange="setLayer(this.value)">
+      <option value="rainfall_rate">Rate</option>
+      <option value="accum_3h">3 Hours</option>
+      <option value="accum_6h" selected>6 Hours</option>
+      <option value="accum_24h">24 Hours</option>
+      <option value="accum_48h">48 Hours</option>
+    </select>
+  </div>
+</div>
+
+<script>
+var R2_BASE = 'https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev';
+var R2_CDN  = 'https://radar.floodforecast.co.uk';
+function cdnJson(r) { return r.text().then(function(t) { return JSON.parse(t.replaceAll(R2_BASE, R2_CDN)); }); }
+
+// ── Colour scheme ─────────────────────────────────────────────────────────────
+// Single "met"-style scheme — matches ECMWF_RATE_SCHEME/ECMWF_ACCUM_SCHEME in
+// fetch_ecmwf.py exactly. Deliberately the same alternative palette /ukv calls
+// "Alternative", not its default, so the two pages read as visually distinct.
+var _MET = ['#3a6cff','#00ff00','#ffff95','#ffd563','#ff9618','#e86100','#ba2000','#cc537d','#db92dc','#ff02ff','#ffffff','#c8c8c8','#bfbf00'];
+
+var RATE_SCHEME  = { bounds: [0.03, 0.1, 0.5, 1, 2, 4, 8, 16, 32, 64, 100, 150, 200], colors: _MET };
+var ACCUM_SCHEME = { bounds: [0.03, 1, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160, 180], colors: _MET };
+
+var LAYER_INFO = {
+  rainfall_rate: { label: 'Precipitation rate (mm/hr)', kind: 'rate' },
+  accum_3h:      { label: '3-hour accumulation (mm)',   kind: 'accum' },
+  accum_6h:      { label: '6-hour accumulation (mm)',   kind: 'accum' },
+  accum_24h:     { label: '24-hour accumulation (mm)',  kind: 'accum' },
+  accum_48h:     { label: '48-hour accumulation (mm)',  kind: 'accum' },
+};
+
+function layerKind(layer) {
+  var info = LAYER_INFO[layer];
+  return (info && info.kind) || 'rate';
+}
+
+function activeScheme() {
+  return layerKind(currentLayer) === 'accum' ? ACCUM_SCHEME : RATE_SCHEME;
+}
+
+// ── Map setup ─────────────────────────────────────────────────────────────────
+var imgBounds = [[43.0,-26.0],[63.0,17.0]];
+var map = L.map('map', { zoomControl: false }).setView([54.5,-3.5], 5);
+L.control.zoom({ position: 'topleft' }).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 20,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+}).addTo(map);
+var ecmwfOverlay = L.imageOverlay('', imgBounds, { opacity: 0.85, interactive: false }).addTo(map);
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var meta          = null;
+var currentRun    = 0;
+var currentStep   = 0;
+var currentLayer  = 'accum_6h';
+var generatedAt   = '';
+
+// ── Image preload (all frames, matching /ukv behaviour) ────────────────────────
+var _imgCache           = {};
+var _preloadGeneration  = 0;
+
+function preloadVisibleFrames() {
+  _preloadGeneration++;
+  var gen = _preloadGeneration;
+  var pb  = document.getElementById('loadedProgress');
+  if (pb) { pb.style.opacity = '1'; pb.style.width = '0%'; }
+
+  if (!meta) return;
+  var run = meta.runs[currentRun];
+  if (!run || !run.steps) return;
+
+  var slider  = document.getElementById('timeSlider');
+  var minStep = parseInt(slider.min) || 0;
+  var maxStep = parseInt(slider.max) || 0;
+  var urls    = [];
+
+  for (var i = minStep; i <= maxStep; i++) {
+    var step  = run.steps[i];
+    var entry = step && step[currentLayer];
+    var url   = entry && entry.met;
+    if (url) urls.push(url);
+  }
+
+  var total = urls.length;
+  if (total === 0) return;
+  var loadedCount = 0;
+
+  urls.forEach(function(url) {
+    if (_imgCache[url]) {
+      loadedCount++;
+      if (pb) pb.style.width = ((loadedCount / total) * 100) + '%';
+      if (loadedCount === total) {
+        if (pb) setTimeout(function() { if (pb && gen === _preloadGeneration) pb.style.opacity = '0'; }, 1500);
+      }
+      return;
+    }
+    var img = new Image();
+    var done = function() {
+      if (gen !== _preloadGeneration) return;
+      loadedCount++;
+      if (pb) pb.style.width = ((loadedCount / total) * 100) + '%';
+      if (loadedCount === total) {
+        setTimeout(function() { if (pb && gen === _preloadGeneration) pb.style.opacity = '0'; }, 1500);
+      }
+    };
+    img.onload = done;
+    img.onerror = done;
+    img.src = url;
+    _imgCache[url] = img;
+  });
+}
+
+// ── Colour bar ────────────────────────────────────────────────────────────────
+function buildCbar() {
+  var info   = LAYER_INFO[currentLayer];
+  var scheme = activeScheme();
+  var cbar   = document.getElementById('cbar');
+  var labels = document.getElementById('cbarLabels');
+  cbar.innerHTML = '';
+  labels.innerHTML = '';
+  scheme.colors.forEach(function(c) {
+    var b = document.createElement('div');
+    b.className = 'cbar-block';
+    b.style.background = c;
+    cbar.appendChild(b);
+  });
+  var n = scheme.colors.length;
+  scheme.bounds.forEach(function(v, i) {
+    var pct = (i + 0.5) / n * 100;
+    var el  = document.createElement('span');
+    el.className = 'cbar-label';
+    el.style.left = pct.toFixed(1) + '%';
+    el.textContent = v < 1 ? v : Math.round(v);
+    labels.appendChild(el);
+  });
+  document.getElementById('cbarTitle').textContent = info.label;
+}
+
+// ── Date/time display ─────────────────────────────────────────────────────────
+function splitValidLabel(label) {
+  if (!label) return { date: '—', time: '—' };
+  var s = label.replace('UTC', 'GMT');
+  var parts = s.split(' ');
+  return {
+    date: parts.slice(0, -2).join(' '),
+    time: parts.slice(-2).join(' '),
+  };
+}
+
+// ── Display update ────────────────────────────────────────────────────────────
+function updateDisplay() {
+  if (!meta || !meta.runs || !meta.runs.length) return;
+  var run = meta.runs[currentRun];
+  if (!run || !run.steps || !run.steps.length) return;
+  var step = run.steps[currentStep];
+  if (!step) return;
+
+  var entry = step[currentLayer];
+  var url   = entry && entry.met;
+
+  if (!url) {
+    document.getElementById('noData').style.display = 'block';
+    ecmwfOverlay.setUrl('');
+  } else {
+    document.getElementById('noData').style.display = 'none';
+    ecmwfOverlay.setUrl(url + '?_=' + generatedAt);
+    ecmwfOverlay.setOpacity(document.getElementById('opacitySlider').value / 100);
+  }
+
+  var dt = splitValidLabel(step.valid_label);
+  document.getElementById('playerDateLine').textContent   = dt.date;
+  document.getElementById('playerTimeLine').textContent   = dt.time;
+  document.getElementById('playerOffsetLine').textContent = 'T+' + step.offset_hours + 'h';
+
+  buildCbar();
+}
+
+// ── Slider helpers ────────────────────────────────────────────────────────────
+// Returns the first and last step indices that have data for the given layer.
+function validStepRange(runIdx, layer) {
+  var run   = meta && meta.runs && meta.runs[runIdx];
+  var steps = run ? (run.steps || []) : [];
+  var first = -1, last = steps.length - 1;
+  for (var i = 0; i < steps.length; i++) {
+    if (steps[i][layer]) {
+      if (first === -1) first = i;
+      last = i;
+    }
+  }
+  if (first === -1) first = 0; // no data at all — fallback to start
+  return { first: first, last: last };
+}
+
+function applyStepRange() {
+  if (!meta) return;
+  var slider = document.getElementById('timeSlider');
+  var range  = validStepRange(currentRun, currentLayer);
+  slider.min = range.first;
+  slider.max = range.last;
+  if (currentStep < range.first) currentStep = range.first;
+  if (currentStep > range.last)  currentStep = range.last;
+  slider.value = currentStep;
+}
+
+// Absolute valid time (ms since epoch) for a given step within a run.
+function stepValidMs(run, stepIdx) {
+  if (!run || !run.run_ts || !run.steps || !run.steps[stepIdx]) return NaN;
+  var ts = run.run_ts;
+  var runMs = Date.UTC(
+    +ts.slice(0, 4), +ts.slice(4, 6) - 1, +ts.slice(6, 8),
+    +ts.slice(9, 11), +ts.slice(11, 13)
+  );
+  return runMs + run.steps[stepIdx].offset_hours * 3600 * 1000;
+}
+
+function closestStepForLayer(run, layer, targetMs) {
+  if (!run || !run.steps) return -1;
+  var bestIdx = -1, bestDiff = Infinity;
+  for (var i = 0; i < run.steps.length; i++) {
+    if (!run.steps[i][layer]) continue;
+    var diff = Math.abs(stepValidMs(run, i) - targetMs);
+    if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+  }
+  return bestIdx;
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+function setStep(idx) {
+  currentStep = idx;
+  document.getElementById('timeSlider').value = idx;
+  updateDisplay();
+}
+
+function setRun(idx) {
+  if (!meta || !meta.runs || idx >= meta.runs.length) return;
+
+  var prevRun  = meta.runs[currentRun];
+  var targetMs = prevRun ? stepValidMs(prevRun, currentStep) : NaN;
+
+  currentRun = idx;
+
+  var newRun  = meta.runs[idx];
+  var newStep = isFinite(targetMs)
+    ? closestStepForLayer(newRun, currentLayer, targetMs)
+    : -1;
+  if (newStep < 0) {
+    var range = validStepRange(idx, currentLayer);
+    newStep = range.first;
+  }
+  currentStep = newStep;
+
+  applyStepRange();
+  updateDisplay();
+  preloadVisibleFrames();
+}
+
+function setLayer(layer) {
+  var run      = meta && meta.runs && meta.runs[currentRun];
+  var targetMs = run ? stepValidMs(run, currentStep) : NaN;
+
+  currentLayer = layer;
+
+  if (isFinite(targetMs)) {
+    var snap = closestStepForLayer(run, layer, targetMs);
+    if (snap >= 0) currentStep = snap;
+  }
+
+  applyStepRange();
+  updateDisplay();
+  preloadVisibleFrames();
+}
+
+function setOpacity(val) {
+  document.getElementById('opacityLabel').textContent = val + '%';
+  ecmwfOverlay.setOpacity(val / 100);
+}
+
+function toggleInfoModal() {
+  document.getElementById('infoModalBackdrop').classList.toggle('open');
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') document.getElementById('infoModalBackdrop').classList.remove('open'); });
+
+function toggleInfo() {
+  var panel = document.getElementById('infoPanel');
+  if (panel.classList.contains('collapsed')) {
+    panel.classList.remove('collapsed');
+  } else {
+    panel.classList.add('collapsed');
+  }
+}
+
+// ── Run dropdown ──────────────────────────────────────────────────────────────
+function populateRunSelect() {
+  var sel = document.getElementById('runSelect');
+  sel.innerHTML = '';
+  (meta.runs || []).forEach(function(run, i) {
+    var opt  = document.createElement('option');
+    opt.value = i;
+    opt.textContent = run.run_label + (run.stream === 'scda' ? ' (short-range)' : '');
+    sel.appendChild(opt);
+  });
+  sel.value = '0';
+}
+
+// ── Data loading ──────────────────────────────────────────────────────────────
+function loadMeta() {
+  fetch('ecmwf_meta.json?_=' + Date.now())
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return cdnJson(r); })
+    .then(function(data) {
+      if (!data.runs || !data.runs.length) {
+        document.getElementById('noData').style.display = 'block';
+        return;
+      }
+      meta        = data;
+      generatedAt = data.generated_at || '';
+
+      applyStepRange();
+
+      if (data.generated_at) {
+        var d   = new Date(data.generated_at);
+        var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+        document.getElementById('generatedAt').textContent =
+          'Updated ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' GMT';
+      }
+
+      populateRunSelect();
+      updateDisplay();
+      preloadVisibleFrames();
+    })
+    .catch(function() {
+      document.getElementById('noData').style.display = 'block';
+    });
+}
+
+loadMeta();
+</script>
+</body>
+</html>

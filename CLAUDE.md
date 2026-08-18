@@ -40,6 +40,9 @@ script that writes to R2:
   uploads per forecast step × ~55 steps × 8 runs/day ≈ 350k ops/month) —
   those are genuinely new objects each run, so reducing them means
   reducing schemes/thresholds/durations (a product decision, not plumbing).
+  `fetch_ecmwf.py` adds a much smaller ~30k ops/month on top of that (one
+  scheme × up to 5 uploads/step × ~188 steps/day) — combined R2 Class A
+  usage is still well under 40% of the 1M/month free tier.
 
 ## Freshness timestamps are a public API (floodforecast consumer contract)
 
@@ -58,6 +61,7 @@ change in this repo; it needs the fields to keep behaving.
 | `accum_multi_meta.json` | `generated_at` |
 | `mslp_meta.json` | `generated_at` |
 | `ukv_meta.json` | `runs[0].run_ts` |
+| `ecmwf_meta.json` | `runs[0].run_ts` |
 
 Three things to keep in mind when changing any of them:
 
@@ -70,14 +74,15 @@ Three things to keep in mind when changing any of them:
   live example is the Met Office warnings move from 30 to 10 minutes: that
   takes "late" from 90 minutes down to 30. Changing the schedule without
   telling the consumer leaves it either crying wolf or asleep.
-- **`mslp_meta.json` and `ukv_meta.json` frames run into the future** — they
-  are forecast series, so the newest frame's `valid_time` is *ahead* of now
-  (MSLP was +324 minutes ahead of its own `generated_at` when this was
-  written). A consumer must never treat newest-frame time as data age; it
-  would read as permanently fresh no matter how long the pipeline had been
-  dead. `mslp_meta.json` also carries **no run timestamp at all** — only
-  `generated_at` and per-frame `valid_time` — so if run-age grading is ever
-  wanted for MSLP, this repo has to publish a run field first.
+- **`mslp_meta.json`, `ukv_meta.json` and `ecmwf_meta.json` frames run into
+  the future** — they are forecast series, so the newest frame's
+  `valid_time` is *ahead* of now (MSLP was +324 minutes ahead of its own
+  `generated_at` when this was written). A consumer must never treat
+  newest-frame time as data age; it would read as permanently fresh no
+  matter how long the pipeline had been dead. `mslp_meta.json` also carries
+  **no run timestamp at all** — only `generated_at` and per-frame
+  `valid_time` — so if run-age grading is ever wanted for MSLP, this repo
+  has to publish a run field first.
 
 ## UKV forecast fetch (`fetch_ukv.py`)
 
@@ -102,6 +107,41 @@ Three things to keep in mind when changing any of them:
   processed" guard so a boundary/aggregation fix can be reprocessed onto the
   latest run without waiting for the next one — but only once `is_run_complete`
   is also satisfied for that run.
+
+## ECMWF HRES forecast fetch (`fetch_ecmwf.py`)
+
+- Second, independent deterministic-rainfall page (`ecmwf.html`) modelled on
+  UKV's pipeline, covering the same map domain/canvas for direct visual
+  comparability but sourced from ECMWF's public unsigned S3 bucket
+  (`ecmwf-forecasts`, region `eu-central-1`, ~2-3 days retention), GRIB2,
+  0.25° global grid, CC BY 4.0 (attribution required — see `ecmwf.html`'s
+  info panel).
+- ECMWF publishes **4 runs/day** (00/06/12/18Z). The 00Z/12Z runs (`stream:
+  "oper"`) go out to the full T+240h horizon (3-hourly to T+144h, then
+  6-hourly); the 06Z/18Z runs (`stream: "scda"`, short-range companions)
+  only ever reach T+90h — a `scda` run showing "not yet complete" past T+90h
+  is expected, not stuck. `ecmwf_meta.json`'s `stream` field on each run
+  records which schedule applies; `ecmwf.html` labels `scda` runs
+  "(short-range)" in the run dropdown so the shorter step slider makes sense.
+- v1 is deliberately lean vs UKV: one colour scheme (`_MET_COLORS`, the same
+  "alternative" palette UKV itself offers, chosen so the two pages aren't
+  visually confusable) and four accumulation windows (3h/6h/24h/48h, not
+  UKV's six) — no splat masks, no polygon/gauge time series. R2 key layout
+  mirrors UKV's: `ecmwf/{run_ts}/{offset}_{prefix}_met.png`.
+- ECMWF's `tp` field is **cumulative total precipitation since the run's
+  T+0**, not per-step like UKV's `rainfall_accumulation-PT01H` files —
+  `fetch_ecmwf.py` de-accumulates by diffing consecutive steps' `tp` before
+  feeding UKV's existing accum-stack windowing logic. That logic's
+  "can't bridge a gap" rule then correctly (and expectedly) stops producing
+  the `accum_3h` window once an `oper` run enters its 6-hourly tail past
+  T+144h — a missing `accum_3h` key on a late step is normal, not a bug.
+- Availability delay after nominal run time is roughly 6-9 hours
+  (ECMWF's dissemination schedule). The Google Apps Script trigger for the
+  "Fetch ECMWF HRES Forecast" workflow should poll **hourly** — frequent
+  enough to pick up each of the 4 daily runs within about an hour of it
+  landing on S3, while a "not ready yet" check is just a couple of cheap
+  `list_objects_v2` calls with no data download, so faster polling buys
+  nothing given ECMWF's own dissemination cadence doesn't move any faster.
 
 ## FGS tracker (`fetch_fgs.py` / `fgscomparison/index.html`)
 
