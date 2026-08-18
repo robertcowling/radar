@@ -1,0 +1,70 @@
+name: Fetch ECMWF HRES Forecast
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_rerun:
+        description: "Reprocess the latest run even if already marked processed"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install eccodes system library
+      run: sudo apt-get update && sudo apt-get install -y --fix-missing libeccodes-dev
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install boto3 botocore eccodes cfgrib xarray numpy Pillow pyproj
+
+    - name: Fetch and render ECMWF forecast
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+        FORCE_RERUN: ${{ inputs.force_rerun }}
+      run: python fetch_ecmwf.py
+
+    - name: Commit metadata
+      run: |
+        git config --global user.name "Radar Automator"
+        git config --global user.email "radar-bot@github.com"
+        git add ecmwf_meta.json
+        git diff --cached --quiet && echo "No changes to commit" || {
+          git commit -m "Update ECMWF meta $(date -u +'%Y-%m-%d %H:%M UTC')" || exit 1
+          n=0
+          until git pull --rebase -X theirs origin main && git push origin main; do
+            n=$((n+1)); [ $n -ge 3 ] && exit 1
+            echo "Push attempt $n/3 failed, retrying in $((n*5))s..."
+            sleep $((n*5))
+          done
+        }
+
+    - name: Report Job Status
+      if: always()
+      env:
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        JOB_NAME: "ECMWF HRES Forecast"
+        JOB_STATUS: ${{ job.status }}
+      run: python report_job_status.py
