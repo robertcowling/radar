@@ -260,9 +260,19 @@ def _uk_local(dt_utc):
     return dt_utc, "GMT"
 
 
-def label_str(dt_utc_naive):
+def valid_label_str(dt_utc_naive):
+    """Forecast step valid time — shown in UK local time (BST/GMT), since
+    that's what a UK reader actually cares about for a specific moment."""
     local, tz = _uk_local(dt_utc_naive.replace(tzinfo=timezone.utc))
     return f"{local.day} " + local.strftime("%b %Y %H:%M") + f" {tz}"
+
+
+def run_label_str(dt_utc_naive):
+    """Model run time — always UTC ("the 00Z/12Z run"), never localized to
+    BST/GMT. Meteorological run times are conventionally quoted in UTC
+    regardless of season; converting to local time would make "the 12Z run"
+    read as 13:00 in summer, which isn't how forecasters refer to it."""
+    return f"{dt_utc_naive.day} " + dt_utc_naive.strftime("%b %Y %H:%M") + " UTC"
 
 
 def parse_valid_time(vt_str):
@@ -473,7 +483,7 @@ def main():
     lats, lons = build_o1280_grid()
     mapping = build_mapping(lats, lons)
 
-    rlabel = label_str(run_dt)
+    rlabel = run_label_str(run_dt)
     print(f"  Run: {rlabel}")
 
     step_entries_by_hours = {}
@@ -496,7 +506,7 @@ def main():
 
     for hours, valid_dt in zip(steps_h, valid_dts):
         offset = f"PT{hours:04d}H00M"
-        vlabel = label_str(valid_dt)
+        vlabel = valid_label_str(valid_dt)
         entry = {"offset": offset, "offset_hours": hours, "valid_label": vlabel}
 
         precip = results.get(valid_dt)
