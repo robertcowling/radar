@@ -11,6 +11,17 @@ split by parameter) — we filter to `tp` (total precipitation, metres, accumula
 since forecast start) via cfgrib. License: CC BY 4.0 (ecmwf.int) — attribution
 required wherever this data is displayed.
 
+Data note: this is ECMWF's free Open Data extract of the HRES/IFS deterministic
+model ("Set I" in ECMWF's dataset catalogue) — the same forecast ECMWF's own
+OpenCharts products are drawn from, but at Open Data's fixed 0.25° (~28km) grid
+rather than the ~9km native model resolution ECMWF's own charts use internally.
+That resolution gap — not a data mismatch — is why ECMWF's official charts show
+smooth, curved rain-area boundaries while a naive nearest-neighbour render of
+this coarser grid looks blocky. render_png() below narrows that gap by
+bilinearly interpolating (with a light pre-smooth) onto the output canvas
+rather than sampling the nearest source cell, so colour-band edges follow a
+smooth interpolated surface instead of raw 28km grid squares.
+
 v1 scope: a single "met"-style colour scheme (matching the alternative palette
 already used by /ukv), and four accumulation windows (3h/6h/24h/48h). No splat
 masks, no polygon/gauge time series — those can be added later the way the UKV
@@ -25,7 +36,7 @@ Optional env: FORCE_RERUN (reprocess latest run even if already marked processed
 Dependencies (install in CI with apt-get + pip — not in requirements.txt, same
 convention as fetch_mslp.py):
     sudo apt-get install -y libeccodes-dev
-    pip install boto3 botocore eccodes cfgrib xarray numpy Pillow pyproj
+    pip install boto3 botocore eccodes cfgrib xarray numpy scipy Pillow pyproj
 """
 import io
 import json
@@ -43,6 +54,8 @@ from botocore import UNSIGNED
 from botocore.client import Config
 from PIL import Image
 from pyproj import Transformer
+from scipy.interpolate import RegularGridInterpolator
+from scipy.ndimage import gaussian_filter
 
 # ── Output domain — same canvas as /ukv for direct visual comparability.
 # ECMWF's 0.25° (~28km) grid renders much blockier than UKV's 2km — expected.
@@ -239,15 +252,23 @@ GRIB_LOCK = threading.Lock()
 
 
 def build_mapping(lat_1d, lon_1d):
-    """Return (rows, cols, valid) arrays for remapping the ECMWF 0.25° regular
-    lat-lon grid onto the output Mercator canvas.
+    """Return (lat_1d, lon_1d, Lat, Lon, valid) for remapping the ECMWF 0.25°
+    regular lat-lon grid onto the output Mercator canvas via interpolation.
 
     Much simpler than UKV's build_mapping — ECMWF publishes a plain regular
     lat-lon grid, no CRS/grid_mapping detection needed. `open_tp()` has
     already normalized lat_1d ascending and lon_1d to sorted -180..180, so no
-    0/360 seam wrap is needed here — indexing directly against plain -180..180
-    target longitudes is enough (a %360 wrap would instead put a transparent
-    stripe of unmapped pixels straight through the Greenwich meridian).
+    0/360 seam wrap is needed here.
+
+    Unlike UKV (2km native grid, where nearest-neighbour sampling is already
+    fine-grained enough to look smooth), ECMWF's 0.25° (~28km) grid is coarse
+    enough that nearest-neighbour sampling onto our dense output canvas
+    produces visibly blocky ~28km squares — a much blockier look than
+    ECMWF's own charts, which draw from ~9km native model resolution. We
+    instead keep (Lat, Lon) as continuous target coordinates so
+    extract_tp_mm() can bilinearly *interpolate* the source grid at every
+    output pixel, which stays faithful to the same 0.25° data but produces
+    smooth colour-band transitions instead of hard grid-cell edges.
     """
     ll_to_merc = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
     merc_to_ll = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
@@ -260,18 +281,17 @@ def build_mapping(lat_1d, lon_1d):
 
     Lon, Lat = merc_to_ll.transform(MX, MY)
 
-    lat0, lon0 = float(lat_1d[0]), float(lon_1d[0])
-    lat_step = float(lat_1d[1] - lat_1d[0])  # ascending, so positive
-    lon_step = float(lon_1d[1] - lon_1d[0])  # ascending, so positive
-
-    rows = np.round((Lat - lat0) / lat_step).astype(np.int32)
-    cols = np.round((Lon - lon0) / lon_step).astype(np.int32)
     valid = (np.isfinite(Lat) & np.isfinite(Lon) &
-             (rows >= 0) & (rows < len(lat_1d)) &
-             (cols >= 0) & (cols < len(lon_1d)))
+             (Lat >= lat_1d[0]) & (Lat <= lat_1d[-1]) &
+             (Lon >= lon_1d[0]) & (Lon <= lon_1d[-1]))
+
+    # Clamp out-of-range coords so the interpolator never raises on them —
+    # `valid` already zeroes those pixels out in extract_tp_mm.
+    Lat_c = np.clip(Lat, lat_1d[0], lat_1d[-1])
+    Lon_c = np.clip(Lon, lon_1d[0], lon_1d[-1])
 
     print(f"    valid pixels: {valid.sum():,} / {valid.size:,} ({100*valid.mean():.1f}%)")
-    return rows, cols, valid
+    return lat_1d, lon_1d, Lat_c, Lon_c, valid
 
 
 # ── Data extraction ────────────────────────────────────────────────────────────
@@ -312,15 +332,28 @@ def open_tp(grib_path):
     return lat_1d, lon_1d, tp_2d
 
 
+# Light Gaussian pre-smooth (source-grid cells) before bilinear interpolation.
+# Softens the coarse 0.25° cell edges into a continuous surface — the same
+# technique fetch_mslp.py uses (sigma=1.0) for its isobar contours — without
+# materially shifting rain totals; interpolation alone (no smoothing) still
+# leaves faint diamond-shaped linear-interpolation artefacts at this grid
+# spacing, which the pre-smooth removes.
+_SMOOTH_SIGMA = 0.7
+
+
 def extract_tp_mm(grib_bytes, mapping):
-    """Download-to-temp, extract cumulative tp (mm since run start), remap
-    onto the output canvas. Returns None on any read failure."""
-    rows, cols, valid = mapping
+    """Download-to-temp, extract cumulative tp (mm since run start), bilinearly
+    interpolate onto the output canvas. Returns None on any read failure.
+
+    Interpolating (rather than nearest-neighbour sampling, as UKV does) keeps
+    the same underlying 0.25° data but produces smooth colour-band boundaries
+    closer to ECMWF's own higher-resolution charts — see build_mapping()."""
+    lat_1d, lon_1d, Lat, Lon, valid = mapping
     with tempfile.NamedTemporaryFile(suffix=".grib2", delete=False) as tmp:
         tmp.write(grib_bytes)
         path = tmp.name
     try:
-        lat_1d, lon_1d, tp_2d = open_tp(path)
+        _, _, tp_2d = open_tp(path)
     except Exception as e:
         print(f"    Warning: failed to read tp from GRIB — {e}")
         return None
@@ -329,9 +362,14 @@ def extract_tp_mm(grib_bytes, mapping):
 
     arr2d = np.where(np.isfinite(tp_2d), tp_2d, 0.0).astype(np.float32)
     arr2d = np.clip(arr2d, 0, None) * 1000.0  # metres → mm
+    arr2d = gaussian_filter(arr2d, sigma=_SMOOTH_SIGMA)
 
-    out = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
-    out[valid] = arr2d[rows[valid], cols[valid]]
+    interp = RegularGridInterpolator((lat_1d, lon_1d), arr2d,
+                                      method="linear", bounds_error=False, fill_value=0.0)
+    pts = np.column_stack([Lat.ravel(), Lon.ravel()])
+    out = interp(pts).reshape(HEIGHT, WIDTH).astype(np.float32)
+    out = np.clip(out, 0, None)
+    out[~valid] = 0.0
     return out
 
 

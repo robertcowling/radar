@@ -331,6 +331,7 @@
   #noData p { margin: 0; color: #5f6368; font-size: 14px; }
 
   .leaflet-image-layer { image-rendering: pixelated; }
+  .region-boundary { filter: drop-shadow(0 0 2.5px rgba(255,255,255,0.75)); }
 
   @media (max-width: 768px) {
     .info-panel,
@@ -436,6 +437,8 @@
     </h3>
     <ul>
       <li><strong>ECMWF HRES forecast:</strong> ECMWF's high-resolution deterministic (IFS) model, 0.25&deg; global grid, out to 10 days ahead. 00Z/12Z runs cover the full horizon; 06Z/18Z runs only go out to T+90h. <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">ECMWF Open Data &mdash; CC BY 4.0</a>.</li>
+      <li><strong>Resolution:</strong> ECMWF's own charts draw on the model's ~9km native resolution; the free Open Data feed used here is fixed at 0.25&deg; (~28km) &mdash; rainfall areas are smoothed for display but reflect this coarser source grid.</li>
+      <li><strong>Catchment / region / county boundaries:</strong> shown for geographic reference only in this view &mdash; National River Flow Archive (2014, NERC EIDC) and Office for National Statistics (ONS), Open Government Licence.</li>
       <li><strong>Compare with:</strong> the <a href="ukv.html">Met Office UKV</a> forecast for a higher-resolution (2km), shorter-range (out to ~72h) view of the UK.</li>
     </ul>
   </div>
@@ -472,6 +475,16 @@
       <option value="accum_6h" selected>6 Hours</option>
       <option value="accum_24h">24 Hours</option>
       <option value="accum_48h">48 Hours</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <span class="control-label">Boundaries</span>
+    <select id="boundarySelect" onchange="onBoundaryChange(this.value)">
+      <option value="catchments" selected>Catchments</option>
+      <option value="regions">Regions</option>
+      <option value="counties">Counties</option>
+      <option value="none">None</option>
     </select>
   </div>
 </div>
@@ -771,6 +784,63 @@ function populateRunSelect() {
   sel.value = '0';
 }
 
+// ── Geography boundaries (static reference overlay — no per-run choropleth
+// data in v1, unlike /ukv; these are outline-only so the coarse ECMWF grid
+// still reads against familiar catchment/region/county context) ──────────────
+var regionLayer     = null;
+var countiesLayer   = null;
+var catchmentsLayer = null;
+var currentBoundary = 'catchments';
+
+var BOUNDARY_STYLES = {
+  regions:    { color: '#5f6368', weight: 1.5, fillOpacity: 0, className: 'region-boundary' },
+  counties:   { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
+  catchments: { color: '#5f6368', weight: 1.0, fillOpacity: 0, className: 'region-boundary' },
+};
+
+function getBoundaryLayer(name) {
+  if (name === 'regions')    return regionLayer;
+  if (name === 'counties')   return countiesLayer;
+  if (name === 'catchments') return catchmentsLayer;
+  return null;
+}
+
+function setBoundaryLayer(name, layer) {
+  if (name === 'regions')    regionLayer     = layer;
+  if (name === 'counties')   countiesLayer   = layer;
+  if (name === 'catchments') catchmentsLayer = layer;
+}
+
+function loadBoundary(val) {
+  var files = {
+    regions:    'uk_regions.geojson',
+    counties:   'uk-counties.geojson',
+    catchments: 'uk_catchments.geojson',
+  };
+  if (!files[val] || getBoundaryLayer(val)) return;
+  fetch(R2_CDN + '/geo/' + files[val]).then(function(r) { if (!r.ok) throw 0; return r.json(); })
+    .catch(function() { return fetch(files[val]).then(function(r) { return r.json(); }); })
+    .then(function(data) {
+      var layer = L.geoJSON(data, { style: BOUNDARY_STYLES[val] });
+      setBoundaryLayer(val, layer);
+      if (currentBoundary === val) layer.addTo(map);
+    })
+    .catch(function(e) { console.log('Could not load ' + val + ':', e); });
+}
+
+function onBoundaryChange(val) {
+  ['regions', 'counties', 'catchments'].forEach(function(n) {
+    var l = getBoundaryLayer(n);
+    if (l && map.hasLayer(l)) map.removeLayer(l);
+  });
+  currentBoundary = val;
+  if (val !== 'none') {
+    var l = getBoundaryLayer(val);
+    if (l) l.addTo(map);
+    else loadBoundary(val);
+  }
+}
+
 // ── Data loading ──────────────────────────────────────────────────────────────
 function loadMeta() {
   fetch('ecmwf_meta.json?_=' + Date.now())
@@ -802,6 +872,7 @@ function loadMeta() {
 }
 
 loadMeta();
+loadBoundary('catchments');
 </script>
 </body>
 </html>
