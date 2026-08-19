@@ -496,8 +496,20 @@ def main():
     # Download+remap steps in parallel (I/O-bound S3 reads), but the accum
     # stack must still be folded in chronological order, so results are
     # collected first and then walked in sequence below.
+    #
+    # STEP_FETCH_WORKERS=16 is not an arbitrary bump: the omfiles library
+    # reads each .om file as ~40-50 small (~65KB) sequential range GETs
+    # rather than one bulk transfer (confirmed via S3 request tracing), so
+    # each file's read time is dominated by per-request network latency, not
+    # bandwidth — the actual data needed per file is only ~1-2MB. That makes
+    # this purely latency-bound and highly parallelizable: empirically, 16
+    # concurrent workers roughly halved wall-clock time vs 6 for the same
+    # batch of files (33.4s -> 17.8s for 12 files). Going higher (30) was
+    # *worse* than 16 — likely contention on fsspec's internal sync-over-
+    # async event loop — so 16 is a measured sweet spot, not a guess.
+    STEP_FETCH_WORKERS = 16
     results = {}
-    with ThreadPoolExecutor(max_workers=6) as ex:
+    with ThreadPoolExecutor(max_workers=STEP_FETCH_WORKERS) as ex:
         futs = {ex.submit(_fetch_one, vdt): vdt for vdt in valid_dts}
         for i, fut in enumerate(as_completed(futs), 1):
             vdt = futs[fut]
