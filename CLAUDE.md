@@ -183,6 +183,16 @@ Three things to keep in mind when changing any of them:
   `apt-get install libeccodes-dev`) — reading `.om` files is pure
   Python+numpy+scipy, which simplified the workflow versus the first cut of
   this script.
+- **Run time is latency-bound, not bandwidth-bound**: traced actual S3
+  requests and found `omfiles` reads each file as ~40-50 small (~65KB)
+  sequential range GETs rather than one bulk transfer — the real data
+  needed per file is only ~1-2MB, so wall-clock is dominated by per-request
+  network round-trip time, not data volume. That makes the per-step fetch
+  step highly parallelizable: `STEP_FETCH_WORKERS = 16` in `fetch_ecmwf.py`
+  is a measured value (roughly halved wall-clock vs 6 workers on a same-size
+  batch), not a guess — 30 workers measured *worse* than 16, likely
+  contention on fsspec's internal sync-over-async event loop, so don't just
+  keep raising it if a future run still feels slow; re-measure first.
 
 ## FGS tracker (`fetch_fgs.py` / `fgscomparison/index.html`)
 
