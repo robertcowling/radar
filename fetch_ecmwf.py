@@ -1,31 +1,58 @@
 """
-fetch_ecmwf.py — Download ECMWF HRES (IFS) 0.25° deterministic rainfall forecast,
-render PNGs, upload to R2.
+fetch_ecmwf.py — Download ECMWF HRES (IFS) 9km native-resolution deterministic
+rainfall forecast, render PNGs, upload to R2.
 
-ECMWF Open Data S3 bucket: ecmwf-forecasts (eu-central-1, public, unsigned)
-Key format: {yyyymmdd}/{HH}z/ifs/0p25/{stream}/{yyyymmdd}{HH}0000-{step}h-{stream}-fc.grib2
-  - stream "oper": 00Z/12Z runs, 3-hourly to T+144h then 6-hourly to T+240h.
-  - stream "scda": 06Z/18Z runs, 3-hourly to T+90h only (short-range companion runs).
-Each GRIB2 file bundles every surface/pressure-level parameter for that step (not
-split by parameter) — we filter to `tp` (total precipitation, metres, accumulated
-since forecast start) via cfgrib. License: CC BY 4.0 (ecmwf.int) — attribution
-required wherever this data is displayed.
+Source: Open-Meteo's public AWS Open Data S3 bucket (`s3://openmeteo`,
+us-west-2, unauthenticated `--no-sign-request` access), which redistributes
+ECMWF's own IFS HRES output at full ~9km native resolution (O1280 octahedral
+reduced Gaussian grid) under CC-BY 4.0 — the same license and ultimate source
+as ECMWF's own Open Data feed, just not yet offered directly by ECMWF at this
+resolution (their own free feed is capped at 0.25°; ECMWF says a native-
+resolution free feed of their own is coming "later in 2026"). This is a
+genuinely different, better data source than an earlier version of this
+script that pulled ECMWF's own 0.25° Open Data GRIB2 files directly and
+smoothed them for display — that coarser path has been removed entirely now
+that real 9km data is usable.
 
-Data note: this is ECMWF's free Open Data extract of the HRES/IFS deterministic
-model ("Set I" in ECMWF's dataset catalogue) — the same forecast ECMWF's own
-OpenCharts products are drawn from, but at Open Data's fixed 0.25° (~28km) grid
-rather than the ~9km native model resolution ECMWF's own charts use internally.
-That resolution gap — not a data mismatch — is why ECMWF's official charts show
-smooth, curved rain-area boundaries while a naive nearest-neighbour render of
-this coarser grid looks blocky. render_png() below narrows that gap by
-bilinearly interpolating (with a light pre-smooth) onto the output canvas
-rather than sampling the nearest source cell, so colour-band edges follow a
-smooth interpolated surface instead of raw 28km grid squares.
+Key format: data_spatial/ecmwf_ifs/{YYYY}/{MM}/{DD}/{HH}00Z/{valid_iso}.om
+  - meta.json alongside each run's files lists exact valid_times + a
+    `completed` flag — used directly as the "run ready" signal, no need to
+    probe for a specific final-step file like the old GRIB2 approach did.
+  - 00Z/12Z runs go to the full 15-day horizon (hourly to T+90h, 3-hourly to
+    T+144h, 6-hourly beyond); 06Z/18Z runs only reach T+144h — the same
+    oper/scda-style split ECMWF's own Open Data feed has, just relabelled
+    here by run hour rather than a "stream" field from the source.
+  - Each .om file is a hierarchical store of ~48 variables for that one
+    valid time; we only read the `precipitation` child. Per Open-Meteo's own
+    docs, precipitation is a **backward sum** — the total rainfall (mm) for
+    the interval since the *previous* available valid time (1h/3h/6h
+    depending on where in the run's cadence it falls) — confirmed
+    empirically (see git history / CLAUDE.md) by checking that global sums
+    scale with the interval length rather than growing cumulatively. That
+    means, unlike raw ECMWF `tp` (cumulative since T+0), no de-accumulation
+    step is needed here — each step's value already is the incremental
+    rainfall for its own interval.
 
-v1 scope: a single "met"-style colour scheme (matching the alternative palette
-already used by /ukv), and four accumulation windows (3h/6h/24h/48h). No splat
-masks, no polygon/gauge time series — those can be added later the way the UKV
-pipeline itself grew incrementally.
+Grid: the O1280 octahedral reduced Gaussian grid has no per-file coordinate
+array (it's implicit/static, the same for every timestep and run), so
+build_o1280_grid() reconstructs it: Gaussian latitudes via Gauss-Legendre
+quadrature (numpy) + the standard octahedral points-per-row formula
+pl(i) = 4*i + 16. This was verified two ways before being trusted: the
+computed total point count (6,599,680) matches Open-Meteo's array length
+exactly, and a rendered subset over the UK domain lines up pixel-for-pixel
+with the UK coastline/region boundaries.
+
+Remapping onto our output canvas uses inverse-distance-weighted interpolation
+over each pixel's 4 nearest source points (scipy.spatial.cKDTree, built once
+per run since the source grid is static) rather than a regular-grid method —
+the O1280 grid is unstructured (each latitude row has a different point
+count), so a bilinear RegularGridInterpolator (as used for MSLP/older ECMWF
+code) does not apply here.
+
+v1 scope: a single "met"-style colour scheme (matching the alternative
+palette already used by /ukv), and four accumulation windows (3h/6h/24h/48h).
+No splat masks, no polygon/gauge time series — those can be added later the
+way the UKV pipeline itself grew incrementally.
 
 Usage: python fetch_ecmwf.py
 Required env: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
@@ -33,49 +60,46 @@ Required env: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
 Optional env: FORCE_RERUN (reprocess latest run even if already marked processed),
               KEEP_RUNS (older runs retained in the manifest, default 30)
 
-Dependencies (install in CI with apt-get + pip — not in requirements.txt, same
-convention as fetch_mslp.py):
-    sudo apt-get install -y libeccodes-dev
-    pip install boto3 botocore eccodes cfgrib xarray numpy scipy Pillow pyproj
+Dependencies (install in CI with pip — not in requirements.txt, same
+convention as fetch_mslp.py/the GRIB-based scripts, even though this script
+no longer touches GRIB itself):
+    pip install boto3 botocore omfiles fsspec s3fs numpy scipy Pillow pyproj
 """
 import io
 import json
 import os
 import sys
-import tempfile
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 
 import boto3
+import fsspec
 import numpy as np
-import xarray as xr
-from botocore import UNSIGNED
-from botocore.client import Config
+from omfiles import OmFileReader
 from PIL import Image
 from pyproj import Transformer
-from scipy.interpolate import RegularGridInterpolator
-from scipy.ndimage import gaussian_filter
+from scipy.spatial import cKDTree
 
 # ── Output domain — same canvas as /ukv for direct visual comparability.
-# ECMWF's 0.25° (~28km) grid renders much blockier than UKV's 2km — expected.
 LON_MIN, LON_MAX = -26.0, 17.0
 LAT_MIN, LAT_MAX =  43.0, 63.0
 WIDTH,   HEIGHT  =  1725, 1800
 
-# ── ECMWF Open Data S3 ────────────────────────────────────────────────────────
-ECMWF_BUCKET = "ecmwf-forecasts"
-ECMWF_REGION = "eu-central-1"
+# ── Open-Meteo Open Data S3 (public AWS Open Data Sponsorship bucket) ────────
+OM_BUCKET = "openmeteo"
+OM_MODEL  = "ecmwf_ifs"   # 9km native-resolution IFS HRES, distinct from "ecmwf_ifs025"
 
 RUN_HOURS = [0, 6, 12, 18]
-STREAM_FOR_HOUR = {0: "oper", 12: "oper", 6: "scda", 18: "scda"}
-# Final expected forecast step per stream — used as the "run complete" signal.
-FINAL_STEP = {"oper": 240, "scda": 90}
 
-# ── Colour scheme — reuses the existing "met"-style palette from fetch_ukv.py
-# (13-class blue→green→yellow→orange→red→purple→magenta→white→grey→olive),
-# chosen deliberately as an *alternative* to UKV's default "norm"/_STD scheme
-# so the two pages aren't visually confusable, without inventing new colours.
+# KDTree remap: k nearest source points per output pixel, IDW-blended.
+K_NEIGHBORS = 4
+GRID_PAD_DEG = 1.0  # margin around the output domain when subsetting source points
+
+# ── Colour scheme — reuses the existing "met"-style palette from /ukv (13-
+# class blue→green→yellow→orange→red→purple→magenta→white→grey→olive),
+# chosen deliberately as an *alternative* to UKV's default "norm" scheme so
+# the two pages aren't visually confusable.
 _MET_COLORS = np.array([
     [  0,   0,   0,   0],   # transparent  < 0.03
     [ 58, 108, 255, 255],   # blue          0.03–1
@@ -105,7 +129,6 @@ ECMWF_ACCUM_SCHEME = {
             "colors": _MET_COLORS},
 }
 
-# Dropped UKV's 1h (no signal at 3-hourly cadence) and 12h (not requested).
 ACCUM_PERIODS = [3, 6, 24, 48]
 
 # ── R2 ───────────────────────────────────────────────────────────────────────
@@ -136,9 +159,9 @@ def _r2_tl():
     return _tl.r2
 
 
-def get_s3():
-    return boto3.client("s3", region_name=ECMWF_REGION,
-                        config=Config(signature_version=UNSIGNED))
+def get_om_fs():
+    """Anonymous fsspec filesystem for Open-Meteo's public S3 bucket."""
+    return fsspec.filesystem("s3", anon=True)
 
 
 def json_from_r2(r2, key, default=None):
@@ -163,41 +186,38 @@ def png_to_r2(r2, key, img):
 
 
 # ── Run discovery ─────────────────────────────────────────────────────────────
-def grib_key(run_dt, stream, step_hours):
-    return (f"{run_dt:%Y%m%d}/{run_dt:%H}z/ifs/0p25/{stream}/"
-            f"{run_dt:%Y%m%d%H}0000-{step_hours}h-{stream}-fc.grib2")
+def run_prefix(run_dt):
+    return f"data_spatial/{OM_MODEL}/{run_dt:%Y}/{run_dt:%m}/{run_dt:%d}/{run_dt:%H}00Z/"
 
 
-def step_schedule(stream):
-    """Whole-hour forecast steps for a stream, step 0 excluded (tp≡0 there)."""
-    if stream == "oper":
-        return list(range(3, 145, 3)) + list(range(150, 241, 6))
-    return list(range(3, 91, 3))  # scda
-
-
-def parse_run_ts(run_ts):
-    return datetime.strptime(run_ts, "%Y%m%dT%H%MZ")
+def meta_key(run_dt):
+    return run_prefix(run_dt) + "meta.json"
 
 
 def run_ts_str(run_dt):
     return run_dt.strftime("%Y%m%dT%H%MZ")
 
 
-def is_run_complete(s3, run_dt, stream):
-    """Return True only when the run's final expected forecast step is on S3."""
-    key = grib_key(run_dt, stream, FINAL_STEP[stream])
-    chk = s3.list_objects_v2(Bucket=ECMWF_BUCKET, Prefix=key, MaxKeys=1)
-    return bool(chk.get("Contents"))
+def parse_run_ts(run_ts):
+    return datetime.strptime(run_ts, "%Y%m%dT%H%MZ")
 
 
-def find_latest_run(s3):
-    """Find the latest (run_dt, stream) that is fully complete.
+def fetch_run_meta(om_fs, run_dt):
+    """Read a run's meta.json (valid_times + completed flag). None if absent."""
+    try:
+        with om_fs.open(f"{OM_BUCKET}/{meta_key(run_dt)}", "rb") as f:
+            return json.loads(f.read())
+    except Exception:
+        return None
 
-    ECMWF's S3 bucket only retains ~2-3 days (~12 most recent runs), so unlike
-    UKV's 7-day walk-back this only needs to look back a few days. Walks
-    newest-to-oldest across all 4 daily run hours; a run that has started
-    publishing but isn't complete yet is skipped in favour of an older
-    complete run, so a slow/delayed newest run doesn't stall processing.
+
+def find_latest_run(om_fs):
+    """Find the latest run whose meta.json reports completed=true.
+
+    Open-Meteo's bucket only retains a handful of recent days, so a short
+    walk-back is enough. A run whose meta.json exists but isn't complete yet
+    is skipped in favour of an older complete run, so a slow/delayed newest
+    run doesn't stall processing of one that already finished.
     """
     now = datetime.now(timezone.utc).replace(tzinfo=None, minute=0, second=0, microsecond=0)
     newest_seen = None
@@ -207,19 +227,17 @@ def find_latest_run(s3):
             run_dt = datetime(date.year, date.month, date.day, run_h)
             if run_dt > now:
                 continue
-            stream = STREAM_FOR_HOUR[run_h]
-            first_key = grib_key(run_dt, stream, step_schedule(stream)[0])
-            chk = s3.list_objects_v2(Bucket=ECMWF_BUCKET, Prefix=first_key, MaxKeys=1)
-            if not chk.get("Contents"):
-                print(f"    {run_ts_str(run_dt)} ({stream}): first step not available yet")
+            meta = fetch_run_meta(om_fs, run_dt)
+            if meta is None:
+                print(f"    {run_ts_str(run_dt)}: not available yet")
                 continue
             if newest_seen is None:
-                newest_seen = (run_dt, stream)
-            if is_run_complete(s3, run_dt, stream):
-                return run_dt, stream
-            print(f"    {run_ts_str(run_dt)} ({stream}): started but not yet complete — checking earlier run")
+                newest_seen = run_dt
+            if meta.get("completed"):
+                return run_dt, meta
+            print(f"    {run_ts_str(run_dt)}: started but not yet complete — checking earlier run")
     if newest_seen:
-        print(f"  No complete run found; newest in-progress run is {run_ts_str(newest_seen[0])} ({newest_seen[1]})")
+        print(f"  No complete run found; newest in-progress run is {run_ts_str(newest_seen)}")
     return None, None
 
 
@@ -247,146 +265,113 @@ def label_str(dt_utc_naive):
     return f"{local.day} " + local.strftime("%b %Y %H:%M") + f" {tz}"
 
 
-# ── Coordinate mapping (built once per run) ───────────────────────────────────
-GRIB_LOCK = threading.Lock()
+def parse_valid_time(vt_str):
+    """meta.json valid_times look like '2026-08-12T03:00Z'."""
+    return datetime.strptime(vt_str, "%Y-%m-%dT%H:%MZ")
 
 
-def build_mapping(lat_1d, lon_1d):
-    """Return (lat_1d, lon_1d, Lat, Lon, valid) for remapping the ECMWF 0.25°
-    regular lat-lon grid onto the output Mercator canvas via interpolation.
+def valid_iso_filename(dt):
+    """.om filenames use '2026-08-12T0300' (no colon, no trailing Z)."""
+    return dt.strftime("%Y-%m-%dT%H%M")
 
-    Much simpler than UKV's build_mapping — ECMWF publishes a plain regular
-    lat-lon grid, no CRS/grid_mapping detection needed. `open_tp()` has
-    already normalized lat_1d ascending and lon_1d to sorted -180..180, so no
-    0/360 seam wrap is needed here.
 
-    Unlike UKV (2km native grid, where nearest-neighbour sampling is already
-    fine-grained enough to look smooth), ECMWF's 0.25° (~28km) grid is coarse
-    enough that nearest-neighbour sampling onto our dense output canvas
-    produces visibly blocky ~28km squares — a much blockier look than
-    ECMWF's own charts, which draw from ~9km native model resolution. We
-    instead keep (Lat, Lon) as continuous target coordinates so
-    extract_tp_mm() can bilinearly *interpolate* the source grid at every
-    output pixel, which stays faithful to the same 0.25° data but produces
-    smooth colour-band transitions instead of hard grid-cell edges.
+# ── O1280 octahedral reduced Gaussian grid ────────────────────────────────────
+def build_o1280_grid():
+    """Reconstruct the full O1280 grid's per-point (lat, lon), matching
+    Open-Meteo's flat 6,599,680-point array ordering.
+
+    There is no coordinate array shipped with the data (it's static and the
+    same for every file), so this derives it: Gaussian latitudes for N=1280
+    via Gauss-Legendre quadrature, and the standard octahedral points-per-row
+    formula pl(i) = 4*i + 16 (mirrored south of the equator). Verified before
+    being trusted: the resulting point count (6,599,680) matches Open-Meteo's
+    array length exactly, and a rendered UK-domain subset lines up with the
+    actual UK coastline/region boundaries.
     """
+    N = 1280
+    nodes, _ = np.polynomial.legendre.leggauss(2 * N)
+    lat_rows = np.degrees(np.arcsin(nodes))[::-1]  # north (~90) -> south (~-90), 2560 rows
+    pl_half = np.array([4 * i + 16 for i in range(1, N + 1)])
+    pl_full = np.concatenate([pl_half, pl_half[::-1]])
+    assert int(pl_full.sum()) == 6_599_680, f"O1280 point count mismatch: {pl_full.sum()}"
+
+    lats = np.repeat(lat_rows, pl_full)
+    lons = np.concatenate([np.arange(n) * (360.0 / n) for n in pl_full])
+    lons = np.where(lons > 180.0, lons - 360.0, lons)
+    return lats, lons
+
+
+def _to_xyz(lat_deg, lon_deg):
+    """Unit-sphere Cartesian coords — a correct distance metric everywhere,
+    including near the poles, unlike naive lat/lon Euclidean distance."""
+    la, lo = np.radians(lat_deg), np.radians(lon_deg)
+    return np.column_stack([np.cos(la) * np.cos(lo), np.cos(la) * np.sin(lo), np.sin(la)])
+
+
+def build_mapping(lats, lons):
+    """Precompute the IDW remap from O1280 source points onto the output
+    canvas: which source points are in range, and for every output pixel,
+    its K nearest source-point indices + normalized inverse-distance weights.
+
+    Built once per run (the source grid and output canvas are both static),
+    then reused for every step — only extract_precip_mm()'s weighted sum
+    changes per timestep.
+    """
+    subset_mask = (
+        (lons >= LON_MIN - GRID_PAD_DEG) & (lons <= LON_MAX + GRID_PAD_DEG) &
+        (lats >= LAT_MIN - GRID_PAD_DEG) & (lats <= LAT_MAX + GRID_PAD_DEG)
+    )
+    subset_idx = np.nonzero(subset_mask)[0]
+    sub_lat, sub_lon = lats[subset_idx], lons[subset_idx]
+    tree = cKDTree(_to_xyz(sub_lat, sub_lon))
+
     ll_to_merc = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
     merc_to_ll = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
+    mx0, my0 = ll_to_merc.transform(LON_MIN, LAT_MIN)
+    mx1, my1 = ll_to_merc.transform(LON_MAX, LAT_MAX)
+    mxs = np.linspace(mx0, mx1, WIDTH)
+    mys = np.linspace(my1, my0, HEIGHT)  # top -> bottom
+    MX, MY = np.meshgrid(mxs, mys)
+    TLon, TLat = merc_to_ll.transform(MX, MY)
 
-    merc_xmin, merc_ymin = ll_to_merc.transform(LON_MIN, LAT_MIN)
-    merc_xmax, merc_ymax = ll_to_merc.transform(LON_MAX, LAT_MAX)
-    merc_xs = np.linspace(merc_xmin, merc_xmax, WIDTH)
-    merc_ys = np.linspace(merc_ymax, merc_ymin, HEIGHT)  # top → bottom
-    MX, MY  = np.meshgrid(merc_xs, merc_ys)
+    dist, nn_idx = tree.query(_to_xyz(TLat.ravel(), TLon.ravel()), k=K_NEIGHBORS, workers=-1)
+    weights = 1.0 / (dist ** 2 + 1e-12)
+    weights /= weights.sum(axis=1, keepdims=True)
 
-    Lon, Lat = merc_to_ll.transform(MX, MY)
-
-    valid = (np.isfinite(Lat) & np.isfinite(Lon) &
-             (Lat >= lat_1d[0]) & (Lat <= lat_1d[-1]) &
-             (Lon >= lon_1d[0]) & (Lon <= lon_1d[-1]))
-
-    # Clamp out-of-range coords so the interpolator never raises on them —
-    # `valid` already zeroes those pixels out in extract_tp_mm.
-    Lat_c = np.clip(Lat, lat_1d[0], lat_1d[-1])
-    Lon_c = np.clip(Lon, lon_1d[0], lon_1d[-1])
-
-    print(f"    valid pixels: {valid.sum():,} / {valid.size:,} ({100*valid.mean():.1f}%)")
-    return lat_1d, lon_1d, Lat_c, Lon_c, valid
+    print(f"    mapping ready: {len(subset_idx):,} source points, "
+          f"{WIDTH * HEIGHT:,} output pixels, k={K_NEIGHBORS}")
+    return {"subset_idx": subset_idx, "nn_idx": nn_idx, "weights": weights}
 
 
 # ── Data extraction ────────────────────────────────────────────────────────────
-def open_tp(grib_path):
-    """Open a GRIB2 file, return (lat_1d, lon_1d, tp_metres_2d) for the `tp`
-    field only. indexpath='' avoids stray .idx sidecar files on the runner.
-
-    Normalizes lat ascending and lon to sorted -180..180 (ECMWF publishes
-    0..359.75 descending-lat by convention) — same normalization fetch_mslp.py
-    applies to GFS GRIB2 output — so build_mapping() never has to reason about
-    the 0°/360° seam or grid direction.
-    """
-    with GRIB_LOCK:
-        ds = xr.open_dataset(
-            grib_path, engine="cfgrib",
-            backend_kwargs={"filter_by_keys": {"shortName": "tp"}, "indexpath": ""},
-        )
-        try:
-            var = list(ds.data_vars)[0]
-            lat_1d = ds.latitude.values.copy()
-            lon_1d = ds.longitude.values.copy()
-            tp_2d  = ds[var].values.copy()
-        finally:
-            ds.close()
-
-    while tp_2d.ndim > 2:
-        tp_2d = tp_2d[0]
-
-    if lat_1d[0] > lat_1d[-1]:
-        lat_1d = lat_1d[::-1]
-        tp_2d  = tp_2d[::-1, :]
-
-    lon_1d = np.where(lon_1d > 180.0, lon_1d - 360.0, lon_1d)
-    order  = np.argsort(lon_1d)
-    lon_1d = lon_1d[order]
-    tp_2d  = tp_2d[:, order]
-
-    return lat_1d, lon_1d, tp_2d
-
-
-# Light Gaussian pre-smooth (source-grid cells) before bilinear interpolation.
-# Softens the coarse 0.25° cell edges into a continuous surface — the same
-# technique fetch_mslp.py uses (sigma=1.0) for its isobar contours — without
-# materially shifting rain totals; interpolation alone (no smoothing) still
-# leaves faint diamond-shaped linear-interpolation artefacts at this grid
-# spacing, which the pre-smooth removes.
-_SMOOTH_SIGMA = 0.7
-
-
-def extract_tp_mm(grib_bytes, mapping):
-    """Download-to-temp, extract cumulative tp (mm since run start), bilinearly
-    interpolate onto the output canvas. Returns None on any read failure.
-
-    Interpolating (rather than nearest-neighbour sampling, as UKV does) keeps
-    the same underlying 0.25° data but produces smooth colour-band boundaries
-    closer to ECMWF's own higher-resolution charts — see build_mapping()."""
-    lat_1d, lon_1d, Lat, Lon, valid = mapping
-    with tempfile.NamedTemporaryFile(suffix=".grib2", delete=False) as tmp:
-        tmp.write(grib_bytes)
-        path = tmp.name
+def extract_precip_mm(om_fs, run_dt, valid_dt, mapping):
+    """Read the `precipitation` child (mm, backward sum over the interval
+    since the previous available valid time) for one timestep, IDW-remap
+    onto the output canvas. Returns None on any read failure."""
+    key = f"{OM_BUCKET}/{run_prefix(run_dt)}{valid_iso_filename(valid_dt)}.om"
     try:
-        _, _, tp_2d = open_tp(path)
+        with om_fs.open(key, "rb") as f:
+            reader = OmFileReader(f)
+            precip = np.asarray(
+                reader.get_child_by_name("precipitation").read_array((0, slice(None)))
+            ).ravel()
     except Exception as e:
-        print(f"    Warning: failed to read tp from GRIB — {e}")
+        print(f"    Warning: failed to read {key} — {e}")
         return None
-    finally:
-        os.unlink(path)
 
-    arr2d = np.where(np.isfinite(tp_2d), tp_2d, 0.0).astype(np.float32)
-    arr2d = np.clip(arr2d, 0, None) * 1000.0  # metres → mm
-    arr2d = gaussian_filter(arr2d, sigma=_SMOOTH_SIGMA)
+    sub = precip[mapping["subset_idx"]]
+    sub = np.where(np.isfinite(sub), sub, 0.0).astype(np.float32)
+    sub = np.clip(sub, 0, None)
 
-    interp = RegularGridInterpolator((lat_1d, lon_1d), arr2d,
-                                      method="linear", bounds_error=False, fill_value=0.0)
-    pts = np.column_stack([Lat.ravel(), Lon.ravel()])
-    out = interp(pts).reshape(HEIGHT, WIDTH).astype(np.float32)
-    out = np.clip(out, 0, None)
-    out[~valid] = 0.0
-    return out
+    out = (sub[mapping["nn_idx"]] * mapping["weights"]).sum(axis=1)
+    out = out.reshape(HEIGHT, WIDTH).astype(np.float32)
+    return np.clip(out, 0, None)
 
 
 def render_png(arr, scheme):
     indices = np.digitize(arr, scheme["bounds"])
     indices[arr <= 0] = 0
     return Image.fromarray(scheme["colors"][indices], "RGBA")
-
-
-def download_grib(s3, run_dt, stream, step_hours):
-    key = grib_key(run_dt, stream, step_hours)
-    try:
-        obj = s3.get_object(Bucket=ECMWF_BUCKET, Key=key)
-        return obj["Body"].read()
-    except Exception as e:
-        print(f"    Warning: {os.path.basename(key)} — {e}")
-        return None
 
 
 def upload_scheme_set(arr, schemes, run_ts, offset, prefix):
@@ -451,18 +436,19 @@ def main():
         print("R2 credentials not set — aborting.")
         sys.exit(1)
 
-    s3 = get_s3()
+    om_fs = get_om_fs()
     r2 = get_r2()
 
     existing_meta = json_from_r2(r2, "ecmwf_meta.json", {"runs": []})
     existing_runs = existing_meta.get("runs", [])
 
-    print("Finding latest complete ECMWF HRES run...")
-    run_dt, stream = find_latest_run(s3)
+    print("Finding latest complete ECMWF HRES (9km) run...")
+    run_dt, om_meta = find_latest_run(om_fs)
     if not run_dt:
-        print("No complete run found on S3 yet.")
+        print("No complete run found yet.")
         sys.exit(0)
     run_ts = run_ts_str(run_dt)
+    stream = "oper" if run_dt.hour in (0, 12) else "scda"
     print(f"  Latest complete: {run_ts} ({stream})")
 
     force = os.environ.get("FORCE_RERUN", "").lower() in ("1", "true", "yes")
@@ -474,63 +460,59 @@ def main():
         print(f"  {run_ts} already processed — done.")
         sys.exit(0)
 
-    steps = step_schedule(stream)
-    print(f"  {len(steps)} steps: T+{steps[0]}h → T+{steps[-1]}h")
-
-    print("Building coordinate mapping from T+{}h file...".format(steps[0]))
-    first_bytes = download_grib(s3, run_dt, stream, steps[0])
-    if first_bytes is None:
-        print("  Cannot download first step — aborting.")
+    # valid_times[0] is T+0 (no preceding interval to sum) — skip it, same as
+    # the old GRIB2 pipeline skipped step 0.
+    valid_dts = [parse_valid_time(v) for v in om_meta.get("valid_times", [])][1:]
+    if not valid_dts:
+        print("  No forecast steps found.")
         sys.exit(1)
-    with tempfile.NamedTemporaryFile(suffix=".grib2", delete=False) as tmp:
-        tmp.write(first_bytes)
-        sample_path = tmp.name
-    try:
-        lat_1d, lon_1d, _ = open_tp(sample_path)
-    finally:
-        os.unlink(sample_path)
-    mapping = build_mapping(lat_1d, lon_1d)
-    print("  Mapping ready.")
+    steps_h = [round((v - run_dt).total_seconds() / 3600) for v in valid_dts]
+    print(f"  {len(valid_dts)} steps: T+{steps_h[0]}h → T+{steps_h[-1]}h")
+
+    print("Building O1280 grid + remap (once per run)...")
+    lats, lons = build_o1280_grid()
+    mapping = build_mapping(lats, lons)
 
     rlabel = label_str(run_dt)
     print(f"  Run: {rlabel}")
 
-    step_entries = []
-    prev_cumulative = None
+    step_entries_by_hours = {}
     prev_hours = 0
-    # Stack of {'arr': ndarray, 'hours': int} holding per-interval (delta) rainfall.
-    accum_stack = []
+    accum_stack = []  # [{'arr': ndarray, 'hours': int}] — real backward-sum intervals
 
-    for i, hours in enumerate(steps):
+    def _fetch_one(valid_dt):
+        return extract_precip_mm(om_fs, run_dt, valid_dt, mapping)
+
+    # Download+remap steps in parallel (I/O-bound S3 reads), but the accum
+    # stack must still be folded in chronological order, so results are
+    # collected first and then walked in sequence below.
+    results = {}
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        futs = {ex.submit(_fetch_one, vdt): vdt for vdt in valid_dts}
+        for i, fut in enumerate(as_completed(futs), 1):
+            vdt = futs[fut]
+            results[vdt] = fut.result()
+            print(f"  [{i}/{len(valid_dts)}] fetched T+{round((vdt - run_dt).total_seconds() / 3600)}h", flush=True)
+
+    for hours, valid_dt in zip(steps_h, valid_dts):
         offset = f"PT{hours:04d}H00M"
-        valid_dt = run_dt + timedelta(hours=hours)
         vlabel = label_str(valid_dt)
-        print(f"  [{i+1}/{len(steps)}] {offset}  {vlabel}", flush=True)
-
         entry = {"offset": offset, "offset_hours": hours, "valid_label": vlabel}
 
-        grib_bytes = download_grib(s3, run_dt, stream, hours)
-        cumulative = extract_tp_mm(grib_bytes, mapping) if grib_bytes else None
-
-        if cumulative is None:
-            step_entries.append(entry)
+        precip = results.get(valid_dt)
+        if precip is None:
+            step_entries_by_hours[hours] = entry
             continue
 
         step_interval_hours = hours - prev_hours
-        if prev_cumulative is None:
-            delta = cumulative  # first step: delta from run start (t=0) == cumulative
-        else:
-            delta = np.clip(cumulative - prev_cumulative, 0, None)
-        prev_cumulative = cumulative
         prev_hours = hours
 
-        # Rate PNG: average mm/hr over this step's interval.
-        rate_arr = delta / step_interval_hours
+        rate_arr = precip / step_interval_hours
         urls = upload_scheme_set(rate_arr, ECMWF_RATE_SCHEME, run_ts, offset, "rate")
         if urls:
             entry["rainfall_rate"] = urls
 
-        accum_stack.append({"arr": delta, "hours": step_interval_hours})
+        accum_stack.append({"arr": precip, "hours": step_interval_hours})
         total_stk = sum(s["hours"] for s in accum_stack)
         while total_stk > 48 and accum_stack:
             total_stk -= accum_stack.pop(0)["hours"]
@@ -544,7 +526,7 @@ def main():
                 # Walk backwards accumulating whole slots; stop rather than
                 # bridge a gap (e.g. a 6h slot can't serve a 3h request) —
                 # this is why accum_3h stops appearing once a run enters its
-                # 6-hourly tail (T+150+ for oper runs). Expected, not a bug.
+                # 6-hourly tail. Expected, not a bug.
                 covered, arrs = 0, []
                 for slot in reversed(accum_stack):
                     if covered >= n:
@@ -564,18 +546,20 @@ def main():
 
             if accum_renders:
                 with ThreadPoolExecutor(max_workers=min(len(accum_renders), 4)) as ex:
-                    futs = [ex.submit(_upload_accum, n, a) for n, a in accum_renders]
-                    for fut in as_completed(futs):
+                    afuts = [ex.submit(_upload_accum, n, a) for n, a in accum_renders]
+                    for fut in as_completed(afuts):
                         n, urls = fut.result()
                         entry[f"accum_{n}h"] = urls
 
-        step_entries.append(entry)
+        step_entries_by_hours[hours] = entry
+
+    step_entries = [step_entries_by_hours[h] for h in steps_h]
 
     new_run = {
         "run_ts":         run_ts,
         "run_label":      rlabel,
         "stream":         stream,
-        "forecast_hours": steps[-1],
+        "forecast_hours": steps_h[-1],
         "steps":          step_entries,
     }
 
@@ -598,7 +582,8 @@ def main():
 
     meta = {
         "generated_at": datetime.now(timezone.utc).replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M:00.000Z"),
-        "attribution":  "ECMWF HRES (IFS) 0.25° deterministic — CC BY 4.0, ecmwf.int",
+        "attribution":  "ECMWF HRES (IFS) 9km native-resolution deterministic — CC BY 4.0, "
+                         "ecmwf.int, via Open-Meteo (openmeteo.com) Open Data",
         "runs": [new_run] + older,
     }
 
