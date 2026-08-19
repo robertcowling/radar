@@ -31,7 +31,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install boto3 botocore eccodes cfgrib xarray numpy Pillow pyproj
+        pip install boto3 botocore eccodes cfgrib xarray numpy scipy Pillow pyproj
 
     - name: Fetch and render ECMWF forecast
       env:

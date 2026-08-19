@@ -142,6 +142,21 @@ Three things to keep in mind when changing any of them:
   landing on S3, while a "not ready yet" check is just a couple of cheap
   `list_objects_v2` calls with no data download, so faster polling buys
   nothing given ECMWF's own dissemination cadence doesn't move any faster.
+- This is ECMWF's **free Open Data** extract of the HRES/IFS deterministic
+  model (the same forecast behind ECMWF's own "Set I" dataset and its
+  OpenCharts products), fixed at 0.25° (~28km) resolution — ECMWF's own
+  charts instead draw on the model's ~9km native resolution, which is not
+  available through the free feed. That resolution gap, not a wrong
+  dataset, is why a naive render of this data looks blockier than
+  ECMWF's official charts. `extract_tp_mm()` narrows the visual gap by
+  bilinearly interpolating (with a light Gaussian pre-smooth, same
+  technique `fetch_mslp.py` uses for isobars) onto the output canvas
+  instead of nearest-neighbour sampling, which UKV's much finer 2km grid
+  doesn't need.
+- `ecmwf.html` shows catchment/region/county boundary outlines for
+  geographic reference (same GeoJSON sources as `/ukv`), but — unlike
+  UKV's boundary layer — with no per-run choropleth fill, since v1 has no
+  polygon-average data pipeline.
 
 ## FGS tracker (`fetch_fgs.py` / `fgscomparison/index.html`)
 
