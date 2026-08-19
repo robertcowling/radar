@@ -1,5 +1,1177 @@
 {
-  "generated_at": null,
-  "attribution": "ECMWF HRES (IFS) 0.25° deterministic — CC BY 4.0, ecmwf.int",
-  "runs": []
+  "generated_at": "2026-08-19T06:39:00.000Z",
+  "attribution": "ECMWF HRES (IFS) 0.25\u00b0 deterministic \u2014 CC BY 4.0, ecmwf.int",
+  "runs": [
+    {
+      "run_ts": "20260818T1200Z",
+      "run_label": "18 Aug 2026 13:00 BST",
+      "stream": "oper",
+      "forecast_hours": 240,
+      "steps": [
+        {
+          "offset": "PT0003H00M",
+          "offset_hours": 3,
+          "valid_label": "18 Aug 2026 16:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0003H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0003H00M_accum_3h_met.png"
+          }
+        },
+        {
+          "offset": "PT0006H00M",
+          "offset_hours": 6,
+          "valid_label": "18 Aug 2026 19:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0006H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0006H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0006H00M_accum_3h_met.png"
+          }
+        },
+        {
+          "offset": "PT0009H00M",
+          "offset_hours": 9,
+          "valid_label": "18 Aug 2026 22:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0009H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0009H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0009H00M_accum_3h_met.png"
+          }
+        },
+        {
+          "offset": "PT0012H00M",
+          "offset_hours": 12,
+          "valid_label": "19 Aug 2026 01:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0012H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0012H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0012H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0015H00M",
+          "offset_hours": 15,
+          "valid_label": "19 Aug 2026 04:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0015H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0015H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0015H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0018H00M",
+          "offset_hours": 18,
+          "valid_label": "19 Aug 2026 07:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0018H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0018H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0018H00M_accum_3h_met.png"
+          }
+        },
+        {
+          "offset": "PT0021H00M",
+          "offset_hours": 21,
+          "valid_label": "19 Aug 2026 10:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0021H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0021H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0021H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0024H00M",
+          "offset_hours": 24,
+          "valid_label": "19 Aug 2026 13:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0024H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0024H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0024H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0024H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0027H00M",
+          "offset_hours": 27,
+          "valid_label": "19 Aug 2026 16:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0027H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0027H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0027H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0027H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0030H00M",
+          "offset_hours": 30,
+          "valid_label": "19 Aug 2026 19:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0030H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0030H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0030H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0030H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0033H00M",
+          "offset_hours": 33,
+          "valid_label": "19 Aug 2026 22:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0033H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0033H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0033H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0033H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0036H00M",
+          "offset_hours": 36,
+          "valid_label": "20 Aug 2026 01:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0036H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0036H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0036H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0036H00M_accum_3h_met.png"
+          }
+        },
+        {
+          "offset": "PT0039H00M",
+          "offset_hours": 39,
+          "valid_label": "20 Aug 2026 04:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0039H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0039H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0039H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0039H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0042H00M",
+          "offset_hours": 42,
+          "valid_label": "20 Aug 2026 07:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0042H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0042H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0042H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0042H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0045H00M",
+          "offset_hours": 45,
+          "valid_label": "20 Aug 2026 10:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0045H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0045H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0045H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0045H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0048H00M",
+          "offset_hours": 48,
+          "valid_label": "20 Aug 2026 13:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0048H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0048H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0048H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0048H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0048H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0051H00M",
+          "offset_hours": 51,
+          "valid_label": "20 Aug 2026 16:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0051H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0051H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0051H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0051H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0051H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0054H00M",
+          "offset_hours": 54,
+          "valid_label": "20 Aug 2026 19:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0054H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0054H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0054H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0054H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0054H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0057H00M",
+          "offset_hours": 57,
+          "valid_label": "20 Aug 2026 22:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0057H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0057H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0057H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0057H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0057H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0060H00M",
+          "offset_hours": 60,
+          "valid_label": "21 Aug 2026 01:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0060H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0060H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0060H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0060H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0060H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0063H00M",
+          "offset_hours": 63,
+          "valid_label": "21 Aug 2026 04:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0063H00M_rate_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0063H00M_accum_48h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0063H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0063H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0063H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0066H00M",
+          "offset_hours": 66,
+          "valid_label": "21 Aug 2026 07:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0066H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0066H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0066H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0066H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0066H00M_accum_3h_met.png"
+          }
+        },
+        {
+          "offset": "PT0069H00M",
+          "offset_hours": 69,
+          "valid_label": "21 Aug 2026 10:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0069H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0069H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0069H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0069H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0069H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0072H00M",
+          "offset_hours": 72,
+          "valid_label": "21 Aug 2026 13:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0072H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0072H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0072H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0072H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0072H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0075H00M",
+          "offset_hours": 75,
+          "valid_label": "21 Aug 2026 16:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0075H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0075H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0075H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0075H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0075H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0078H00M",
+          "offset_hours": 78,
+          "valid_label": "21 Aug 2026 19:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0078H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0078H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0078H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0078H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0078H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0081H00M",
+          "offset_hours": 81,
+          "valid_label": "21 Aug 2026 22:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0081H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0081H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0081H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0081H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0081H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0084H00M",
+          "offset_hours": 84,
+          "valid_label": "22 Aug 2026 01:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0084H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0084H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0084H00M_accum_48h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0084H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0084H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0087H00M",
+          "offset_hours": 87,
+          "valid_label": "22 Aug 2026 04:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0087H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0087H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0087H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0087H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0087H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0090H00M",
+          "offset_hours": 90,
+          "valid_label": "22 Aug 2026 07:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0090H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0090H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0090H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0090H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0090H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0093H00M",
+          "offset_hours": 93,
+          "valid_label": "22 Aug 2026 10:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0093H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0093H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0093H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0093H00M_accum_48h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0093H00M_accum_3h_met.png"
+          }
+        },
+        {
+          "offset": "PT0096H00M",
+          "offset_hours": 96,
+          "valid_label": "22 Aug 2026 13:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0096H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0096H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0096H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0096H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0096H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0099H00M",
+          "offset_hours": 99,
+          "valid_label": "22 Aug 2026 16:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0099H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0099H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0099H00M_accum_48h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0099H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0099H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0102H00M",
+          "offset_hours": 102,
+          "valid_label": "22 Aug 2026 19:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0102H00M_rate_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0102H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0102H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0102H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0102H00M_accum_3h_met.png"
+          }
+        },
+        {
+          "offset": "PT0105H00M",
+          "offset_hours": 105,
+          "valid_label": "22 Aug 2026 22:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0105H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0105H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0105H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0105H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0105H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0108H00M",
+          "offset_hours": 108,
+          "valid_label": "23 Aug 2026 01:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0108H00M_rate_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0108H00M_accum_48h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0108H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0108H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0108H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0111H00M",
+          "offset_hours": 111,
+          "valid_label": "23 Aug 2026 04:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0111H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0111H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0111H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0111H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0111H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0114H00M",
+          "offset_hours": 114,
+          "valid_label": "23 Aug 2026 07:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0114H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0114H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0114H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0114H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0114H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0117H00M",
+          "offset_hours": 117,
+          "valid_label": "23 Aug 2026 10:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0117H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0117H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0117H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0117H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0117H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0120H00M",
+          "offset_hours": 120,
+          "valid_label": "23 Aug 2026 13:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0120H00M_rate_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0120H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0120H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0120H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0120H00M_accum_3h_met.png"
+          }
+        },
+        {
+          "offset": "PT0123H00M",
+          "offset_hours": 123,
+          "valid_label": "23 Aug 2026 16:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0123H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0123H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0123H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0123H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0123H00M_accum_3h_met.png"
+          }
+        },
+        {
+          "offset": "PT0126H00M",
+          "offset_hours": 126,
+          "valid_label": "23 Aug 2026 19:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0126H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0126H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0126H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0126H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0126H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0129H00M",
+          "offset_hours": 129,
+          "valid_label": "23 Aug 2026 22:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0129H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0129H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0129H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0129H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0129H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0132H00M",
+          "offset_hours": 132,
+          "valid_label": "24 Aug 2026 01:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0132H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0132H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0132H00M_accum_48h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0132H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0132H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0135H00M",
+          "offset_hours": 135,
+          "valid_label": "24 Aug 2026 04:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0135H00M_rate_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0135H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0135H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0135H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0135H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0138H00M",
+          "offset_hours": 138,
+          "valid_label": "24 Aug 2026 07:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0138H00M_rate_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0138H00M_accum_48h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0138H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0138H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0138H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0141H00M",
+          "offset_hours": 141,
+          "valid_label": "24 Aug 2026 10:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0141H00M_rate_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0141H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0141H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0141H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0141H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0144H00M",
+          "offset_hours": 144,
+          "valid_label": "24 Aug 2026 13:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0144H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0144H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0144H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0144H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0144H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0150H00M",
+          "offset_hours": 150,
+          "valid_label": "24 Aug 2026 19:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0150H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0150H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0150H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0150H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0156H00M",
+          "offset_hours": 156,
+          "valid_label": "25 Aug 2026 01:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0156H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0156H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0156H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0156H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0162H00M",
+          "offset_hours": 162,
+          "valid_label": "25 Aug 2026 07:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0162H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0162H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0162H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0162H00M_accum_24h_met.png"
+          }
+        },
+        {
+          "offset": "PT0168H00M",
+          "offset_hours": 168,
+          "valid_label": "25 Aug 2026 13:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0168H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0168H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0168H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0168H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0174H00M",
+          "offset_hours": 174,
+          "valid_label": "25 Aug 2026 19:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0174H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0174H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0174H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0174H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0180H00M",
+          "offset_hours": 180,
+          "valid_label": "26 Aug 2026 01:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0180H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0180H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0180H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0180H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0186H00M",
+          "offset_hours": 186,
+          "valid_label": "26 Aug 2026 07:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0186H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0186H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0186H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0186H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0192H00M",
+          "offset_hours": 192,
+          "valid_label": "26 Aug 2026 13:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0192H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0192H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0192H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0192H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0198H00M",
+          "offset_hours": 198,
+          "valid_label": "26 Aug 2026 19:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0198H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0198H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0198H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0198H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0204H00M",
+          "offset_hours": 204,
+          "valid_label": "27 Aug 2026 01:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0204H00M_rate_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0204H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0204H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0204H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0210H00M",
+          "offset_hours": 210,
+          "valid_label": "27 Aug 2026 07:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0210H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0210H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0210H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0210H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0216H00M",
+          "offset_hours": 216,
+          "valid_label": "27 Aug 2026 13:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0216H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0216H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0216H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0216H00M_accum_6h_met.png"
+          }
+        },
+        {
+          "offset": "PT0222H00M",
+          "offset_hours": 222,
+          "valid_label": "27 Aug 2026 19:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0222H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0222H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0222H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0222H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0228H00M",
+          "offset_hours": 228,
+          "valid_label": "28 Aug 2026 01:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0228H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0228H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0228H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0228H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0234H00M",
+          "offset_hours": 234,
+          "valid_label": "28 Aug 2026 07:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0234H00M_rate_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0234H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0234H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0234H00M_accum_48h_met.png"
+          }
+        },
+        {
+          "offset": "PT0240H00M",
+          "offset_hours": 240,
+          "valid_label": "28 Aug 2026 13:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0240H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0240H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0240H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260818T1200Z/PT0240H00M_accum_48h_met.png"
+          }
+        }
+      ]
+    }
+  ]
 }
