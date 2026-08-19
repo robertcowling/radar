@@ -40,9 +40,10 @@ script that writes to R2:
   uploads per forecast step × ~55 steps × 8 runs/day ≈ 350k ops/month) —
   those are genuinely new objects each run, so reducing them means
   reducing schemes/thresholds/durations (a product decision, not plumbing).
-  `fetch_ecmwf.py` adds a much smaller ~30k ops/month on top of that (one
-  scheme × up to 5 uploads/step × ~188 steps/day) — combined R2 Class A
-  usage is still well under 40% of the 1M/month free tier.
+  `fetch_ecmwf.py` adds a smaller ~76k ops/month on top of that (one
+  scheme × up to 5 uploads/step × ~504 steps/day, across its 4 daily runs'
+  hourly-to-T+90h cadence and up-to-15-day horizon) — combined R2 Class A
+  usage is still well under 45% of the 1M/month free tier.
 
 ## Freshness timestamps are a public API (floodforecast consumer contract)
 
@@ -112,51 +113,76 @@ Three things to keep in mind when changing any of them:
 
 - Second, independent deterministic-rainfall page (`ecmwf.html`) modelled on
   UKV's pipeline, covering the same map domain/canvas for direct visual
-  comparability but sourced from ECMWF's public unsigned S3 bucket
-  (`ecmwf-forecasts`, region `eu-central-1`, ~2-3 days retention), GRIB2,
-  0.25° global grid, CC BY 4.0 (attribution required — see `ecmwf.html`'s
-  info panel).
-- ECMWF publishes **4 runs/day** (00/06/12/18Z). The 00Z/12Z runs (`stream:
-  "oper"`) go out to the full T+240h horizon (3-hourly to T+144h, then
-  6-hourly); the 06Z/18Z runs (`stream: "scda"`, short-range companions)
-  only ever reach T+90h — a `scda` run showing "not yet complete" past T+90h
-  is expected, not stuck. `ecmwf_meta.json`'s `stream` field on each run
-  records which schedule applies; `ecmwf.html` labels `scda` runs
-  "(short-range)" in the run dropdown so the shorter step slider makes sense.
+  comparability. **Not sourced from ECMWF directly** — ECMWF's own free Open
+  Data feed is capped at 0.25° (~28km), and a genuinely useful map needs
+  something closer to the model's real resolution. Instead this pulls from
+  **Open-Meteo's public AWS Open Data S3 bucket** (`s3://openmeteo`,
+  `us-west-2`, unauthenticated), which redistributes ECMWF's own IFS HRES
+  output at full **~9km native resolution** under the same CC BY 4.0 licence
+  — ECMWF has said they'll offer this resolution directly "later in 2026",
+  at which point revisit whether to switch source. Path:
+  `data_spatial/ecmwf_ifs/{YYYY}/{MM}/{DD}/{HH}00Z/{valid_iso}.om`, read via
+  the `omfiles` package (not GRIB/cfgrib — an earlier version of this script
+  pulled ECMWF's own 0.25° GRIB2 files directly and smoothed them for
+  display; that whole approach was replaced, not extended, once the 9km
+  source was found and validated).
+- The source grid is ECMWF's **O1280 octahedral reduced Gaussian grid** —
+  unstructured (each latitude row has a different point count), with no
+  coordinate array shipped per file since it's static across every timestep
+  and run. `build_o1280_grid()` reconstructs it from first principles
+  (Gaussian latitudes via Gauss-Legendre quadrature + the standard
+  octahedral points-per-row formula `pl(i) = 4*i + 16`) — trust this only
+  because it was verified two independent ways before being relied on: the
+  computed point count matches Open-Meteo's array length exactly
+  (6,599,680), and a rendered UK-domain subset lines up pixel-for-pixel with
+  the UK coastline. If this ever needs re-deriving, re-run that same
+  validation before trusting a change to it.
+- Remapping onto the output canvas uses **inverse-distance-weighted
+  interpolation over each pixel's 4 nearest source points**
+  (`scipy.spatial.cKDTree`, built once per run in `build_mapping()` since the
+  source grid never changes) — not a regular-grid method, because O1280 isn't
+  a regular grid. This is what gives the page its smooth, ECMWF-chart-like
+  rain boundaries instead of blocky grid cells.
+- Open-Meteo's `precipitation` field is a genuine **backward sum** — the
+  rainfall (mm) for the interval since the *previous* available valid time
+  (1h/3h/6h depending on where in the run's cadence a step falls) — verified
+  empirically (global sums scale with interval length, not cumulatively).
+  Unlike raw ECMWF `tp` (cumulative since T+0), this needs **no
+  de-accumulation step**: each step's value already is that interval's
+  rainfall, fed straight into the accum-stack windowing logic UKV also uses.
+- Same horizon split as ECMWF's own feed, just relabelled by run hour rather
+  than a source-provided "stream" field: 00Z/12Z runs (`stream: "oper"`) go
+  to the full **15-day** horizon (hourly to T+90h, 3-hourly to T+144h,
+  6-hourly beyond); 06Z/18Z runs (`stream: "scda"`) only reach **6 days**
+  (T+144h). `ecmwf.html` labels `scda` runs "(short-range)" in the run
+  dropdown.
+- Run completeness is read straight from each run's `meta.json`
+  (`completed: true/false` + the exact `valid_times` list) — much simpler
+  than the old GRIB2 approach's "probe for a specific final-step file"
+  check, and avoids hardcoding a step schedule that could drift.
 - v1 is deliberately lean vs UKV: one colour scheme (`_MET_COLORS`, the same
   "alternative" palette UKV itself offers, chosen so the two pages aren't
   visually confusable) and four accumulation windows (3h/6h/24h/48h, not
   UKV's six) — no splat masks, no polygon/gauge time series. R2 key layout
   mirrors UKV's: `ecmwf/{run_ts}/{offset}_{prefix}_met.png`.
-- ECMWF's `tp` field is **cumulative total precipitation since the run's
-  T+0**, not per-step like UKV's `rainfall_accumulation-PT01H` files —
-  `fetch_ecmwf.py` de-accumulates by diffing consecutive steps' `tp` before
-  feeding UKV's existing accum-stack windowing logic. That logic's
-  "can't bridge a gap" rule then correctly (and expectedly) stops producing
-  the `accum_3h` window once an `oper` run enters its 6-hourly tail past
-  T+144h — a missing `accum_3h` key on a late step is normal, not a bug.
-- Availability delay after nominal run time is roughly 6-9 hours
-  (ECMWF's dissemination schedule). The Google Apps Script trigger for the
-  "Fetch ECMWF HRES Forecast" workflow should poll **hourly** — frequent
-  enough to pick up each of the 4 daily runs within about an hour of it
-  landing on S3, while a "not ready yet" check is just a couple of cheap
-  `list_objects_v2` calls with no data download, so faster polling buys
-  nothing given ECMWF's own dissemination cadence doesn't move any faster.
-- This is ECMWF's **free Open Data** extract of the HRES/IFS deterministic
-  model (the same forecast behind ECMWF's own "Set I" dataset and its
-  OpenCharts products), fixed at 0.25° (~28km) resolution — ECMWF's own
-  charts instead draw on the model's ~9km native resolution, which is not
-  available through the free feed. That resolution gap, not a wrong
-  dataset, is why a naive render of this data looks blockier than
-  ECMWF's official charts. `extract_tp_mm()` narrows the visual gap by
-  bilinearly interpolating (with a light Gaussian pre-smooth, same
-  technique `fetch_mslp.py` uses for isobars) onto the output canvas
-  instead of nearest-neighbour sampling, which UKV's much finer 2km grid
-  doesn't need.
+- Higher time-resolution (hourly to T+90h) and a longer horizon (15 vs the
+  old feed's 10 days) mean roughly 2.5x more steps/day than the original
+  0.25°-based design — still only ~75k R2 ops/month (well within budget, see
+  above), but worth knowing if step counts ever look surprising.
+- Availability delay after nominal run time is roughly 6-9 hours (no
+  additional delay vs ECMWF's own 0.25° feed, per Open-Meteo). The Google
+  Apps Script trigger for the "Fetch ECMWF HRES Forecast" workflow should
+  poll **hourly** — frequent enough to pick up each of the 4 daily runs
+  within about an hour, while a "not ready yet" check is just a small
+  `meta.json` fetch, so faster polling buys nothing.
 - `ecmwf.html` shows catchment/region/county boundary outlines for
   geographic reference (same GeoJSON sources as `/ukv`), but — unlike
   UKV's boundary layer — with no per-run choropleth fill, since v1 has no
   polygon-average data pipeline.
+- No GRIB/eccodes system dependency any more (`ecmwf.yml` no longer runs
+  `apt-get install libeccodes-dev`) — reading `.om` files is pure
+  Python+numpy+scipy, which simplified the workflow versus the first cut of
+  this script.
 
 ## FGS tracker (`fetch_fgs.py` / `fgscomparison/index.html`)
 
