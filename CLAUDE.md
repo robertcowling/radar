@@ -274,3 +274,78 @@ Three things to keep in mind when changing any of them:
 - Log: `gaugecheck/log.json` (rolling 48 h event log)
 - Manifest + run archive: `gaugecheck/manifest.json` + `gaugecheck/runs/*.json`
 - The log accumulates events keyed by `(station_id, first_flagged_at)` — one entry per station per "flagging episode".
+
+## Rainfall duration records & percentiles (`rain_duration_stats.py` / `rain_geo.py`)
+
+- Adds "how unusual is this total" context to `rain/gauge.html`'s duration
+  table for 1h/3h/6h/12h/24h/48h/72h/7d, split into two genuinely different
+  kinds of record because **no sub-daily historical archive exists anywhere
+  upstream** (EA's bulk archive, MIDAS Open, and this repo's own 15-min
+  readings are all daily-or-coarser once you look past `fetch_rain.py`'s
+  14-day retention window):
+  - **24h/48h/72h/7d — `basis.kind:"climatological"`**, decades deep.
+    `build_rain_climatology.py`'s `compute_duration_climatology()` (called
+    from inside `compute_climatology()`, since the raw daily `days` dict is
+    discarded right after — see that function's own comment) computes
+    rolling N-day sums from the same daily series already pulled for the
+    monthly climatology, gated on `MIN_DAYS_FOR_DURATION_PERCENTILE=365`
+    windows before publishing percentiles. `build_sepa_climatology.py` and
+    `build_nrw_climatology.py` inherit this for free (same shared
+    function) — NRW's result is explicitly re-tagged `basis.kind:"proxy"`
+    afterwards, since it's still MIDAS-matched data, not the gauge's own.
+  - **1h/3h/6h/12h — `basis.kind:"operational"`**, growing from whenever
+    this feature shipped. No history exists or can be recovered, so
+    `rain_duration_stats.py`'s `update_duration_records()` forward-tracks an
+    all-time max per station per duration from live rolling totals every
+    15-min run (`make_rain_summary.py:main()`), with a plausibility ceiling
+    (`CEILING_MM`, shared with the 24h ceiling that also fixed a
+    long-standing 250mm-vs-341.4mm inconsistency between
+    `make_rain_summary.py` and `rain/gauge.html`) and a lightweight
+    neighbour-corroboration check (deliberately independent of
+    `gauge_qc.py`'s own MAD-based spatial check — decoupled pipelines) that
+    holds an implausible or spatially-uncorroborated candidate as
+    `provisional` rather than either trusting or discarding it outright.
+  - Every stat carries a `basis` object (`climatological` / `operational` /
+    `proxy`, with a `shortRecord` flag) — one shared shape, not a fourth ad
+    hoc way of flagging thin history.
+- R2 keys: `rain/duration_climatology_{ea,sepa,nrw}.json` (slim per-network
+  percentile+max index, loaded once per run rather than one GET per station
+  at 15-min cadence — see CLAUDE.md's R2 budget rules above),
+  `rain/duration_records.json` (hot, consolidated, one file not one per
+  station — same rule), `rain/duration_peaks_{YYYY}.json` (cold, one entry
+  appended per station per duration per day, never pruned — same precedent
+  as `rain/archive/daily_{YYYY}.json`), `rain/duration_stats.json`
+  (cross-gauge rank/percentile context, kept separate from `rain/summary.json`
+  since `rain/table.html` fetches that file on every load and doesn't need
+  this data), `rain/neighbours.json` (cached k-nearest-neighbour index,
+  rebuilt only when `stations.json`'s coordinates change).
+- `rain/gauge.html`'s duration table shows only the "obvious first cut" —
+  a record pill / "X% of record" and a rank-on-record rarity line (not a raw
+  percentile: with decades of daily data almost every meaningful rain event
+  already sits above the 99th percentile, so a literal percentile number
+  would be simultaneously alarmist and uninformative). Cross-gauge
+  percentiles (`rankUk`/`rankNeighbours`/`neighboursRecordsExceeded`) are
+  computed and stored in `rain/duration_stats.json` but deliberately not
+  built into the UI yet — comprehensive analysis layer, UI catches up later.
+  NRW gauges don't show the new columns at all (matches the existing refusal
+  to show NRW's proxy daily climatology).
+- **Backfilling onto already-processed stations**: the duration-climatology
+  addition needed a way to reprocess stations already in
+  `climatology_index_{ea,sepa,nrw}.json` without a blanket `FORCE=1` re-pull
+  of every station's full history — `DUR_SCHEMA_VERSION` in
+  `build_rain_climatology.py`, stamped per-station as `durSchema` in the
+  index, does this: a ref is reprocessed if missing OR its `durSchema`
+  doesn't match. Bump `DUR_SCHEMA_VERSION` for any future change to
+  `compute_duration_climatology()`'s output shape.
+- **Ready-made alerting hook**: detecting "gauge X just broke a Nh record" is
+  a one-line diff of `rain/duration_records.json`'s `allTime.at` timestamp
+  between runs — the file is deliberately shaped so a future alert job can
+  consume it directly without touching this pipeline.
+- **Deliberately not pursued** (see the implementation plan for the full
+  reasoning): MIDAS's separate sub-hourly rainfall dataset, which could in
+  principle give 1h-12h durations genuine historical depth too, needs its
+  own access/licensing investigation; and FEH13 return-period estimates
+  (the actual UK forecaster standard for "how unusual"), which need CEH's
+  commercial WINFAP-FEH tooling or an unclear-licence web service. The
+  rank-on-record framing here is a deliberately honest, licence-clean
+  substitute for either, not a permanent final answer.

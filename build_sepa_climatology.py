@@ -54,11 +54,14 @@ import requests
 
 from fetch_rain import get_r2, USE_R2
 from make_rain_summary import r2_get_json, r2_put_json
-from build_rain_climatology import CLIMATOLOGY_PFX, compute_climatology
+from build_rain_climatology import (
+    CLIMATOLOGY_PFX, compute_climatology, DURATION_INDEX_LABELS, DUR_SCHEMA_VERSION,
+)
 
 # Deliberately not the EA builder's index: the two jobs run concurrently and
 # a shared index raced, last writer silently dropping the other's entries.
 INDEX_KEY = "rain/climatology_index_sepa.json"
+DURATION_INDEX_KEY = "rain/duration_climatology_sepa.json"
 
 KIWIS = "https://timeseries.sepa.org.uk/KiWIS/KiWIS"
 BASE_PARAMS = {
@@ -151,9 +154,12 @@ def main():
         sys.exit(1)
 
     index = r2_get_json(r2, INDEX_KEY, {}) or {}
+    dur_index = r2_get_json(r2, DURATION_INDEX_KEY, {}) or {}
     todo = series
     if not force:
-        todo = [s for s in series if f"sepa_{s['station_no']}" not in index]
+        todo = [s for s in series
+                if f"sepa_{s['station_no']}" not in index
+                or index[f"sepa_{s['station_no']}"].get("durSchema") != DUR_SCHEMA_VERSION]
         print(f"{len(todo)} still to process ({len(series) - len(todo)} already in index)")
     if limit:
         todo = todo[:limit]
@@ -201,15 +207,28 @@ def main():
                     "annualNormal": round(sum(
                         c["mean"] for c in stats["climatology"].values()), 1)
                         if len(stats["climatology"]) == 12 else None,
+                    "durSchema": DUR_SCHEMA_VERSION,
                 }
+                dc = stats.get("durationClimatology") or {}
+                dur_entry = {}
+                for label in DURATION_INDEX_LABELS:
+                    if label not in dc:
+                        continue
+                    slim = dict(dc[label].get("percentiles", {}))
+                    slim["n"] = dc[label]["n"]
+                    slim["max"] = dc[label]["max"]
+                    dur_entry[label] = slim
+                dur_index[sid] = dur_entry
                 saved += 1
             if done % 10 == 0 or done == len(todo):
                 print(f"  {done}/{len(todo)} series ({saved} saved)")
             if done % 50 == 0:
                 r2_put_json(r2, index, INDEX_KEY)
+                r2_put_json(r2, dur_index, DURATION_INDEX_KEY)
                 print(f"    checkpoint: index now {len(index)} stations")
 
     r2_put_json(r2, index, INDEX_KEY)
+    r2_put_json(r2, dur_index, DURATION_INDEX_KEY)
     print(f"\nDone: {saved}/{len(todo)} SEPA series this run; index holds {len(index)}.")
 
 

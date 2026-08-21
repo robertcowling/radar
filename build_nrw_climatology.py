@@ -39,9 +39,13 @@ import requests
 
 from fetch_rain import get_r2, USE_R2
 from make_rain_summary import r2_get_json, r2_put_json
-from build_rain_climatology import CLIMATOLOGY_PFX, compute_climatology
+from build_rain_climatology import (
+    CLIMATOLOGY_PFX, compute_climatology, DURATION_INDEX_LABELS, DUR_SCHEMA_VERSION,
+)
+from rain_duration_stats import basis_proxy
 
 INDEX_KEY = "rain/climatology_index_nrw.json"
+DURATION_INDEX_KEY = "rain/duration_climatology_nrw.json"
 
 CEDA_BASE = "https://dap.ceda.ac.uk/badc/ukmo-midas-open/data/uk-daily-rain-obs"
 DATASET_VERSION = "dataset-version-202607"
@@ -281,9 +285,11 @@ def main():
     limit = int(os.environ.get("LIMIT_STATIONS", "0") or 0)
 
     index = r2_get_json(r2, INDEX_KEY, {}) or {}
+    dur_index = r2_get_json(r2, DURATION_INDEX_KEY, {}) or {}
     todo = list(matches.items())
     if not force:
-        todo = [(ref, m) for ref, m in todo if ref not in index]
+        todo = [(ref, m) for ref, m in todo
+                if ref not in index or index[ref].get("durSchema") != DUR_SCHEMA_VERSION]
         print(f"{len(todo)} still to process ({len(matches) - len(todo)} already in index)")
     if limit:
         todo = todo[:limit]
@@ -324,6 +330,15 @@ def main():
         stats["validDays"] = sum(stats["monthDayCounts"].values())
         stats["midasSrcId"] = src_id
         stats["midasName"] = match_info.get("midas_name", "")
+        # durationClimatology entries default to basis:"climatological" (see
+        # compute_duration_climatology) since compute_climatology() has no
+        # idea it was ever called with a MIDAS-matched proxy series — override
+        # every duration's basis here so the UI can tell a NRW gauge's
+        # duration stats are proxy-derived, same as its monthly climatology
+        # already is via the midasSrcId/midasName/matchDistKm fields above.
+        proxy_basis = basis_proxy(src_id, match_info.get("midas_name", ""), match_info["dist_km"])
+        for entry in (stats.get("durationClimatology") or {}).values():
+            entry["basis"] = proxy_basis
         stats["matchDistKm"] = match_info["dist_km"]
 
         return nrw_sid, stats
@@ -348,15 +363,32 @@ def main():
                     "annualNormal": round(sum(
                         c["mean"] for c in stats["climatology"].values()), 1)
                         if len(stats["climatology"]) == 12 else None,
+                    "durSchema": DUR_SCHEMA_VERSION,
                 }
+                # basis:"proxy" fields (midasSrcId/midasName/matchDistKm) are
+                # already stamped on `stats` below the dict this is built
+                # from — carried straight through to durationClimatology
+                # consumers via the per-station file, not duplicated here.
+                dc = stats.get("durationClimatology") or {}
+                dur_entry = {}
+                for label in DURATION_INDEX_LABELS:
+                    if label not in dc:
+                        continue
+                    slim = dict(dc[label].get("percentiles", {}))
+                    slim["n"] = dc[label]["n"]
+                    slim["max"] = dc[label]["max"]
+                    dur_entry[label] = slim
+                dur_index[sid] = dur_entry
                 saved += 1
             if done % 10 == 0 or done == len(todo):
                 print(f"  {done}/{len(todo)} stations ({saved} saved)")
             if done % 50 == 0:
                 r2_put_json(r2, index, INDEX_KEY)
+                r2_put_json(r2, dur_index, DURATION_INDEX_KEY)
                 print(f"    checkpoint: index now {len(index)} stations")
 
     r2_put_json(r2, index, INDEX_KEY)
+    r2_put_json(r2, dur_index, DURATION_INDEX_KEY)
     print(f"\nDone: {saved}/{len(todo)} NRW stations this run; index holds {len(index)}.")
 
 

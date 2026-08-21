@@ -452,6 +452,23 @@ var recentTab = '24h';
 var mapWindow = '24h';      // which accumulation the map markers show
 var durationScope = 'short'; // 'short' | 'long' — see DURATIONS split below
 var lastSummary = null;      // the summaryStations[ref] row, kept for re-renders
+// rain/duration_records.json's entry for this station — 1h/3h/6h/12h forward-
+// tracked operational records (no history exists before this file started;
+// see rain_duration_stats.py). rain/duration_stats.json's entry is also kept
+// for the cross-gauge percentile fields (rankUk/rankNeighbours/
+// neighboursRecordsExceeded), computed and stored but not built into the UI
+// yet — see fillNow()'s "obvious first cut" vs "deferred" split.
+var durationRecords = {};
+var durationStats = {};
+// rain/duration_records.json's/rain/duration_stats.json's window-key label
+// (rain/summary.json's "last1h" etc) doesn't match the shorter label those
+// two files themselves use ("1h") — one small map instead of two parallel
+// naming schemes leaking into every call site.
+var WINDOW_KEY_TO_LABEL = {
+    last1h: '1h', last3h: '3h', last6h: '6h', last12h: '12h',
+    last24h: '24h', last48h: '48h', last72h: '72h', last7d: '7d',
+};
+var OPERATIONAL_LABELS = {'1h': 1, '3h': 1, '6h': 1, '12h': 1};
 // stations.json carries no county field (confirmed empty on all 1,342 rows) —
 // table.html derives it client-side with a point-in-polygon test against
 // geo/uk-counties.geojson, so this page does the same for the one gauge it
@@ -580,7 +597,9 @@ function loadAll() {
         getJson(R2_CDN + '/rain/climatology_index_sepa.json'),
         // getJson resolves null on any failure rather than rejecting, so the
         // local fallback is chained with .then, not .catch.
-        getJson(R2_CDN + '/geo/uk-counties.geojson').then(function(gj) { return gj || getJson('../uk-counties.geojson'); })
+        getJson(R2_CDN + '/geo/uk-counties.geojson').then(function(gj) { return gj || getJson('../uk-counties.geojson'); }),
+        getJson(R2_CDN + '/rain/duration_records.json'),
+        getJson(R2_CDN + '/rain/duration_stats.json')
     ]).then(function(res) {
         stations = (res[0] && res[0].stations) || {};
         summaryStations = (res[1] && res[1].stations) || {};
@@ -591,6 +610,8 @@ function loadAll() {
             if (ix) Object.keys(ix).forEach(function(k) { normalIndex[k] = ix[k]; });
         });
         var countyFeatures = (res[5] && res[5].features) || [];
+        durationRecords = (res[6] && res[6].stations && res[6].stations[ref]) || {};
+        durationStats = (res[7] && res[7].stations && res[7].stations[ref]) || {};
 
         station = stations[ref];
         if (!station) {
@@ -1143,6 +1164,65 @@ function fillHead(s, sum) {
         + '</div>';
 }
 
+// ── Record / rarity context for the duration table ───────────────────────
+// No sub-daily historical archive exists anywhere upstream — 1h/3h/6h/12h
+// records are forward-tracked from live telemetry only (rain_duration_stats.py),
+// so they can only ever say "highest since tracking began", never a rank
+// against decades of history the way 24h+ can (see build_rain_climatology.py's
+// compute_duration_climatology). Mixing the two framings into one column
+// without distinguishing them would misrepresent how much history backs each
+// number, so the two are computed differently but rendered through the same
+// two columns below.
+function ordinalSuffix(n) {
+    var s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+    return s[(v - 20) % 10] || s[v] || s[0];
+}
+
+// value against a climatological duration's topEvents/annualMaxima — a rank-
+// on-record framing rather than a raw percentile: with decades of daily data
+// almost every meaningful rain event already sits above the 99th percentile,
+// so a literal percentile number would be simultaneously alarmist and
+// uninformative as the headline figure.
+function rankOnRecordText(value, durClim) {
+    if (!durClim) return null;
+    var top = durClim.topEvents || [];
+    for (var i = 0; i < top.length; i++) {
+        if (value >= top[i].mm) {
+            var n = i + 1;
+            return (n === 1 ? 'Highest' : n + ordinalSuffix(n) + ' highest') + ' on record'
+                + (durClim.basis && durClim.basis.from ? ' since ' + durClim.basis.from.slice(0, 4) : '');
+        }
+    }
+    var maxima = durClim.annualMaxima || {};
+    var years = Object.keys(maxima);
+    if (!years.length) return null;
+    var exceeded = years.filter(function(y) { return value >= maxima[y].mm; }).length;
+    return 'Exceeded in ' + exceeded + ' of ' + years.length + ' year' + (years.length === 1 ? '' : 's') + ' on record';
+}
+
+function operationalRarityText(rec) {
+    if (!rec || !rec.basis) return null;
+    var b = rec.basis;
+    var since = b.since || rec.trackingSince;
+    return 'Tracked since ' + (since || '?') + (b.days != null ? ' (' + b.days + ' day' + (b.days === 1 ? '' : 's') + ')' : '');
+}
+
+// "Record" pill when this run's value matches the stored all-time max;
+// otherwise "X% of record", dimmed. A short-record marker (reusing .suspect's
+// visual weight, distinct tooltip) fires whenever basis.shortRecord is set —
+// answers this feature's explicit "flag short records clearly" requirement.
+function vsRecordCell(value, maxMm, shortRecord) {
+    if (value == null || maxMm == null) return {html: '', cellClass: ''};
+    var isRecord = Math.abs(value - maxMm) < 0.005;
+    var html = isRecord
+        ? '<span class="pill">Record</span>'
+        : (maxMm > 0 ? Math.round((value / maxMm) * 100) + '% of record' : '');
+    if (shortRecord) {
+        html += ' <span class="suspect" title="Short record — limited history behind this figure">&#9888;</span>';
+    }
+    return {html: html, cellClass: isRecord ? '' : 'dim'};
+}
+
 // ── Rainfall to now ──────────────────────────────────────────────────────
 // A duration whose window contains no reported slots says so instead of
 // showing a total of 0.0. Short and long durations are shown one scope at a
@@ -1157,20 +1237,51 @@ function fillNow(sum) {
     }).join('');
 
     var rows = list.map(function(d) {
-        return {label: d[0], v: sum[d[1]], known: windowHasData(d[2])};
+        return {label: d[0], v: sum[d[1]], known: windowHasData(d[2]), windowKey: d[1]};
     });
     var peak = rows.reduce(function(a, r) { return Math.max(a, r.known && r.v ? r.v : 0); }, 0);
+
+    // NRW's MIDAS-matched climatology is refused outright elsewhere on this
+    // page (a different instrument at a different site) — the new columns
+    // follow that same refusal rather than presenting proxy-derived duration
+    // stats as this gauge's own. Operational (1h-12h) records are unaffected
+    // by that refusal in the pipeline (they're this gauge's own live
+    // telemetry either way), but are still hidden here for a NRW gauge to
+    // keep the table's story consistent rather than showing some columns and
+    // not others for the same row.
+    var showRecordColumns = !proxyRejected;
 
     var body = rows.map(function(r) {
         if (!r.known) {
             return '<tr><td>' + r.label + '</td><td class="nil">No data</td>'
-                + '<td class="bar-cell"><div class="bar-track"></div></td></tr>';
+                + '<td class="bar-cell"><div class="bar-track"></div></td><td></td><td></td></tr>';
         }
         var bar = peak > 0 && r.v > 0
             ? '<div class="bar-fill" style="width:' + Math.max(1, Math.round((r.v / peak) * 100)) + '%"></div>'
             : '<div class="bar-fill zero" title="Measured, no rainfall"></div>';
+
+        var vsRecord = {html: '', cellClass: ''}, rarityHtml = '';
+        if (showRecordColumns) {
+            var shortLabel = WINDOW_KEY_TO_LABEL[r.windowKey];
+            if (shortLabel && OPERATIONAL_LABELS[shortLabel]) {
+                var rec = durationRecords[shortLabel];
+                var allTimeMm = rec && rec.allTime ? rec.allTime.mm : null;
+                vsRecord = vsRecordCell(r.v, allTimeMm, rec && rec.basis && rec.basis.shortRecord);
+                rarityHtml = operationalRarityText(rec) || '';
+            } else if (shortLabel && clim && clim.durationClimatology) {
+                var durClim = clim.durationClimatology[shortLabel];
+                if (durClim) {
+                    vsRecord = vsRecordCell(r.v, durClim.max && durClim.max.mm,
+                        durClim.basis && durClim.basis.shortRecord);
+                    rarityHtml = rankOnRecordText(r.v, durClim) || '';
+                }
+            }
+        }
+
         return '<tr><td>' + r.label + '</td><td class="num">' + mmText(r.v) + '</td>'
-            + '<td class="bar-cell"><div class="bar-track">' + bar + '</div></td></tr>';
+            + '<td class="bar-cell"><div class="bar-track">' + bar + '</div></td>'
+            + '<td class="' + vsRecord.cellClass + '">' + vsRecord.html + '</td>'
+            + '<td class="dim">' + rarityHtml + '</td></tr>';
     }).join('');
 
     var context = [];
@@ -1221,7 +1332,7 @@ function fillNow(sum) {
     document.getElementById('nowHint').innerHTML = sum.completeness != null
         ? Math.round(sum.completeness * 100) + '% of expected readings received in 24 h' : '';
     document.getElementById('nowRegion').innerHTML = ''
-        + '<table class="data"><thead><tr><th>Ending now</th><th>Total</th><th></th></tr></thead>'
+        + '<table class="data"><thead><tr><th>Ending now</th><th>Total</th><th></th><th>vs record</th><th>rarity</th></tr></thead>'
         + '<tbody>' + body + '</tbody></table>'
         + (context.length
             ? '<div class="rail rail-top">' + context.map(function(c) {
@@ -1231,7 +1342,8 @@ function fillNow(sum) {
         + '<div class="note" style="margin-top:0.7rem">Bars are drawn against the largest accumulation in this scope, so short '
         + 'and long durations each get a scale that fits them; a hairline means the gauge reported and measured no rain. '
         + 'Durations beyond 48 hours cannot be checked for gaps against the 15 minute readings held here, so they are shown as '
-        + 'published.</div>';
+        + 'published. 24 hours and beyond are ranked against decades of daily records; 1-12 hours have no historical record to '
+        + 'compare against anywhere and can only be tracked forward from when this page started watching each gauge.</div>';
 }
 function setDurationScope(s) { durationScope = s; fillNow(lastSummary); }
 
