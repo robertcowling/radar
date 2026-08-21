@@ -19,16 +19,38 @@ Writes:
   rain/archive/daily_{YYYY}.json  — {stationId: {"YYYY-MM-DD": totalMm}},
                                      appended to once per day when the
                                      previous UTC day finalises
+  rain/neighbours.json            — cached k-nearest-neighbour index per
+                                     station, rebuilt only when stations.json's
+                                     coordinates change
+  rain/duration_records.json      — forward-tracked 1h/3h/6h/12h all-time
+                                     records per station (no history exists
+                                     before this file started; see
+                                     rain_duration_stats.py)
+  rain/duration_peaks_{YYYY}.json — cold archive of one daily peak per
+                                     station per short duration, appended to
+                                     once per day
+  rain/duration_stats.json        — per-station, per-duration (all 8: 1h to
+                                     7d) cross-gauge percentile/record context
+                                     for rain/gauge.html — kept separate from
+                                     rain/summary.json so rain/table.html's
+                                     every-load fetch doesn't carry data only
+                                     the detail page uses
 
 Called every 15 min by rain_update.yml, right after fetch_rain.py.
 """
 
+import bisect
 import hashlib
 import json
 import os
 from datetime import date, datetime, timedelta, timezone
 
 import boto3
+
+from rain_geo import build_neighbour_index, stations_content_hash
+from rain_duration_stats import (
+    CEILING_MM, basis_operational, update_duration_records, finalize_daily_peaks,
+)
 
 # ── Cloudflare R2 ─────────────────────────────────────────────────────────────
 R2_ACCOUNT_ID    = os.environ.get("R2_ACCOUNT_ID", "")
@@ -43,6 +65,30 @@ META_KEY      = "rain/meta.json"
 READINGS_PFX  = "rain/readings"
 SUMMARY_KEY   = "rain/summary.json"
 ARCHIVE_PFX   = "rain/archive"
+
+NEIGHBOURS_KEY        = "rain/neighbours.json"
+DURATION_RECORDS_KEY  = "rain/duration_records.json"
+DURATION_PEAKS_PFX    = "rain/duration_peaks"
+DURATION_STATS_KEY    = "rain/duration_stats.json"
+# Slim per-network percentile+max indexes written by the three
+# build_*_climatology.py scripts (rain/duration_climatology_{ea,sepa,nrw}.json).
+DURATION_CLIMATOLOGY_KEYS = {
+    "ea": "rain/duration_climatology_ea.json",
+    "sepa": "rain/duration_climatology_sepa.json",
+    "nrw": "rain/duration_climatology_nrw.json",
+}
+NEIGHBOUR_RADIUS_KM = 50
+NEIGHBOUR_K = 10
+
+# All 8 durations rain/duration_stats.json carries cross-gauge context for.
+# Distinct from WINDOWS_HOURS (internal 15-min-rollup keys) because it also
+# needs a "7d" label matching rain/gauge.html's DURATIONS/rank-on-record
+# framing, not "last7d".
+DURATION_LABELS = {
+    "1h": "last1h", "3h": "last3h", "6h": "last6h", "12h": "last12h",
+    "24h": "last24h", "48h": "last48h", "72h": "last72h", "7d": "last7d",
+}
+CLIMATOLOGICAL_LABELS = {"24h", "48h", "72h", "7d"}
 
 # Rolling-window totals used both for the table/detail pages and for the
 # heavy/extreme threshold check.
@@ -268,8 +314,14 @@ def compute_records(stations, archives, now, rolling_totals=None):
             }
             continue
 
-        # Exclude unphysical corrupted daily gauge spikes (>250mm/day)
-        valid_days = {d: v for d, v in days.items() if 0.0 <= v <= 250.0} or days
+        # Exclude unphysical corrupted daily gauge spikes. Was a hardcoded
+        # 250mm — below the real UK daily record (341.4mm, Honister Pass,
+        # 5 Dec 2015, the same UK_DAILY_RECORD_MM rain/gauge.html already
+        # treats as plausible), which would have silently rejected a
+        # genuine UK-record-breaking day. Now shares CEILING_MM["24h"] with
+        # the short-duration record tracker (rain_duration_stats.py) so
+        # there is one ceiling value, not two disagreeing ones.
+        valid_days = {d: v for d, v in days.items() if 0.0 <= v <= CEILING_MM["24h"]} or days
 
         archived_month = sum(v for d, v in valid_days.items() if d.startswith(this_month))
         archived_year = sum(v for d, v in valid_days.items() if d.startswith(this_year))
@@ -345,6 +397,116 @@ def compute_records(stations, archives, now, rolling_totals=None):
     return records
 
 
+def get_or_build_neighbour_index(r2, stations):
+    """Cached k-nearest-neighbour index (see rain_geo.build_neighbour_index).
+    Rebuilding is ~1.7M haversine pairs for ~1,300 stations — cheap once, but
+    not something to redo every 15-min run, so it's gated on a content hash
+    of station coordinates rather than any fixed cadence."""
+    cur_hash = stations_content_hash(stations)
+    cached = r2_get_json(r2, NEIGHBOURS_KEY, None)
+    if cached and cached.get("stations_hash") == cur_hash and cached.get("index"):
+        return cached["index"]
+    print("  Rebuilding neighbour index (stations.json coordinates changed or no cache)...")
+    index = build_neighbour_index(stations, k=NEIGHBOUR_K, radius_km=NEIGHBOUR_RADIUS_KM)
+    r2_put_json(r2, {"stations_hash": cur_hash, "index": index}, NEIGHBOURS_KEY)
+    return index
+
+
+def _climatological_band(value, percentiles):
+    """value against a station's own {p50,p75,p90,p95,p99} ladder -> a coarse
+    band string, not a false-precision percentile (see plan §1.3 — with
+    decades of daily data almost every meaningful rain event already sits
+    above p99, so a literal number is both alarmist and uninformative)."""
+    if not percentiles:
+        return None
+    order = [("p50", percentiles.get("p50")), ("p75", percentiles.get("p75")),
+             ("p90", percentiles.get("p90")), ("p95", percentiles.get("p95")),
+             ("p99", percentiles.get("p99"))]
+    order = [(label, v) for label, v in order if v is not None]
+    if not order:
+        return None
+    if value < order[0][1]:
+        return f"<{order[0][0]}"
+    for i in range(len(order) - 1):
+        if order[i][1] <= value < order[i + 1][1]:
+            return f"{order[i][0]}-{order[i + 1][0]}"
+    return f">{order[-1][0]}"
+
+
+def _network_of(stations, sid):
+    return stations.get(sid, {}).get("source") or "ea"
+
+
+def compute_cross_gauge_percentiles(stations, totals_by_station, neighbour_index,
+                                     duration_climatology_by_network, duration_records, now):
+    """Per station, per duration (all 8: 1h-7d): this-run rank among all UK
+    stations and among this station's neighbours, a climatological percentile
+    band (24h+ only, from the per-network duration-climatology index), and
+    neighboursRecordsExceeded (how many of this station's neighbours' own
+    all-time records this live value beats — a richer "relative to nearby
+    gauges" framing than a same-run rank alone, see plan §3)."""
+    out = {sid: {} for sid in stations}
+    today_iso = now.strftime("%Y-%m-%d")
+
+    for label, window_key in DURATION_LABELS.items():
+        pairs = [(sid, t[window_key]) for sid, t in totals_by_station.items()
+                  if t.get(window_key) is not None]
+        values_sorted = sorted(v for _, v in pairs)
+        n = len(values_sorted)
+        values_by_id = dict(pairs)
+
+        for sid, value in pairs:
+            cadence = "hourly" if stations.get(sid, {}).get("source") == "sepa" else "15min"
+            idx = bisect.bisect_right(values_sorted, value)
+            rank_uk = round(100.0 * idx / n, 1) if n > 1 else None
+
+            neighbours = neighbour_index.get(sid, [])
+            nb_vals = sorted(values_by_id[nb["id"]] for nb in neighbours if nb["id"] in values_by_id)
+            rank_neighbours = (round(100.0 * bisect.bisect_right(nb_vals, value) / len(nb_vals), 1)
+                                if len(nb_vals) > 1 else None)
+
+            entry = {"value": round(value, 2), "rankUk": rank_uk,
+                     "rankNeighbours": rank_neighbours, "cadence": cadence}
+
+            if label in CLIMATOLOGICAL_LABELS:
+                net = _network_of(stations, sid)
+                station_dc = duration_climatology_by_network.get(net, {}).get(sid, {}).get(label)
+                entry["climPercentileBand"] = (
+                    _climatological_band(value, station_dc.get("percentiles")) if station_dc else None)
+            else:
+                rec = duration_records.get("stations", {}).get(sid, {}).get(label)
+                if rec:
+                    rec = dict(rec)
+                    rec.pop("_provisionalCandidate", None)  # internal bookkeeping only
+                    rec["basis"] = basis_operational(rec.get("trackingSince", today_iso), now)
+                entry["record"] = rec
+
+            # neighboursRecordsExceeded: how many neighbours' *own* all-time
+            # records this live value beats — for 1h-12h from duration_records
+            # (this run's own consolidated file), for 24h+ from each
+            # neighbour's own network's slim duration-climatology index.
+            exceeded, of = 0, 0
+            for nb in neighbours:
+                nb_id = nb["id"]
+                if label in CLIMATOLOGICAL_LABELS:
+                    nb_net = _network_of(stations, nb_id)
+                    nb_dc = duration_climatology_by_network.get(nb_net, {}).get(nb_id, {}).get(label)
+                    nb_max = nb_dc.get("max", {}).get("mm") if nb_dc else None
+                else:
+                    nb_rec = duration_records.get("stations", {}).get(nb_id, {}).get(label)
+                    nb_max = nb_rec.get("allTime", {}).get("mm") if nb_rec and nb_rec.get("allTime") else None
+                if nb_max is None:
+                    continue
+                of += 1
+                if value > nb_max:
+                    exceeded += 1
+            entry["neighboursRecordsExceeded"] = {"count": exceeded, "of": of} if of else None
+
+            out[sid][label] = entry
+
+    return out
+
+
 def main():
     now = datetime.now(timezone.utc)
     r2 = get_r2() if USE_R2 else None
@@ -399,6 +561,49 @@ def main():
         year = yest_year
         r2_put_json(r2, archives[year], f"{ARCHIVE_PFX}/daily_{year}.json")
         print(f"Finalised {yest_iso} into daily_{year}.json archive")
+
+    # ── Short-duration (1h/3h/6h/12h) operational records ──────────────────
+    neighbour_index = get_or_build_neighbour_index(r2, stations)
+
+    duration_records = r2_get_json(r2, DURATION_RECORDS_KEY, {"stations": {}}) or {"stations": {}}
+    duration_records, records_dirty = update_duration_records(
+        duration_records, stations, totals_by_station, neighbour_index, now)
+
+    # Roll any station/duration whose "today" has fallen behind into the cold
+    # per-year peaks archive — cheap in-memory no-op most runs (only changes
+    # once/day per station/duration), gated the same way finalize_yesterday()
+    # already is above rather than a fixed schedule, so a missed run self-heals.
+    today_iso = now.strftime("%Y-%m-%d")
+    peaks_year = now.year
+    peaks_key = f"{DURATION_PEAKS_PFX}_{peaks_year}.json"
+    peaks_archive = r2_get_json(r2, peaks_key, {}) or {}
+    peaks_changed = finalize_daily_peaks(duration_records, peaks_archive, today_iso)
+    # A UTC-year rollover can leave yesterday's peak needing the *prior*
+    # year's file — finalize_daily_peaks only ever archives under the entry's
+    # own date, so re-check against last year's file too on Jan 1st.
+    if now.month == 1 and now.day == 1:
+        prev_key = f"{DURATION_PEAKS_PFX}_{peaks_year - 1}.json"
+        prev_archive = r2_get_json(r2, prev_key, {}) or {}
+        if finalize_daily_peaks(duration_records, prev_archive, today_iso):
+            r2_put_json(r2, prev_archive, prev_key)
+
+    if records_dirty:
+        r2_put_json(r2, duration_records, DURATION_RECORDS_KEY)
+        print(f"Uploaded {DURATION_RECORDS_KEY}")
+    if peaks_changed:
+        r2_put_json(r2, peaks_archive, peaks_key)
+        print(f"Uploaded {peaks_key}")
+
+    # ── Cross-gauge percentiles (nearby + UK-wide) for all 8 durations ─────
+    duration_climatology_by_network = {
+        net: (r2_get_json(r2, key, {}) or {}) for net, key in DURATION_CLIMATOLOGY_KEYS.items()
+    }
+    duration_stats = compute_cross_gauge_percentiles(
+        stations, totals_by_station, neighbour_index,
+        duration_climatology_by_network, duration_records, now)
+    r2_put_json(r2, {"generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "stations": duration_stats},
+                DURATION_STATS_KEY)
+    print(f"Uploaded {DURATION_STATS_KEY} ({len(duration_stats)} stations)")
 
 
 if __name__ == "__main__":

@@ -56,6 +56,7 @@ import requests
 
 from fetch_rain import HYDRO_BASE, get_r2, USE_R2
 from make_rain_summary import DRY_DAY_MM, r2_get_json, r2_put_json
+from rain_duration_stats import MIN_DAYS_FOR_DURATION_PERCENTILE, basis_climatological
 
 CLIMATOLOGY_PFX = "rain/climatology"
 # Per-network index files. The EA and SEPA builders run as independent jobs
@@ -63,6 +64,29 @@ CLIMATOLOGY_PFX = "rain/climatology"
 # silently dropping the other network's entries. Per-station files were never
 # affected (distinct keys) — only the index. The frontend loads both.
 INDEX_KEY = "rain/climatology_index_ea.json"
+
+# Slim per-network index of rolling-window (24h/48h/72h/7d) percentiles only
+# — make_rain_summary.py loads all three networks' files once per 15-min run
+# to look up a climatological percentile band, so this must stay small
+# (percentiles only, no topEvents/annualMaxima — those live in the full
+# per-station file below) rather than one GET per station at that cadence.
+DURATION_INDEX_KEY = "rain/duration_climatology_ea.json"
+
+# Rolling-window durations for compute_duration_climatology(), keyed by the
+# label used everywhere downstream (rain/gauge.html's DURATIONS, the
+# duration-record R2 schemas). 14d/30d are free bonus stats in the same pass
+# (stored in the per-station file only, not the slim network index) — 24h/
+# 48h/72h/7d are the ones with a UI row today.
+DURATION_DAY_COUNTS = {"24h": 1, "48h": 2, "72h": 3, "7d": 7, "14d": 14, "30d": 30}
+# Only these appear in the slim per-network index (make_rain_summary.py's
+# cross-gauge climatological-band lookup only needs the UI-facing durations).
+DURATION_INDEX_LABELS = ("24h", "48h", "72h", "7d")
+
+# Schema version for the duration-climatology addition — bumping this forces
+# affected stations to be reprocessed on the next run even if already present
+# in the main index (see the `refs` skip-filter in main()), without a blanket
+# FORCE=1 re-pull of every station.
+DUR_SCHEMA_VERSION = 1
 
 # EA rate-limits aggressive pulls (a 6-worker backfill tripped 429s after
 # ~150-200 requests), so stay gentle: these are big responses.
@@ -92,6 +116,69 @@ def percentile(sorted_vals, pct):
     lo = int(k)
     hi = min(lo + 1, len(sorted_vals) - 1)
     return sorted_vals[lo] + (sorted_vals[hi] - sorted_vals[lo]) * (k - lo)
+
+
+def compute_duration_climatology(days, duration_days=None, today=None):
+    """days: {YYYY-MM-DD: mm} -> {label: {max, annualMaxima, topEvents, n,
+    from, to, percentiles?, basis}} for each rolling-window duration in
+    duration_days (default DURATION_DAY_COUNTS).
+
+    A window's value is attributed to its *end* date, not start — a 24h+
+    window ending just after midnight mostly covers the prior day, but end-
+    date attribution is what lets rank-on-record framing ("Nth highest since
+    <year>") line up with the day the total was actually observed as having
+    happened. Only emits a value for an end date when all N constituent
+    calendar days are present in `days` — no interpolation across gaps, so a
+    partial window can never masquerade as this station's peak.
+    """
+    duration_days = duration_days or DURATION_DAY_COUNTS
+    today = today or date.today()
+    if not days:
+        return {}
+
+    sorted_dates = sorted(days)
+    result = {}
+    for label, n in duration_days.items():
+        values = []  # [(end_date_str, mm), ...]
+        for end_str in sorted_dates:
+            end_dt = datetime.strptime(end_str, "%Y-%m-%d")
+            window_dates = [(end_dt - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(n)]
+            if all(wd in days for wd in window_dates):
+                values.append((end_str, round(sum(days[wd] for wd in window_dates), 2)))
+        if not values:
+            continue
+
+        vals_sorted = sorted(v for _, v in values)
+        max_end, max_mm = max(values, key=lambda t: t[1])
+
+        annual_maxima = {}
+        for end_str, mm in values:
+            y = end_str[:4]
+            if y not in annual_maxima or mm > annual_maxima[y]["mm"]:
+                annual_maxima[y] = {"mm": mm, "endDate": end_str}
+
+        top_events = [{"mm": mm, "endDate": end_str}
+                      for end_str, mm in sorted(values, key=lambda t: -t[1])[:10]]
+
+        entry = {
+            "max": {"mm": max_mm, "endDate": max_end},
+            "annualMaxima": annual_maxima,
+            "topEvents": top_events,
+            "n": len(values),
+            "from": values[0][0],
+            "to": values[-1][0],
+        }
+        if len(values) >= MIN_DAYS_FOR_DURATION_PERCENTILE:
+            entry["percentiles"] = {
+                "p50": round(percentile(vals_sorted, 0.50), 1),
+                "p75": round(percentile(vals_sorted, 0.75), 1),
+                "p90": round(percentile(vals_sorted, 0.90), 1),
+                "p95": round(percentile(vals_sorted, 0.95), 1),
+                "p99": round(percentile(vals_sorted, 0.99), 1),
+            }
+        entry["basis"] = basis_climatological(entry["from"], entry["to"], entry["n"])
+        result[label] = entry
+    return result
 
 
 def fetch_station_daily_csv(session, measure_id):
@@ -240,6 +327,12 @@ def compute_climatology(days, today=None):
         "recordYears": span_years,
         "completeMonths": len(complete_months),
         "totalMonths": len(monthly),
+        # Rolling-window (24h/48h/72h/7d/14d/30d) rank-on-record stats — see
+        # compute_duration_climatology()'s own docstring. Computed here, from
+        # the same `days` dict, because it is discarded by the caller
+        # immediately after this function returns and cannot be recovered
+        # later without a full re-pull from upstream.
+        "durationClimatology": compute_duration_climatology(days, today=today),
     }
 
 
@@ -281,9 +374,14 @@ def main():
     print(f"{len(stations)} EA stations with a daily rainfall measure")
 
     index = r2_get_json(r2, INDEX_KEY, {}) or {}
+    dur_index = r2_get_json(r2, DURATION_INDEX_KEY, {}) or {}
     refs = sorted(stations)
     if not force:
-        refs = [r for r in refs if r not in index]
+        # A ref also needs reprocessing if it predates the duration-
+        # climatology addition (durSchema mismatch) — lets that feature
+        # backfill onto already-processed stations without a blanket
+        # FORCE=1 re-pull of every station's full history.
+        refs = [r for r in refs if r not in index or index[r].get("durSchema") != DUR_SCHEMA_VERSION]
         print(f"{len(refs)} still to process ({len(index)} already in index)")
     if limit:
         refs = refs[:limit]
@@ -333,15 +431,28 @@ def main():
                     "qualityGoodPct": stats["qualityGoodPct"],
                     "annualNormal": round(sum(
                         c["mean"] for c in stats["climatology"].values()), 1) if len(stats["climatology"]) == 12 else None,
+                    "durSchema": DUR_SCHEMA_VERSION,
                 }
+                dc = stats.get("durationClimatology") or {}
+                dur_entry = {}
+                for label in DURATION_INDEX_LABELS:
+                    if label not in dc:
+                        continue
+                    slim = dict(dc[label].get("percentiles", {}))
+                    slim["n"] = dc[label]["n"]
+                    slim["max"] = dc[label]["max"]  # {mm, endDate} — for cross-gauge "exceeds neighbour's record" checks
+                    dur_entry[label] = slim
+                dur_index[ref] = dur_entry
                 saved += 1
             if done % 10 == 0 or done == len(refs):
                 print(f"  {done}/{len(refs)} stations ({saved} saved)")
             if done % 50 == 0:
                 r2_put_json(r2, index, INDEX_KEY)
+                r2_put_json(r2, dur_index, DURATION_INDEX_KEY)
                 print(f"    checkpoint: index now {len(index)} stations")
 
     r2_put_json(r2, index, INDEX_KEY)
+    r2_put_json(r2, dur_index, DURATION_INDEX_KEY)
     print(f"\nDone: {saved}/{len(refs)} stations processed this run; index holds {len(index)}.")
 
 
