@@ -1200,6 +1200,44 @@ function rankOnRecordText(value, durClim) {
     return 'Exceeded in ' + exceeded + ' of ' + years.length + ' year' + (years.length === 1 ? '' : 's') + ' on record';
 }
 
+// "Relative to nearby gauges and the UK as a whole" — the two cross-gauge
+// dimensions computed in rain/duration_stats.json (rankUk/rankNeighbours/
+// neighboursRecordsExceeded) but originally left out of the first UI cut.
+// neighboursRecordsExceeded is preferred over a raw neighbour percentile
+// where available: "beats 8/10 neighbours' own records" says something a
+// forecaster can act on directly, where "wetter than 80% of neighbours
+// right now" only describes this instant, not how it compares with what
+// those gauges have themselves ever seen.
+function rankPhrase(pct) {
+    if (pct == null) return null;
+    // "Highest" is reserved for an actual 100th-percentile rank (bisect_right
+    // put this value past every other value) — 99th percentile is genuinely
+    // "Top 1%", not "Highest": someone else still ranks above it, and
+    // rounding (100-99=1 -> <=1) previously collapsed the two together.
+    if (pct >= 99.95) return 'Highest';
+    var topPct = Math.max(1, Math.round(100 - pct));
+    return 'Top ' + topPct + '%';
+}
+
+function spreadText(statsEntry) {
+    // A zero-rainfall reading ranking "Top 1% in the UK" is nonsense, not
+    // useful context — it just means most of the country is also dry right
+    // now (confirmed against real production data: dozens of 0mm stations
+    // all showing rankUk~99 simultaneously). Only rank an actual reading.
+    if (!statsEntry || !(statsEntry.value > 0)) return null;
+    var parts = [];
+    var ukPhrase = rankPhrase(statsEntry.rankUk);
+    if (ukPhrase) parts.push(ukPhrase + ' in the UK');
+    var nre = statsEntry.neighboursRecordsExceeded;
+    if (nre && nre.of) {
+        parts.push('beats ' + nre.count + '/' + nre.of + " neighbours' own records");
+    } else {
+        var nbPhrase = rankPhrase(statsEntry.rankNeighbours);
+        if (nbPhrase) parts.push(nbPhrase + ' locally');
+    }
+    return parts.length ? parts.join(' &middot; ') : null;
+}
+
 function operationalRarityText(rec) {
     if (!rec || !rec.basis) return null;
     var b = rec.basis;
@@ -1254,15 +1292,17 @@ function fillNow(sum) {
     var body = rows.map(function(r) {
         if (!r.known) {
             return '<tr><td>' + r.label + '</td><td class="nil">No data</td>'
-                + '<td class="bar-cell"><div class="bar-track"></div></td><td></td><td></td></tr>';
+                + '<td class="bar-cell"><div class="bar-track"></div></td><td></td><td></td><td></td></tr>';
         }
         var bar = peak > 0 && r.v > 0
             ? '<div class="bar-fill" style="width:' + Math.max(1, Math.round((r.v / peak) * 100)) + '%"></div>'
             : '<div class="bar-fill zero" title="Measured, no rainfall"></div>';
 
-        var vsRecord = {html: '', cellClass: ''}, rarityHtml = '';
+        var vsRecord = {html: '', cellClass: ''}, rarityHtml = '', spreadHtml = '';
         if (showRecordColumns) {
             var shortLabel = WINDOW_KEY_TO_LABEL[r.windowKey];
+            var statsEntry = shortLabel ? durationStats[shortLabel] : null;
+            spreadHtml = spreadText(statsEntry) || '';
             if (shortLabel && OPERATIONAL_LABELS[shortLabel]) {
                 var rec = durationRecords[shortLabel];
                 var allTimeMm = rec && rec.allTime ? rec.allTime.mm : null;
@@ -1281,7 +1321,8 @@ function fillNow(sum) {
         return '<tr><td>' + r.label + '</td><td class="num">' + mmText(r.v) + '</td>'
             + '<td class="bar-cell"><div class="bar-track">' + bar + '</div></td>'
             + '<td class="' + vsRecord.cellClass + '">' + vsRecord.html + '</td>'
-            + '<td class="dim">' + rarityHtml + '</td></tr>';
+            + '<td class="dim">' + rarityHtml + '</td>'
+            + '<td class="dim">' + spreadHtml + '</td></tr>';
     }).join('');
 
     var context = [];
@@ -1332,7 +1373,7 @@ function fillNow(sum) {
     document.getElementById('nowHint').innerHTML = sum.completeness != null
         ? Math.round(sum.completeness * 100) + '% of expected readings received in 24 h' : '';
     document.getElementById('nowRegion').innerHTML = ''
-        + '<table class="data"><thead><tr><th>Ending now</th><th>Total</th><th></th><th>vs record</th><th>rarity</th></tr></thead>'
+        + '<table class="data"><thead><tr><th>Ending now</th><th>Total</th><th></th><th>vs record</th><th>rarity</th><th>spread</th></tr></thead>'
         + '<tbody>' + body + '</tbody></table>'
         + (context.length
             ? '<div class="rail rail-top">' + context.map(function(c) {
@@ -1343,7 +1384,9 @@ function fillNow(sum) {
         + 'and long durations each get a scale that fits them; a hairline means the gauge reported and measured no rain. '
         + 'Durations beyond 48 hours cannot be checked for gaps against the 15 minute readings held here, so they are shown as '
         + 'published. 24 hours and beyond are ranked against decades of daily records; 1-12 hours have no historical record to '
-        + 'compare against anywhere and can only be tracked forward from when this page started watching each gauge.</div>';
+        + 'compare against anywhere and can only be tracked forward from when this page started watching each gauge. Spread '
+        + 'compares this reading against every other UK gauge reporting right now and against this gauge\'s nearest neighbours\' '
+        + 'own all-time records &mdash; a live snapshot, not a long-term record.</div>';
 }
 function setDurationScope(s) { durationScope = s; fillNow(lastSummary); }
 
