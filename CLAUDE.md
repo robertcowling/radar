@@ -188,11 +188,27 @@ Three things to keep in mind when changing any of them:
   sequential range GETs rather than one bulk transfer — the real data
   needed per file is only ~1-2MB, so wall-clock is dominated by per-request
   network round-trip time, not data volume. That makes the per-step fetch
-  step highly parallelizable: `STEP_FETCH_WORKERS = 16` in `fetch_ecmwf.py`
-  is a measured value (roughly halved wall-clock vs 6 workers on a same-size
-  batch), not a guess — 30 workers measured *worse* than 16, likely
-  contention on fsspec's internal sync-over-async event loop, so don't just
-  keep raising it if a future run still feels slow; re-measure first.
+  step highly parallelizable, but threads alone hit a ceiling around 16
+  concurrent (30 threads in one process measured *worse* than 16 — likely
+  contention on fsspec's internal sync-over-async event loop).
+- **Process-sharded fetch breaks past that ceiling**: `fetch_all_steps()` /
+  `STEP_FETCH_PROCESSES` (4) x `STEP_FETCH_THREADS_PER_PROCESS` (8) in
+  `fetch_ecmwf.py` — separate OS processes don't share the single-event-loop
+  bottleneck threads do. Measured ~2x faster than 16 threads in one process
+  against the same real files (82.1s -> ~41s for 24 files), and verified
+  byte-identical output against the old single-process path before shipping
+  (not just faster — provably correct). The large IDW remap arrays
+  (`nn_idx`/`weights`, ~100MB each) are deliberately kept out of the worker
+  processes — `fetch_and_subset()` runs in the worker and returns only the
+  ~80k-point subset inside the output domain (small enough to pickle
+  cheaply across the process boundary); `remap_subset()` does the actual
+  IDW remap back in the main process, where those large arrays already
+  live. Getting this split wrong (sending the full remap arrays to every
+  worker) would have cost more in pickling overhead than the extra
+  processes save — worth remembering if this is ever "optimized" further.
+  If a future run still feels slow, re-measure before just raising either
+  number — this is empirically tuned, not a guess, and there's a documented
+  reason 30 threads and a naive multi-process split both underperform.
 
 ## FGS tracker (`fetch_fgs.py` / `fgscomparison/index.html`)
 

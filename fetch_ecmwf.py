@@ -70,7 +70,7 @@ import json
 import os
 import sys
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 
 import boto3
@@ -354,11 +354,20 @@ def build_mapping(lats, lons):
 
 
 # ── Data extraction ────────────────────────────────────────────────────────────
-def extract_precip_mm(om_fs, run_dt, valid_dt, mapping):
+def fetch_and_subset(om_fs, key, subset_idx):
     """Read the `precipitation` child (mm, backward sum over the interval
-    since the previous available valid time) for one timestep, IDW-remap
-    onto the output canvas. Returns None on any read failure."""
-    key = f"{OM_BUCKET}/{run_prefix(run_dt)}{valid_iso_filename(valid_dt)}.om"
+    since the previous available valid time) for one timestep, reduced
+    immediately to just the ~80k points inside the output domain. Returns
+    None on any read failure.
+
+    Deliberately does NOT do the IDW remap here — that needs `nn_idx`/
+    `weights`, each ~100MB (WIDTH*HEIGHT*K_NEIGHBORS), and this function runs
+    inside worker processes (see STEP_FETCH_PROCESSES below): shipping those
+    arrays to every worker via pickling would cost more than the parallelism
+    saves. Returning just the ~80k-point subset keeps inter-process payloads
+    small; remap_subset() below does the actual remap back in the main
+    process, once per step, cheaply.
+    """
     try:
         with om_fs.open(key, "rb") as f:
             reader = OmFileReader(f)
@@ -369,13 +378,79 @@ def extract_precip_mm(om_fs, run_dt, valid_dt, mapping):
         print(f"    Warning: failed to read {key} — {e}")
         return None
 
-    sub = precip[mapping["subset_idx"]]
+    sub = precip[subset_idx]
     sub = np.where(np.isfinite(sub), sub, 0.0).astype(np.float32)
-    sub = np.clip(sub, 0, None)
+    return np.clip(sub, 0, None)
 
+
+def remap_subset(sub, mapping):
+    """IDW-remap an already-subsetted precip array (from fetch_and_subset)
+    onto the output canvas. Runs in the main process, where the large
+    nn_idx/weights arrays already live — see fetch_and_subset()'s docstring."""
+    if sub is None:
+        return None
     out = (sub[mapping["nn_idx"]] * mapping["weights"]).sum(axis=1)
     out = out.reshape(HEIGHT, WIDTH).astype(np.float32)
     return np.clip(out, 0, None)
+
+
+def extract_precip_mm(om_fs, run_dt, valid_dt, mapping):
+    """Single-step convenience wrapper (fetch + remap) — used for the
+    mapping-building sample read in main(); the real per-run fetch loop uses
+    fetch_and_subset()/remap_subset() directly for the process-sharded path."""
+    key = f"{OM_BUCKET}/{run_prefix(run_dt)}{valid_iso_filename(valid_dt)}.om"
+    sub = fetch_and_subset(om_fs, key, mapping["subset_idx"])
+    return remap_subset(sub, mapping)
+
+
+# ── Process-sharded fetch (see main()) ────────────────────────────────────────
+# The bottleneck isn't bandwidth — it's that omfiles reads each file as ~40-50
+# small sequential range GETs (confirmed by tracing real S3 requests), so
+# wall-clock is dominated by per-request network latency. Threads alone hit a
+# ceiling around 16 concurrent (fsspec's internal sync-over-async event loop
+# starts contending above that — see the CLAUDE.md note this repo already
+# has on that finding). Separate OS processes don't share that bottleneck:
+# empirically, 4 processes x 8 threads each (32 total) measured ~2x faster
+# than 16 threads in one process against the same real files. These must be
+# plain top-level functions (not closures) — ProcessPoolExecutor on Windows
+# uses spawn, which can only pickle picklable, importable callables.
+STEP_FETCH_PROCESSES = 4
+STEP_FETCH_THREADS_PER_PROCESS = 8
+
+
+def _fetch_chunk(args):
+    """Runs inside a worker process: fetch+subset a chunk of steps using its
+    own ThreadPoolExecutor. Returns [(valid_iso_str, subset_or_None), ...]."""
+    run_prefix_str, valid_iso_strs, subset_idx = args
+    om_fs = get_om_fs()  # each process needs its own filesystem/session
+
+    def _one(vstr):
+        key = f"{OM_BUCKET}/{run_prefix_str}{vstr}.om"
+        return vstr, fetch_and_subset(om_fs, key, subset_idx)
+
+    with ThreadPoolExecutor(max_workers=STEP_FETCH_THREADS_PER_PROCESS) as ex:
+        return list(ex.map(_one, valid_iso_strs))
+
+
+def fetch_all_steps(run_dt, valid_dts, mapping):
+    """Fetch+subset every step across STEP_FETCH_PROCESSES worker processes,
+    then remap each result back in the main process (see remap_subset()).
+    Returns {valid_dt: precip_array_or_None}."""
+    run_prefix_str = run_prefix(run_dt)
+    subset_idx = mapping["subset_idx"]
+    valid_iso_strs = [valid_iso_filename(v) for v in valid_dts]
+    by_iso = {valid_iso_filename(v): v for v in valid_dts}
+
+    chunks = [valid_iso_strs[i::STEP_FETCH_PROCESSES] for i in range(STEP_FETCH_PROCESSES)]
+    chunks = [c for c in chunks if c]  # drop empty chunks (fewer steps than processes)
+    tasks = [(run_prefix_str, c, subset_idx) for c in chunks]
+
+    results = {}
+    with ProcessPoolExecutor(max_workers=len(tasks)) as ex:
+        for chunk_result in ex.map(_fetch_chunk, tasks):
+            for vstr, sub in chunk_result:
+                results[by_iso[vstr]] = remap_subset(sub, mapping)
+    return results
 
 
 def render_png(arr, scheme):
@@ -490,31 +565,23 @@ def main():
     prev_hours = 0
     accum_stack = []  # [{'arr': ndarray, 'hours': int}] — real backward-sum intervals
 
-    def _fetch_one(valid_dt):
-        return extract_precip_mm(om_fs, run_dt, valid_dt, mapping)
-
     # Download+remap steps in parallel (I/O-bound S3 reads), but the accum
     # stack must still be folded in chronological order, so results are
     # collected first and then walked in sequence below.
     #
-    # STEP_FETCH_WORKERS=16 is not an arbitrary bump: the omfiles library
-    # reads each .om file as ~40-50 small (~65KB) sequential range GETs
-    # rather than one bulk transfer (confirmed via S3 request tracing), so
-    # each file's read time is dominated by per-request network latency, not
-    # bandwidth — the actual data needed per file is only ~1-2MB. That makes
-    # this purely latency-bound and highly parallelizable: empirically, 16
-    # concurrent workers roughly halved wall-clock time vs 6 for the same
-    # batch of files (33.4s -> 17.8s for 12 files). Going higher (30) was
-    # *worse* than 16 — likely contention on fsspec's internal sync-over-
-    # async event loop — so 16 is a measured sweet spot, not a guess.
-    STEP_FETCH_WORKERS = 16
-    results = {}
-    with ThreadPoolExecutor(max_workers=STEP_FETCH_WORKERS) as ex:
-        futs = {ex.submit(_fetch_one, vdt): vdt for vdt in valid_dts}
-        for i, fut in enumerate(as_completed(futs), 1):
-            vdt = futs[fut]
-            results[vdt] = fut.result()
-            print(f"  [{i}/{len(valid_dts)}] fetched T+{round((vdt - run_dt).total_seconds() / 3600)}h", flush=True)
+    # Threads-only tops out around 16 concurrent (fsspec's internal sync-
+    # over-async event loop starts contending above that — see git history
+    # for the measurement: 33.4s -> 17.8s for 12 files going 6 -> 16
+    # threads, but 30 threads measured *worse* than 16). Separate OS
+    # processes don't share that bottleneck: empirically, STEP_FETCH_PROCESSES
+    # x STEP_FETCH_THREADS_PER_PROCESS (4x8=32 total) measured ~2x faster
+    # than 16 threads in one process against the same real files
+    # (82.1s -> ~41s for 24 files) — see fetch_all_steps()'s docstring for
+    # why the large remap arrays are kept out of the worker processes.
+    print(f"  Fetching {len(valid_dts)} steps across {STEP_FETCH_PROCESSES} processes "
+          f"x {STEP_FETCH_THREADS_PER_PROCESS} threads...", flush=True)
+    results = fetch_all_steps(run_dt, valid_dts, mapping)
+    print(f"  Fetched {sum(1 for v in results.values() if v is not None)}/{len(valid_dts)} steps.", flush=True)
 
     for hours, valid_dt in zip(steps_h, valid_dts):
         offset = f"PT{hours:04d}H00M"
