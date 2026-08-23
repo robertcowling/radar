@@ -26,9 +26,24 @@ jobs:
         cache: 'pip'
 
     - name: Install dependencies
+      # boto3 always wants the *latest* botocore (released in lockstep,
+      # matching version numbers); s3fs pulls in aiobotocore, which needs an
+      # *older* botocore lagging behind. Installing both unpinned in one
+      # command forces pip to backtrack through years of s3fs/aiobotocore
+      # releases hunting for a version whose pin happens to overlap with
+      # whatever botocore boto3 wants — observed taking 10+ minutes and
+      # landing on s3fs==0.4.2 (a 2020 release with no strict pin, not a
+      # real resolution) purely by accident. Installing s3fs's group first
+      # lets pip solve *that* constraint alone (fast — it's what aiobotocore
+      # actually wants), then pinning boto3 to the exact botocore version
+      # aiobotocore just installed makes the second install a single exact
+      # match with nothing to search for.
       run: |
         python -m pip install --upgrade pip
-        pip install boto3 botocore omfiles fsspec s3fs numpy scipy Pillow pyproj
+        pip install fsspec s3fs omfiles
+        BOTOCORE_VER=$(python -c "import botocore; print(botocore.__version__)")
+        pip install "boto3==$BOTOCORE_VER" "botocore==$BOTOCORE_VER"
+        pip install numpy scipy Pillow pyproj
 
     - name: Fetch and render ECMWF forecast
       env:
