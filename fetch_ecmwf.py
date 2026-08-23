@@ -51,8 +51,15 @@ code) does not apply here.
 
 v1 scope: a single "met"-style colour scheme (matching the alternative
 palette already used by /ukv), and four accumulation windows (3h/6h/24h/48h).
-No splat masks, no polygon/gauge time series — those can be added later the
-way the UKV pipeline itself grew incrementally.
+Area averages per region/county/catchment are published alongside the PNGs
+(ecmwf_poly/, see below) and drive /ecmwf's Areas view. Still absent: splat
+masks and gauge time series, which can be added later the way the UKV
+pipeline itself grew incrementally.
+
+Area averages are forward-only. This script exits early when the newest
+complete run is already processed, so runs already in the manifest when the
+feature shipped have no ecmwf_poly/ files and never will — /ecmwf falls back
+to the grid view for those rather than drawing an empty map.
 
 Usage: python fetch_ecmwf.py
 Required env: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
@@ -80,6 +87,8 @@ from omfiles import OmFileReader
 from PIL import Image
 from pyproj import Transformer
 from scipy.spatial import cKDTree
+
+from poly_utils import GEOJSON_LAYERS, compute_poly_averages, load_or_build_masks
 
 # ── Output domain — same canvas as /ukv for direct visual comparability.
 LON_MIN, LON_MAX = -26.0, 17.0
@@ -130,6 +139,17 @@ ECMWF_ACCUM_SCHEME = {
 }
 
 ACCUM_PERIODS = [3, 6, 24, 48]
+
+# ── Area averages ────────────────────────────────────────────────────────────
+# Only the boundary sets /ecmwf actually offers. The mask cache lives under
+# its own prefix rather than borrowing UKV's: this grid is byte-identical to
+# UKV's (same extent, same 1725x1800), so the npz files are duplicates and
+# could be deduped later, but sharing a prefix would couple the two scripts
+# through the cached fingerprint — change what either one puts in it and both
+# pipelines rebuild masks on every run, silently.
+ECMWF_MASKS_PREFIX = "ecmwf_masks"
+ECMWF_POLY_LAYERS = {k: v for k, v in GEOJSON_LAYERS.items()
+                     if k in ("regions", "counties", "catchments")}
 
 # ── R2 ───────────────────────────────────────────────────────────────────────
 R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID", "")
@@ -501,16 +521,18 @@ def cleanup_old_ecmwf_runs(r2, active_run_ts):
             continue
         print(f"  Purging inactive run {run_ts}...")
         deleted_runs += 1
-        prefix = f"ecmwf/{run_ts}/"
         deleted_count = 0
-        paginator_del = r2.get_paginator("list_objects_v2")
-        for page in paginator_del.paginate(Bucket=R2_BUCKET, Prefix=prefix):
-            keys = [{"Key": o["Key"]} for o in page.get("Contents", [])]
-            if keys:
-                r2.delete_objects(Bucket=R2_BUCKET, Delete={"Objects": keys})
-                deleted_count += len(keys)
+        # The run's area averages live under a separate prefix and would
+        # otherwise outlive the imagery they belong to for ever.
+        for prefix in (f"ecmwf/{run_ts}/", f"ecmwf_poly/{run_ts}/"):
+            paginator_del = r2.get_paginator("list_objects_v2")
+            for page in paginator_del.paginate(Bucket=R2_BUCKET, Prefix=prefix):
+                keys = [{"Key": o["Key"]} for o in page.get("Contents", [])]
+                if keys:
+                    r2.delete_objects(Bucket=R2_BUCKET, Delete={"Objects": keys})
+                    deleted_count += len(keys)
         if deleted_count > 0:
-            print(f"    Deleted {deleted_count} objects under {prefix}")
+            print(f"    Deleted {deleted_count} objects for {run_ts}")
 
     print(f"ECMWF cleanup complete. Purged {deleted_runs} runs.")
 
@@ -553,6 +575,12 @@ def main():
         sys.exit(1)
     steps_h = [round((v - run_dt).total_seconds() / 3600) for v in valid_dts]
     print(f"  {len(valid_dts)} steps: T+{steps_h[0]}h → T+{steps_h[-1]}h")
+
+    print("Loading polygon masks...")
+    poly_masks = load_or_build_masks(
+        r2, R2_BUCKET, ECMWF_MASKS_PREFIX, WIDTH, HEIGHT,
+        LON_MIN, LON_MAX, LAT_MIN, LAT_MAX, ECMWF_POLY_LAYERS,
+    )
 
     print("Building O1280 grid + remap (once per run)...")
     lats, lons = build_o1280_grid()
@@ -634,10 +662,33 @@ def main():
                 return n, urls
 
             if accum_renders:
-                with ThreadPoolExecutor(max_workers=min(len(accum_renders), 4)) as ex:
+                # Area averages come off the same arrays as the PNGs, so the
+                # choropleth and the grid can never disagree. Only the windows
+                # that exist at this step are included — accum_24h before T+24
+                # has nothing to average — which is why /ecmwf reads a missing
+                # key as "no areas for this frame" rather than as an error.
+                poly_data = None
+                if poly_masks:
+                    poly_data = compute_poly_averages(
+                        {f"accum_{n}h": arr_n for n, arr_n in accum_renders}, poly_masks)
+
+                def _upload_poly():
+                    _r2_tl().put_object(
+                        Bucket=R2_BUCKET,
+                        Key=f"ecmwf_poly/{run_ts}/{offset}.json",
+                        Body=json.dumps(poly_data).encode(),
+                        ContentType="application/json; charset=utf-8",
+                    )
+
+                with ThreadPoolExecutor(max_workers=min(len(accum_renders) + 1, 5)) as ex:
                     afuts = [ex.submit(_upload_accum, n, a) for n, a in accum_renders]
+                    if poly_data:
+                        afuts.append(ex.submit(_upload_poly))
                     for fut in as_completed(afuts):
-                        n, urls = fut.result()
+                        res = fut.result()
+                        if res is None:
+                            continue
+                        n, urls = res
                         entry[f"accum_{n}h"] = urls
 
         step_entries_by_hours[hours] = entry
