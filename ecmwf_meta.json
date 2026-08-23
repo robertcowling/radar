@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-23T20:04:00.000Z",
+  "generated_at": "2026-08-23T20:20:00.000Z",
   "attribution": "ECMWF HRES (IFS) 9km native-resolution deterministic \u2014 CC BY 4.0, ecmwf.int, via Open-Meteo (openmeteo.com) Open Data",
   "runs": [
     {
@@ -64,11 +64,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0006H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0006H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0006H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0006H00M_accum_3h_met.png"
           }
         },
         {
@@ -78,11 +78,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0007H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0007H00M_accum_6h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0007H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0007H00M_accum_6h_met.png"
           }
         },
         {
@@ -92,11 +92,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0008H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0008H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0008H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0008H00M_accum_3h_met.png"
           }
         },
         {
@@ -106,11 +106,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0009H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0009H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0009H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0009H00M_accum_3h_met.png"
           }
         },
         {
@@ -120,11 +120,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0010H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0010H00M_accum_6h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0010H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0010H00M_accum_6h_met.png"
           }
         },
         {
@@ -162,11 +162,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0013H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0013H00M_accum_6h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0013H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0013H00M_accum_6h_met.png"
           }
         },
         {
@@ -176,11 +176,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0014H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0014H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0014H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0014H00M_accum_3h_met.png"
           }
         },
         {
@@ -190,11 +190,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0015H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0015H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0015H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0015H00M_accum_3h_met.png"
           }
         },
         {
@@ -232,11 +232,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0018H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0018H00M_accum_6h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0018H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0018H00M_accum_6h_met.png"
           }
         },
         {
@@ -260,11 +260,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0020H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0020H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0020H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0020H00M_accum_3h_met.png"
           }
         },
         {
@@ -274,11 +274,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0021H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0021H00M_accum_6h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0021H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0021H00M_accum_6h_met.png"
           }
         },
         {
@@ -288,11 +288,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0022H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0022H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0022H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0022H00M_accum_3h_met.png"
           }
         },
         {
@@ -302,11 +302,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0023H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0023H00M_accum_6h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0023H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0023H00M_accum_6h_met.png"
           }
         },
         {
@@ -316,14 +316,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0024H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0024H00M_accum_24h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0024H00M_accum_3h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0024H00M_accum_6h_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0024H00M_accum_3h_met.png"
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0024H00M_accum_24h_met.png"
           }
         },
         {
@@ -333,14 +333,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0025H00M_rate_met.png"
           },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0025H00M_accum_6h_met.png"
+          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0025H00M_accum_24h_met.png"
           },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0025H00M_accum_3h_met.png"
-          },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0025H00M_accum_6h_met.png"
           }
         },
         {
@@ -350,14 +350,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0026H00M_rate_met.png"
           },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0026H00M_accum_6h_met.png"
+          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0026H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0026H00M_accum_24h_met.png"
-          },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0026H00M_accum_6h_met.png"
           }
         },
         {
@@ -367,14 +367,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0027H00M_rate_met.png"
           },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0027H00M_accum_6h_met.png"
+          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0027H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0027H00M_accum_24h_met.png"
-          },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0027H00M_accum_6h_met.png"
           }
         },
         {
@@ -384,14 +384,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0028H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0028H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0028H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0028H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0028H00M_accum_3h_met.png"
           }
         },
         {
@@ -404,11 +404,11 @@
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0029H00M_accum_3h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0029H00M_accum_6h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0029H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0029H00M_accum_6h_met.png"
           }
         },
         {
@@ -418,11 +418,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0030H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0030H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0030H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0030H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0030H00M_accum_24h_met.png"
@@ -435,11 +435,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0031H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0031H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0031H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0031H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0031H00M_accum_24h_met.png"
@@ -452,11 +452,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0032H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0032H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0032H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0032H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0032H00M_accum_24h_met.png"
@@ -469,14 +469,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0033H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0033H00M_accum_3h_met.png"
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0033H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0033H00M_accum_24h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0033H00M_accum_6h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0033H00M_accum_3h_met.png"
           }
         },
         {
@@ -486,14 +486,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0034H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0034H00M_accum_24h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0034H00M_accum_3h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0034H00M_accum_6h_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0034H00M_accum_3h_met.png"
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0034H00M_accum_24h_met.png"
           }
         },
         {
@@ -503,11 +503,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0035H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0035H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0035H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0035H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0035H00M_accum_24h_met.png"
@@ -523,11 +523,11 @@
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0036H00M_accum_3h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0036H00M_accum_6h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0036H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0036H00M_accum_6h_met.png"
           }
         },
         {
@@ -537,11 +537,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0037H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0037H00M_accum_6h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0037H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0037H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0037H00M_accum_24h_met.png"
@@ -554,14 +554,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0038H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0038H00M_accum_24h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0038H00M_accum_3h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0038H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0038H00M_accum_24h_met.png"
           }
         },
         {
@@ -588,14 +588,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0040H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0040H00M_accum_24h_met.png"
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0040H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0040H00M_accum_3h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0040H00M_accum_6h_met.png"
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0040H00M_accum_24h_met.png"
           }
         },
         {
@@ -605,11 +605,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0041H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0041H00M_accum_3h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0041H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0041H00M_accum_3h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0041H00M_accum_6h_met.png"
@@ -622,11 +622,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0042H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0042H00M_accum_6h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0042H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0042H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0042H00M_accum_24h_met.png"
@@ -642,11 +642,11 @@
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0043H00M_accum_6h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0043H00M_accum_24h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0043H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0043H00M_accum_24h_met.png"
           }
         },
         {
@@ -656,14 +656,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0044H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0044H00M_accum_3h_met.png"
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0044H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0044H00M_accum_24h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0044H00M_accum_6h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0044H00M_accum_3h_met.png"
           }
         },
         {
@@ -673,14 +673,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0045H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0045H00M_accum_6h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0045H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0045H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0045H00M_accum_6h_met.png"
           }
         },
         {
@@ -690,11 +690,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0046H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0046H00M_accum_24h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0046H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0046H00M_accum_24h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0046H00M_accum_6h_met.png"
@@ -707,14 +707,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0047H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0047H00M_accum_6h_met.png"
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0047H00M_accum_24h_met.png"
           },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0047H00M_accum_3h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0047H00M_accum_24h_met.png"
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0047H00M_accum_6h_met.png"
           }
         },
         {
@@ -724,17 +724,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0048H00M_rate_met.png"
           },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0048H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0048H00M_accum_24h_met.png"
+          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0048H00M_accum_48h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0048H00M_accum_6h_met.png"
-          },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0048H00M_accum_24h_met.png"
-          },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0048H00M_accum_3h_met.png"
           }
         },
         {
@@ -747,14 +747,14 @@
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0049H00M_accum_6h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0049H00M_accum_24h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0049H00M_accum_3h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0049H00M_accum_48h_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0049H00M_accum_3h_met.png"
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0049H00M_accum_24h_met.png"
           }
         },
         {
@@ -764,14 +764,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0050H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0050H00M_accum_24h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0050H00M_accum_3h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0050H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0050H00M_accum_24h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0050H00M_accum_48h_met.png"
@@ -787,14 +787,14 @@
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0051H00M_accum_24h_met.png"
           },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0051H00M_accum_48h_met.png"
+          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0051H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0051H00M_accum_3h_met.png"
-          },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0051H00M_accum_48h_met.png"
           }
         },
         {
@@ -804,17 +804,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0052H00M_rate_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0052H00M_accum_48h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0052H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0052H00M_accum_24h_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0052H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0052H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0052H00M_accum_48h_met.png"
           }
         },
         {
@@ -844,17 +844,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0054H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0054H00M_accum_24h_met.png"
-          },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0054H00M_accum_48h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0054H00M_accum_3h_met.png"
           },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0054H00M_accum_24h_met.png"
+          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0054H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0054H00M_accum_48h_met.png"
           }
         },
         {
@@ -867,11 +867,11 @@
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0055H00M_accum_3h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0055H00M_accum_48h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0055H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0055H00M_accum_48h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0055H00M_accum_6h_met.png"
@@ -884,17 +884,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0056H00M_rate_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0056H00M_accum_48h_met.png"
-          },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0056H00M_accum_24h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0056H00M_accum_3h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0056H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0056H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0056H00M_accum_48h_met.png"
           }
         },
         {
@@ -907,14 +907,14 @@
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0057H00M_accum_6h_met.png"
           },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0057H00M_accum_48h_met.png"
+          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0057H00M_accum_24h_met.png"
           },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0057H00M_accum_3h_met.png"
-          },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0057H00M_accum_48h_met.png"
           }
         },
         {
@@ -924,17 +924,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0058H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0058H00M_accum_6h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0058H00M_accum_48h_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0058H00M_accum_3h_met.png"
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0058H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0058H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0058H00M_accum_3h_met.png"
           }
         },
         {
@@ -944,17 +944,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0059H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0059H00M_accum_6h_met.png"
-          },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0059H00M_accum_3h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0059H00M_accum_24h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0059H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0059H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0059H00M_accum_3h_met.png"
           }
         },
         {
@@ -964,17 +964,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0060H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0060H00M_accum_6h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0060H00M_accum_3h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0060H00M_accum_48h_met.png"
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0060H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0060H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0060H00M_accum_48h_met.png"
           }
         },
         {
@@ -990,11 +990,11 @@
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0061H00M_accum_6h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0061H00M_accum_24h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0061H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0061H00M_accum_24h_met.png"
           }
         },
         {
@@ -1004,14 +1004,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0062H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0062H00M_accum_3h_met.png"
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0062H00M_accum_48h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0062H00M_accum_6h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0062H00M_accum_48h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0062H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0062H00M_accum_24h_met.png"
@@ -1024,6 +1024,9 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0063H00M_rate_met.png"
           },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0063H00M_accum_24h_met.png"
+          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0063H00M_accum_3h_met.png"
           },
@@ -1032,9 +1035,6 @@
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0063H00M_accum_6h_met.png"
-          },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0063H00M_accum_24h_met.png"
           }
         },
         {
@@ -1044,17 +1044,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0064H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0064H00M_accum_24h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0064H00M_accum_3h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0064H00M_accum_6h_met.png"
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0064H00M_accum_24h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0064H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0064H00M_accum_6h_met.png"
           }
         },
         {
@@ -1067,14 +1067,14 @@
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0065H00M_accum_3h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0065H00M_accum_48h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0065H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0065H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0065H00M_accum_48h_met.png"
           }
         },
         {
@@ -1084,17 +1084,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0066H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0066H00M_accum_3h_met.png"
-          },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0066H00M_accum_6h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0066H00M_accum_24h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0066H00M_accum_48h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0066H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0066H00M_accum_6h_met.png"
           }
         },
         {
@@ -1107,11 +1107,11 @@
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0067H00M_accum_3h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0067H00M_accum_6h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0067H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0067H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0067H00M_accum_24h_met.png"
@@ -1127,14 +1127,14 @@
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0068H00M_accum_6h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0068H00M_accum_48h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0068H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0068H00M_accum_24h_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0068H00M_accum_3h_met.png"
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0068H00M_accum_48h_met.png"
           }
         },
         {
@@ -1164,17 +1164,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0070H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0070H00M_accum_24h_met.png"
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0070H00M_accum_48h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0070H00M_accum_6h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0070H00M_accum_48h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0070H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0070H00M_accum_24h_met.png"
           }
         },
         {
@@ -1184,17 +1184,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0071H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0071H00M_accum_6h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0071H00M_accum_24h_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0071H00M_accum_3h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0071H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0071H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0071H00M_accum_3h_met.png"
           }
         },
         {
@@ -1204,17 +1204,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0072H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0072H00M_accum_6h_met.png"
-          },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0072H00M_accum_3h_met.png"
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0072H00M_accum_48h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0072H00M_accum_24h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0072H00M_accum_48h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0072H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0072H00M_accum_6h_met.png"
           }
         },
         {
@@ -1224,17 +1224,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0073H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0073H00M_accum_6h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0073H00M_accum_3h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0073H00M_accum_48h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0073H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0073H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0073H00M_accum_48h_met.png"
           }
         },
         {
@@ -1250,11 +1250,11 @@
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0074H00M_accum_48h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0074H00M_accum_6h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0074H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0074H00M_accum_6h_met.png"
           }
         },
         {
@@ -1264,9 +1264,6 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0075H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0075H00M_accum_6h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0075H00M_accum_3h_met.png"
           },
@@ -1275,6 +1272,9 @@
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0075H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0075H00M_accum_6h_met.png"
           }
         },
         {
@@ -1284,17 +1284,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0076H00M_rate_met.png"
           },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0076H00M_accum_48h_met.png"
+          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0076H00M_accum_3h_met.png"
-          },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0076H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0076H00M_accum_24h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0076H00M_accum_48h_met.png"
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0076H00M_accum_6h_met.png"
           }
         },
         {
@@ -1304,17 +1304,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0077H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0077H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0077H00M_accum_6h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0077H00M_accum_48h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0077H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0077H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0077H00M_accum_48h_met.png"
           }
         },
         {
@@ -1324,8 +1324,8 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0078H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0078H00M_accum_3h_met.png"
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0078H00M_accum_48h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0078H00M_accum_6h_met.png"
@@ -1333,8 +1333,8 @@
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0078H00M_accum_24h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0078H00M_accum_48h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0078H00M_accum_3h_met.png"
           }
         },
         {
@@ -1347,11 +1347,11 @@
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0079H00M_accum_6h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0079H00M_accum_24h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0079H00M_accum_3h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0079H00M_accum_24h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0079H00M_accum_48h_met.png"
@@ -1364,17 +1364,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0080H00M_rate_met.png"
           },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0080H00M_accum_3h_met.png"
+          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0080H00M_accum_6h_met.png"
-          },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0080H00M_accum_24h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0080H00M_accum_48h_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0080H00M_accum_3h_met.png"
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0080H00M_accum_24h_met.png"
           }
         },
         {
@@ -1384,14 +1384,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0081H00M_rate_met.png"
           },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0081H00M_accum_3h_met.png"
+          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0081H00M_accum_48h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0081H00M_accum_6h_met.png"
-          },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0081H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0081H00M_accum_24h_met.png"
@@ -1404,17 +1404,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0082H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0082H00M_accum_3h_met.png"
-          },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0082H00M_accum_48h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0082H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0082H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0082H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0082H00M_accum_48h_met.png"
           }
         },
         {
@@ -1427,11 +1427,11 @@
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0083H00M_accum_24h_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0083H00M_accum_3h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0083H00M_accum_48h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0083H00M_accum_3h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0083H00M_accum_6h_met.png"
@@ -1444,11 +1444,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0084H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0084H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0084H00M_accum_6h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0084H00M_accum_3h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0084H00M_accum_48h_met.png"
@@ -1464,17 +1464,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0085H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0085H00M_accum_24h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0085H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0085H00M_accum_48h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0085H00M_accum_6h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0085H00M_accum_48h_met.png"
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0085H00M_accum_24h_met.png"
           }
         },
         {
@@ -1487,11 +1487,11 @@
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0086H00M_accum_3h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0086H00M_accum_24h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0086H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0086H00M_accum_24h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0086H00M_accum_6h_met.png"
@@ -1504,17 +1504,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0087H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0087H00M_accum_3h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0087H00M_accum_48h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0087H00M_accum_24h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0087H00M_accum_3h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0087H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0087H00M_accum_24h_met.png"
           }
         },
         {
@@ -1547,11 +1547,11 @@
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0089H00M_accum_6h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0089H00M_accum_48h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0089H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0089H00M_accum_48h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0089H00M_accum_24h_met.png"
@@ -1564,17 +1564,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0090H00M_rate_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0090H00M_accum_48h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0090H00M_accum_6h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0090H00M_accum_24h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0090H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0090H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0090H00M_accum_24h_met.png"
           }
         },
         {
@@ -1584,17 +1584,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0093H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0093H00M_accum_3h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0093H00M_accum_6h_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0093H00M_accum_48h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0093H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0093H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0093H00M_accum_48h_met.png"
           }
         },
         {
@@ -1604,17 +1604,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0096H00M_rate_met.png"
           },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0096H00M_accum_6h_met.png"
+          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0096H00M_accum_24h_met.png"
-          },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0096H00M_accum_3h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0096H00M_accum_48h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0096H00M_accum_6h_met.png"
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0096H00M_accum_3h_met.png"
           }
         },
         {
@@ -1624,17 +1624,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0099H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0099H00M_accum_6h_met.png"
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0099H00M_accum_48h_met.png"
           },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0099H00M_accum_3h_met.png"
           },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0099H00M_accum_6h_met.png"
+          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0099H00M_accum_24h_met.png"
-          },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0099H00M_accum_48h_met.png"
           }
         },
         {
@@ -1644,17 +1644,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0102H00M_rate_met.png"
           },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0102H00M_accum_6h_met.png"
+          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0102H00M_accum_3h_met.png"
-          },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0102H00M_accum_48h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0102H00M_accum_24h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0102H00M_accum_6h_met.png"
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0102H00M_accum_48h_met.png"
           }
         },
         {
@@ -1664,17 +1664,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0105H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0105H00M_accum_6h_met.png"
-          },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0105H00M_accum_48h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0105H00M_accum_3h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0105H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0105H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0105H00M_accum_6h_met.png"
           }
         },
         {
@@ -1687,14 +1687,14 @@
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0108H00M_accum_3h_met.png"
           },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0108H00M_accum_6h_met.png"
+          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0108H00M_accum_24h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0108H00M_accum_48h_met.png"
-          },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0108H00M_accum_6h_met.png"
           }
         },
         {
@@ -1727,14 +1727,14 @@
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0114H00M_accum_6h_met.png"
           },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0114H00M_accum_48h_met.png"
+          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0114H00M_accum_24h_met.png"
           },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0114H00M_accum_3h_met.png"
-          },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0114H00M_accum_48h_met.png"
           }
         },
         {
@@ -1744,9 +1744,6 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0117H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0117H00M_accum_3h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0117H00M_accum_48h_met.png"
           },
@@ -1755,6 +1752,9 @@
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0117H00M_accum_24h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0117H00M_accum_3h_met.png"
           }
         },
         {
@@ -1764,9 +1764,6 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0120H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0120H00M_accum_6h_met.png"
-          },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0120H00M_accum_3h_met.png"
           },
@@ -1775,6 +1772,9 @@
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0120H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0120H00M_accum_6h_met.png"
           }
         },
         {
@@ -1784,17 +1784,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0123H00M_rate_met.png"
           },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0123H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0123H00M_accum_48h_met.png"
+          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0123H00M_accum_24h_met.png"
           },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0123H00M_accum_3h_met.png"
-          },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0123H00M_accum_48h_met.png"
-          },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0123H00M_accum_6h_met.png"
           }
         },
         {
@@ -1804,17 +1804,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0126H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0126H00M_accum_3h_met.png"
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0126H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0126H00M_accum_24h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0126H00M_accum_6h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0126H00M_accum_48h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0126H00M_accum_3h_met.png"
           }
         },
         {
@@ -1824,14 +1824,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0129H00M_rate_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0129H00M_accum_48h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0129H00M_accum_24h_met.png"
           },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0129H00M_accum_3h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0129H00M_accum_48h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0129H00M_accum_6h_met.png"
@@ -1844,11 +1844,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0132H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0132H00M_accum_6h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0132H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0132H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0132H00M_accum_3h_met.png"
@@ -1864,17 +1864,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0135H00M_rate_met.png"
           },
-          "accum_3h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0135H00M_accum_3h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0135H00M_accum_24h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0135H00M_accum_6h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0135H00M_accum_48h_met.png"
+          },
+          "accum_3h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0135H00M_accum_3h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0135H00M_accum_6h_met.png"
           }
         },
         {
@@ -1884,6 +1884,9 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0138H00M_rate_met.png"
           },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0138H00M_accum_24h_met.png"
+          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0138H00M_accum_48h_met.png"
           },
@@ -1892,9 +1895,6 @@
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0138H00M_accum_6h_met.png"
-          },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0138H00M_accum_24h_met.png"
           }
         },
         {
@@ -1904,17 +1904,17 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0141H00M_rate_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0141H00M_accum_48h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0141H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0141H00M_accum_6h_met.png"
           },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0141H00M_accum_3h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0141H00M_accum_6h_met.png"
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0141H00M_accum_48h_met.png"
           }
         },
         {
@@ -1924,6 +1924,9 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0144H00M_rate_met.png"
           },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0144H00M_accum_6h_met.png"
+          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0144H00M_accum_24h_met.png"
           },
@@ -1932,9 +1935,6 @@
           },
           "accum_3h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0144H00M_accum_3h_met.png"
-          },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0144H00M_accum_6h_met.png"
           }
         },
         {
@@ -1944,14 +1944,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0150H00M_rate_met.png"
           },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0150H00M_accum_6h_met.png"
+          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0150H00M_accum_24h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0150H00M_accum_48h_met.png"
-          },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0150H00M_accum_6h_met.png"
           }
         },
         {
@@ -2012,11 +2012,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0174H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0174H00M_accum_6h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0174H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0174H00M_accum_6h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0174H00M_accum_48h_met.png"
@@ -2029,11 +2029,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0180H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0180H00M_accum_6h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0180H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0180H00M_accum_6h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0180H00M_accum_48h_met.png"
@@ -2063,14 +2063,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0192H00M_rate_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0192H00M_accum_48h_met.png"
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0192H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0192H00M_accum_24h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0192H00M_accum_6h_met.png"
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0192H00M_accum_48h_met.png"
           }
         },
         {
@@ -2080,14 +2080,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0198H00M_rate_met.png"
           },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0198H00M_accum_24h_met.png"
+          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0198H00M_accum_6h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0198H00M_accum_48h_met.png"
-          },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0198H00M_accum_24h_met.png"
           }
         },
         {
@@ -2097,11 +2097,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0204H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0204H00M_accum_6h_met.png"
-          },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0204H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0204H00M_accum_6h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0204H00M_accum_48h_met.png"
@@ -2114,14 +2114,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0210H00M_rate_met.png"
           },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0210H00M_accum_24h_met.png"
+          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0210H00M_accum_6h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0210H00M_accum_48h_met.png"
-          },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0210H00M_accum_24h_met.png"
           }
         },
         {
@@ -2131,14 +2131,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0216H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0216H00M_accum_24h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0216H00M_accum_6h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0216H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0216H00M_accum_24h_met.png"
           }
         },
         {
@@ -2151,11 +2151,11 @@
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0222H00M_accum_6h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0222H00M_accum_24h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0222H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0222H00M_accum_24h_met.png"
           }
         },
         {
@@ -2165,11 +2165,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0228H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0228H00M_accum_6h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0228H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0228H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0228H00M_accum_24h_met.png"
@@ -2182,14 +2182,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0234H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0234H00M_accum_24h_met.png"
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0234H00M_accum_6h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0234H00M_accum_48h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0234H00M_accum_6h_met.png"
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0234H00M_accum_24h_met.png"
           }
         },
         {
@@ -2199,14 +2199,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0240H00M_rate_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0240H00M_accum_48h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0240H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0240H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0240H00M_accum_48h_met.png"
           }
         },
         {
@@ -2216,14 +2216,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0246H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0246H00M_accum_24h_met.png"
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0246H00M_accum_6h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0246H00M_accum_48h_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0246H00M_accum_6h_met.png"
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0246H00M_accum_24h_met.png"
           }
         },
         {
@@ -2233,14 +2233,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0252H00M_rate_met.png"
           },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0252H00M_accum_24h_met.png"
+          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0252H00M_accum_6h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0252H00M_accum_48h_met.png"
-          },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0252H00M_accum_24h_met.png"
           }
         },
         {
@@ -2250,11 +2250,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0258H00M_rate_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0258H00M_accum_48h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0258H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0258H00M_accum_48h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0258H00M_accum_24h_met.png"
@@ -2267,14 +2267,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0264H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0264H00M_accum_6h_met.png"
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0264H00M_accum_24h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0264H00M_accum_48h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0264H00M_accum_24h_met.png"
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0264H00M_accum_6h_met.png"
           }
         },
         {
@@ -2284,14 +2284,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0270H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0270H00M_accum_24h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0270H00M_accum_6h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0270H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0270H00M_accum_24h_met.png"
           }
         },
         {
@@ -2301,11 +2301,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0276H00M_rate_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0276H00M_accum_24h_met.png"
-          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0276H00M_accum_6h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0276H00M_accum_24h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0276H00M_accum_48h_met.png"
@@ -2314,7 +2314,19 @@
         {
           "offset": "PT0282H00M",
           "offset_hours": 282,
-          "valid_label": "4 Sep 2026 07:00 BST"
+          "valid_label": "4 Sep 2026 07:00 BST",
+          "rainfall_rate": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0282H00M_rate_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0282H00M_accum_24h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0282H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0282H00M_accum_6h_met.png"
+          }
         },
         {
           "offset": "PT0288H00M",
@@ -2328,6 +2340,9 @@
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0288H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0288H00M_accum_6h_met.png"
           }
         },
         {
@@ -2340,11 +2355,11 @@
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0294H00M_accum_6h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0294H00M_accum_24h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0294H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0294H00M_accum_24h_met.png"
           }
         },
         {
@@ -2357,11 +2372,11 @@
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0300H00M_accum_6h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0300H00M_accum_24h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0300H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0300H00M_accum_24h_met.png"
           }
         },
         {
@@ -2371,11 +2386,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0306H00M_rate_met.png"
           },
-          "accum_48h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0306H00M_accum_48h_met.png"
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0306H00M_accum_24h_met.png"
           },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0306H00M_accum_6h_met.png"
+          },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0306H00M_accum_48h_met.png"
           }
         },
         {
@@ -2385,14 +2403,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0312H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0312H00M_accum_6h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0312H00M_accum_48h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0312H00M_accum_24h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0312H00M_accum_6h_met.png"
           }
         },
         {
@@ -2439,6 +2457,9 @@
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0330H00M_accum_24h_met.png"
           },
+          "accum_48h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0330H00M_accum_48h_met.png"
+          },
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0330H00M_accum_6h_met.png"
           }
@@ -2450,14 +2471,14 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0336H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0336H00M_accum_6h_met.png"
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0336H00M_accum_24h_met.png"
           },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0336H00M_accum_48h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0336H00M_accum_24h_met.png"
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0336H00M_accum_6h_met.png"
           }
         },
         {
@@ -2487,11 +2508,11 @@
           "accum_6h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0348H00M_accum_6h_met.png"
           },
-          "accum_24h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0348H00M_accum_24h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0348H00M_accum_48h_met.png"
+          },
+          "accum_24h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0348H00M_accum_24h_met.png"
           }
         },
         {
@@ -2518,11 +2539,11 @@
           "rainfall_rate": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0360H00M_rate_met.png"
           },
-          "accum_6h": {
-            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0360H00M_accum_6h_met.png"
-          },
           "accum_48h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0360H00M_accum_48h_met.png"
+          },
+          "accum_6h": {
+            "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0360H00M_accum_6h_met.png"
           },
           "accum_24h": {
             "met": "https://pub-96089466ef9841fb90f34b6f89f0a090.r2.dev/ecmwf/20260823T1200Z/PT0360H00M_accum_24h_met.png"
