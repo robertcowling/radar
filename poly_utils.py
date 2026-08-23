@@ -8,6 +8,7 @@ for different output grids.
 import hashlib
 import io
 import json
+import os
 
 import numpy as np
 from PIL import Image, ImageDraw
@@ -134,3 +135,70 @@ def compute_poly_averages(arrays_by_key, all_layer_masks):
             layer_result[key] = period_data
         result[layer_name] = layer_result
     return result
+
+
+def load_or_build_masks(r2, bucket, prefix, width, height,
+                        lon_min, lon_max, lat_min, lat_max, layers=None):
+    """Load cached pixel masks for one output grid from R2, building them if absent.
+
+    Grid-agnostic version of the per-pipeline loaders in make_accum_multi.py
+    (`accum_masks/`) and fetch_ukv.py (`ukv_masks/`). Those two are left alone
+    deliberately — both are long scheduled scripts, and rewriting them for a
+    feature about a third page is regression risk for no gain.
+
+    `prefix` names the cache, and each pipeline must own its prefix even when
+    two grids happen to be identical. The cache holds an npz, a names list and
+    a fingerprint of the source geojson; two callers sharing a prefix would
+    silently invalidate each other's cache the moment one of them changed what
+    goes into that fingerprint, and the symptom is masks quietly rebuilt on
+    every run rather than anything visibly broken.
+
+    Returns {layer_name: {poly_name: (rows, cols)}} for the layers whose
+    geojson is present; a missing file is skipped, not an error.
+    """
+    ll_to_merc, xmin, xmax, ymin_m, ymax_m = build_merc_axes(
+        width, height, lon_min, lon_max, lat_min, lat_max
+    )
+
+    all_masks = {}
+    for layer_name, (geojson_path, name_key) in (layers or GEOJSON_LAYERS).items():
+        if not os.path.exists(geojson_path):
+            print(f"  [{prefix}/{layer_name}] {geojson_path} not found — skipping")
+            continue
+
+        npz_key   = f"{prefix}/{layer_name}.npz"
+        names_key = f"{prefix}/{layer_name}_names.json"
+        fp_key    = f"{prefix}/{layer_name}_fp.json"
+        current_fp = geojson_fingerprint(geojson_path)
+
+        try:
+            cached_fp = json.loads(r2.get_object(Bucket=bucket, Key=fp_key)["Body"].read())
+            if cached_fp != current_fp:
+                raise ValueError("stale mask cache — source geojson changed")
+            names = json.loads(r2.get_object(Bucket=bucket, Key=names_key)["Body"].read())
+            npz_bytes = r2.get_object(Bucket=bucket, Key=npz_key)["Body"].read()
+            all_masks[layer_name] = npz_bytes_to_masks(npz_bytes, names)
+            print(f"  [{prefix}/{layer_name}] loaded from R2 ({len(names)} polygons)")
+            continue
+        except Exception:
+            pass
+
+        print(f"  [{prefix}/{layer_name}] building from {geojson_path}...")
+        masks = build_pixel_masks(geojson_path, name_key, width, height,
+                                  ll_to_merc, xmin, xmax, ymin_m, ymax_m)
+        names = list(masks.keys())
+        print(f"  [{prefix}/{layer_name}] {len(names)} polygons rasterised")
+
+        r2.put_object(Bucket=bucket, Key=npz_key,
+                      Body=masks_to_npz_bytes(masks, names),
+                      ContentType="application/octet-stream")
+        r2.put_object(Bucket=bucket, Key=names_key,
+                      Body=json.dumps(names).encode(),
+                      ContentType="application/json; charset=utf-8")
+        r2.put_object(Bucket=bucket, Key=fp_key,
+                      Body=json.dumps(current_fp).encode(),
+                      ContentType="application/json; charset=utf-8")
+        print(f"  [{prefix}/{layer_name}] cached to R2")
+        all_masks[layer_name] = masks
+
+    return all_masks

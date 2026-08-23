@@ -163,8 +163,32 @@ Three things to keep in mind when changing any of them:
 - v1 is deliberately lean vs UKV: one colour scheme (`_MET_COLORS`, the same
   "alternative" palette UKV itself offers, chosen so the two pages aren't
   visually confusable) and four accumulation windows (3h/6h/24h/48h, not
-  UKV's six) — no splat masks, no polygon/gauge time series. R2 key layout
+  UKV's six) — no splat masks and no gauge time series. R2 key layout
   mirrors UKV's: `ecmwf/{run_ts}/{offset}_{prefix}_met.png`.
+- **Area averages** are published per step as
+  `ecmwf_poly/{run_ts}/{offset}.json`, shaped exactly like UKV's
+  `ukv_poly/`: `{boundary: {accum_key: {area_name: mm}}}`. They are computed
+  from the *same* accumulation arrays the PNGs are rendered from, so the grid
+  and `/ecmwf`'s Areas view can never disagree, and only for the three
+  boundary sets that page offers (regions, counties, catchments) rather than
+  all five in `GEOJSON_LAYERS`.
+  - Masks are cached under **`ecmwf_masks/`, not `ukv_masks/`**. The two
+    grids are byte-identical (both `-26..17`, `43..63`, 1725x1800) so the npz
+    files really are duplicates, but sharing a prefix would couple the two
+    scripts through the cached geojson fingerprint: change what either one
+    puts in it and *both* pipelines silently rebuild masks on every run. The
+    loader is the grid-agnostic `poly_utils.load_or_build_masks()`;
+    `fetch_ukv.py` and `make_accum_multi.py` keep their own copies
+    deliberately, since rewriting either for a feature about a third page is
+    regression risk for no gain.
+  - **Forward-only.** The script exits early when the newest complete run is
+    already processed, and `FORCE_RERUN=1` only reprocesses that newest run,
+    so runs already in the manifest when this shipped have no poly file and
+    never will. `/ecmwf` shows a "not published for this frame" notice and a
+    way back to the grid rather than an empty map. Same for windows a step is
+    too early for — `accum_24h` before T+24 has no key.
+  - Retention: `cleanup_old_ecmwf_runs()` purges `ecmwf_poly/{run_ts}/`
+    alongside `ecmwf/{run_ts}/`, or the averages outlive their imagery.
 - Higher time-resolution (hourly to T+90h) and a longer horizon (15 vs the
   old feed's 10 days) mean roughly 2.5x more steps/day than the original
   0.25°-based design — still only ~75k R2 ops/month (well within budget, see
@@ -176,9 +200,8 @@ Three things to keep in mind when changing any of them:
   within about an hour, while a "not ready yet" check is just a small
   `meta.json` fetch, so faster polling buys nothing.
 - `ecmwf.html` shows catchment/region/county boundary outlines for
-  geographic reference (same GeoJSON sources as `/ukv`), but — unlike
-  UKV's boundary layer — with no per-run choropleth fill, since v1 has no
-  polygon-average data pipeline.
+  geographic reference (same GeoJSON sources as `/ukv`), and fills them as a
+  choropleth in its Areas view from the `ecmwf_poly/` files above.
 - No GRIB/eccodes system dependency any more (`ecmwf.yml` no longer runs
   `apt-get install libeccodes-dev`) — reading `.om` files is pure
   Python+numpy+scipy, which simplified the workflow versus the first cut of
