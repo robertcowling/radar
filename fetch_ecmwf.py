@@ -149,7 +149,7 @@ ACCUM_PERIODS = [3, 6, 24, 48]
 # pipelines rebuild masks on every run, silently.
 ECMWF_MASKS_PREFIX = "ecmwf_masks"
 ECMWF_POLY_LAYERS = {k: v for k, v in GEOJSON_LAYERS.items()
-                     if k in ("regions", "counties", "catchments")}
+                     if k in ("regions", "counties", "catchments", "grid")}
 
 # ── R2 ───────────────────────────────────────────────────────────────────────
 R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID", "")
