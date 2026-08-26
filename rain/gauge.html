@@ -1477,7 +1477,7 @@ function drawMap(s) {
     mapInstance = map;
     // CARTO Voyager / Dark Matter — the basemaps the radar viewer and the
     // /rain gauge map already use (index.html:1075, rain/index.html:566).
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/' + (dark ? 'dark_all' : 'voyager') + '/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/' + (dark ? 'dark_all' : 'voyager') + '/{z}/{x}/{y}{r}.png?key=cb1_27ic_1_fde6c8c094980efec9791cfc', {
         attribution: '&copy; OpenStreetMap, &copy; CARTO', subdomains: 'abcd', maxZoom: 19
     }).addTo(map);
 

@@ -417,7 +417,7 @@ const SOURCES = {
 };
 
 const map = L.map('map', {zoomControl:true}).setView([52.8, -1.5], 6);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_27ic_1_fde6c8c094980efec9791cfc', {
   attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18, subdomains:'abcd'
 }).addTo(map);
 

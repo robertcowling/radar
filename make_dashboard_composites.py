@@ -47,7 +47,11 @@ WIDE_OUT_W = OUT_W
 WIDE_OUT_H = int(round(OUT_W * (_wide_y_max - _wide_y_min) /
                         (EARTH_RADIUS * math.radians(WIDE_LON_MAX - WIDE_LON_MIN))))
 
-TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
+TILE_URL = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png?key=cb1_27ic_1_fde6c8c094980efec9791cfc"
+# Bump when TILE_URL changes: the basemap PNGs below survive across runs via the
+# GitHub Actions cache, so a tile-source change alone would never rebuild them
+# and the old imagery (e.g. CARTO's "API key required" watermark) would persist.
+BASEMAP_VERSION = 2
 BASEMAP_CACHE = "static/dashboard_basemap_uk_z8.png"
 BASEMAP_META  = "static/dashboard_basemap_uk_z8.meta"  # stores bounds so stale cache is detected
 WIDE_BASEMAP_CACHE = "static/dashboard_basemap_wide_z6.png"
@@ -315,7 +319,7 @@ def get_basemap():
     # Validate cached basemap against current bounds so a stale cache (built
     # with different extents) is never silently used — that causes visible
     # misalignment between the basemap tiles and GeoJSON boundary overlays.
-    expected_meta = f"{UK_LON_MIN},{UK_LON_MAX},{UK_LAT_MIN},{UK_LAT_MAX},{ZOOM}"
+    expected_meta = f"{UK_LON_MIN},{UK_LON_MAX},{UK_LAT_MIN},{UK_LAT_MAX},{ZOOM},v{BASEMAP_VERSION}"
     cache_valid = False
     if os.path.exists(BASEMAP_CACHE) and os.path.exists(BASEMAP_META):
         with open(BASEMAP_META) as f:
@@ -362,7 +366,7 @@ def build_wide_basemap():
 
 
 def get_wide_basemap():
-    expected_meta = f"{WIDE_LON_MIN},{WIDE_LON_MAX},{WIDE_LAT_MIN},{WIDE_LAT_MAX},{WIDE_ZOOM}"
+    expected_meta = f"{WIDE_LON_MIN},{WIDE_LON_MAX},{WIDE_LAT_MIN},{WIDE_LAT_MAX},{WIDE_ZOOM},v{BASEMAP_VERSION}"
     cache_valid = False
     if os.path.exists(WIDE_BASEMAP_CACHE) and os.path.exists(WIDE_BASEMAP_META):
         with open(WIDE_BASEMAP_META) as f:

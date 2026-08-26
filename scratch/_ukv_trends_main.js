@@ -590,7 +590,7 @@ function buildMaps() {
   row.style.gridTemplateRows = multi ? 'repeat(' + _compareMode + ', 1fr)' : '';
 
   var CENTER   = [54.5, -3.5], ZOOM = 5;
-  var TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  var TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_27ic_1_fde6c8c094980efec9791cfc';
   var TILE_OPT = { maxZoom: 12, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>' };
 
   panelSpecs().forEach(function(spec, idx) {
