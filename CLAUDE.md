@@ -16,6 +16,32 @@
 - Gauge QC: `gaugecheck.html` + `gauge_qc.py`
 - Data served from Cloudflare R2 via `https://radar.floodforecast.co.uk`
 
+## CARTO basemap API key
+
+Every map in this repo uses CARTO's raster basemaps, which since August 2026
+stamp an "API key required" watermark across each tile unless the request
+carries a key. Ours is `cb1_27ic_1_fde6c8c094980efec9791cfc` (free tier, 5M
+tile requests/month, no domain/referer restriction — verified). **Any new
+CARTO tile URL must append `?key=cb1_27ic_1_fde6c8c094980efec9791cfc`**, or
+that page silently renders watermarked tiles.
+
+- The key is inherently public (it ships in client-side HTML on every page),
+  so it is committed in plain text rather than injected as a secret — but keep
+  the CARTO + OpenStreetMap attribution visible, which is what the free tier
+  is in exchange for.
+- Both CARTO hosts in use honour the key: `{s}.basemaps.cartocdn.com`
+  (all the Leaflet pages, `voyager` and `dark_all`, retina and non-retina)
+  and the legacy `cartodb-basemaps-a.global.ssl.fastly.net` (`light_all`,
+  used server-side by `make_dashboard_composites.py`).
+- **`make_dashboard_composites.py` bakes basemap tiles into cached PNGs**
+  (`static/dashboard_basemap_*.png`) that survive across runs via the GitHub
+  Actions cache in `radar_parallel.yml`, so changing `TILE_URL` alone will
+  *not* refresh them. Bump `BASEMAP_VERSION` whenever `TILE_URL` changes — it
+  is part of the `.meta` cache-validity string, and without it a watermarked
+  basemap would stay baked into the dashboard/MSLP composites indefinitely.
+- Vector basemaps do not require a key yet; CARTO say they will notify before
+  that changes, and the same key will cover it.
+
 ## R2 Class A budget
 
 The Cloudflare R2 free tier allows **1M Class A operations/month**

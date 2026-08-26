@@ -339,7 +339,7 @@ async function applyComparisonSelection() {
 /* ── Map ─────────────────────────────────────────────────────────────── */
 function initMap() {
   var INIT_CENTER = [54.5, -3.5], INIT_ZOOM = 5;
-  var TILE_URL  = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  var TILE_URL  = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_27ic_1_fde6c8c094980efec9791cfc';
   var TILE_OPTS = { maxZoom: 12, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>' };
 
   _mapPrior  = L.map('mapPrior',  { zoomControl: true }).setView(INIT_CENTER, INIT_ZOOM);

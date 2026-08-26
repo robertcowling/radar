@@ -690,7 +690,7 @@
         var map = L.map('map', { zoomControl: false }).setView([54.5, -3.5], 6);
         L.control.zoom({ position: 'topleft' }).addTo(map);
 
-        var voyagerTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        var voyagerTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_27ic_1_fde6c8c094980efec9791cfc', {
             maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
         }).addTo(map);
 

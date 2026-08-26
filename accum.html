@@ -643,7 +643,7 @@ var SCHEMES = {
 var imgBounds = [[43.7009,-17.9739],[62.9207,16.1291]];
 var map = L.map('map', { zoomControl: false }).setView([54.5,-3.5], 5);
 L.control.zoom({ position: 'topleft' }).addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_27ic_1_fde6c8c094980efec9791cfc', {
   maxZoom: 20,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
 }).addTo(map);
